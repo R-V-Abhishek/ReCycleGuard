@@ -11,6 +11,13 @@ This mini-project supports a compliance officer in investigating discrepancies b
 - [Project charter PDF](output/pdf/PROJECT_CHARTER.pdf): compiled charter.
 - [Additional project PDF](output/pdf/ReCycleGuard.pdf).
 
+## Research inputs
+
+- [Domain research](docs/research/DOMAIN_RESEARCH.md): regulatory authorities, source hierarchy, compliance-officer workflow, evidence trails, and research gaps.
+- [Agentic implementation overview](docs/research/AGENTIC_IMPLEMENTATION_OVERVIEW.md): task mapping, ingestion/retrieval/tools, data licensing, synthetic-data precedents, and evaluation recommendations.
+
+These research notes are dated 16 October 2026 and support a later detailed system design. Proposed behavior and synthetic-data plans are not implemented or measured results.
+
 The repository currently contains planning documents; the agent implementation is forthcoming.
 
 ## Build the charter
