@@ -1,0 +1,88 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[top=14mm,bottom=14mm,left=16mm,right=16mm]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern,microtype}
+\usepackage{tabularx,array,xcolor}
+\usepackage[hidelinks]{hyperref}
+\definecolor{forest}{HTML}{185547}
+\definecolor{ink}{HTML}{263530}
+\definecolor{muted}{HTML}{596760}
+\definecolor{tint}{HTML}{EDF4F1}
+\hypersetup{pdftitle={ReCycleGuard - Project Charter},pdfauthor={R V Abhishek; H Sampreeth Bhat; Sushanth S; Vedantha Vinay Vernekar}}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{2pt}
+\setlength{\tabcolsep}{5pt}
+\renewcommand{\arraystretch}{1.12}
+\newcommand{\chartersection}[2]{\par\vspace{5pt}{\sffamily\bfseries\color{forest}\small #1\quad #2}\par\vspace{2pt}}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\pagestyle{empty}
+\begin{document}
+\color{ink}
+{\sffamily\footnotesize\bfseries\color{forest} PROJECT CHARTER\hfill REVIEW 1\enspace /\enspace 16 OCTOBER 2026}\par
+\vspace{4pt}
+{\sffamily\fontsize{28}{30}\selectfont\bfseries\color{forest} ReCycleGuard}\par
+\vspace{1pt}
+{\large Agentic AI for E-Waste EPR Compliance Reconciliation}\par
+\vspace{3pt}
+{\sffamily\fontsize{8.5}{11}\selectfont\color{muted} Agentic AI (26CD7PEAAI)\enspace$\cdot$\enspace B.E. CSE (Data Science), VII Semester, BMSCE\\
+Instructor: Dr. Kalyan Nagaraj}
+\vspace{5pt}
+{\color{forest}\hrule height 1pt}
+
+\chartersection{01}{AREA, PROBLEM AND SCOPE}
+\textbf{Area:} Circular economy and environmental compliance; India's e-waste Extended Producer Responsibility (EPR) reconciliation. Producer obligations and supporting records can disagree because of duplicates, quantity/category mismatches, incorrect periods, missing evidence or outdated rule references. Manual reconciliation must distinguish record errors from an unresolved shortfall.
+
+\textbf{Scope:} One producer, one reporting period, limited equipment categories, structured records and a curated regulatory corpus. Use synthetic or de-identified data. Exclude live portal integration, regulatory filing and automatic legal compliance determination.
+
+\chartersection{02}{DECISION SUPPORTED AND OUTPUT}
+\begingroup
+\setlength{\fboxsep}{8pt}
+\noindent\colorbox{tint}{\parbox{\dimexpr\linewidth-16pt\relax}{\sffamily\small\color{forest}\textbf{Which discrepancy should the compliance officer investigate next, and what verification or corrective action does the evidence support?}}}
+\endgroup
+\par\vspace{2pt}
+An auditable report will link findings to record IDs, calculations, applicable provisions/versions, open questions and next steps. Internal statuses: \emph{Reconciled; Discrepancy detected; Pending verification; Requires expert review}. These are proposed system statuses, not official regulatory classifications.
+
+\chartersection{03}{AGENTIC CONCEPT MAPPING}
+{\small
+\begin{tabularx}{\linewidth}{@{}>{\bfseries}L{32mm}Y@{}}
+Planning/reasoning & Plan checks $\rightarrow$ use tools $\rightarrow$ inspect results $\rightarrow$ investigate gaps $\rightarrow$ revise or stop within configured step limits.\\[2pt]
+Tool use & Code checks duplicates, categories, quantities and periods; calculates the apparent gap from configured obligations and verified eligible credits.\\[2pt]
+Agentic RAG & Select period-relevant provisions, assess evidence, re-query weak results and escalate unresolved applicability; retain source/version references.\\[2pt]
+Observability & Trace actions, tool inputs/outputs, retrieved evidence, adaptations, stop reasons and final findings for every run.\\[2pt]
+Evaluation & Golden cases; measure discrepancy precision/recall, arithmetic accuracy, citation support and appropriate escalation.\\[2pt]
+Bonus concepts & Collector/auditor collaboration, human review, input/output validation and bounded loops.\\
+\end{tabularx}}
+\textbf{Agentic fit:} The agent chooses follow-up checks and retrieval in response to missing or conflicting evidence, rather than stopping at a fixed calculation or single prompt.
+
+\chartersection{04}{DATA, TOOLS AND FEASIBILITY}
+\textbf{Data:} Obligation tables; certificate/transaction CSVs with IDs, quantities/units, categories, periods and allocation links; official E-Waste (Management) Rules, 2022, applicable amendments and CPCB guidance, tagged by version and effective period. Confirm document applicability during design.
+
+\textbf{Proposed tools:} Python/pandas, SQLite, LangGraph, a searchable document index, a bounded LLM interface and structured traces. Regulatory sources: \href{https://cpcb.nic.in/}{CPCB}, \href{https://eprewaste.cpcb.gov.in/}{EPR portal} and \href{https://moef.gov.in/}{MoEFCC}.
+\textbf{Experiment:} Compare fixed retrieval with agent-controlled re-querying on identical cases; measure evidence quality, detection and tool/call cost. Results remain to be measured.
+
+\chartersection{05}{TEAM AND PROPOSED OWNERSHIP}
+{\fontsize{8.5}{10.5}\selectfont
+\begin{tabularx}{\linewidth}{@{}L{46mm}L{26mm}Y@{}}
+\hline
+\rule{0pt}{14pt}\sffamily\bfseries Member & \sffamily\bfseries Student ID & \sffamily\bfseries Responsibility\\[3pt]
+\hline
+\rule{0pt}{14pt}R V Abhishek \textbf{(Lead)} & 1BM23CD047 & Coordination/submissions; orchestration and integration.\\[3pt]
+H Sampreeth Bhat & 1BM23CD020 & Regulatory corpus, retrieval, temporal metadata and citations.\\[3pt]
+Sushanth S & 1BM23CD063 & Data contracts, reconciliation tools, golden cases and evaluation.\\[3pt]
+Vedantha Vinay Vernekar & 1BM23CD069 & Tracing, experiment, report/demo and human review flow.\\[4pt]
+\hline
+\end{tabularx}}
+{\footnotesize\itshape Component responsibilities are proposed; every member must explain the whole system.}
+
+\vfill
+\vspace{6pt}
+{\color{forest}\hrule height 0.5pt}
+\vspace{4pt}
+\begin{minipage}{\linewidth}
+\sffamily\fontsize{8}{10}\selectfont\color{muted}
+\textbf{MILESTONES}\quad R2: 24 Oct\enspace$\cdot$\enspace R3: 31 Oct\enspace$\cdot$\enspace R4: 7 Nov\enspace$\cdot$\enspace Final submission: 12 Nov 2026\par
+\vspace{2pt}
+\textbf{REVIEW BOUNDARY}\quad A numerical gap triggers investigation. Uncertain evidence requires abstention or expert review. Outputs remain advisory and human-confirmed.
+\end{minipage}
+\end{document}
