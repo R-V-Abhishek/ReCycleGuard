@@ -15,8 +15,16 @@ This mini-project supports a compliance officer in investigating discrepancies b
 
 - [Domain research](docs/research/DOMAIN_RESEARCH.md): regulatory authorities, source hierarchy, compliance-officer workflow, evidence trails, and research gaps.
 - [Agentic implementation overview](docs/research/AGENTIC_IMPLEMENTATION_OVERVIEW.md): task mapping, ingestion/retrieval/tools, data licensing, synthetic-data precedents, and evaluation recommendations.
+- [CPCB EPR data and RAG research](docs/research/CPCB%20EPR%20Data%20and%20RAG.md): additional source inventory, candidate fields, and synthetic-data proposals.
 
-These research notes are dated 16 October 2026 and support a later detailed system design. Proposed behavior and synthetic-data plans are not implemented or measured results.
+The initial research notes are dated 16 October 2026; the additional CPCB data/RAG document is a further design input. Proposed behavior and synthetic-data plans are not implemented or measured results.
+
+## System specification
+
+- [System design](docs/design/SYSTEM_DESIGN.md): component architecture, online-source storage, synthetic dossier formats, reconciliation, retrieval, complete audit trails, recovery, and evaluation.
+- [Component contracts](docs/design/CONTRACTS.md): versioned input/output types, permissions, component interfaces, data/control flow, and integration acceptance criteria.
+
+The specifications were drafted on 18 October and checked on 19 October 2026. They qualify tentative research assumptions and describe planned implementation.
 
 The repository currently contains planning documents; the agent implementation is forthcoming.
 
