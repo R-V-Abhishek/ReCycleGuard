@@ -6,6 +6,8 @@
 
 **Status:** Preliminary implementation overview and research recommendations. This is **not the detailed system design**, an implemented API specification, or a claim of measured performance.
 
+**Consistency corrections:** 22 October 2026. The [component contracts](../design/CONTRACTS.md) now define the shared types, source-alias resolution, tool aliases and F01–F16 taxonomy; the original source-inspection cut-off is unchanged.
+
 ## 1. What the system should emulate
 
 Emulate the officer's **evidence-based investigation**, not every activity performed by an electronics business. Given a bounded producer dossier, the system should establish its scope, inspect its evidence, run reproducible checks, retrieve applicable provisions when a question requires interpretation, investigate mismatches and produce a human-reviewable working paper.
@@ -86,12 +88,12 @@ The diagram expresses behavior, not a finalized deployment. Framework, storage e
 
 ### 4.1 Example adaptive investigation
 
-1. A deterministic check finds an apparent 45 kg gap in one synthetic metal bucket.
+1. A deterministic check finds an apparent 45 kg gap: a synthetic 100 kg target minus one evidenced 55 kg credit-lot allocation, with the 55 kg snapshot retained only as a cross-check.
 2. The investigator sees two identical ledger lines and queries their source/event provenance.
-3. They are overlapping exports of the same event; the tool removes double counting from the *derived calculation*, retaining both originals.
+3. A matching external event ID or complete profile compound key with corroborated source continuity establishes SUPPORTED equivalence for F02. The tool counts the allocation once while retaining both observations; ambiguous collisions remain pending.
 4. A paid 25 kg item has no established transfer. The investigator searches the supplied account snapshots and transaction references.
-5. A newer snapshot provides evidence, but its date requires a cut-off check. The agent retrieves the applicable period rule/profile and compares the event dates.
-6. If support is sufficient, a tool recalculates the position; otherwise the item remains pending and the agent requests the precise missing evidence.
+5. A newer snapshot is a comparison lead, not allocation evidence by itself. Investigate the 25 kg transfer, allocation and cut-off/earlier-liability evidence under the reviewed profile.
+6. Only a newly supported 25 kg allocation in a new case version produces 80 kg ledger-supported and a 20 kg apparent gap; otherwise keep it pending with an explicit abstention reason and missing-evidence request.
 7. The report distinguishes arithmetic, evidence coverage and interpretation; no legal-violation verdict is manufactured.
 
 This demonstrates an agent choosing its next action based on observations. Calling a retriever once before narrating precomputed results would not demonstrate the same behavior.
@@ -277,7 +279,7 @@ The agent must not see hidden labels, case-family names or answer-bearing filena
 | Scenario family | Expected behavior |
 | --- | --- |
 | Clean case | Reconcile within scope without inventing problems. |
-| Overlapping exports | Preserve provenance and count the event once. |
+| Overlapping exports | Count one allocation only when the profile's full event key and corroboration support equivalence; F02 oracle explicitly states SUPPORTED or PENDING. |
 | Legitimate multi-stage identifier reuse | Recognize lifecycle repetition rather than deleting valid records. |
 | Kilogram/tonne or metal/equipment confusion | Detect incompatible units/dimensions before summing. |
 | Wrong producer/recipient | Keep entities separate and flag the mismatch. |
@@ -294,6 +296,8 @@ The agent must not see hidden labels, case-family names or answer-bearing filena
 | Document prompt injection | Treat it as content, preserve the workflow and record the attempt. |
 
 These are analytical fault models, not accusations about actual producers. Include both single defects and held-out combinations, plus genuinely ambiguous cases and harmless repeated records.
+
+The rows above correspond, in order, to the shared F01–F16 FaultFamily enum in [CONTRACTS §5.4](../design/CONTRACTS.md#54-shared-fault-family-taxonomy). Generator labels, runtime finding classifications and oracle expected findings use that one enum. [DOMAIN_RESEARCH's alias table](DOMAIN_RESEARCH.md#source-alias-reconciliation-across-research-documents) disambiguates B02/B03 and the additional S/P sources.
 
 ### 11.4 Pilot size and splits
 

@@ -24,7 +24,7 @@ The initial research notes are dated 16 October 2026; the additional CPCB data/R
 - [System design](docs/design/SYSTEM_DESIGN.md): component architecture, online-source storage, synthetic dossier formats, reconciliation, retrieval, complete audit trails, recovery, and evaluation.
 - [Component contracts](docs/design/CONTRACTS.md): versioned input/output types, permissions, component interfaces, data/control flow, and integration acceptance criteria.
 
-The specifications were drafted on 18 October and checked on 19 October 2026. They qualify tentative research assumptions and describe planned implementation.
+The specifications were drafted on 18 October and corrected against the research review on 22 October 2026. They qualify tentative research assumptions and describe planned implementation.
 
 The repository currently contains planning documents; the agent implementation is forthcoming.
 

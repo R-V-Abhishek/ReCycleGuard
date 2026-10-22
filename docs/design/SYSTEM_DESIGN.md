@@ -1,10 +1,10 @@
 # ReCycleGuard system design
 
-**Version:** 1.0 — 18 October 2026.
+**Version:** 1.1 — corrected 22 October 2026.
 
 **Status:** Implementation specification; components and datasets described here are planned, not already built.
 
-**Final consistency review:** 19 October 2026.
+**Final consistency review:** 22 October 2026.
 
 **Interface authority:** [CONTRACTS.md](CONTRACTS.md) defines boundary types, validation and protocol behavior. This document defines architecture, storage, algorithms and acceptance criteria.
 
@@ -147,7 +147,7 @@ A content hash identifies bytes, **not access permission**. The catalog also rec
 | --- | --- | --- |
 | Acquisition/catalog | `source_leads`, `fetch_attempts`, `artifacts`, `artifact_revisions`, `artifact_access`, `rights_decisions` | C01/C02 through C11 transactions |
 | Extraction | `extractions`, `coverage_items`, `observations`, `extraction_issues` | C03 |
-| Knowledge | `source_versions`, `provisions`, `provision_versions`, `amendment_edges`, `table_rows`, `source_reviews` | C03–C05 |
+| Knowledge | `source_versions`, `provisions`, `provision_versions`, `amendment_edges`, `deadline_entries`, `table_rows`, `source_reviews` | C03–C05 |
 | Case facts | `entities`, `identity_assertions`, `registrations`, `product_mappings`, `sales_records`, `obligations`, `commercial_records`, `certificate_observations`, `event_assertions`, `credit_lots`, `allocations`, `account_balance_observations` | C04; reviewed superseding assertions through C13 |
 | Frozen inputs | `case_versions`, `case_members`, `corpus_snapshots`, `corpus_members`, `calculation_profiles`, `index_manifests` | C05/C06 |
 | Calculations | `calculation_results`, `calculation_inputs`, `quantity_dispositions`, `finding_revisions` | C08/C09 |
@@ -187,6 +187,8 @@ Source states are `DISCOVERED`, `FETCH_FAILED`, `ACQUIRED`, `EXTRACTED`, `REVIEW
 
 R10 mirrors become acquisition locations for source versions; compare bytes before asserting two hosts serve identical content. Hash mismatch means two revisions for review, not automatic replacement.
 
+Use the shared SourceClass enum to distinguish statutes, Gazette rules, orders, frameworks, SOPs, instructions, FAQs and notice leads. Retain instrument commencement separately from notification/publication/upload dates, with clause overrides in reviewed applicability assertions. Add DocumentType and evidence-capability limits to each artifact: a weight ticket, recycling acknowledgment, destruction certificate and portal EPR certificate must not become interchangeable “certificate” evidence. Gazette redistribution decisions start REVIEW_REQUIRED, not ALLOW.
+
 ### 4.2 Extraction and indexing
 
 Preserve page numbers using **one-based PDF page indexes**, with printed page labels separate. For each page store exact extracted text, method/version, status and table structures. Table cells retain row/column/header/footnote references and bounding boxes where available. CSV observation locators use one-based data-row numbers excluding the header; raw line spans are retained separately for multi-line cells.
@@ -198,6 +200,8 @@ Chunk by legal provision and table row with parent context, but permit bounded s
 An amendment can replace one subrule without ending the entire base document. Maintain relations between provision versions with reviewed commencement and scope. Date intervals are half-open `[from, to)`; an unknown start/end is not silently “always applicable.” A reviewed open-ended interval is explicitly marked open-ended.
 
 Distinguish the reporting period, business event time, filing-deadline basis and **knowledge cut-off** (what evidence was available to the investigator). A later notice may address an earlier reporting year. Do not reject it solely because its issue date follows that year's end; a reviewed applicability assertion must establish its effect. The agent retrieves applicable overlays; it cannot edit them.
+
+Maintain a frozen DeadlineEntry register with separate OBLIGATION_ACHIEVEMENT, CREDIT_EVENT and RETURN_FILING entries: baseline, extended date, enabling provision, actual order and unverified-notice state. Rule 9A by itself is not an extension. A reviewed return extension cannot automatically change the other two deadlines.
 
 ### 4.4 Rights-aware storage and export
 
@@ -223,6 +227,10 @@ Entity IDs are internal keys; GSTIN/PAN/CIN/IEC are evidence-backed identifiers,
 6. `Allocation`: a supported amount from a credit lot, evidenced by its event history, allocated to a particular liability bucket. Transfer and adjustment observations of the same amount do not both count toward fulfillment.
 
 Use authoritative external transaction IDs where available. Otherwise create internal event IDs and leave equivalence pending unless a documented compound key and corroborating evidence establish identity. Hashing a hypothesis does not make it true. Replay ordering preserves effective times and assertion/revision order; equal-time ambiguous events remain unresolved.
+
+The profile's event-equivalence key includes resolved certificate/lot, event kind and observed stage, exact time including precision/timezone, normalized quantity/dimension/metal and parties. Overlapping export windows corroborate but do not alone prove identity; source continuity must rule out distinct indistinguishable events. F02's oracle explicitly marks the fully corroborated fixture SUPPORTED; incomplete-key/collision variants remain pending. F03 remains a separate legitimate-multistage family.
+
+Preserve observed transfer stages such as INITIATED, OTP_INITIATED and PUBLIC_KEY_DISPATCHED through a versioned mapping to historical screen guidance. They are not asserted current export fields and do not establish completed transfer. Keep source stage labels, never actual OTP/key secrets.
 
 ### 5.3 Quantities and cut-offs
 
@@ -260,7 +268,9 @@ Structured facts must originate in declared evidence artifacts with resolvable r
 
 Generate a clean connected world, validate invariants, render the visible evidence, inject deterministic faults, and compute independently reviewed expected outputs. Keep generation seed, fault labels, answers, world ledger and corruptions **outside the runtime mount**; filenames and scenario IDs must not reveal labels. Synthetic identity strings are unmistakable project identifiers (`SYNTH_ENTITY_001`), not valid-looking personal identity numbers claimed to belong to real firms.
 
-The 48-case pilot contains 24 development and 24 held-out cases with clean, repeated-event, unit, entity, stale-snapshot, pending-transfer, historical-allocation, capability, source-version, missing-source, weight, unsupported-profile, extraction and injection variants. Split by entity/template/fault combination, not random rows. Publish seeds for released development cases; keep held-out answers private until the planned evaluation is complete.
+The planned 48-case pilot contains 24 development and 24 held-out cases covering exactly the shared F01–F16 FaultFamily enum in CONTRACTS §5.4. F02 overlapping exports and F03 multistage ID reuse are distinct; F09 expired/cancelled cases are included. The generator, finding classifications and oracle use this shared taxonomy. Split by entity/template/fault combination, not random rows. Publish seeds for released development cases; keep held-out answers private until the planned evaluation is complete.
+
+Fixture 1 uses a synthetic 100 kg obligation, one supported 55 kg credit-lot allocation, two corroborated observations of that same allocation, and a 25 kg paid item with pending transfer/allocation. The account snapshot's 55 kg is only a comparison. A later evidenced and reviewed 25 kg allocation yields 80 kg supported and a 20 kg apparent gap; a newer snapshot alone cannot do so. This is the same allocation-based example as DOMAIN_RESEARCH §8.1, not a statutory denomination prescription.
 
 The oracle has two layers: hidden world truth and **what is justified from visible evidence**. A missing visible transfer can require abstention even when the world ledger knows that it happened. The reference oracle uses independently reviewed fixtures/calculations rather than calling the production reconciliation function as its sole truth source.
 
@@ -290,6 +300,10 @@ Allocation constraints: compatible metal/dimension/entity; positive amounts; tot
 
 V1 supported quantities use the allocation ledger only. A supplied adjusted account balance is stored as an `AccountBalanceObservation` and is **comparison-only**, never added to event allocations and never converted into invented allocations. If only an aggregate balance is available, report it beside the incomplete ledger result and qualify the apparent gap; do not claim that absent allocation history proves zero fulfillment. Supporting account-balance-only calculation requires a later explicit profile variant.
 
+Check allocation priority at the time each later-year allocation was made: confirmed compatible earlier outstanding liability emits EARLIER_LIABILITY_UNMET; incomplete history/order emits LIABILITY_PRIORITY_UNRESOLVED. Neither is inferred merely from end-of-year totals. Preserve observed account allocations even when they fail the derived-support check. Reserve a source-backed purchase-ceiling-policy slot for Rule 15(1); the published 5% text has been inspected, but the slot stays DISABLED_REVIEW_REQUIRED until its applicability and purchase inputs are approved.
+
+Each bucket also reports `portal_reported`, `ledger_supported` (= supported), and `delta = portal_reported - ledger_supported`, linked to the exact snapshot comparison. Missing/incompatible portal evidence yields null, not zero. This delta is distinct from the required-minus-supported apparent gap.
+
 This is the project's arithmetic model, not a complete statutory target formula. Unsupported adjustments, uncertain eligibility and contradictory balances produce findings and limits.
 
 ### 6.3 What code checks and what the agent decides
@@ -305,6 +319,8 @@ Code performs exact lookups, joins, dimensional validation, event-equivalence ch
 3. **Expansion:** Attach parent headers, footnotes and applicable amendment counterparts. Bound expansion and persist its full edge traversal/disposition list.
 4. **Grading:** Record authority, temporal applicability, direct support, completeness and contradiction independently. Deterministic checks establish IDs/dates; semantic support remains a structured model assessment subject to review.
 5. **Correction:** At most two query reformulations per finding within the overall action budget; missing/conflicting authority escalates.
+
+Locator fallback uses C07 `resolve_locator` with frozen corpus, source alias/version, legal path and applicability basis to obtain an exact provision revision even before search. Ambiguous resolution abstains. ExpansionPolicy explicitly bounds parent/header/footnote/amendment/reference traversal; its default depth is 2 and maximum nodes 20, with access and temporal checks retained.
 
 A corpus-wide membership snapshot plus filtering results identifies the full candidate universe. For top-N retrieval, retain every scored candidate returned by each engine; classify remaining eligible chunks as `NOT_SCORED` or `OUTSIDE_ENGINE_WINDOW`, not as semantically rejected. Full source bytes remain available even for chunks never retrieved.
 
@@ -333,6 +349,8 @@ stateDiagram-v2
 Defaults: eight investigative tool calls per finding, two query reformulations, one report repair and one retry per retryable provider/tool attempt; case-wide action, token, cost and wall-time ceilings are required configuration. Preflight/mandatory verification are recorded separately and also bounded. Retries consume the relevant provider/case budgets. Tools cannot hide unbounded recursive retrieval or arbitrary subprocesses.
 
 Start with one investigator and deterministic verification. Collector/auditor is an optional experiment sharing the same controlled dispatcher and evidence contracts. Both roles see the same authorized snapshots; neither gets oracle data. Capture their separate context and decisions to measure whether collaboration adds value.
+
+Persist a PlanRecord before each investigative action, then an ObservationAssessment after the result identifying support, refutation, weak evidence, mistakes or no progress. Revisions link to the preceding plan and triggering observation, and TurnManifest records whether the plan changed. This demonstrates the required visible adaptation without storing private chain-of-thought. Findings use explicit abstention reasons and withheld-claim scope; no verified conclusion/quantity is emitted for the unresolved scope.
 
 ## 8. Complete audit trails, including unused information
 
@@ -384,6 +402,10 @@ C12 builds a structured report before rendering prose. Quantities come from calc
 Report verification checks existence/access of citations, locator resolution, numeric agreement, version consistency, coverage disclosure, scope language and unresolved items. These checks do not prove semantic/legal correctness; unsupported interpretations still need review. Failures get one bounded repair, otherwise `BLOCKED_OUTPUT` with retained draft and diagnostics.
 
 C13 binds decisions to exact report JSON/render hashes and input/profile versions. A changed report requires a new packet. Rejection adds a new review event, not deletion of a report. A supplied filing acknowledgment is a separate artifact with provenance; “approved report” never becomes “return filed.”
+
+Use the eight ordered ReportSection IDs in CONTRACTS §7/C12, with finding priority, investigation history, named next-action owner and scope limits. C12 explicitly rejects agent-authored legal-compliance verdicts, intent/fraud/concealment inference and compensation amounts in v1; generic qualification cannot bypass this prohibition. CaseScope retains a masked authorized-signatory reference and evidence/action validity, separate from reviewer authentication.
+
+C08 `compare_return_draft` checks section dispositions as well as figures. Missing required awareness evidence or applicable unsupported/excluded solar sections prevents whole-return readiness; unknown applicability yields READINESS_UNDETERMINED. CONTRACTS §13 maps legacy research tools to current owners, including weight-basis checks, action-note preparation and finding reopening; aliases do not add privileges.
 
 Two exports are required: **complete local audit bundle** within the user's permitted access and **publication bundle** with rights/redaction decisions. The public manifest lists restricted omissions and hashes only where disclosure is allowed; reviewers can verify a private audit under the proper permissions. A public bundle cannot claim to contain the full private evidence trail when it does not.
 

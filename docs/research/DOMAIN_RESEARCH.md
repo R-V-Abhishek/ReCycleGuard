@@ -4,6 +4,8 @@
 
 **Perspective:** A compliance officer working for a producer of electrical and electronic equipment (EEE).
 
+**Corrections reviewed:** 22 October 2026; original research cut-off remains 16 October except for the explicitly rechecked provisions below.
+
 **Companion:** [Officer-task-to-agent mapping and data feasibility](AGENTIC_IMPLEMENTATION_OVERVIEW.md).
 
 ## 1. Purpose, evidence and limits
@@ -121,6 +123,10 @@ A business selling under its brand or importing covered EEE may be a producer ev
 ### 4.2 Targets are period- and product-dependent
 
 Historical sales and product life matter; applying a percentage to current-year sales is not a safe general formula. The government explains the headline phased targets as 60%, then 70%, then 80% across the relevant years. These headlines do not select the correct sales cohort or determine a particular producer's position. [MoEFCC's PIB explanation](https://www.pib.gov.in/PressReleasePage.aspx?PRID=1881761&lang=2&reg=48).
+
+Rechecked against Schedule III on 22 October 2026: 60% for FY 2023–24 and 2024–25; 70% for FY 2025–26 **and 2026–27**; 80% for FY 2027–28 and 2028–29 onwards, subject to the schedule's review provision. The basis is the specified historical product-life cohort, not current sales. Schedule IV has a different recently-started-producer branch; neither schedule prescribes the solar 20%/30%/40% sequence asserted in the added research note. No fixture derives targets from these headlines. [Official Rules, Schedules III–IV](https://eprewaste.cpcb.gov.in/assets/PDF/e-waste_rules_2022.pdf).
+
+Dismantlers were not eliminated as a defined activity: G.S.R. 164(E) substitutes their definition. They are not a separate Rule 4 registration category; those are different statements. [March 2024 amendment, clause 2](https://eprewaste.cpcb.gov.in/assets/PDF/Amendment-Rules-2024.pdf).
 
 For the project, begin with a supplied, reviewed **portal obligation snapshot** and reconcile against it. Independently deriving statutory targets from historical sales should be a separately validated extension. Where the snapshot and an independent calculation differ, retain both and investigate instead of overwriting the assigned target.
 
@@ -338,13 +344,14 @@ Assume a **synthetic, reviewed obligation bucket** of 100 kg of one metal for on
 
 | Evidence | Observation | Treatment in the working paper |
 | --- | --- | --- |
-| Earlier official account snapshot | 55 kg recorded as adjusted | Preserve as the starting supported figure. |
+| Supported event/allocation evidence | One supported 55 kg allocation from a resolved credit lot into this bucket | This allocation, not an aggregate snapshot, establishes the starting supported quantity. |
+| Earlier official account snapshot | 55 kg recorded as adjusted | Comparison-only cross-check against the allocation ledger. |
 | Internal purchase ledger | Three rows: 55 kg, 55 kg, 25 kg | Do not add to 135 kg and declare the target met. |
-| Two 55 kg rows | Same source transaction repeated by an overlapping export | One business event; retain both source references. |
+| Two 55 kg rows | Same external event ID, or complete profile compound key with corroborated source continuity and overlapping export windows | SUPPORTED event equivalence in this fixture; count its allocation once and retain both observations. Missing key/collision variants remain pending. |
 | 25 kg purchase | Invoice/payment present; transfer not established | Pending evidence, not recognized completion. |
-| Later authenticated export supplied by officer | Adds evidence of the 25 kg event, dated after the earlier snapshot | Recompute only when the scenario's eligibility/period profile permits it. |
+| Later evidence supplied by officer | Establishes the 25 kg transfer and its allocation, recipient, timing and prior-liability treatment | Create a newly supported allocation in a new case version only when the reviewed profile permits it; the later snapshot remains a cross-check. |
 
-Initial supported position: 55 kg; apparent unresolved gap: 45 kg. If the later 25 kg is supported for this bucket, the revised position becomes 80 kg with a 20 kg gap. If historical allocation or cut-off is unresolved, keep the 25 kg pending. A correct investigation explains **why the figure changed** and what remains unverified.
+Initial allocation-supported position: 55 kg; apparent unresolved gap: 45 kg; paid 25 kg remains pending. A newly evidenced and supported 25 kg allocation changes the ledger to 80 kg and the gap to 20 kg. A newer account snapshot alone cannot do this. If historical allocation or cut-off is unresolved, keep the 25 kg pending. This is the design's fixture 1; its F02 oracle explicitly expects SUPPORTED equivalence for the fully corroborated repeated event. A correct investigation explains **why the figure changed** and what remains unverified.
 
 ### 8.2 Recommended report structure
 
@@ -408,5 +415,27 @@ All sources were checked during this research on 16 October 2026. “Inspected�
 | R14 | [MPCB e-waste index](https://mpcb.gov.in/en/waste-management/electronic-waste) | Official index inspected; source for amendment PDFs, not proof of consolidated currency. |
 | R15 | [MoEFCC/PIB explanation of the 2022 Rules](https://www.pib.gov.in/PressReleasePage.aspx?PRID=1881761&lang=2&reg=48) | Official explanation, used for context and headline target phases. |
 | R16 | [Lok Sabha proceedings, 13 February 2025](https://eparlib.sansad.in/bitstream/123456789/2989669/1/lsd_18_IV_13-02-2025.pdf) | Indexed laying-of-papers passage corroborates G.S.R. 699(E). |
+
+### Source-alias reconciliation across research documents
+
+Legacy aliases are document-local; prefix them with `domain:`, `overview:` or `cpcb:` when importing an inventory. The following canonical aliases identify assets, not acquired versions. Actual manifests must still resolve exact bytes/provision revisions; a discovery lead has no invented hash or approval.
+
+| Canonical alias | Legacy aliases | Source / reconciliation |
+| --- | --- | --- |
+| BENCH_TAU_PAPER | overview:B01; cpcb:B01 paper | [τ-bench paper](https://arxiv.org/html/2406.12045v1). |
+| BENCH_TAU_REPO | overview:B02; cpcb:B01 repository/license | [Official repository](https://github.com/sierra-research/tau-bench), with license/version separately recorded. |
+| BENCH_CRM_PAPER | overview:B03; cpcb:B02 paper | [CRMArena publication](https://aclanthology.org/2025.naacl-long.194/). |
+| BENCH_CRM_ASSETS | overview:B04; cpcb:B02 code/data/license | [CRMArena repository](https://github.com/SalesforceAIResearch/CRMArena); code, license and dataset need distinct acquired revisions. |
+| SYNTHETIC_PILOT_PLAN | cpcb:B03 | Team-authored 48-case proposal, not an acquired or completed dataset. |
+| RECYCLER_SOP_ASSAM | cpcb:S01 | [OCMMS recycler SOP](https://asocmms.nic.in/OCMMS/SPCB_DOCUMENTS/SOP_for_Ewaste_Recycler.pdf); additional discovery lead, content/version/rights need acquisition review. |
+| STAKEHOLDER_SOP_HARYANA | cpcb:S02 | [OCMMS combined SOP](https://hrocmms.nic.in/OCMMS/SPCB_DOCUMENTS/EWM.pdf); additional lead, not independently validated here. |
+| REGISTRATION_GUIDE_WB | cpcb:S03 | [OCMMS registration guide](https://wbocmms.nic.in/SPCB_DOCUMENTS/EPR%20EWASTE%20STEP%20BY%20STEP.pdf); additional lead, not current portal truth. |
+| LEGACY_2016_SOP | cpcb:S04 | Third-party mirror listed in the added note; retain as an unverified historical/negative-test lead, not active authority. |
+| TYRE_CONTEXT | cpcb:S05 | [Tyre-regime notice](https://www.eprtyres.cpcb.gov.in/notices/m_m_amendment_rule_2022.pdf) and interim arrangement are separate cross-regime leads; never e-waste rates. |
+| NITI_CIRCULAR_ECONOMY | cpcb:P01 | NITI report linked in the added note; acquire/review separately from its rights-policy claim. |
+| CSE_BATTERY_CONTEXT | cpcb:P02 | [CSE report lead](https://www.cseindia.org/content/downloadreports/12987); contextual battery/pricing material, not e-waste authority. |
+| COPYRIGHT_EXCEPTION_TEXT | cpcb:L01 | [Copyright Act source lead](https://copyright.gov.in/Copyright_Act_1957/chapter_xi.html); claimed exception does not seed asset redistribution ALLOW. |
+
+domain:R01–R16 and cpcb:R01–R16 refer to the matching source descriptions where present; cpcb:R10a/R10b are mirror locations of R10 only if acquired bytes establish equivalence. D01–D04 retain the same source identities across notes. Added S/P/L leads above do not inherit the “inspected” status of the original register. All Gazette asset-rights seeds remain REVIEW_REQUIRED pending intended-use review.
 
 **Document status:** Research input to design. No officer interviews, operational access, deployed system, or measured reconciliation results are implied.

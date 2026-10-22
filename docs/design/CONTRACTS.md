@@ -1,10 +1,10 @@
 # ReCycleGuard component and data contracts
 
-**Contract version:** 1.0 — 18 October 2026.
+**Contract version:** 1.1 — corrected 22 October 2026.
 
 **Status:** Normative specification for implementation; no APIs, generated schemas or datasets are implied to exist yet.
 
-**Final consistency review:** 19 October 2026.
+**Final consistency review:** 22 October 2026.
 
 **Architecture:** [SYSTEM_DESIGN.md](SYSTEM_DESIGN.md).
 
@@ -37,7 +37,7 @@ Every call carries:
 
 ```text
 CommandContext {
-  contract_version: "1.0"
+  contract_version: "1.1"
   command_id: ID
   operation_id: ID
   attempt_id: ID
@@ -64,7 +64,7 @@ Bootstrap acquisition may have no case/run/turn. Once a run starts, all its call
 
 ```text
 ServiceResult<T> {
-  contract_version: "1.0"
+  contract_version: "1.1"
   operation_id: ID
   attempt_id: ID
   status: SUCCESS | PARTIAL | FAILED | REJECTED | CANCELLED | OUTCOME_UNKNOWN
@@ -87,7 +87,7 @@ Issue {
 
 `output_blob` contains the complete canonical output when present; `output` is its decoded bounded object or a typed page. Large results use `Page<T> = {items, total_count, next_cursor, full_result_blob}` with a stable snapshot-bound cursor. Tool/context truncation never truncates the archived full result. Partial success must enumerate every unresolved item and prohibit downstream consumers from treating it as complete.
 
-Errors include `INVALID_SCHEMA`, `ACCESS_DENIED`, `HASH_MISMATCH`, `MISSING_ARTIFACT`, `INCOMPLETE_COVERAGE`, `EXTRACTION_FAILED`, `UNCONFIRMED_IDENTIFIER`, `AMBIGUOUS_IDENTITY`, `AMBIGUOUS_EVENT`, `DIMENSION_MISMATCH`, `NUMERIC_PRECISION_EXCEEDED`, `UNSUPPORTED_PROFILE`, `UNAPPROVED_PROFILE`, `APPLICABILITY_UNRESOLVED`, `RULE_CONFLICT`, `SOURCE_INCOMPLETE`, `STALE_SNAPSHOT`, `BUDGET_EXHAUSTED`, `CYCLE_DETECTED`, `PROVIDER_TIMEOUT`, `PROVIDER_INVALID_OUTPUT`, `AUDIT_UNAVAILABLE`, `CONCURRENT_MODIFICATION`, `STALE_REVIEW`, `EXPORT_RESTRICTED`, `CANCELLED` and `INTEGRITY_FAILED`.
+Errors include `INVALID_SCHEMA`, `ACCESS_DENIED`, `HASH_MISMATCH`, `MISSING_ARTIFACT`, `INCOMPLETE_COVERAGE`, `EXTRACTION_FAILED`, `UNCONFIRMED_IDENTIFIER`, `AMBIGUOUS_IDENTITY`, `AMBIGUOUS_EVENT`, `DIMENSION_MISMATCH`, `NUMERIC_PRECISION_EXCEEDED`, `EARLIER_LIABILITY_UNMET`, `LIABILITY_PRIORITY_UNRESOLVED`, `UNSUPPORTED_PROFILE`, `UNAPPROVED_PROFILE`, `APPLICABILITY_UNRESOLVED`, `RULE_CONFLICT`, `SOURCE_INCOMPLETE`, `STALE_SNAPSHOT`, `BUDGET_EXHAUSTED`, `CYCLE_DETECTED`, `PROVIDER_TIMEOUT`, `PROVIDER_INVALID_OUTPUT`, `AUDIT_UNAVAILABLE`, `CONCURRENT_MODIFICATION`, `STALE_REVIEW`, `EXPORT_RESTRICTED`, `PROHIBITED_VERDICT`, `CANCELLED` and `INTEGRITY_FAILED`.
 
 Domain unknowns are normally `PARTIAL` results with findings; process/integrity failures are `FAILED` or `REJECTED`. A model timeout with unknown provider completion may be `OUTCOME_UNKNOWN`. Do not use generic empty lists as failure fallbacks.
 
@@ -117,6 +117,9 @@ ArtifactRevision {
   original_filename: string | null
   source_kind: GAZETTE | OFFICIAL_GUIDANCE | PORTAL_CAPTURE | COMPANY_RECORD |
                SYNTHETIC_RECORD | AGGREGATE_STATISTICS | RESEARCH_NOTE
+  doc_type: DocumentType
+  establishes: EvidenceCapability[]
+  does_not_establish: EvidenceCapability[]
   source_url: string | null
   fetch_attempt_id: ID | null
   captured_at: TemporalValue
@@ -131,6 +134,12 @@ ArtifactRevision {
 Every file discovered inside the submitted batch boundary gets a receipt, including undeclared extras and duplicate bytes. Reject symlink/path traversal and oversized/unsupported inputs with receipts. Register declared missing items without inventing a blob. Two receipts may reference the same bytes while preserving distinct origin/permissions.
 
 `RightsDecision = {id, owner_or_provider, intended_use, license_or_basis, evidence_refs, access_allowed, model_use_allowed, local_retention_allowed, redistribution_status, reviewer_id, reviewed_at}`. Permission fields are `ALLOW | DENY | REVIEW_REQUIRED`, never silently inferred from a public URL. `redistribution_status` uses the same three states. Unknown rights fields remain review-required. No API keys, OTPs, public-key dispatch secrets or auth headers belong in artifacts or logs.
+
+Seed Gazette redistribution decisions as `REVIEW_REQUIRED`, with the claimed statutory exception and intended use recorded for review; neither a Gazette label nor a public URL seeds `ALLOW`.
+
+`DocumentType` is `STATUTORY_INSTRUMENT | SOP | TECHNICAL_FRAMEWORK | FAQ | PORTAL_INSTRUCTION | NOTICE | REGISTRATION_CERTIFICATE | PORTAL_SNAPSHOT | PORTAL_EPR_CERTIFICATE | GST_INVOICE | ERP_CSV | CONTRACT | PURCHASE_ORDER | PAYMENT_RECORD | WEIGHT_TICKET | RECYCLING_ACKNOWLEDGMENT | DESTRUCTION_CERTIFICATE | AWARENESS_PROOF | RETURN_DRAFT | FILING_ACKNOWLEDGMENT | OTHER`.
+
+`EvidenceCapability` is `IDENTITY | REGISTRATION_COVERAGE | REPORTED_ACCOUNT_POSITION | CERTIFICATE_IDENTITY | TRANSFER_STAGE | LIABILITY_ALLOCATION | PAYMENT | PHYSICAL_MOVEMENT | DESTRUCTION | AWARENESS_ACTIVITY | FILING_RECEIPT | RULE_TEXT | CONTEXT_ONLY`. These lists describe evidence scope, not automatic proof. A weight ticket may support physical movement, a destruction certificate destruction, and a portal snapshot a reported account position; none alone establishes a supported liability allocation. C03/C04 record the observed scope and C12 checks claims against it.
 
 ### 3.2 TemporalValue, Quantity and EvidenceRef
 
@@ -231,15 +240,19 @@ The record payload catalog below defines visible synthetic JSONL rows and normal
 | `SalesRecord` / `sales.jsonl` | `entity_id`, `sku`, `fiscal_year`, `quantity_units: DecimalString`, `source_record_ref` | `mass?: Quantity`, `adjustment_refs?: ID[]`. Does not independently establish a statutory obligation. |
 | `ObligationBucket` / `obligations.jsonl` | `bucket_id`, `producer_entity_id`, `liability_year`, `component: string`, `metal`, `target: Quantity`, `basis: SUPPLIED_ACCOUNT \| REVIEWED_CALCULATION`, `basis_refs: EvidenceRef[]`, `profile_id` | `adjustments?: SignedAdjustment[]`; historical liabilities are their own dated buckets. `component` distinguishes incompatible obligations even for one metal/year. |
 | `Certificate` / `certificates.jsonl` | `certificate_id: ID`, `external_certificate_ref: string`, `issuer_entity_id`, `metal`, `face_quantity: Quantity`, `identity_evidence: EvidenceRef[]` | `generation_time?`, `expiry_time?`, `raw_status?`. No assumed number encoding or hard-coded denomination list. |
-| `CertificateEvent` / `certificate_events.jsonl` | `event_id`, `certificate_id`, `credit_lot_id: ID \| null`, `event_kind: GENERATED \| TRANSFERRED \| ADJUSTED \| EXPIRED \| CANCELLED \| STATUS_OBSERVED`, `event_time`, `quantity: Quantity`, `assertion_state: SUPPORTED \| PENDING \| CONFLICTING`, `supporting_observations: ID[]` | `external_event_ref?`, `from_entity_id?`, `to_entity_id?`, `equivalence_assertion_id?`. Stage names are internal, not asserted actual export fields. |
+| `CertificateEvent` / `certificate_events.jsonl` | `event_id`, `certificate_id`, `credit_lot_id: ID \| null`, `event_kind: GENERATED \| TRANSFERRED \| ADJUSTED \| EXPIRED \| CANCELLED \| STATUS_OBSERVED`, `event_time`, `quantity: Quantity`, `assertion_state: SUPPORTED \| PENDING \| CONFLICTING`, `supporting_observations: ID[]` | `external_event_ref?`, `from_entity_id?`, `to_entity_id?`, `equivalence_assertion_id?`, `transfer_stage?: TransferStage`, `transfer_stage_mapping_ref?`. Intermediate stages are historical-screen observations, not assumed export fields or proof of completed transfer. |
 | `Allocation` / `allocations.jsonl` | `allocation_id`, `credit_lot_id`, `event_id`, `bucket_id`, `quantity: Quantity`, `basis_refs`, `state: SUPPORTED \| PENDING \| REJECTED`, `profile_id` | `supersedes_allocation_id?`. All active allocations consume the shared lot capacity, not separate event capacities. |
 | `AccountBalanceObservation` / `account_balances.jsonl` | `balance_observation_id`, `producer_entity_id`, `bucket_id`, `reported_supported: Quantity`, `source_capture_time`, `business_cutoff: TemporalValue`, `basis_refs` | `reported_pending?: Quantity`. Comparison-only in v1; cannot replace missing allocation history. |
 | `CommercialRecord` / `commercial_records.jsonl` | `commercial_id`, `record_kind: CONTRACT \| PO \| INVOICE \| PAYMENT`, `issuer_entity_id`, `recipient_entity_id`, `external_ref`, `event_time`, `linked_credit_refs: ID[]` | `money?: Quantity`, `credit_quantity?: Quantity`, `tax_observations?: object`. Financial payment is not a fulfillment allocation. |
-| `ReturnDraft` / `return_drafts.jsonl` | `draft_id`, `producer_entity_id`, `fiscal_year`, `quarter: Q1 \| Q2 \| Q3 \| Q4 \| ANNUAL`, `reported_bucket_values: object[]`, `source_refs` | `supporting_section_refs?: EvidenceRef[]`, `submission_ack_ref?`. Each bucket value has bucket_id/Quantity; draft status and actual acknowledgment remain separate. |
+| `ReturnDraft` / `return_drafts.jsonl` | `draft_id`, `producer_entity_id`, `fiscal_year`, `quarter: Q1 \| Q2 \| Q3 \| Q4 \| ANNUAL`, `reported_bucket_values: object[]`, `source_refs`, `section_dispositions: ReturnSectionDisposition[]` | `supporting_section_refs?: EvidenceRef[]`, `submission_ack_ref?`. Each bucket value has bucket_id/Quantity; draft status and actual acknowledgment remain separate. |
 
 `Identifier = {kind: GSTIN | PAN | CIN | IEC | PROJECT_ID | OTHER, value, validation_state, evidence_refs}`. `DatedAlias` has alias, interval and evidence. `SignedAdjustment` has ID, signed Quantity, approved basis and review reference. `ReviewedInterval` has start/end Date or null, `end_open_ended: boolean`, `review_state`, applicability scope and evidence; intervals are half-open. A null date with unreviewed status means unknown, not unlimited validity.
 
 `CertificateObservation` is an observation payload containing certificate ref, raw status/quantity, source capture and optional event references. `EventEquivalence` explicitly lists observation IDs, resolved event ID, matching basis, review state and conflicts. It is stored by C04 even though it need not be present in generated source files.
+
+`TransferStage` is `NOT_OBSERVED | INITIATED | OTP_INITIATED | PUBLIC_KEY_DISPATCHED | COMPLETED | UNKNOWN`. These are internal mappings from documented historical screens, not a current portal API schema. Nontrivial mappings require `transfer_stage_mapping_ref` plus source observations. Preserve the raw label; OTP/key values are excluded. An intermediate stage does not authorize a SUPPORTED transfer/allocation.
+
+`ReturnSectionDisposition = {section: OBLIGATION | AWARENESS | SOLAR | OTHER, applicability: REQUIRED | NOT_APPLICABLE | UNKNOWN, state: PRESENT | MISSING | EXCLUDED | UNSUPPORTED | NOT_APPLICABLE, evidence_refs, reason}`. Missing required awareness evidence, or an applicable excluded/unsupported solar section, prevents `READY_WITHIN_CHECKED_SECTIONS` from being presented as readiness of the complete return. Unknown applicability yields `READINESS_UNDETERMINED`.
 
 `CreditLot = {credit_lot_id, certificate_id, supported_capacity: Quantity, supporting_refs, resolution_state: SUPPORTED | PENDING | CONFLICTING}` is derived by C04 from visible evidence, not a privileged clean generator table. V1 uses one lot per resolved certificate. All linked transfer/adjustment events reference this lot. Ambiguous lot identity/capacity blocks supported allocations. The effective allocation set consists only of the latest non-superseded revisions in the frozen case; old revisions remain auditable. Conservation spans every liability year and every linked event in that set.
 
@@ -253,7 +266,7 @@ SourceLead {
   aliases: string[]
   official_url: string
   discovery_evidence_refs: EvidenceRef[]
-  source_class: string
+  source_class: SourceClass
   regime: string
   state: DISCOVERED | FETCH_FAILED | ACQUIRED | EXTRACTED | REVIEW_REQUIRED | READY | EXCLUDED
   acquired_artifact_revision_id: ID | null
@@ -267,6 +280,8 @@ SourceVersion {
   notification_number: string | null
   notification_date: TemporalValue
   publication_date: TemporalValue
+  commencement: TemporalValue
+  commencement_basis_refs: EvidenceRef[]
   website_upload_date: TemporalValue
   completeness: COMPLETE_TEXT | PARTIAL_TEXT | HTML_SHELL | NOTICE_LEAD
   review_state: DRAFT | APPROVED | REJECTED
@@ -291,15 +306,29 @@ ProvisionVersion {
 
 Role filtering retains reviewed GENERAL provisions as well as matching SPECIFIC provisions. UNKNOWN scope is recorded as unresolved and can be fetched diagnostically; it cannot establish an affirmative role-specific conclusion until reviewed. An empty `affected_roles` array has no implicit universal meaning.
 
+`SourceClass` is `STATUTE | GAZETTE_RULE | ORDER | TECHNICAL_FRAMEWORK | SOP | PORTAL_INSTRUCTION | FAQ | NOTICE_LEAD | SUPPORTING_CONTEXT`. Preserve this class through source versions, provision references and authority grades; OFFICIAL_GUIDANCE is only a broad artifact-origin class. SourceVersion.commencement records instrument-level commencement or an explicit unknown; clause-specific ApplicabilityAssertions control exceptions and overrides. Notification date never substitutes automatically for publication or commencement.
+
 ### 4.2 FrozenSnapshot and CalculationProfile
 
 `FrozenSnapshot = {snapshot_id, snapshot_kind: CASE | CORPUS, schema_version, parent_snapshot_id, membership_blob, membership_digest, coverage_blob, created_at, created_by, source_receipt_ids, review_state}`. Membership entries are ordered typed references to exact revisions/hashes plus inclusion/exclusion reason. Artifacts, records, extraction issues and declared missing evidence are included, not only usable rows. Publishing a snapshot does not mark uncertain records valid.
 
-`CaseScope = {case_id, producer_entity_id, fiscal_year, period_start, period_end_exclusive, quarter, allowed_eee_codes, allowed_metals, business_cutoff: TemporalValue, knowledge_cutoff: Timestamp, calculation_profile_id, access_scope_id}`. `business_cutoff` is the decision's event boundary; `knowledge_cutoff` limits available captured evidence. An unknown or date-only cut-off preserves its precision and prevents ambiguous automated eligibility decisions.
+`CaseScope = {case_id, producer_entity_id, fiscal_year, period_start, period_end_exclusive, quarter, allowed_eee_codes, allowed_metals, business_cutoff: TemporalValue, knowledge_cutoff: Timestamp, calculation_profile_id, access_scope_id, authorized_signatory_ref: AuthorizedSignatoryRef | null, deadline_entry_ids: ID[]}`. `business_cutoff` is the decision's event boundary; `knowledge_cutoff` limits available captured evidence. An unknown or date-only cut-off preserves its precision and prevents ambiguous automated eligibility decisions.
 
-`CalculationProfile = {profile_id, profile_version, review_state, review_refs, supported_regime, target_basis, supported_components, allowed_metals, category_scope, applicability_assertion_refs, eligibility_rules, allocation_policy, numeric_policy, unsupported_features, source_dependencies, digest}`.
+`AuthorizedSignatoryRef = {person_ref, masked_display_name, authority_evidence_refs, permitted_actions: REVIEW_WORKING_PAPER | APPROVE_CORRECTION | SUBMIT_RETURN, validity: ReviewedInterval}`; permitted_actions is an array. Missing authority blocks an approval/submission claim, not evidence intake. It is distinct from reviewer authentication and contains no raw PAN/Aadhaar. C13 checks the actor's authority for the requested decision; no internal capability grants official portal access.
+
+`CalculationProfile = {profile_id, profile_version, review_state, review_refs, supported_regime, target_basis, supported_components, allowed_metals, category_scope, applicability_assertion_refs, eligibility_rules, allocation_policy, event_equivalence_policy, purchase_ceiling_policy, numeric_policy, unsupported_features, source_dependencies, digest}`.
 
 Only APPROVED profiles run calculations. V1 uses supplied targets, reviewed compatible allocations and separate historical buckets. Gold offsets, refurbishing deferrals, full sales-derived target computation, tax/pricing, solar and EC calculations are unsupported features. The profile must declare which eligibility conditions are actually testable; unavailable facts cannot be silently treated as passed.
+
+`EventEquivalencePolicy` lists required exact fields (resolved certificate/lot, event kind/stage, full source time value/precision/timezone, exact normalized quantity/dimension/metal, from/to parties), corroboration requirements, missing-field handling and policy version. Different overlapping export windows are corroborating context, not identity proof by themselves. F02 may resolve to SUPPORTED only when an authoritative external event ID agrees or the complete compound key agrees **and** export provenance/source continuity excludes multiple indistinguishable events. Any absent key, contradiction or coarse-time collision remains PENDING unless reviewed. The oracle records the expected equivalence state and supporting visible observations.
+
+`allocation_policy.priority_check` requires checking each later-year allocation against earlier compatible outstanding liabilities **at allocation time**, using the full pinned historical state. A confirmed prohibited later-year allocation emits `EARLIER_LIABILITY_UNMET` and cannot enter derived supported totals; missing opening history or ordering emits `LIABILITY_PRIORITY_UNRESOLVED`, not an invented violation. Preserve the account's observed allocation as evidence in both cases.
+
+`PurchaseCeilingPolicy = {state: DISABLED_REVIEW_REQUIRED | APPROVED, source_refs, applicability_refs, current_liability_basis, prior_liability_basis, buffer_rate: DecimalString | null, review_ref}`. Rule 15(1)'s published text was checked on 22 October 2026; it includes current liability, prior leftover liability and 5% of current liability. Period/component applicability and purchase-data completeness still need profile review. Seed this slot DISABLED_REVIEW_REQUIRED and return NOT_EVALUATED; it cannot impose a hard-coded purchase verdict before approval. [Official Rules, Rule 15(1)](https://eprewaste.cpcb.gov.in/assets/PDF/e-waste_rules_2022.pdf).
+
+### 4.3 Deadline register
+
+`DeadlineEntry = {deadline_id, producer_or_role_scope, fiscal_year, quarter, kind: OBLIGATION_ACHIEVEMENT | CREDIT_EVENT | RETURN_FILING, baseline_due: TemporalValue, baseline_basis_refs, extended_due: TemporalValue | null, extension_order_refs: EvidenceRef[], enabling_provision_refs: EvidenceRef[], unverified_notice: boolean, review_state, supersedes_deadline_id}`. Freeze entries in corpus/profile/case dependencies. A missing baseline stays unknown; a notice lead never creates a verified extension. Rule 9A is an enabling provision, not the extension order itself. A RETURN_FILING entry cannot extend OBLIGATION_ACHIEVEMENT or CREDIT_EVENT without separate reviewed authority. C07 resolves the relevant deadline ID/basis, and C08 tests only approved, sufficiently evidenced deadlines.
 
 ## 5. Visible synthetic dataset contract
 
@@ -350,7 +379,7 @@ GenerationManifest {
   corruption_manifest_blob, oracle_blob, split_policy, rights_manifest_ref
 }
 CorruptionRecord {
-  corruption_id, case_id, fault_family, affected_visible_asset_refs,
+  corruption_id, case_id, fault_family: FaultFamily, affected_visible_asset_refs,
   transformation, before_refs, after_refs, intended_evidence_effect
 }
 OracleCase {
@@ -362,11 +391,38 @@ OracleCase {
 
 These types are evaluator-only. They must never be imported into the investigator registry, logs, checkpoints, search corpus, cache, context, artifact browser or public run export. Development answers may be released separately for developers but remain outside benchmark run mounts. Oracle labels are not evidence the agent may cite.
 
+### 5.4 Shared fault-family taxonomy
+
+Use the same `FaultFamily` enum in generator configuration/CorruptionRecord, `FindingRecord.issue_type` and OracleCase expected findings. Case-specific hidden labels remain inaccessible to the agent; knowing the shared taxonomy does not reveal which fault a case contains. F01 is a clean control, not an anomaly. Ordinary infrastructure errors remain ErrorCode values rather than fabricated business fault families.
+
+| FaultFamily enum value | Distinction required |
+| --- | --- |
+| F01_CLEAN_BASELINE | Clean control; no false-positive anomaly. |
+| F02_OVERLAPPING_EXPORT | One event observed repeatedly; oracle explicitly records equivalence support. |
+| F03_MULTISTAGE_ID_REUSE | Distinct legitimate lifecycle events sharing an instrument. |
+| F04_UNIT_DIMENSION_MIX | Units/dimensions cannot be summed blindly. |
+| F05_WRONG_ENTITY_ALIAS | Entity mismatch versus supported alias. |
+| F06_STALE_SNAPSHOT | Capture-time mismatch. |
+| F07_PAID_NO_TRANSFER | Commercial payment or intermediate stage without completed supported transfer/allocation. |
+| F08_PRIOR_ARREARS_DRAIN | Earlier liability and allocation priority. |
+| F09_EXPIRED_CANCELLED | Expired/cancelled instruments or unresolved lifecycle evidence. |
+| F10_CAPABILITY_MISMATCH | Recycler capability, independently of metal compatibility. |
+| F11_WRONG_PERIOD_RULE | Wrong period/regime or superseded interpretation. |
+| F12_UNSEEN_NOTICE_LEAD | Missing signed authority. |
+| F13_WEIGHT_BASIS_CONFLICT | Incompatible approved/product/packaging weight basis. |
+| F14_OUT_OF_SCOPE_REGIME | Unsupported profile feature. |
+| F15_EXTRACTION_PAGE_LOSS | Incomplete/corrupt extraction, not proof of a missing event. |
+| F16_PROMPT_INJECTION | Hostile evidence content cannot change permissions/control. |
+
 ## 6. Retrieval, model and calculation payloads
 
 ### 6.1 SearchRulesRequest and RetrievalAttempt
 
-`SearchRulesRequest = {query, corpus_snapshot_id, index_id, question_basis, target_event_time, target_reporting_period, target_filing_date, regimes, roles, eee_codes, top_k, diagnostic_mode}`. Nullable dates are explicit; `question_basis` selects which date/period drives applicability. Filters are enforced server-side and cannot expand access or override the run's pinned corpus. Diagnostic mode can inspect excluded sources but marks them ineligible for affirmative claims.
+`SearchRulesRequest = {query, corpus_snapshot_id, index_id, question_basis, target_event_time, target_reporting_period, target_filing_date, deadline_entry_ids, regimes, roles, eee_codes, top_k, diagnostic_mode}`. Nullable dates are explicit; `question_basis` selects which date/period drives applicability and uses the frozen deadline register where relevant. Filters are enforced server-side and cannot expand access or override the run's pinned corpus. Diagnostic mode can inspect excluded sources but marks them ineligible for affirmative claims.
+
+`LocatorLookupRequest = {corpus_snapshot_id, source_alias_or_source_version_id, legal_path, question_basis, applicability_context, expansion_policy: ExpansionPolicy}`. `resolve_locator` returns the exact provision revision and resolution evidence; ambiguous alias/version/locator matches return APPLICABILITY_UNRESOLVED rather than choosing latest. This supports fallback before a search has supplied a provision ID.
+
+`ExpansionPolicy = {include_parent: boolean, include_table_header: boolean, include_footnotes: boolean, include_applicable_amendments: boolean, include_references: boolean, max_depth: integer, max_nodes: integer}`. Defaults include parents/header/footnotes/applicable amendments, exclude general reference traversal, and bound depth to 2 and nodes to 20. The run pins this policy; access, regime, temporal qualifications and budgets apply to every expanded node.
 
 `IndexManifest = {index_id, corpus_snapshot_id, eligible_members_digest, extraction_versions, lexical_configuration, dense_configuration_or_null, build_code_revision, index_files, integrity_digest}`. Dense configuration includes exact model/revision, dimensions, normalization, tokenizer/chunk strategy and vector blob digests. No changing embeddings under an existing index ID.
 
@@ -405,6 +461,10 @@ BucketResult {
   shortfall: Quantity
   surplus: Quantity
   pending: Quantity
+  portal_reported: Quantity | null
+  ledger_supported: Quantity
+  delta: Quantity | null
+  snapshot_comparison_ref: ID | null
   allocation_ids: ID[]
   qualification_refs: EvidenceRef[]
 }
@@ -418,11 +478,15 @@ C08, not its caller, computes the full candidate-input universe from the pinned 
 
 Supported amounts in v1 derive solely from supported allocations. AccountBalanceObservation records are comparison-only; lack of allocation evidence yields QUALIFIED/BLOCKED coverage even when an aggregate account figure is present. No tool invents allocations from that total. Lot-level conservation covers all active allocation revisions across events and years.
 
+`ledger_supported` equals `supported`; it is not another quantity to add. `portal_reported` references a compatible dated AccountBalanceObservation. `delta = portal_reported - ledger_supported` and the comparison reference preserves both views, scope and cut-offs. This differs from `signed_gap = required - ledger_supported`. Absent/incompatible portal evidence yields null portal/delta values, never zero. The priority and purchase-ceiling check results are archived in the calculation derivation with PASS/FAIL/UNKNOWN/NOT_EVALUATED states.
+
 ### 6.3 FindingRecord and structured claims
 
-`FindingRecord = {finding_id, finding_revision_id, case_version_id, bucket_ids, issue_type, advisory_status, fact_refs, calculation_refs, provision_refs, evidence_assessments, hypotheses, next_action, action_owner_ref, scope_limits, supersedes_finding_revision_id}`.
+`FindingRecord = {finding_id, finding_revision_id, case_version_id, bucket_ids, issue_type: FaultFamily, advisory_status, priority: HIGH | MEDIUM | LOW, priority_basis, portal_reported_value_ref, ledger_supported_value_ref, delta_value_ref, snapshot_comparison_ref, fact_refs, calculation_refs, provision_refs, evidence_assessments, hypotheses, abstention_reason: AbstentionReason | null, withheld_claim_scopes: string[], next_action, action_owner_ref, scope_limits, supersedes_finding_revision_id}`. Value refs point to BucketResult fields rather than copying unchecked numbers; nullable comparison fields follow BucketResult's null semantics.
 
 Advisory statuses are `RECONCILED_WITHIN_SCOPE`, `DISCREPANCY_DETECTED`, `PENDING_VERIFICATION`, `REQUIRES_EXPERT_REVIEW`. A hypothesis has text, support state and refs; it cannot be rendered as a verified fact. `next_action` is a typed recommendation, not an executable approval or filing command.
+
+Abstention is represented by PENDING_VERIFICATION or REQUIRES_EXPERT_REVIEW plus a non-null `AbstentionReason`: `MISSING_EVIDENCE | MISSING_AUTHORITY | RULE_CONFLICT | TEMPORAL_UNCERTAINTY | UNSUPPORTED_FEATURE | INCOMPLETE_HISTORY | BUDGET_LIMIT`. `withheld_claim_scopes` identifies the conclusion/amount not established. No verified numeric/legal claim is permitted for that unresolved scope; separately evidenced figures may still be reported with their limits. C16 scores this explicit state rather than guessing abstention from prose.
 
 `Claim = {claim_id, kind: FACT | NUMERIC | INTERPRETATION | LIMITATION | RECOMMENDATION, template_or_text, evidence_refs, calculation_value_ref, support_status: SUPPORTED | QUALIFIED | UNSUPPORTED}`. Numeric claims reference calculation ID/bucket/field; the renderer supplies values. Uncited numerical narrative is either labelled illustrative or rejected. Removing an UNSUPPORTED claim from the final report does not remove its draft/audit history.
 
@@ -510,7 +574,7 @@ The underlying `write_blob` primitive only writes/hashes bytes; it does not recu
 
 ### C07 — Retrieval and evidence grading
 
-**Calls:** `search_rules(SearchRulesRequest) -> RetrievalAttempt`; `get_source_passage(provision_version_id, expansion_policy) -> EvidenceBundle`; `grade_evidence(bundle_id, question, basis) -> EvidenceGrade[]`.
+**Calls:** `search_rules(SearchRulesRequest) -> RetrievalAttempt`; `get_source_passage(provision_version_id, expansion_policy: ExpansionPolicy) -> EvidenceBundle`; `resolve_locator(LocatorLookupRequest) -> EvidenceBundle`; `grade_evidence(bundle_id, question, basis) -> EvidenceGrade[]`.
 
 **Inputs:** Run-pinned corpus/index, actor scope, finding question, reviewed temporal basis and bounded expansion settings.
 
@@ -534,6 +598,7 @@ The underlying `write_blob` primitive only writes/hashes bytes; it does not recu
 | `match_commercial` | commercial refs, event refs | link assertions, mismatches and pending evidence |
 | `compute_reconciliation` | CalculationRequest | CalculationResult |
 | `compare_versions` | explicit snapshot/result/draft pairs, compare kind | typed deltas with before/after refs and uncertainty |
+| `compare_return_draft` | draft revision, calculation IDs, section dispositions and deadline refs | ReturnReadinessComparison with bucket deltas, missing/excluded/unsupported sections and scoped readiness |
 
 **Side effects:** Domain tools write only new results/derivations, never source records, profiles, reviews or official portal state. Operations may compose shared functions but must report suboperation dependencies and total budget cost. All inputs considered and excluded remain in archived results.
 
@@ -543,7 +608,9 @@ The underlying `write_blob` primitive only writes/hashes bytes; it does not recu
 
 `RunSpec` pins case/corpus/profile/index versions, code revision, dependency lock digest, adapter/tool/prompt/model configurations, retrieval/audit/security policies, topology, experiment variant and all budgets. `RunState` stores run status, current turn, pending finding queue, result/finding refs, consumed budgets, stop reason and last committed audit sequence.
 
-**Outputs:** Turns, finding revisions, calculations and review-ready report refs. The investigator produces only `ActionProposal = {action_kind, allowed_operation, typed_arguments, finding_id, concise_reason, evidence_refs}`. The dispatcher validates capability and budget before execution.
+**Outputs:** Turns, finding revisions, calculations and review-ready report refs. The investigator produces only `ActionProposal = {action_kind, allowed_operation, typed_arguments, finding_id, plan_ref, concise_reason, evidence_refs}`. The dispatcher validates capability and budget before execution.
+
+`PlanRecord = {plan_id, revision, previous_plan_ref, finding_id, objective, hypotheses, proposed_checks, expected_evidence, stopping_criteria}` is persisted **before** action. `ObservationAssessment = {operation_ref, plan_ref, observation_refs, verdict: SUPPORTS | REFUTES | WEAK | NO_PROGRESS | UNKNOWN, weak_result_or_mistake, next_check_or_stop, revised_plan_ref}` is persisted after the observation. A revised plan references its predecessor and a specific observation; when no revision is made, revised_plan_ref is null and the assessment records an explicit continuation or stop. These are concise visible decision records, not private model chain-of-thought.
 
 **Control:** Mandatory deterministic preflight → investigation → drafting → verification → human review or qualified closure. Every turn has frozen input/output state refs. Restarts use committed operations and preserve budgets; no duplicate application of completed review/derivation operations.
 
@@ -580,6 +647,10 @@ Full event and turn formats are specified in Section 8.
 **Outputs:** Report JSON, deterministic Markdown/HTML render, claims/citation matrix, verified/qualified/blocked result and issue list. Verification resolves dependency versions and locators, validates numerical references and discloses all unresolved/missing evidence. An optional narrative LLM uses C10.
 
 **Side effects:** Store all drafts and rejected claims. The final `review_dependency_digest` covers report bytes, claims, calculations, case/corpus/profile versions and coverage. Numerical agreement and locator validity alone do not establish semantic/legal correctness; unsupported interpretations remain qualified or blocked.
+
+C12 must explicitly test generated claims for a legal-compliance verdict, allegation of intent/fraud/concealment, and compensation/penalty amount. Such agent-authored conclusions are prohibited in v1, regardless of a fluent rationale or attached citation: emit `PROHIBITED_VERDICT`, reject the claim and block publication until removed. A faithful attributed source quotation is distinct from a new system verdict and must retain its scope. A generic “qualified” label cannot allow a prohibited conclusion through. The checker combines structured claim classification, rule checks and review; it must not claim that keyword matching alone proves semantic safety.
+
+`ReportSection = {section_id, title, claim_ids, evidence_refs, structured_content_ref, coverage_state}`. Reports contain these eight section IDs in order: `CASE_SCOPE`, `EVIDENCE_COVERAGE`, `BUCKET_RECONCILIATION`, `FINDING_REGISTER`, `INVESTIGATION_HISTORY`, `NEXT_ACTIONS`, `HUMAN_DECISIONS`, `LIMITATIONS_AND_REPRODUCIBILITY`. Empty/not-applicable content is explicitly explained, not omitted. NEXT_ACTIONS includes named owner and priority; INVESTIGATION_HISTORY references plans, weak observations/mistakes, corrections and unresolved hypotheses. Sections do not replace the full audit inventory.
 
 ### C13 — Authenticated human review
 
@@ -679,6 +750,9 @@ TurnManifest {
   retrieval_attempt_ids: ID[]
   calculation_ids: ID[]
   finding_revision_ids: ID[]
+  plan_refs: ID[]
+  observation_assessment_refs: ID[]
+  plan_revised: boolean
   coverage_summary_blob: BlobRef
   budget_before: object
   budget_after: object
@@ -691,6 +765,8 @@ TurnManifest {
 ```
 
 Budget objects have schema-defined tool/model calls, retries, token/cost usage and elapsed time with null for unavailable provider metrics. A failed turn still preserves completed and pending operations. The next turn cannot reference a state that has not been durably committed.
+
+For investigative turns, plan refs precede action events and observation assessments follow result events; `plan_revised` agrees with the linked revision chain. A trace must demonstrate an actual weak-result/mistake observation and adaptation in the corresponding feedback-loop fixture, rather than merely filling explanation fields after the run.
 
 ### 8.4 Full versus selected evidence
 
@@ -792,7 +868,7 @@ These field lists complete the named service payloads used above. They inherit t
 | `StructuredCheckResult` | `check_id`, `check_kind`, `input_membership_blob`, `results[]` each containing target refs, `verdict: PASS \| FAIL \| UNKNOWN`, reasons and evidence; `tool_version`, `issues`. Used by identity/capability/product/transaction checks. |
 | `ComparisonResult` | `comparison_id`, `compare_kind: CASE \| ACCOUNT_SNAPSHOT \| CALCULATION \| RETURN_DRAFT`, exact left/right refs, `delta_records_blob`, `unchanged_members_digest`, `coverage_blob`, `tool_version`, `issues`. Matching is versioned and does not merge conflicting facts. |
 | `BudgetPolicy` | `max_tools_per_finding`, `max_tools_per_case`, `max_model_calls`, `max_query_reformulations`, `max_report_repairs`, `max_retries_per_operation`, `max_input_tokens`, `max_output_tokens`, `max_elapsed_seconds`, `max_cost_or_null`, `pricing_snapshot_ref_or_null`. All counts/ceilings are positive, except an optional feature may have zero permitted calls. |
-| `ReportRevision` | `report_id`, `report_revision_id`, `run_id`, `claim_ids`, `finding_revision_ids`, `calculation_ids`, `coverage_ref`, `report_json_blob`, `rendered_blobs`, `review_dependency_digest`, `supersedes_report_revision_id: ID \| null`. |
+| `ReportRevision` | `report_id`, `report_revision_id`, `run_id`, `section_refs: ID[]`, `claim_ids`, `finding_revision_ids`, `calculation_ids`, `coverage_ref`, `report_json_blob`, `rendered_blobs`, `review_dependency_digest`, `supersedes_report_revision_id: ID \| null`. Section refs resolve to the eight required ReportSections. |
 | `VerificationResult` | `verification_id`, `report_revision_id`, `verdict: PASS \| QUALIFIED \| BLOCKED`, `checks_blob`, `issues`, `verifier_version`, `verified_dependency_digest`. |
 | `ReviewPacket` | `packet_id`, `report_revision_id`, `review_dependency_digest`, `input_snapshot_refs`, `proposed_action_refs`, `unresolved_issue_refs`, `permitted_decisions`, `created_at`. |
 | `ReviewRecord` | `review_id`, `packet_id`, `review_dependency_digest`, `decision`, `authenticated_reviewer_ref`, `reason`, `recorded_at`, `supersedes_review_id: ID \| null`. A stale old approval remains historical; it never approves a changed dependency set. |
@@ -809,3 +885,35 @@ These field lists complete the named service payloads used above. They inherit t
 Request types such as `StartRunCommand`, `EvaluationSpec` and `GeneratorSpec` are projections of their explicitly described specifications, plus CommandContext. Path roots, actor privileges, retry counts and secrets are injected by trusted configuration, never accepted from a model argument. Generic `object` in a versioned payload means a separately declared adapter/configuration schema; production implementations must register that schema, not accept arbitrary dictionaries.
 
 With a monetary ceiling, configuration must pin a pricing table and a conservative estimate before dispatch. Without known prices, use hard call/token/time bounds and report monetary cost as unavailable; do not claim that an unenforceable currency ceiling was honored. Retries and embedding calls are charged to the same run or corpus-build budget as their original operation.
+
+## 13. Research-tool alias reconciliation
+
+Earlier research names describe capabilities, not extra privileged tools. The dispatcher maps them to these contracts; no fallback guessing of argument shapes or permissions is allowed.
+
+| Research name | Contract operation / owner |
+| --- | --- |
+| `read_case_manifest` | C08 `read_scope` plus pinned membership metadata. |
+| `list_evidence` | C08 `list_evidence`. |
+| `inspect_document`, `get_record` | C08 `inspect_evidence` over exact permitted refs. |
+| `validate_records` | C04 normalization validation; C08 consumes its frozen issues. |
+| `compare_identity`, `lookup_registration_evidence`, `check_capability` | C08 `check_identity_capability`, with explicit check kind. |
+| `lookup_product_mapping`, `compare_weight_basis`, `aggregate_sales` | C08 `check_product_sales`, with explicit mapping/weight/history check kind. |
+| `load_obligations` | C08 `load_obligations`. |
+| `compare_obligation_basis` | C08 `compare_versions` on obligation assertions/results. |
+| `get_certificate_history`, `check_credit_events` | C08 `trace_certificate` and its lifecycle/equivalence checks. |
+| `match_transactions` | C08 `match_commercial`. |
+| `compute_reconciliation` | C08 `compute_reconciliation`. |
+| `compare_snapshots`, `diff_case_evidence` | C08 `compare_versions` with ACCOUNT_SNAPSHOT or CASE kind. |
+| `compare_return_draft` | C08 `compare_return_draft`; emits ReturnReadinessComparison. |
+| `search_rules` | C07 `search_rules`. |
+| `get_source_passage(provision_version_id, expansion_policy)` | C07 exact-ID passage lookup. |
+| `get_source_passage(source_id, clause_locator)` | C07 `resolve_locator(LocatorLookupRequest)`; explicit alias, not an overloaded shape guess. |
+| `grade_retrieved_evidence` | C07 `grade_evidence`. |
+| `validate_report`, `verify_evidence_links` | C12 `verify_report` and its citation/claim checks. |
+| `prepare_action_note` | C12 `build_report`, NEXT_ACTIONS section; C13 may package it for human review. |
+| `create_review_packet`, `record_review_decision` | C13 packet/decision handlers; the latter remains human-only. |
+| `attach_acknowledgment` | C13 `attach_acknowledgment`. |
+| `export_case_bundle` | C14 `export_bundle`. |
+| `reopen_findings` | C05 `reopen_case` plus C08 `compare_versions`; C09 creates superseding affected finding revisions in a new run. Old findings/reviews remain unchanged. |
+
+`ReturnReadinessComparison = {comparison_id, draft_revision_id, calculation_refs, bucket_deltas, section_dispositions: ReturnSectionDisposition[], deadline_refs, readiness: READY_WITHIN_CHECKED_SECTIONS | NOT_READY | READINESS_UNDETERMINED, scope_limits, issues}`. Excluded/unsupported applicable sections prevent a claim of whole-return readiness even when all numerical comparisons match.
