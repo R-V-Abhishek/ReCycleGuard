@@ -9,6 +9,8 @@ This mini-project supports a compliance officer in investigating discrepancies b
 - [Project guidelines](PROJECT_GUIDELINES.md): course requirements, schedule, rubrics, and deliverables.
 - [Project charter source](PROJECT_CHARTER.tex): editable one-page LaTeX charter.
 - [Project charter PDF](output/pdf/PROJECT_CHARTER.pdf): compiled charter.
+- [Review 2 design PDF](output/pdf/REVIEW_2_DESIGN.pdf): five-page A4 submission, including references.
+- [Review 2 LaTeX source](docs/design/REVIEW_2_DESIGN.tex): editable architecture, patterns, data/tools, governance, and evaluation plan.
 - [Additional project PDF](output/pdf/ReCycleGuard.pdf).
 
 ## Research inputs
@@ -27,6 +29,26 @@ The initial research notes are dated 16 October 2026; the additional CPCB data/R
 The specifications were drafted on 18 October and corrected against the research review on 22 October 2026. They qualify tentative research assumptions and describe planned implementation.
 
 The repository currently contains planning documents; the agent implementation is forthcoming.
+
+## Build the Review 2 design document
+
+From the repository root, use a LaTeX distribution providing `pdflatex` and the packages listed in the source (including TikZ, Latin Modern, `tabularx`, `booktabs`, `enumitem`, `fancyhdr`, and `hyperref`). The diagrams are native vector drawings; no external images or bibliography processor are required.
+
+```sh
+mkdir -p tmp/pdfs/review2 output/pdf
+pdflatex -interaction=nonstopmode -halt-on-error -output-directory=tmp/pdfs/review2 docs/design/REVIEW_2_DESIGN.tex
+pdflatex -interaction=nonstopmode -halt-on-error -output-directory=tmp/pdfs/review2 docs/design/REVIEW_2_DESIGN.tex
+cp tmp/pdfs/review2/REVIEW_2_DESIGN.pdf output/pdf/REVIEW_2_DESIGN.pdf
+```
+
+The second pass resolves PDF references/bookmarks. With Poppler installed, verify the five-page A4 limit and render every page for visual review:
+
+```sh
+pdfinfo output/pdf/REVIEW_2_DESIGN.pdf
+pdftoppm -r 150 -png output/pdf/REVIEW_2_DESIGN.pdf tmp/pdfs/review2/review
+```
+
+Check the build log for overfull boxes or unresolved references after edits. The document follows the corrected v1.1 design/contracts; all application components, datasets, and experiments remain proposed. Slides are deferred until document approval.
 
 ## Build the charter
 
