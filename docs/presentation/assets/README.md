@@ -1,0 +1,7 @@
+# Cover illustration
+
+`review2-cover.png` is an AI-generated conceptual illustration, created with the built-in ImageGen tool for the presentation cover. It does not depict an actual company, case, transaction or event. Technical diagrams and quantitative evidence remain native editable slide objects.
+
+Generation prompt:
+
+> Use case: productivity-visual. Asset type: cover illustration for an academic engineering presentation about e-waste compliance reconciliation, ReCycleGuard. Create a refined photorealistic studio still life, wide 16:9 landscape, no words or symbols. Deep matte navy background #10283F with generous completely empty dark negative space on the LEFT 55 percent for an editable title. On the RIGHT 45 percent, a carefully arranged small stack of discarded circuit boards and brushed copper/aluminium metal pieces, alongside two blank ivory document sheets with subtle printed-line textures but no legible characters. Lighting is sophisticated, restrained teal edge light and warm copper accents, realistic material detail, dark editorial product photography, clean and credible university technical presentation rather than science-fiction. Frame all objects on the right, leave the left empty, lower-right still life, no monitor, no glowing brain, no robot, no recycle logo, no UI panels, no watermark, no typography. This is a conceptual illustration, not a real-event photo.
