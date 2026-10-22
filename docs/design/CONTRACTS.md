@@ -606,7 +606,7 @@ The underlying `write_blob` primitive only writes/hashes bytes; it does not recu
 
 **Calls:** `start_run(RunSpec) -> RunState`; `advance(run_id, expected_state_version) -> TurnManifest`; `resume(run_id, checkpoint_ref) -> RunState`; `cancel(run_id, reason) -> RunState`.
 
-`RunSpec` pins case/corpus/profile/index versions, code revision, dependency lock digest, adapter/tool/prompt/model configurations, retrieval/audit/security policies, topology, experiment variant and all budgets. `RunState` stores run status, current turn, pending finding queue, result/finding refs, consumed budgets, stop reason and last committed audit sequence.
+`RunSpec` pins case/corpus/profile/index versions, code revision, dependency lock digest, adapter/tool/prompt/model configurations, retrieval/audit/security policies, topology, experiment variant and all budgets; optional `parent_run_id` links an explicitly authorized correction/re-run. `RunState` stores run status, current turn, pending finding queue, result/finding refs, consumed budgets, stop reason, review_outcome and last committed audit sequence.
 
 **Outputs:** Turns, finding revisions, calculations and review-ready report refs. The investigator produces only `ActionProposal = {action_kind, allowed_operation, typed_arguments, finding_id, plan_ref, concise_reason, evidence_refs}`. The dispatcher validates capability and budget before execution.
 
@@ -614,7 +614,9 @@ The underlying `write_blob` primitive only writes/hashes bytes; it does not recu
 
 **Control:** Mandatory deterministic preflight → investigation → drafting → verification → human review or qualified closure. Every turn has frozen input/output state refs. Restarts use committed operations and preserve budgets; no duplicate application of completed review/derivation operations.
 
-**Statuses:** `CREATED`, `PREFLIGHT`, `INVESTIGATING`, `DRAFTING`, `VERIFYING`, `AWAITING_REVIEW`, `COMPLETED`, `BLOCKED_INPUT`, `BLOCKED_OUTPUT`, `FAILED`, `CANCELLED`. `stop_reason` separately identifies `RESOLVED_WITHIN_SCOPE`, `NO_NEW_EVIDENCE`, `EXPERT_REVIEW_REQUIRED`, `BUDGET_EXHAUSTED`, `CYCLE_DETECTED`, `PROVIDER_FAILURE`, `AUDIT_FAILURE` or `MANUAL_CLOSURE`. Exhaustion can finish a qualified report; it cannot mark uncertain findings reconciled.
+**Statuses:** `CREATED`, `PREFLIGHT`, `INVESTIGATING`, `DRAFTING`, `VERIFYING`, `AWAITING_REVIEW`, `COMPLETED`, `BLOCKED_INPUT`, `BLOCKED_OUTPUT`, `FAILED`, `CANCELLED`. `stop_reason` separately identifies `RESOLVED_WITHIN_SCOPE`, `NO_NEW_EVIDENCE`, `EXPERT_REVIEW_REQUIRED`, `BUDGET_EXHAUSTED`, `CYCLE_DETECTED`, `PROVIDER_FAILURE`, `AUDIT_FAILURE`, `REVIEW_REJECTED`, `CHANGES_REQUESTED` or `MANUAL_CLOSURE`. Exhaustion can finish a qualified report; it cannot mark uncertain findings reconciled.
+
+`review_outcome` is `NOT_REQUESTED | PENDING | APPROVED | REJECTED | CHANGES_REQUESTED | ESCALATED | CLOSED_WITHOUT_DECISION`, separate from RunStatus. After a trusted C13 decision: APPROVE transitions AWAITING_REVIEW to COMPLETED; REJECT to BLOCKED_OUTPUT with REVIEW_REJECTED; REQUEST_CHANGES to BLOCKED_OUTPUT with CHANGES_REQUESTED; ESCALATE remains AWAITING_REVIEW/ESCALATED awaiting an external reviewer event. Explicit authorized manual closure may complete with CLOSED_WITHOUT_DECISION and MANUAL_CLOSURE, never APPROVED. Terminal runs do not resume silently: corrections create a new authorized RunSpec with parent_run_id and new case version if evidence changed. The state diagram in SYSTEM_DESIGN §7.2 must cover every RunStatus and these review transitions.
 
 ### C10 — Model and embedding gateway
 
@@ -661,6 +663,8 @@ C12 must explicitly test generated claims for a legal-compliance verdict, allega
 **Permission:** Only authenticated human sessions with reviewer capability can submit decisions/profile approvals. The investigator can request a packet but cannot call a privileged decision endpoint. A local demo username is recorded as local asserted identity; stronger authentication is required before real multiuser deployment.
 
 **Side effects:** Append a version-bound decision; changed dependencies yield `STALE_REVIEW`. Acknowledgment data remains a supplied artifact/assertion with validation state; do not generate an official receipt from a report hash.
+
+C13 emits the authenticated decision event; C09 projects the specific transition defined above. Recording REJECT, REQUEST_CHANGES or ESCALATE must not automatically mark the run COMPLETED. A decision submitted against a closed/stale packet is rejected rather than reviving its run; correction/review uses a new authorized packet/run.
 
 ### C14 — Audit export, publication export and replay
 
@@ -826,6 +830,7 @@ No state transition can skip step 5. A storage failure after execution leaves a 
 | C10–C11 | Exact redacted request/response stored; usage unknown remains null; unauthorized tool proposal rejected. |
 | C12–C13 | Invalid citation/numeric claim blocks or qualifies report; edited dependencies invalidate approval. |
 | C13 permission | Model/service caller cannot create a trusted HUMAN approval or filing acknowledgment. |
+| C09/C13 review transitions | All eleven RunStatus values are represented; APPROVE completes, REJECT/REQUEST_CHANGES block output, ESCALATE waits, and manual closure records no invented approval. |
 | C14 | Local completeness verified; public exports inspect derivatives/prompts and enumerate restricted omissions. |
 | C15–C16 | Hidden labels/seeds/oracle inaccessible through files, search, logs, cache and UI; isolation attempts recorded. |
 

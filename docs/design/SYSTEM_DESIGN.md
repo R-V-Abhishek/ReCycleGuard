@@ -328,21 +328,35 @@ A corpus-wide membership snapshot plus filtering results identifies the full can
 
 ```mermaid
 stateDiagram-v2
-    [*] --> PREFLIGHT
+    [*] --> Processing
+    state Processing {
+        [*] --> CREATED
+        CREATED --> PREFLIGHT
+        PREFLIGHT --> INVESTIGATING: provisional result available
+        INVESTIGATING --> INVESTIGATING: audited observation and plan update
+        INVESTIGATING --> DRAFTING: resolution or qualified budget/evidence stop
+        DRAFTING --> VERIFYING
+        VERIFYING --> DRAFTING: bounded verification repair
+        VERIFYING --> AWAITING_REVIEW: valid qualified report
+        AWAITING_REVIEW --> AWAITING_REVIEW: ESCALATE / expert decision pending
+    }
     PREFLIGHT --> BLOCKED_INPUT: critical input/profile failure
-    PREFLIGHT --> INVESTIGATING: provisional result available
-    INVESTIGATING --> INVESTIGATING: audited tool observation / next action
-    INVESTIGATING --> DRAFTING: supported resolution or explicit stop
-    DRAFTING --> VERIFYING
-    VERIFYING --> DRAFTING: bounded repair
-    VERIFYING --> BLOCKED_OUTPUT: failed repair / unresolved integrity
-    VERIFYING --> AWAITING_REVIEW: valid qualified report
-    AWAITING_REVIEW --> COMPLETED: human decision recorded
-    AWAITING_REVIEW --> COMPLETED: deadline/manual closure with review pending recorded
+    VERIFYING --> BLOCKED_OUTPUT: repair exhausted / invalid report
+    AWAITING_REVIEW --> COMPLETED: APPROVE exact report revision
+    AWAITING_REVIEW --> BLOCKED_OUTPUT: REJECT or REQUEST_CHANGES
+    AWAITING_REVIEW --> COMPLETED: explicit authorized manual closure without approval
+    Processing --> FAILED: unrecoverable execution/provider/audit failure
+    Processing --> CANCELLED: authorized cancellation
     COMPLETED --> [*]
+    BLOCKED_INPUT --> [*]
+    BLOCKED_OUTPUT --> [*]
+    FAILED --> [*]
+    CANCELLED --> [*]
 ```
 
-`COMPLETED` means execution finished, not compliance confirmed. A run may complete with findings pending expert review. Cancellation, provider failure, budget exhaustion and audit failure are explicit terminal run statuses in the contracts. Evidence additions create a new case version and run; approval never transfers automatically.
+`Processing` is a diagram grouping, not a persisted run status. All eleven RunStatus values from CONTRACTS C09 are drawn. `COMPLETED` means execution finished, not compliance confirmed. Approval records review_outcome=APPROVED; explicit manual closure can complete with CLOSED_WITHOUT_DECISION, never fabricated approval. Escalation retains AWAITING_REVIEW with review_outcome=ESCALATED and waits for a new external reviewer event; it is not an automatic loop.
+
+Rejection terminates as BLOCKED_OUTPUT/REVIEW_REJECTED; requested changes terminate as BLOCKED_OUTPUT/CHANGES_REQUESTED. A correction starts a new explicitly authorized run with parent_run_id; report-only corrections can reuse the frozen case, while changed evidence creates a new case version. No terminal run is silently revived and no approval transfers. Ordinary provider timeouts use bounded retry; only unrecoverable failures enter FAILED. Budget exhaustion can still produce a qualified report but cannot mark unresolved findings reconciled.
 
 ### 7.3 Budgets and topology
 
