@@ -2,16 +2,17 @@
 \usepackage[top=14mm,bottom=15mm,left=16mm,right=16mm,headheight=12pt,headsep=5mm,footskip=8mm]{geometry}
 \usepackage[T1]{fontenc}
 \usepackage{lmodern,microtype}
+\renewcommand{\familydefault}{\sfdefault}
 \usepackage{array,tabularx,booktabs,xcolor}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning,fit,backgrounds}
 \usepackage{enumitem,fancyhdr}
 \usepackage[hidelinks]{hyperref}
-\definecolor{forest}{HTML}{185547}
-\definecolor{ink}{HTML}{263530}
-\definecolor{muted}{HTML}{596760}
-\definecolor{tint}{HTML}{EDF4F1}
-\definecolor{line}{HTML}{A7BFB4}
+\definecolor{forest}{HTML}{23466B}
+\definecolor{ink}{HTML}{20252B}
+\definecolor{muted}{HTML}{606A75}
+\definecolor{tint}{HTML}{F3F5F7}
+\definecolor{line}{HTML}{ABB5BF}
 \hypersetup{pdftitle={ReCycleGuard - Review 2 System Design},pdfauthor={R V Abhishek; H Sampreeth Bhat; Sushanth S; Vedantha Vinay Vernekar}}
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{3pt}
@@ -21,12 +22,12 @@
 \newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
 \newcommand{\sect}[1]{\par\vspace{5pt}{\sffamily\bfseries\color{forest}\large #1}\par\vspace{2pt}}
 \newcommand{\sub}[1]{\par\vspace{3pt}{\sffamily\bfseries\color{forest}#1}\par}
-\newcommand{\pagehead}[2]{{\sffamily\fontsize{8}{10}\selectfont\bfseries\color{muted}REVIEW 2\quad /\quad SYSTEM DESIGN\hfill 22 OCTOBER 2026}\par\vspace{3pt}{\sffamily\fontsize{21}{24}\selectfont\bfseries\color{forest}#1}\par{\sffamily\small\color{muted}#2}\par\vspace{3pt}{\color{forest}\hrule height .8pt}\vspace{3pt}}
+\newcommand{\pagehead}[2]{{\sffamily\fontsize{8}{10}\selectfont\bfseries\color{muted}RECYCLEGUARD\quad /\quad SYSTEM DESIGN\hfill 22 OCTOBER 2026}\par\vspace{3pt}{\sffamily\fontsize{20}{23}\selectfont\bfseries\color{forest}#1}\par{\sffamily\small\color{muted}#2}\par\vspace{3pt}{\color{forest}\hrule height .8pt}\vspace{3pt}}
 \newcommand{\callout}[1]{\par\begingroup\setlength{\fboxsep}{7pt}\colorbox{tint}{\parbox{\dimexpr\linewidth-14pt}{#1}}\endgroup\par}
 \newcommand{\code}[1]{\texttt{\small #1}}
 \newcommand{\refitem}[3]{\par\hangindent=5mm\hangafter=1{\bfseries[#1]} #2. \href{#3}{\textcolor{forest}{Primary source}}.}
 \pagestyle{fancy}\fancyhf{}
-\fancyfoot[L]{\sffamily\fontsize{8}{10}\selectfont\color{muted}ReCycleGuard\quad |\quad Proposed design v1.1\quad |\quad No measured results}
+\fancyfoot[L]{\sffamily\fontsize{8}{10}\selectfont\color{muted}ReCycleGuard\quad |\quad System design\quad |\quad Proposed implementation}
 \fancyfoot[R]{\sffamily\small\color{forest}\thepage\ /\ 5}
 \renewcommand{\headrulewidth}{0pt}\renewcommand{\footrulewidth}{.3pt}
 \tikzset{box/.style={draw=line,rounded corners=2pt,fill=tint,align=center,font=\sffamily\fontsize{8.5}{10.5}\selectfont,inner sep=5pt},arr/.style={-{Stealth[length=1.6mm]},draw=forest,line width=.6pt}}
@@ -35,61 +36,74 @@
 {\sffamily\fontsize{8.5}{10.5}\selectfont Agentic AI (26CD7PEAAI) $\cdot$ B.E. CSE (Data Science), VII Semester, BMSCE\\Instructor: Dr. Kalyan Nagaraj\hfill Review: 24 October 2026}
 {\small
 \begin{tabularx}{\linewidth}{@{}YY@{}}
-R V Abhishek (Lead) --- 1BM23CD047 & H Sampreeth Bhat --- 1BM23CD020\\
-Sushanth S --- 1BM23CD063 & Vedantha Vinay Vernekar --- 1BM23CD069
+R V Abhishek (Team lead), 1BM23CD047 & H Sampreeth Bhat, 1BM23CD020\\
+Sushanth S, 1BM23CD063 & Vedantha Vinay Vernekar, 1BM23CD069
 \end{tabularx}}\par
 \sect{1\quad Decision, scope and architecture}
 \callout{\textbf{Decision supported.} Which discrepancy should the compliance officer investigate next, and what verification or correction does the evidence support? The output is a traceable working paper with calculations, citations, uncertainty and named next-action owners.}
-\textbf{V1 boundary.} One synthetic producer; closed FY 2024--25; up to two specific reviewed EEE codes; supplied Au/Cu/Al/Fe obligation buckets and separately dated historical liabilities. Gold is a fixed supplied bucket; gold-specific adjustments are unsupported. V1 does not derive statutory targets from sales. A bounded single investigator operates within a human-reviewed workflow.
+\textbf{Scope.} One synthetic producer; closed FY 2024--25; up to two specific reviewed EEE codes; supplied Au/Cu/Al/Fe obligation buckets and separately dated historical liabilities. Gold is a fixed supplied bucket; gold-specific adjustments are unsupported. The system does not derive statutory targets from sales. A bounded single investigator operates within a human-reviewed workflow.
 
-\textbf{Excluded.} Live portal filing, certificate trading, OTP interaction, autonomous legal certification and compensation calculation. Components, dossiers and experiments below are \emph{planned}; the repository currently contains specifications, not an implemented application.
+\textbf{Excluded.} Live portal filing, certificate trading, OTP interaction, autonomous legal certification and compensation calculation. The application, dossiers and experiments are \emph{planned}; no implementation results are claimed.
 
-\sub{Local application and offline evaluation boundary}
+\sub{Component view: local application and evaluation boundary}
 \begin{center}
-\begin{tikzpicture}[x=1mm,y=1mm]
-\draw[draw=line,rounded corners=3pt] (0,0) rectangle (177,79);
-\node[font=\sffamily\scriptsize,color=forest,anchor=west,fill=white] at (3,79) {ONE LOCAL PYTHON APPLICATION --- logical modules, not enterprise integrations};
-\node[box,text width=48mm] (reg) at (30,67) {C01 Regulatory-source intake\\Gazette / CPCB originals};
-\node[box,text width=48mm] (case) at (91,67) {C01 Producer-dossier intake\\synthetic files / supplied records};
-\node[box,text width=30mm] (ui) at (153,67) {C00 CLI / proposed\\review interface};
-\node[box,text width=103mm] (data) at (61,46) {C02 Immutable originals / catalog $\to$ C03 Extraction\\$\to$ C04 Normalization $\to$ C05 Frozen snapshots / reviewed profiles};
-\node[box,text width=44mm] (rt) at (145,46) {C06 Index $\to$ C07 Retrieval\\C08 Deterministic tools};
-\node[box,text width=48mm] (agent) at (30,24) {C09 Bounded investigator\\$\leftrightarrow$ C10 Model gateway};
-\node[box,text width=48mm] (review) at (91,24) {C12 Report builder / verifier\\$\to$ C13 Human review};
-\node[box,text width=30mm] (export) at (153,24) {C14 Export / replay};
-\node[font=\sffamily\fontsize{8.5}{10}\selectfont,color=forest] at (88,6) {C11 Durable audit kernel: intake, transformations, every interaction, review and export};
-\draw[arr] (reg)--(data);\draw[arr] (case)--(data);\draw[arr] (data)--(rt);
-\draw[arr] (ui.east)--(176,67)--(176,13)--(30,13)--(agent.south);
-\draw[arr] (data.south west)++(12,0)--(agent.north);
-\draw[arr] (rt.south)--++(0,-4)-|(agent.north east);
-\draw[arr] (agent)--(review);\draw[arr] (review)--(export);
-\node[box,text width=49mm] (gen) at (30,-14) {C15 Seeded generator\\visible dossiers only to C01};
-\node[box,text width=49mm] (eval) at (91,-14) {C16 Evaluation harness\\launch isolated runs; score after closure};
-\node[box,fill=white,dashed,text width=30mm] (oracle) at (153,-14) {ISOLATED ORACLE\\world / labels / seeds};
-\draw[arr] (gen.north west)--(1,-6)--(1,75)--(91,75)--(case.north);
-\draw[arr] (gen)--(eval);\draw[arr,dashed] (eval)--(oracle);
+\begin{tikzpicture}[x=1mm,y=1mm,
+  box/.style={draw=line,fill=white,align=left,font=\fontsize{8}{9.5}\selectfont,inner sep=4pt,minimum height=14mm},
+  label/.style={font=\fontsize{7}{8}\selectfont,fill=white,inner sep=1pt,text=muted},
+  arr/.style={-{Stealth[length=1.5mm]},draw=forest,line width=.6pt}]
+\node[box,text width=76mm,minimum height=10mm,fill=tint] (reg) at (43,98) {\textbf{Regulatory sources}\\Official Gazette instruments and CPCB guidance};
+\node[box,text width=76mm,minimum height=10mm,fill=tint] (dossier) at (134,98) {\textbf{Producer dossier}\\Synthetic originals generated by C15};
+\draw[draw=line,dashed] (0,-2) rectangle (177,87);
+\node[anchor=center,font=\bfseries\fontsize{7}{8}\selectfont,fill=white,text=forest] at (88.5,87) {LOCAL PYTHON APPLICATION: LOGICAL MODULES};
+\node[box,text width=165mm,minimum height=13mm,fill=tint] (foundation) at (88.5,74) {\textbf{Evidence foundation | C01 Acquisition, C02 Artifact catalog, C03 Extraction, C04 Normalization}\\Immutable originals, page/row coverage, typed observations and provenance links};
+\node[box,text width=48mm] (snap) at (28,53) {\textbf{C05 Snapshots and profiles}\\Frozen case/corpus membership\\and reviewed calculation policy};
+\node[box,text width=48mm] (rag) at (88.5,53) {\textbf{C06 Index, C07 Retrieval}\\Lexical search, clause expansion\\and evidence grading};
+\node[box,text width=48mm] (tools) at (149,53) {\textbf{C08 Domain tools}\\Exact checks, certificate tracing\\and supported allocations};
+\node[box,text width=48mm] (ui) at (28,29) {\textbf{C00 Human interface}\\CLI commands and proposed\\case/review interface};
+\node[box,text width=48mm,draw=forest,fill=forest,text=white] (agent) at (88.5,29) {\textbf{C09 Investigator}\\Bounded plan, act, observe loop\\with persisted decision records};
+\node[box,text width=48mm] (model) at (149,29) {\textbf{C10 Model gateway}\\Structured requests/responses\\and provider failure handling};
+\node[box,text width=48mm] (report) at (28,7) {\textbf{C12 Report verification}\\Claims, calculations, citations\\and unresolved scope};
+\node[box,text width=48mm] (review) at (88.5,7) {\textbf{C13 Review, C14 Export}\\Authenticated human decision,\\audit bundles and replay};
+\node[box,text width=48mm,fill=tint] (audit) at (149,7) {\textbf{C11 Audit kernel}\\Durable capture of all modules,\\interactions and decisions};
+\draw[arr] (reg.south)--node[label,left,pos=.2]{acquire}(foundation.north -| reg.south);
+\draw[arr] (dossier.south)--node[label,right,pos=.2]{import}(foundation.north -| dossier.south);
+\draw[arr] (foundation.south -| snap.north)--node[label,left]{freeze}(snap.north);
+\draw[arr] (snap.east)--node[label,above]{index}(rag.west);
+\draw[arr] (rag.south)--node[label,right]{evidence}(agent.north);
+\draw[arr] (snap.south east)--node[label,above,sloped]{pinned inputs}(agent.north west);
+\draw[arr] (tools.south west)--node[label,above,sloped]{check results}(agent.north east);
+\draw[arr] (ui.east)--node[label,above]{start}(agent.west);
+\draw[arr] (model.west)--node[label,above]{propose}(agent.east);
+\draw[arr] (agent.south west)--node[label,above,sloped]{findings}(report.north east);
+\draw[arr] (report.east)--node[label,above]{verified}(review.west);
+\node[box,text width=105mm,minimum height=13mm,fill=tint] (eval) at (58,-17) {\textbf{Offline evaluation | C15 Generator, C16 Evaluator}\\Generate visible dossiers; launch isolated runs; score closed artifacts};
+\node[box,text width=48mm,minimum height=13mm,draw=forest,dashed] (oracle) at (149,-17) {\textbf{Isolated oracle}\\Hidden world, fault labels, seeds\\and reference calculations};
+\draw[arr,dashed] (oracle.west)--node[label,above]{truth}(eval.east);
 \end{tikzpicture}
 \end{center}
 \vspace{-5pt}
-{\small\textbf{Diagram key.} C00--C14 form the runtime; C15--C16 are offline benchmark modules. The generator produces visible evidence and separate truth. Only the evaluator can read truth after investigator artifacts close. There is no oracle path into retrieval, prompts or the review UI. C11 spans every component; arrows abbreviate control and data flow.}
+{\small\textbf{Key.} Boxes group logical components; solid arrows show principal runtime flows. The dashed boundary encloses the local application; the dashed oracle link is evaluator-only. C09 selects C07/C08 checks and calls C10; return flows are abbreviated. C08 reads C05 inputs. C11 captures every module. Oracle data never enters retrieval, prompts or human review.}
 
-\textbf{Feasibility.} Proposed stack: Python 3.11+, uv, Typer, Pydantic v2, SQLite/\code{Decimal}, PDF extraction and LangGraph checkpoints. FTS5 is the lexical baseline [5]; dense retrieval is an experiment. One local process and a single database writer keep the initial deployment manageable. Full versioned interfaces remain in \code{CONTRACTS.md} v1.1.
+\textbf{Feasibility.} Proposed stack: Python, uv, Typer, Pydantic, SQLite/\code{Decimal}, PDF extraction and LangGraph checkpoints. FTS5 is the lexical baseline [5]; dense retrieval is an experiment. One local process and a single database writer keep the initial deployment manageable. Typed interfaces enforce evidence provenance and execution permissions.
 
 \newpage
 \pagehead{Agent, reasoning and patterns}{2\quad Adaptive investigation with deterministic calculations}
 \textbf{Agentic responsibility.} Code establishes provisional facts and arithmetic. The investigator chooses the next unresolved hypothesis, evidence inspection or rule query in response to observations. It cannot change canonical quantities. Each action stores a concise plan, expected evidence and stopping criteria; each result stores an assessment and linked plan revision. These are visible decision records, not private chain-of-thought.
 
 \begin{center}
-\begin{tikzpicture}[node distance=5mm and 7mm]
-\node[box,text width=48mm] (pre) {1. Deterministic preflight\\freeze inputs; provisional reconciliation};
-\node[box,text width=48mm,right=of pre] (plan) {2. Plan / hypotheses\\choose unresolved scope and checks};
-\node[box,text width=48mm,right=of plan] (tool) {3. Select / execute tool\\dispatcher checks permission and budget};
-\node[box,text width=48mm,below=9mm of tool] (obs) {4. Assess observation\\supports / refutes / weak / no progress};
-\node[box,text width=48mm,left=of obs] (rev) {5. Reformulate / revise\\new query or investigation check};
-\node[box,text width=48mm,left=of rev] (stop) {6. Resolve / abstain / stop\\evidence, cycle or budget limit};
-\node[box,text width=163mm,below=8mm of stop.south west,anchor=north west] (report) {7. Draft $\to$ deterministic report verification $\to$ authenticated human decision\\Invalid report: one repair, then block. Critical preflight failure: block input.};
+\begin{tikzpicture}[x=1mm,y=1mm,
+ box/.style={draw=line,fill=tint,align=left,font=\fontsize{8.5}{10}\selectfont,inner sep=5pt,minimum height=17mm,text width=48mm},
+ flowlabel/.style={font=\fontsize{7}{8}\selectfont,fill=white,inner sep=1pt,text=muted}]
+\node[box] (pre) at (28,0) {\textbf{1. Preflight}\\Freeze inputs and calculate\\provisional balances.};
+\node[box] (plan) at (88.5,0) {\textbf{2. Plan investigation}\\State hypotheses, required\\evidence and stopping criteria.};
+\node[box] (tool) at (149,0) {\textbf{3. Execute a tool}\\Validate the proposed operation,\\permissions and budget.};
+\node[box] (obs) at (149,-29) {\textbf{4. Assess observations}\\Record support, refutation,\\weak evidence or no progress.};
+\node[box] (rev) at (88.5,-29) {\textbf{5. Revise investigation}\\Reformulate retrieval or choose\\a different evidence check.};
+\node[box] (stop) at (28,-29) {\textbf{6. Resolve or stop}\\Resolve supported findings;\\abstain or stop at a limit.};
+\node[box,text width=169mm,minimum height=14mm] (report) at (88.5,-55) {\textbf{7. Verify report and obtain human decision}\\Render referenced calculations and claims, verify citations, then request authenticated review.\\Allow one report repair before blocking output; critical preflight failure blocks input.};
 \draw[arr] (pre)--(plan);\draw[arr] (plan)--(tool);\draw[arr] (tool)--(obs);
-\draw[arr] (obs)--(rev);\draw[arr] (rev)--(stop);\draw[arr] (rev.north)--(plan.south);
+\draw[arr] (obs)--(rev);\draw[arr] (rev)--(stop);
+\draw[arr] (rev.north)--node[flowlabel,right]{continue}(plan.south);
 \draw[arr] (stop.south)--(report.north -| stop.south);
 \end{tikzpicture}
 \end{center}
@@ -102,7 +116,7 @@ Tool use & Exact joins, units, quantities, lifecycle checks and allocation conse
 Agentic RAG & C09 chooses queries, assesses evidence grades and re-queries weak results through C07; retrieval is a decision, not a fixed prompt attachment.\\
 Planning / reflection & Persist plans, observations, mistakes and revisions with predecessor links; assess whether the next check adds evidence.\\
 Human review & C13 binds approval, rejection, changes and escalation to exact report and input versions; the agent cannot authenticate a reviewer.\\
-Multi-agent & Optional collector/auditor experiment using the same dispatcher and authorized evidence. It is not a prerequisite for v1.\\
+Multi-agent & Optional collector/auditor experiment using the same dispatcher and authorized evidence. It is not a prerequisite for the initial scope.\\
 Durable workflow & LangGraph checkpoints support recovery [6]. Committed application operations and the C11 audit ledger remain authoritative.\\\bottomrule
 \end{tabularx}}\par
 \sub{Worked adaptation: pending payment is not supported fulfillment}
@@ -149,7 +163,7 @@ C09 run state and LangGraph checkpoints hold the finding queue, plans, observati
 
 \newpage
 \pagehead{Tools, contracts and governance}{4\quad Typed execution boundaries and accountable human decisions}
-\textbf{Shared protocol.} Contracts v1.1 pin case/corpus/profile/index and code/prompt/policy versions. Each operation carries actor capability, operation/attempt IDs, idempotency key and audit refs. \code{ServiceResult<T>} returns status, complete result blob, issues and typed provenance/locator dependencies. Decimal quantities are strings, not binary floats. C07/C08 examples follow; full contracts: \code{docs/design/CONTRACTS.md}, §§2, 6--7.
+\textbf{Shared protocol.} Each run freezes its case, corpus, calculation profile, index, code, prompts and policies. Each operation carries actor capability, operation/attempt IDs, idempotency key and audit refs. \code{ServiceResult<T>} returns status, complete result blob, issues and typed provenance/locator dependencies. Decimal quantities are strings, not binary floats. The representative read/check interfaces below share this protocol.
 
 {\fontsize{9}{11}\selectfont
 \begin{tabularx}{\linewidth}{@{}L{38mm}Y Y@{}}\toprule
@@ -192,23 +206,33 @@ Compare on identical visible inputs and frozen profiles: \textbf{(A)} determinis
 {\fontsize{9}{11}\selectfont
 \begin{tabularx}{\linewidth}{@{}L{41mm}Y@{}}\toprule
 \textbf{Metric} & \textbf{Definition and interpretation}\\\midrule
-Exact balance agreement & Fraction of eligible buckets exactly matching independent decimal references; report every mismatch, pending amount and comparison delta.\\
+Exact balance agreement & Eligible buckets exactly matching independent decimal references / all eligible buckets. Report mismatches and pending amounts.\\
 Discrepancy precision / recall & Correct discrepancy findings / all predicted; detected reference discrepancies / all reference discrepancies. F01 tests false positives.\\
 Resolution / abstention & Evidence-supported resolutions and correct abstentions over corresponding oracle scopes; do not reward guessing hidden truth.\\
 Citation / temporal correctness & Claim citations that directly support the claim and apply to its role, regime and date / citations assessed, using reviewed references.\\
 Unsupported / prohibited rates & Unsupported claims / assessed claims; prohibited generated verdicts / assessed verdict candidates. Record forbidden tool attempts separately.\\
 Steps, latency and cost & Mean investigative actions per task; measured latency p50/p95 and failures; provider cost per task (unknown cost stays null).\\
-Repeated-run reliability & Fraction of repeated trials meeting correctness/safety gates; report outcome variation with trial counts and configuration.\\
-Evidence / audit coverage & Received assets and discovered pages/rows with terminal accounting; operations/turns with complete payloads and lineage / expected totals.\\\bottomrule
+Repeated-run reliability & Repeated trials meeting correctness/safety gates / all trials; report counts, configuration and outcome variation.\\
+Evidence / audit coverage & Accounted assets/pages/rows and fully recorded operations/turns / expected totals; unknown coverage stays unknown.\\\bottomrule
 \end{tabularx}}\par
 \textbf{Hard acceptance gates.} Exact supported arithmetic against independent references; complete evidence accounting and operation audit coverage; \textbf{zero prohibited generated verdicts in released reports}. Block or qualify unsupported scopes, never invent certainty. Report raw counts alongside rates; unknown coverage is not 100\%. Accuracy, latency, cost and collaboration gains remain \emph{unmeasured}. Limits are configured budgets, not benchmark achievements.
 
-\sub{Implementation order and proposed ownership}
-Freeze contracts/audit first $\to$ ingestion/snapshots and generator $\to$ deterministic baseline $\to$ lexical retrieval $\to$ bounded agent $\to$ review/export/evaluation. Abhishek: integration/contracts, C00/C09/C10; Sampreeth: sources/applicability, C01/C05--C07; Sushanth: normalization/calculation and reference fixtures, C03/C04/C08/C15; Vedantha: evidence/audit presentation, review/export/evaluation integration, C02/C11--C14/C16. Shared boundaries are reviewed by all; reference calculations require independent cross-review. Ownership is proposed, not an external commitment.
+\sub{Implementation order and team ownership}
+Build interfaces/audit, ingestion and fixtures, tools, RAG, orchestration, then review/export and evaluation.
+
+{\small
+\begin{tabularx}{\linewidth}{@{}L{26mm}Y@{}}\toprule
+\textbf{Member} & \textbf{Primary responsibility}\\\midrule
+Abhishek (Lead) & Overall orchestration and correctness, workflow, model gateway and integration.\\
+Sushanth & Data generation and RAG: synthetic dossiers, isolated oracle, indexing and retrieval.\\
+Vedanth & Build and test agent tools for reconciliation, tracing, evidence checks and return comparison.\\
+Sampreeth & Evidence ingestion/storage, audit, human review, reports/export and evaluation integration.\\\bottomrule
+\end{tabularx}}\par
+All members review shared interfaces; reference calculations require independent cross-review.
 
 \textbf{Key limits.} Synthetic-only pilot cannot establish production accuracy or legal validity. Source rights, exact EEE codes and reviewed profiles remain activation decisions. Provider/context limits, OCR and dense retrieval require measured selection. Numerical/citation checks cannot prove semantic legal correctness. Local hashes need retained anchors; private evidence requires separate publication/redaction review.
 
-\sub{Primary references and specification authority}
+\sub{Primary references}
 {\fontsize{8}{9.5}\selectfont\setlength{\parskip}{2pt}
 \refitem{1}{MoEFCC. E-Waste (Management) Rules, 2022, G.S.R. 801(E), 2 Nov 2022; Rules 6, 14--15 and Schedules III--IV}{https://eprewaste.cpcb.gov.in/assets/PDF/e-waste_rules_2022.pdf}
 \refitem{2}{MoEFCC. Amendment Rules, 2024, G.S.R. 164(E), 8 Mar 2024; inserted Rule 9A}{https://eprewaste.cpcb.gov.in/assets/PDF/Amendment-Rules-2024.pdf}
@@ -216,6 +240,6 @@ Freeze contracts/audit first $\to$ ingestion/snapshots and generator $\to$ deter
 \refitem{4}{CPCB. FAQ under E-Waste Rules, 23 Jan 2024, Section C}{https://eprewaste.cpcb.gov.in/assets/PDF/faqewaste.pdf}
 \refitem{5}{SQLite. FTS5 Extension, lexical indexing and BM25}{https://www.sqlite.org/fts5.html}
 \refitem{6}{LangChain. LangGraph persistence and checkpoints}{https://docs.langchain.com/oss/python/langgraph/persistence}
-\par\textbf{Internal authority:} \code{docs/design/SYSTEM\_DESIGN.md} and \code{CONTRACTS.md}, corrected v1.1, 22 Oct 2026. This submission condenses those specifications; it does not activate a rule profile or claim a complete current legal corpus.
+
 }
 \end{document}

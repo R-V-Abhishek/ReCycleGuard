@@ -48,7 +48,9 @@ pdfinfo output/pdf/REVIEW_2_DESIGN.pdf
 pdftoppm -r 150 -png output/pdf/REVIEW_2_DESIGN.pdf tmp/pdfs/review2/review
 ```
 
-Check the build log for overfull boxes or unresolved references after edits. The document follows the corrected v1.1 design/contracts; all application components, datasets, and experiments remain proposed. Slides are deferred until document approval.
+Check the build log for overfull boxes or unresolved references after edits. The document is self-contained, with its own architecture, representative interfaces, safeguards, evaluation plan, team ownership, and primary references. All application components, datasets, and experiments remain proposed. Slides are deferred until document approval.
+
+The report styling is inspired by [Eisvogel](https://github.com/Wandmalfarbe/pandoc-latex-template); component diagrams follow the clarity principles in the [C4 diagram review checklist](https://c4model.com/diagrams/checklist). The source implements the layout directly in LaTeX/TikZ using installed fonts, without a Pandoc or external-template dependency.
 
 ## Build the charter
 
