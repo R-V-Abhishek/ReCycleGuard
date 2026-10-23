@@ -1,0 +1,122 @@
+[
+  {
+    "slide": 1,
+    "title": "ReCycleGuard",
+    "seconds": 15,
+    "priority": "Brief opening",
+    "cue": "Look at the audience. Start without reading the names on the slide.",
+    "speech": "Good morning. We are presenting ReCycleGuard, our proposed agentic system for e-waste EPR reconciliation. It helps a compliance officer investigate discrepancies and identify the action that the available evidence supports. Today, we will focus on the architecture and how we plan to evaluate it."
+  },
+  {
+    "slide": 2,
+    "title": "Decision and scope",
+    "seconds": 25,
+    "priority": "Mention briefly",
+    "cue": "Emphasize the decision. Move through the scope quickly.",
+    "speech": "Our central question is: which discrepancy needs investigation, and what evidence supports the next action? We start with one synthetic producer, one closed reporting year and supplied metal-wise obligations. Historical liabilities stay separate. The output is a working paper for human review. Live filing, certificate trading and automatic legal certification are outside our scope."
+  },
+  {
+    "slide": 3,
+    "title": "Architecture and data flow",
+    "seconds": 80,
+    "priority": "Core explanation",
+    "cue": "Point to the two inputs, then the evidence foundation, the investigator and the report. Do not read component IDs aloud.",
+    "speech": "The architecture has two input paths: official regulatory material and the producer dossier. Both enter the evidence foundation. We retain the original files, extract their content, normalize the records and freeze the inputs for the run. Every calculated figure must remain traceable to an original row or page.\n\nThe investigator sits at the center. On one side, retrieval supplies relevant clauses and their amendments. On the other, deterministic tools check quantities, certificate history and allocations. The model gateway handles structured model requests and responses. The investigator chooses the next check, while the tools establish the numerical result.\n\nFindings then pass through report verification and human review. Audit capture spans the entire workflow, including failed operations and evidence the model never used.\n\nThe generator and evaluator sit outside the runtime. Hidden benchmark answers remain inaccessible to the investigator. We propose these as logical modules in one local application, which keeps the initial implementation manageable."
+  },
+  {
+    "slide": 4,
+    "title": "Agent graph and adaptation",
+    "seconds": 60,
+    "priority": "Core explanation",
+    "cue": "Follow the arrows. Pause at the loop from revised investigation back to planning.",
+    "speech": "This graph explains the agent's role. First, deterministic preflight checks the inputs and computes provisional findings. The investigator then forms a hypothesis, such as whether a pending item has valid allocation evidence. It proposes a tool call, and the dispatcher checks the arguments, permissions and remaining budget before execution.\n\nAfter the result arrives, the investigator records whether it supports the hypothesis, contradicts it or provides weak evidence. Weak results can trigger a revised plan or a reformulated retrieval query. This feedback loop is the adaptive part of the design.\n\nThe run stops when the finding is supported, evidence remains insufficient or a budget limit applies. Uncertainty remains visible in the report. The final stage verifies the report and requests a human decision."
+  },
+  {
+    "slide": 5,
+    "title": "Selected agentic patterns",
+    "seconds": 40,
+    "priority": "Explain choices and reasons",
+    "cue": "Stress tool use, RAG and persisted planning. Give the optional multi-agent experiment one sentence.",
+    "speech": "We selected tool use because joins, units and allocation arithmetic require exact code. Agentic RAG lets the investigator choose a query and investigate again when the retrieved evidence is inadequate. Planning and reflection preserve the hypothesis, observation and reason for changing direction.\n\nHuman review controls the final decision, and checkpoints support recovery. We begin with one bounded investigator. A collector and auditor pair remains an optional experiment because collaboration must demonstrate enough quality improvement to justify its extra cost and complexity."
+  },
+  {
+    "slide": 6,
+    "title": "Worked investigation",
+    "seconds": 60,
+    "priority": "Core example",
+    "cue": "Point to 55 kg first. Pause before introducing the 25 kg. Finish on the remaining 20 kg gap.",
+    "speech": "Consider this synthetic example for one metal. The supplied target is 100 kilograms. The dossier supports a 55-kilogram allocation, and two records describe that same allocation. We count it once. A separate 25-kilogram item has payment evidence but still lacks supported transfer or allocation evidence.\n\nInitially, supported fulfillment stays at 55 kilograms, the apparent gap is 45 kilograms and the 25 kilograms remain pending. The investigator traces the certificate and allocation history to determine what evidence is missing.\n\nOnly after a later evidenced and reviewed allocation can a new run support 80 kilograms, leaving a 20-kilogram gap. A payment or newer account snapshot alone cannot produce that change. If the evidence never arrives, the correct response is to abstain on the unresolved amount and identify the next evidence needed."
+  },
+  {
+    "slide": 7,
+    "title": "Data sources and evidence intake",
+    "seconds": 35,
+    "priority": "Important foundation",
+    "cue": "Explain the three source roles. Avoid reading individual document titles.",
+    "speech": "We separate three types of data. Official Gazette instruments and CPCB guidance provide the regulatory basis. Synthetic producer dossiers provide operational evidence, such as obligations, certificate events, allocations and account snapshots. Public aggregate statistics provide context only.\n\nDuring intake, we preserve original files and account for their pages and rows. A corrupt file or missing page must remain an explicit evidence problem. It cannot silently become zero activity. We also retain applicability, source locators and rights-review status."
+  },
+  {
+    "slide": 8,
+    "title": "Retrieval and memory",
+    "seconds": 40,
+    "priority": "Explain trust in RAG",
+    "cue": "Trace the retrieval sequence, then summarize the two memory types in one sentence.",
+    "speech": "Retrieval begins with the frozen, authorized corpus. We filter for the relevant role, regime and period, then use a lexical search baseline. Retrieved clauses expand to include necessary headers, footnotes and amendments.\n\nWe assess authority, temporal applicability, direct support, completeness and contradiction separately. If support remains weak, the investigator can reformulate the query within its budget. Dense retrieval will be an experiment rather than an assumed improvement.\n\nWorking memory stores the current plans, observations and checkpoints. Persistent history stores evidence and decisions. A previous interpretation still needs support in the current run."
+  },
+  {
+    "slide": 9,
+    "title": "Deterministic tool plan",
+    "seconds": 40,
+    "priority": "Explain representative tools",
+    "cue": "Explain certificate tracing and reconciliation. Mention the other tools without reading every API name.",
+    "speech": "The tool plan exposes a small set of typed operations. Evidence inspection returns source values and locators. Locator lookup resolves a provision against a particular applicability basis. Certificate tracing reconstructs observations, lifecycle events and allocation history.\n\nReconciliation then calculates the required, supported and pending quantities using exact decimals. Return comparison checks figures and section readiness. Each tool returns structured results, provenance and explicit errors. The investigator cannot hide a liability by selecting a convenient subset of records, and it cannot edit the original evidence."
+  },
+  {
+    "slide": 10,
+    "title": "Execution limits and human review",
+    "seconds": 25,
+    "priority": "Mention safeguards briefly",
+    "cue": "Emphasize bounded autonomy and human authority. Do not explain every review transition unless asked.",
+    "speech": "Autonomy remains bounded. The default is eight investigative tool actions per finding and two query reformulations, with additional limits on retries, time and cost. The model proposes checks and findings through controlled interfaces. Human decisions bind to the exact report and inputs, so approval never transfers to changed evidence. Audit failure stops progress."
+  },
+  {
+    "slide": 11,
+    "title": "Evaluation design",
+    "seconds": 60,
+    "priority": "Core evaluation explanation",
+    "cue": "Point to 48 and the development/held-out split. Explain what the comparison isolates.",
+    "speech": "Our planned pilot contains 48 synthetic dossiers, split into 24 development cases and 24 held-out cases. They cover all sixteen fault families, including clean controls, duplicate observations, legitimate certificate stages, expired or cancelled instruments, missing evidence and prompt injection.\n\nWe compare deterministic reconciliation, fixed retrieval with tools, the bounded investigator and optionally the collector and auditor variant. Every variant receives the same visible inputs. This lets us test whether adaptive investigation adds value beyond calculation and fixed retrieval.\n\nExpected results come from independent reviewed calculations and fixtures. The investigator cannot access oracle files or hidden labels. The oracle also distinguishes what happened in the synthetic world from what visible evidence actually justifies, so a correct abstention can score better than an unsupported guess."
+  },
+  {
+    "slide": 12,
+    "title": "Quality metrics",
+    "seconds": 55,
+    "priority": "Core success criteria",
+    "cue": "Explain arithmetic, detection and evidence support. Mention efficiency metrics at the end.",
+    "speech": "We will judge quality at several levels. Exact balance agreement checks each eligible bucket against an independent decimal reference. Precision measures how many reported discrepancies are correct, while recall measures how many reference discrepancies the system detects.\n\nWe also assess whether resolutions are supported and whether the system abstains appropriately when evidence is insufficient. Citation checks ask both whether a source supports the claim and whether it applies to the correct role and date. Unsupported claims, prohibited verdicts and forbidden action attempts are recorded explicitly.\n\nAlongside quality, we will report investigative steps, latency, cost and repeated-run reliability. Complete evidence accounting and audit coverage are acceptance gates. These are planned measurements. We are not claiming accuracy or performance results yet."
+  },
+  {
+    "slide": 13,
+    "title": "Acceptance and ownership",
+    "seconds": 25,
+    "priority": "Brief close",
+    "cue": "State the acceptance gates clearly. Mention the division of work quickly, then look up for the closing line.",
+    "speech": "Our acceptance gates are exact supported arithmetic, complete evidence and audit accounting, and zero prohibited verdicts in released reports. Abhishek leads orchestration and correctness, Sushanth handles data generation and RAG, Vedanth builds the tools, and Sampreeth handles the remaining evidence, audit and review work. The intended outcome is a traceable, human-reviewed investigation, with uncertainty kept explicit. Thank you."
+  },
+  {
+    "slide": 14,
+    "title": "Operating metrics",
+    "seconds": 0,
+    "priority": "Backup, hidden during the main talk",
+    "cue": "Use only if asked about efficiency, repeatability or audit completeness.",
+    "speech": "For operating performance, we will report average investigative steps, latency percentiles and provider cost per task. Repeated trials test reliability. Evidence coverage and audit coverage use explicit inventories rather than final citations alone. Unknown cost or coverage remains unknown, and failed trials remain in the report."
+  },
+  {
+    "slide": 15,
+    "title": "Sources and limitations",
+    "seconds": 0,
+    "priority": "Backup, hidden during the main talk",
+    "cue": "Use only if asked about source authority, legal scope or remaining decisions.",
+    "speech": "Our planned corpus uses official Gazette instruments and CPCB materials, with reviewed applicability. Technical references support the retrieval and checkpoint choices. The pilot remains synthetic-only. Exact equipment codes, source permissions, profile activation and model selection still require review and evaluation."
+  }
+]
