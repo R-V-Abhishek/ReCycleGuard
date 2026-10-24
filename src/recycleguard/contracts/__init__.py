@@ -1,4 +1,7 @@
-"""A01 common boundary proposal; acceptance/freeze belongs to A02."""
+"""A01 common boundary proposal and H01 source/extraction models.
+
+Acceptance/freeze belongs to A02.
+"""
 
 from .core import (
     PROTOCOL_VERSION,
@@ -13,6 +16,24 @@ from .core import (
     ServiceResult,
     TemporalValue,
 )
+from .extraction import (
+    CoverageDisposition,
+    CoverageItem,
+    ExtractionMethod,
+    ExtractionResult,
+    ExtractionStatus,
+    Observation,
+    ValidationState,
+)
+from .sources import (
+    ProvisionVersion,
+    RightsMetadata,
+    Role,
+    SourceClass,
+    SourceLead,
+    SourceLeadState,
+    SourceVersion,
+)
 
 __all__ = [
     "PROTOCOL_VERSION",
@@ -20,10 +41,24 @@ __all__ = [
     "BlobRef",
     "BoundaryModel",
     "CommandContext",
+    "CoverageDisposition",
+    "CoverageItem",
     "EvidenceRef",
+    "ExtractionMethod",
+    "ExtractionResult",
+    "ExtractionStatus",
     "Issue",
     "Locator",
+    "Observation",
+    "ProvisionVersion",
     "Quantity",
+    "RightsMetadata",
+    "Role",
     "ServiceResult",
+    "SourceClass",
+    "SourceLead",
+    "SourceLeadState",
+    "SourceVersion",
     "TemporalValue",
+    "ValidationState",
 ]
