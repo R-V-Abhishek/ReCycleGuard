@@ -22,16 +22,16 @@ The repository already contains the charter, course guidelines, domain research,
 
 Read these in order; each member should understand their own interfaces and the complete case lifecycle:
 
-| Input | How to use it during implementation |
-| --- | --- |
-| [Project guidelines](PROJECT_GUIDELINES.md) | Review dates, mandatory agentic concepts, reproducibility, academic integrity and final deliverables. |
-| [Project charter](PROJECT_CHARTER.tex) | Decision supported, scope and team commitment. |
-| [System design](docs/design/SYSTEM_DESIGN.md) | Architecture, storage, algorithms and G01–G12 acceptance gates. |
-| [Contracts](docs/design/CONTRACTS.md) | Authoritative boundary models, control flow, permissions and failure behavior. Protocol version 1.1; individual payload schema versions remain separately declared. |
-| [Domain research](docs/research/DOMAIN_RESEARCH.md) | Officer tasks T01–T16, source hierarchy, evidence trails and source aliases. |
-| [Implementation overview](docs/research/AGENTIC_IMPLEMENTATION_OVERVIEW.md) | Synthetic-data methodology, experiment baselines, publication cautions and precedents. |
-| [CPCB data and RAG research](docs/research/CPCB%20EPR%20Data%20and%20RAG.md) | Acquisition leads and field inventory, subject to the corrections recorded in the design/contracts. |
-| [Review 2 design source](docs/design/REVIEW_2_DESIGN.tex) and [presentation notes](docs/presentation/README.md) | Communicate the architecture already proposed; update subsequent presentations to show actual implementation status. |
+| Input                                                                                                         | How to use it during implementation                                                                                                                                 |
+| ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Project guidelines](PROJECT_GUIDELINES.md)                                                                    | Review dates, mandatory agentic concepts, reproducibility, academic integrity and final deliverables.                                                               |
+| [Project charter](PROJECT_CHARTER.tex)                                                                         | Decision supported, scope and team commitment.                                                                                                                      |
+| [System design](docs/design/SYSTEM_DESIGN.md)                                                                  | Architecture, storage, algorithms and G01–G12 acceptance gates.                                                                                                    |
+| [Contracts](docs/design/CONTRACTS.md)                                                                          | Authoritative boundary models, control flow, permissions and failure behavior. Protocol version 1.1; individual payload schema versions remain separately declared. |
+| [Domain research](docs/research/DOMAIN_RESEARCH.md)                                                            | Officer tasks T01–T16, source hierarchy, evidence trails and source aliases.                                                                                       |
+| [Implementation overview](docs/research/AGENTIC_IMPLEMENTATION_OVERVIEW.md)                                    | Synthetic-data methodology, experiment baselines, publication cautions and precedents.                                                                              |
+| [CPCB data and RAG research](<docs/research/CPCB%20EPR%20Data%20and%20RAG.md>)                                 | Acquisition leads and field inventory, subject to the corrections recorded in the design/contracts.                                                                 |
+| [Review 2 design source](docs/design/REVIEW_2_DESIGN.tex) and [presentation notes](docs/presentation/README.md) | Communicate the architecture already proposed; update subsequent presentations to show actual implementation status.                                                |
 
 Resolve a disagreement by checking CONTRACTS for interfaces and SYSTEM_DESIGN for architectural policy. Do not silently implement tentative values from the research inventory that the design explicitly qualified. Record any necessary change with affected producers, consumers, schemas, fixtures and documentation in the same review.
 
@@ -39,30 +39,30 @@ Resolve a disagreement by checking CONTRACTS for interfaces and SYSTEM_DESIGN fo
 
 ### 2.1 Calendar
 
-| Date | Milestone and evidence required |
-| --- | --- |
-| 23 October | Freeze initial shared interfaces, assign files, create fixtures and begin all four streams. |
-| 24 October | Review 2: use existing design/slides; all members attend. Keep implementation scope light around the review. |
-| 25 October | First real end-to-end path: import a visible dossier, calculate a supported balance and render a traceable working paper. |
-| 27 October | Adaptive graph integration against the C10 test boundary; ingestion/retrieval/calculation/report contracts connected. |
-| 29 October | Week 1 acceptance: working offline application, benchmark pilot, human review, audit/export/replay and documented gaps. Real model demonstration is conditional on C10 availability. |
-| 30 October | Prototype rehearsal, development-only improvements and experiment readiness checks. |
-| 31 October | Review 3: demonstrate the working prototype, trace and feedback loop. An agentic demonstration requires a real gateway; disclose if it remains unavailable. |
-| 1–5 November | Freeze candidate/configurations, run held-out experiments, adjudicate and write results. |
-| 6 November | Freeze results/report/demo; rehearse and retain a recovery copy. |
-| 7 November | Review 4: final system, experiment, evaluation, report and demo. |
+| Date           | Milestone and evidence required                                                                                                                                                                 |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 23 October     | Freeze initial shared interfaces, assign files, create fixtures and begin all four streams.                                                                                                     |
+| 24 October     | Review 2: use existing design/slides; all members attend. Keep implementation scope light around the review.                                                                                    |
+| 25 October     | First real end-to-end path: import a visible dossier, calculate a supported balance and render a traceable working paper.                                                                       |
+| 27 October     | Adaptive graph integration against the C10 test boundary; ingestion/retrieval/calculation/report contracts connected.                                                                           |
+| 29 October     | Week 1 acceptance: working offline application, benchmark pilot, human review, audit/export/replay and documented gaps. Real model demonstration is conditional on C10 availability.            |
+| 30 October     | Prototype rehearsal, development-only improvements and experiment readiness checks.                                                                                                             |
+| 31 October     | Review 3: demonstrate the working prototype, trace and feedback loop. An agentic demonstration requires a real gateway; disclose if it remains unavailable.                                     |
+| 1–5 November  | Freeze candidate/configurations, run held-out experiments, adjudicate and write results.                                                                                                        |
+| 6 November     | Freeze results/report/demo; rehearse and retain a recovery copy.                                                                                                                                |
+| 7 November     | Review 4: final system, experiment, evaluation, report and demo.                                                                                                                                |
 | 8–12 November | Address presentation/reproducibility issues and submit final report PDF, slides PDF and code/run instructions by 12 November. New scientific results require a separately versioned experiment. |
 
 Four hours × four members × seven days gives **112 person-hours in Week 1**. Reserve about 30 minutes per person daily for coordination and integration: approximately **98 implementation hours** remain. These are planning limits, not an assertion that every specification detail can be production hardened in seven days. Record actual effort and move optional features out before weakening core invariants.
 
 Use the following rough effort envelopes to control scope. Tests and integration belong inside each allocation; the final buffer is for demonstrated failures, not extra features. These are estimates to revisit at CP1, not measured implementation times.
 
-| Member | Focused-hour allocation, total 24.5 hours each |
-| --- | --- |
-| Abhishek | Package/contracts/config/CI 6; CLI/snapshots 5; graph/control 8; integration/documentation 3.5; buffer 2. |
-| Sampreeth | Acquisition/relevant-source review 5; intake/extraction 6; index/temporal retrieval 8; validation/documentation 3.5; buffer 2. |
-| Sushanth | Normalization/equivalence 6; deterministic tools 8; generator/renderers/fault recipes 6; validation/documentation 2.5; buffer 2. |
-| Vedantha | Blob/catalog/audit 7; report/review 5; export/replay 4; evaluator/isolation/reference checks 4; integration/documentation 2.5; buffer 2. |
+| Member    | Focused-hour allocation, total 24.5 hours each                                                                                           |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| Abhishek  | Package/contracts/config/CI 6; CLI/snapshots 5; graph/control 8; integration/documentation 3.5; buffer 2.                                |
+| Sampreeth | Acquisition/relevant-source review 5; intake/extraction 6; index/temporal retrieval 8; validation/documentation 3.5; buffer 2.           |
+| Sushanth  | Normalization/equivalence 6; deterministic tools 8; generator/renderers/fault recipes 6; validation/documentation 2.5; buffer 2.         |
+| Vedantha  | Blob/catalog/audit 7; report/review 5; export/replay 4; evaluator/isolation/reference checks 4; integration/documentation 2.5; buffer 2. |
 
 The source-review estimate covers the provisions actually used by v1, not a comprehensive legal review of ten documents. The evaluation scaffold in Week 1 records/validates runs; full scoring analysis and research writing occupy Week 2. If CP1 shows these envelopes are unrealistic, prioritize the baseline vertical slice, receipts/provenance and exact arithmetic, then complete remaining mandatory gates with explicit revised dates. Do not disguise an unfinished gate as a finished working system.
 
@@ -82,12 +82,12 @@ Do not add sales-derived statutory targets, refurbishing deferrals, solar calcul
 
 ## 3. Ownership and independent work boundaries
 
-| Member | Primary workstream and component ownership | First concrete deliverable | Cross-review responsibility |
-| --- | --- | --- | --- |
-| **R V Abhishek — 1BM23CD047, lead** | Integration; C00 CLI; C09 graph; C05 snapshot/profile persistence and approval control; common schemas/configuration; C10 interface/test seam only. Actual C10 implementation remains unplanned. | Installable package, common context/result models, fixture pack and CLI skeleton. | Review audit/recovery integration and baseline fairness; protect held-out answers from prompt/tool developers. |
-| **H Sampreeth Bhat — 1BM23CD020** | C01 acquisition/intake; C03 extraction; C06 index; C07 retrieval/applicability. Authors reviewed-source/profile content consumed by C05. | Source-lead manifest, one acquired original, page/row coverage and a provision locator fixture. | Review domain assumptions, citations and temporal-rule cases; label internal review honestly. |
-| **Sushanth S — 1BM23CD063** | C04 normalization/equivalence; C08 domain tools; C15 world generator, renderers and fault injection. | Hand-inspectable fictional dossier and exact-arithmetic reference fixture. | Review graph tool arguments, deterministic recomputation and schema mappings. Cannot solely validate the oracle with production calculation code. |
-| **Vedantha Vinay Vernekar — 1BM23CD069** | C02 blob/catalog; C11 audit/transaction kernel; C12 reports/verifier; C13 review service; C14 export/replay; C16 evaluator/oracle isolation. | Blob/audit interfaces, independent expected-answer fixtures and scoring skeleton. | Review generator outputs and hidden/visible separation; own evaluator answers and failure accounting. |
+| Member                                          | Primary workstream and component ownership                                                                                                                                                       | First concrete deliverable                                                                      | Cross-review responsibility                                                                                                                       |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **R V Abhishek — 1BM23CD047, lead**      | Integration; C00 CLI; C09 graph; C05 snapshot/profile persistence and approval control; common schemas/configuration; C10 interface/test seam only. Actual C10 implementation remains unplanned. | Installable package, common context/result models, fixture pack and CLI skeleton.               | Review audit/recovery integration and baseline fairness; protect held-out answers from prompt/tool developers.                                    |
+| **H Sampreeth Bhat — 1BM23CD020**        | C01 acquisition/intake; C03 extraction; C06 index; C07 retrieval/applicability. Authors reviewed-source/profile content consumed by C05.                                                         | Source-lead manifest, one acquired original, page/row coverage and a provision locator fixture. | Review domain assumptions, citations and temporal-rule cases; label internal review honestly.                                                     |
+| **Sushanth S — 1BM23CD063**              | C04 normalization/equivalence; C08 domain tools; C15 world generator, renderers and fault injection.                                                                                             | Hand-inspectable fictional dossier and exact-arithmetic reference fixture.                      | Review graph tool arguments, deterministic recomputation and schema mappings. Cannot solely validate the oracle with production calculation code. |
+| **Vedantha Vinay Vernekar — 1BM23CD069** | C02 blob/catalog; C11 audit/transaction kernel; C12 reports/verifier; C13 review service; C14 export/replay; C16 evaluator/oracle isolation.                                                     | Blob/audit interfaces, independent expected-answer fixtures and scoring skeleton.               | Review generator outputs and hidden/visible separation; own evaluator answers and failure accounting.                                             |
 
 Vedantha's breadth is controlled by using one small storage/commit kernel, one deterministic renderer and a CLI-based review flow. Abhishek builds the CLI and review command handlers; Vedantha owns the underlying service. No dashboard, cloud tracing service or elaborate report styling is on the Week 1 critical path. Sushanth owns generator mechanics; Vedantha owns independent scoring/oracle validation. Sampreeth owns extraction for both normative and dossier documents, avoiding two competing ingestion implementations.
 
@@ -129,17 +129,21 @@ Use an application build context that includes only runtime code/configuration a
 
 Abhishek owns `pyproject.toml`, `uv.lock`, common schemas, CLI/configuration and integration wiring. Vedantha owns SQL migrations and the shared write coordinator; other members submit required tables/constraints through that owner. Sampreeth owns source manifests; Sushanth owns visible generator schemas/templates. Avoid concurrent edits to the same shared file.
 
-Use one integration branch, proposed `codex/implementation`, and four short-lived workstream branches under `codex/`. Create them from the current verified main branch; do not assume they exist. Merge small reviewed changes at checkpoints through PRs where practical. No force-push or repeated direct-main integration. A schema change requires a producer/consumer check, not just a new JSON field. Update the handoff fixture, model, generated schema, tests and relevant design/contract text together.
+Use checkpoint integration branches: `checkpoint-0`, `checkpoint-1`, and the corresponding `checkpoint-N` for subsequent checkpoints. Git branch names cannot contain spaces. `checkpoint-0` gathers A01 and the H01/S01/V01 handoffs; A02 reconciles their interfaces and fixtures before CP0 approval. Target teammate/workstream PRs at the active checkpoint branch, not `main`. Keep short-lived workstream branches under `codex/`, based on the active checkpoint branch.
+
+Create `checkpoint-1` from the accepted `checkpoint-0` candidate so it includes the frozen CP0 interfaces. Merge the accepted CP1 candidate to `main` through a reviewed PR only after CP1 is APPROVED; do not merge CP0 directly to `main`. For later checkpoints, create the next `checkpoint-N` from the latest accepted predecessor, integrate reviewed task PRs there, and merge to `main` only after that checkpoint is approved. A branch push, passing CI or merged task PR does not waive task dependencies, independent reviews or four-person checkpoint acknowledgement.
+
+No force-push or direct-main implementation commits. A schema change requires a producer/consumer check, not just a new JSON field. Update the handoff fixture, model, generated schema, tests and relevant design/contract text together.
 
 ## 4. Daily working rhythm and integration checkpoints
 
 Use these proposed IST checkpoints, adjusting the clock times around Review 2/3 while preserving the cadence:
 
-| Checkpoint | Time budget | Required output |
-| --- | --- | --- |
-| Start, proposed 09:00 | 5 minutes | Each member states today's deliverable and contract blocker. |
-| Mid-session, proposed 11:00 | 10 minutes | Run affected producer/consumer tests; merge ready handoffs and surface schema drift. |
-| End, proposed 13:00 | 15 minutes | Clean-environment smoke, one evidence/trace inspection, coherent commits and next task. |
+| Checkpoint                  | Time budget | Required output                                                                         |
+| --------------------------- | ----------- | --------------------------------------------------------------------------------------- |
+| Start, proposed 09:00       | 5 minutes   | Each member states today's deliverable and contract blocker.                            |
+| Mid-session, proposed 11:00 | 10 minutes  | Run affected producer/consumer tests; merge ready handoffs and surface schema drift.    |
+| End, proposed 13:00         | 15 minutes  | Clean-environment smoke, one evidence/trace inspection, coherent commits and next task. |
 
 The remaining 3.5 hours are focused implementation and verification. Review attendance uses additional calendar time or reduces that day's implementation capacity; do not hide the reduction. On 24 October, shift the mid-session checkpoint away from the announced 11:15 review start.
 
@@ -147,17 +151,17 @@ For every handoff provide: exact input fixture/version, output fixture/version, 
 
 The integration critical path is shared models → storage/audit → imported observations → frozen case/profile → deterministic calculation → verified report → review/export/replay. Retrieval joins after the reviewed corpus/index, and C09 can be assembled against fixtures within its authorized graph task. Budget, recovery and isolation checks must pass before scientific evaluation. If a shared boundary blocks someone for more than one checkpoint, the lead resolves the smallest viable fixture/contract decision. Fixture work may continue only within a READY/active task; it does not waive an unmet integration dependency.
 
-| Gate | Deadline | Integration evidence |
-| --- | --- | --- |
-| CP0 — Interfaces | Day 1 end | Core models/enums and fixture pack validate; four streams run without live upstream dependencies. |
-| CP1 — Evidence foundation | Day 2 end | Import preserves raw bytes, receipts and row/page dispositions; first immutable snapshots/profile review path. |
-| CP2 — Baseline vertical slice | Day 3 end | Worked 100/55/45 fixture runs from original bytes to verified working paper and audit references. |
-| CP3 — Investigation | Day 5 end | Retrieval, deterministic tools and graph integrate; visible plan revision demonstrated with test adapter, and real model only if supplied. |
-| CP4 — Prototype | Day 7 end | G01–G12 evidence, frozen pilot, trusted review/export/replay, cold-start demo and documented C10 dependency. |
-| CP5 — Experiment freeze | Before first held-out run | Candidate/config/scorer/benchmark versions signed off; isolation passed; no test-answer-driven tuning. |
-| CP6 — Scientific results close | 3–4 November | All registered trials/scoring closed, adjudicated and reproducible; exact claims fixed. |
-| CP7 — Final review freeze | 6 November | Report/slides/demo/public package and clean reproduction accepted by the team. |
-| CP8 — Final submission check | By 12 November | Final artifact inventory, source rights, regeneration and archive verified. |
+| Gate                            | Deadline                  | Integration evidence                                                                                                                       |
+| ------------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| CP0 — Interfaces               | Day 1 end                 | Core models/enums and fixture pack validate; four streams run without live upstream dependencies.                                          |
+| CP1 — Evidence foundation      | Day 2 end                 | Import preserves raw bytes, receipts and row/page dispositions; first immutable snapshots/profile review path.                             |
+| CP2 — Baseline vertical slice  | Day 3 end                 | Worked 100/55/45 fixture runs from original bytes to verified working paper and audit references.                                          |
+| CP3 — Investigation            | Day 5 end                 | Retrieval, deterministic tools and graph integrate; visible plan revision demonstrated with test adapter, and real model only if supplied. |
+| CP4 — Prototype                | Day 7 end                 | G01–G12 evidence, frozen pilot, trusted review/export/replay, cold-start demo and documented C10 dependency.                              |
+| CP5 — Experiment freeze        | Before first held-out run | Candidate/config/scorer/benchmark versions signed off; isolation passed; no test-answer-driven tuning.                                     |
+| CP6 — Scientific results close | 3–4 November             | All registered trials/scoring closed, adjudicated and reproducible; exact claims fixed.                                                    |
+| CP7 — Final review freeze      | 6 November                | Report/slides/demo/public package and clean reproduction accepted by the team.                                                             |
+| CP8 — Final submission check   | By 12 November            | Final artifact inventory, source rights, regeneration and archive verified.                                                                |
 
 The detailed registers below are the authoritative execution state. The checkpoint summary and date-based schedule are navigational views, not substitutes for prerequisite acceptance.
 
@@ -435,96 +439,96 @@ All references are exact task/checkpoint IDs. Required predecessors are an AND c
 
 **Abhishek — contracts, integration, CLI, snapshots and graph**
 
-| Task | State now | Required predecessors | Conditional predecessor | Target | Work and acceptance evidence |
-| --- | --- | --- | --- | --- | --- |
-| **A01** | IN_REVIEW | None | None | 23 Oct | **Package, uv lock, CI/config/CLI skeleton and C10 test seam.** Installable scaffold; schema/test-port proposal; no real gateway. [A01 evidence](docs/decisions/A01_HANDOFF.md); independent review pending. |
-| **A02** | BLOCKED | A01, H01, S01, V01 | None | 23 Oct | **Freeze shared models, service fixtures and module boundaries.** Four-way producer/consumer validation; schema version and review refs. |
-| **A03** | BLOCKED | CP0, V02 | None | 24 Oct | **Implement snapshot/profile persistence, review and version controls.** Immutable membership/profile revisions and trusted approval checks. |
-| **A04** | BLOCKED | A03, H03, H04, S02 | None | 24 Oct | **Integrate intake, normalization and first case/corpus snapshots.** Imported case and reviewed profile with complete coverage refs. |
-| **A05** | BLOCKED | CP1, S03, V03 | None | 25 Oct | **Connect deterministic CLI vertical slice and baseline audit view.** Fresh-root original-bytes-to-working-paper transcript. |
-| **A06** | BLOCKED | CP2 | None | 26 Oct | **Implement bounded graph, checkpointed state and budget controls.** Plan/action/assessment loop; scripted-port state/budget tests. |
-| **A07** | BLOCKED | A06, H06, S04, V05 | None | 27 Oct | **Integrate graph with real retrieval/domain/report services.** Audited adaptive trace; retry/cancel/all-status integration tests. |
-| **A08** | BLOCKED | CP3, V08, V09, H08 | None | 29 Oct | **Run Week 1 acceptance, cold start and reproducible prototype handoff.** G01–G12 evidence; clean-start demo; explicit A/B completion level. |
-| **A09** | BLOCKED | CP4 | None | 30 Oct–1 Nov | **Tune graph/CLI on development data and freeze candidate code.** Dev changes with regression tests; pinned graph/prompt/budget configs. |
-| **A10** | BLOCKED | CP6 | None | 4–5 Nov | **Integrate research report, architecture/results narrative and slides.** 8–12-page report draft and slides describe actual measured behavior. |
-| **A11** | BLOCKED | A10, V14 | None | 6 Nov | **Freeze final review build and run four-person rehearsal.** Demo recovery copy; viva ownership; approved artifact versions. |
-| **A12** | BLOCKED | CP7 | None | 8–12 Nov | **Resolve submission packaging issues and assemble final report/slides/code.** Final artifact inventory; no unregistered scientific result replacement. |
+| Task          | State now | Required predecessors | Conditional predecessor | Target        | Work and acceptance evidence                                                                                                                                  |
+| ------------- | --------- | --------------------- | ----------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A01** | IN_REVIEW | None                  | None                    | 23 Oct        | **Package, uv lock, CI/config/CLI skeleton and C10 test seam.** Installable scaffold; schema/test-port proposal; no real gateway. [A01 evidence](docs/decisions/A01_HANDOFF.md); independent review pending.                       |
+| **A02** | BLOCKED   | A01, H01, S01, V01    | None                    | 23 Oct        | **Freeze shared models, service fixtures and module boundaries.** Four-way producer/consumer validation; schema version and review refs.                |
+| **A03** | BLOCKED   | CP0, V02              | None                    | 24 Oct        | **Implement snapshot/profile persistence, review and version controls.** Immutable membership/profile revisions and trusted approval checks.            |
+| **A04** | BLOCKED   | A03, H03, H04, S02    | None                    | 24 Oct        | **Integrate intake, normalization and first case/corpus snapshots.** Imported case and reviewed profile with complete coverage refs.                    |
+| **A05** | BLOCKED   | CP1, S03, V03         | None                    | 25 Oct        | **Connect deterministic CLI vertical slice and baseline audit view.** Fresh-root original-bytes-to-working-paper transcript.                            |
+| **A06** | BLOCKED   | CP2                   | None                    | 26 Oct        | **Implement bounded graph, checkpointed state and budget controls.** Plan/action/assessment loop; scripted-port state/budget tests.                     |
+| **A07** | BLOCKED   | A06, H06, S04, V05    | None                    | 27 Oct        | **Integrate graph with real retrieval/domain/report services.** Audited adaptive trace; retry/cancel/all-status integration tests.                      |
+| **A08** | BLOCKED   | CP3, V08, V09, H08    | None                    | 29 Oct        | **Run Week 1 acceptance, cold start and reproducible prototype handoff.** G01–G12 evidence; clean-start demo; explicit A/B completion level.           |
+| **A09** | BLOCKED   | CP4                   | None                    | 30 Oct–1 Nov | **Tune graph/CLI on development data and freeze candidate code.** Dev changes with regression tests; pinned graph/prompt/budget configs.                |
+| **A10** | BLOCKED   | CP6                   | None                    | 4–5 Nov      | **Integrate research report, architecture/results narrative and slides.** 8–12-page report draft and slides describe actual measured behavior.         |
+| **A11** | BLOCKED   | A10, V14              | None                    | 6 Nov         | **Freeze final review build and run four-person rehearsal.** Demo recovery copy; viva ownership; approved artifact versions.                            |
+| **A12** | BLOCKED   | CP7                   | None                    | 8–12 Nov     | **Resolve submission packaging issues and assemble final report/slides/code.** Final artifact inventory; no unregistered scientific result replacement. |
 
 **Sampreeth — acquisition, extraction, corpus, retrieval and source review**
 
-| Task | State now | Required predecessors | Conditional predecessor | Target | Work and acceptance evidence |
-| --- | --- | --- | --- | --- | --- |
-| **H01** | READY | None | None | 23 Oct | **Curate source leads, aliases and initial source/locator fixtures.** Reviewed lead inventory; accessible-original fixture and metadata. |
-| **H02** | BLOCKED | CP0, V02, H01 | None | 24 Oct | **Implement auditable acquisition and every-file batch intake.** Exact bytes; fetch attempts; declared/missing/extra receipts. |
-| **H03** | BLOCKED | H02 | None | 24 Oct | **Implement CSV/JSON/text-PDF extraction and page/row coverage.** ExtractionResult; terminal dispositions; source/dossier adapter tests. |
-| **H04** | BLOCKED | H03 | None | 24 Oct | **Review initial source applicability and v1 profile content.** Named internal review; exact provisions; initial approved content. |
-| **H05** | BLOCKED | CP1 | None | 25 Oct | **Build provision/table chunks and frozen lexical index.** FTS5 index manifest, membership digest and exact locators. |
-| **H06** | BLOCKED | H05 | None | 26 Oct | **Implement filtered retrieval, locator resolution and evidence grades.** Full candidate dispositions; five grades; bounded context expansion. |
-| **H07** | BLOCKED | H06, H04 | None | 27 Oct | **Complete temporal overlays, deadline register and missing-order tests.** Amendment/role/time tests; separate deadline types; explicit abstention. |
-| **H08** | BLOCKED | H07, CP3 | None | 28 Oct | **Audit final corpus/profile and development retrieval regressions.** Reviewed exact source/index/profile versions; limitations and rights. |
-| **H09** | BLOCKED | CP4 | None | 30 Oct–1 Nov | **Tune development retrieval and freeze corpus/index/policy.** Dev error analysis; frozen applicability and retrieval inputs. |
-| **H10** | BLOCKED | V11 | V12 | 3 Nov | **Blind-score citation, temporal support and next-action quality.** Written rubric; overlap/double-scoring; retained judgments. |
-| **H11** | BLOCKED | H09, H10 | None | 4–5 Nov | **Finalize source rights, attribution, references and limitations.** Asset-level release decisions and reproducibility restrictions. |
-| **H12** | BLOCKED | CP7 | None | 8–12 Nov | **Audit final references, source rights and release attributions.** Final source/license check against actual distributed content. |
+| Task          | State now | Required predecessors | Conditional predecessor | Target        | Work and acceptance evidence                                                                                                                              |
+| ------------- | --------- | --------------------- | ----------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **H01** | READY     | None                  | None                    | 23 Oct        | **Curate source leads, aliases and initial source/locator fixtures.** Reviewed lead inventory; accessible-original fixture and metadata.            |
+| **H02** | BLOCKED   | CP0, V02, H01         | None                    | 24 Oct        | **Implement auditable acquisition and every-file batch intake.** Exact bytes; fetch attempts; declared/missing/extra receipts.                      |
+| **H03** | BLOCKED   | H02                   | None                    | 24 Oct        | **Implement CSV/JSON/text-PDF extraction and page/row coverage.** ExtractionResult; terminal dispositions; source/dossier adapter tests.            |
+| **H04** | BLOCKED   | H03                   | None                    | 24 Oct        | **Review initial source applicability and v1 profile content.** Named internal review; exact provisions; initial approved content.                  |
+| **H05** | BLOCKED   | CP1                   | None                    | 25 Oct        | **Build provision/table chunks and frozen lexical index.** FTS5 index manifest, membership digest and exact locators.                               |
+| **H06** | BLOCKED   | H05                   | None                    | 26 Oct        | **Implement filtered retrieval, locator resolution and evidence grades.** Full candidate dispositions; five grades; bounded context expansion.      |
+| **H07** | BLOCKED   | H06, H04              | None                    | 27 Oct        | **Complete temporal overlays, deadline register and missing-order tests.** Amendment/role/time tests; separate deadline types; explicit abstention. |
+| **H08** | BLOCKED   | H07, CP3              | None                    | 28 Oct        | **Audit final corpus/profile and development retrieval regressions.** Reviewed exact source/index/profile versions; limitations and rights.         |
+| **H09** | BLOCKED   | CP4                   | None                    | 30 Oct–1 Nov | **Tune development retrieval and freeze corpus/index/policy.** Dev error analysis; frozen applicability and retrieval inputs.                       |
+| **H10** | BLOCKED   | V11                   | V12                     | 3 Nov         | **Blind-score citation, temporal support and next-action quality.** Written rubric; overlap/double-scoring; retained judgments.                     |
+| **H11** | BLOCKED   | H09, H10              | None                    | 4–5 Nov      | **Finalize source rights, attribution, references and limitations.** Asset-level release decisions and reproducibility restrictions.                |
+| **H12** | BLOCKED   | CP7                   | None                    | 8–12 Nov     | **Audit final references, source rights and release attributions.** Final source/license check against actual distributed content.                  |
 
 **Sushanth — normalization, deterministic tools and synthetic data**
 
-| Task | State now | Required predecessors | Conditional predecessor | Target | Work and acceptance evidence |
-| --- | --- | --- | --- | --- | --- |
-| **S01** | READY | None | None | 23 Oct | **Define clean world and starter visible dossier fixtures.** Opaque visible files and 100/55/45 reference scenario. |
-| **S02** | BLOCKED | CP0 | None | 24 Oct | **Normalize observations, units, identity and F02/F03 relationships.** NormalizationBatch; raw lineage; supported/ambiguous equivalence tests. |
-| **S03** | BLOCKED | CP1 | None | 25 Oct | **Implement exact baseline balances, allocations and comparisons.** 55 supported / 45 gap; conservation; unknown/pending tests. |
-| **S05** | BLOCKED | CP0 | None | 25 Oct | **Implement clean-world renderer and first six visible cases.** Linked CSV/JSONL/text-PDF fixtures; hidden world kept separate. |
-| **S04** | BLOCKED | S03 | None | 26 Oct | **Complete lifecycle, priority, entity/capability/product/commercial tools.** Full-server-input checks; F08/F09; PASS/FAIL/UNKNOWN results. |
-| **S06** | BLOCKED | S05, S04, H04 | None | 27 Oct | **Implement all F01–F16 fault recipes and generation invariants.** Each recipe has a visible effect, clean reference and validation. |
-| **S07** | BLOCKED | S06, V04 | None | 28 Oct | **Generate grouped 24-dev/24-held-out pilot and validate manifests.** 48 opaque dossiers; split/leakage checks; versioned regeneration. |
-| **S08** | BLOCKED | CP4 | None | 30 Oct–1 Nov | **Fix development tool/generator defects and freeze deterministic inputs.** Regression-tested tools/templates/profile; preserved split and versions. |
-| **S09** | BLOCKED | V11 | V12 | 3 Nov | **Independently score exact balances and finding matches.** Bucket/finding counts and classified tool/parser/oracle errors. |
-| **S10** | BLOCKED | S08, S07 | None | 4–5 Nov | **Finalize dataset/generator method, card and release manifest.** Synthetic limits, split/recipe documentation and permitted regeneration. |
-| **S11** | BLOCKED | CP7 | None | 8–12 Nov | **Reproduce released generator, visible pilot and deterministic examples.** Independent regeneration/baseline verification transcript. |
+| Task          | State now | Required predecessors | Conditional predecessor | Target        | Work and acceptance evidence                                                                                                                               |
+| ------------- | --------- | --------------------- | ----------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **S01** | READY     | None                  | None                    | 23 Oct        | **Define clean world and starter visible dossier fixtures.** Opaque visible files and 100/55/45 reference scenario.                                  |
+| **S02** | BLOCKED   | CP0                   | None                    | 24 Oct        | **Normalize observations, units, identity and F02/F03 relationships.** NormalizationBatch; raw lineage; supported/ambiguous equivalence tests.       |
+| **S03** | BLOCKED   | CP1                   | None                    | 25 Oct        | **Implement exact baseline balances, allocations and comparisons.** 55 supported / 45 gap; conservation; unknown/pending tests.                      |
+| **S05** | BLOCKED   | CP0                   | None                    | 25 Oct        | **Implement clean-world renderer and first six visible cases.** Linked CSV/JSONL/text-PDF fixtures; hidden world kept separate.                      |
+| **S04** | BLOCKED   | S03                   | None                    | 26 Oct        | **Complete lifecycle, priority, entity/capability/product/commercial tools.** Full-server-input checks; F08/F09; PASS/FAIL/UNKNOWN results.          |
+| **S06** | BLOCKED   | S05, S04, H04         | None                    | 27 Oct        | **Implement all F01–F16 fault recipes and generation invariants.** Each recipe has a visible effect, clean reference and validation.                |
+| **S07** | BLOCKED   | S06, V04              | None                    | 28 Oct        | **Generate grouped 24-dev/24-held-out pilot and validate manifests.** 48 opaque dossiers; split/leakage checks; versioned regeneration.              |
+| **S08** | BLOCKED   | CP4                   | None                    | 30 Oct–1 Nov | **Fix development tool/generator defects and freeze deterministic inputs.** Regression-tested tools/templates/profile; preserved split and versions. |
+| **S09** | BLOCKED   | V11                   | V12                     | 3 Nov         | **Independently score exact balances and finding matches.** Bucket/finding counts and classified tool/parser/oracle errors.                          |
+| **S10** | BLOCKED   | S08, S07              | None                    | 4–5 Nov      | **Finalize dataset/generator method, card and release manifest.** Synthetic limits, split/recipe documentation and permitted regeneration.           |
+| **S11** | BLOCKED   | CP7                   | None                    | 8–12 Nov     | **Reproduce released generator, visible pilot and deterministic examples.** Independent regeneration/baseline verification transcript.               |
 
 **Vedantha — storage/audit, reports/review, export, isolation and evaluation**
 
-| Task | State now | Required predecessors | Conditional predecessor | Target | Work and acceptance evidence |
-| --- | --- | --- | --- | --- | --- |
-| **V01** | READY | None | None | 23 Oct | **Independent reference answer and storage/audit interface fixtures.** Independent arithmetic; blob/commit prototype and typed fixtures. |
-| **V02** | BLOCKED | CP0 | None | 24 Oct | **Implement immutable blobs, catalog and audited commit kernel.** Real SQLite/blob round-trip; intent/result; idempotency tests. |
-| **V03** | BLOCKED | CP1, S03 | None | 25 Oct | **Build structured baseline report and numeric/citation verifier.** Eight sections; deterministic numeric insertion; invalid-claim tests. |
-| **V04** | BLOCKED | S05, V01 | None | 25–26 Oct | **Implement independent oracle/scoring skeleton and validate first cases.** Visible-evidence versus world answers; independent checks. |
-| **V05** | BLOCKED | CP2 | None | 26 Oct | **Complete trusted review, report repair and forbidden-claim checks.** All decisions; stale packets; spoof rejection; qualified reports. |
-| **V06** | BLOCKED | V05 | None | 27 Oct | **Implement local/public export, integrity and offline replay.** Verified bundles; rights-through-derivatives tests; no-provider replay. |
-| **V07** | BLOCKED | CP2 | None | 27 Oct | **Build minimal investigator runtime and enforce oracle isolation.** No hidden code/data mounts; attempted access denied and recorded. |
-| **V08** | BLOCKED | CP3, V06, V07 | None | 28 Oct | **Verify crash recovery, budgets, checkpoint lag and export integrity.** Failure-window/recovery tests and consistent restore evidence. |
-| **V09** | BLOCKED | S07, V04, H08 | None | 28–29 Oct | **Independently validate full oracle and seal pilot/scorer versions.** Numeric/rubric validation; sealed digests; held-out access record. |
-| **V10** | BLOCKED | CP4 | None | 30 Oct–1 Nov | **Rehearse evaluator and freeze protocol, scorer and resource feasibility.** Dev dry-run; rubric/denominators/repeats/invalid-trial policy. |
-| **V11** | BLOCKED | CP5 | None | 2–3 Nov | **Execute sealed deterministic and non-model evaluation runs.** Closed trials; exact failure/usage/coverage records; no test tuning. |
-| **V12** | BLOCKED | CP5, MG1 | None | 2–3 Nov if enabled | **Execute fixed-retrieval and adaptive real-model trials.** Matched V1/V2 registered trials; never use scripted model outputs. |
-| **V13** | BLOCKED | V11, H10, S09 | V12 | 3–4 Nov | **Close scoring, adjudication, uncertainty and results ledger.** All scheduled attempts accounted for; reproducible paired summaries. |
-| **V14** | BLOCKED | V13, H11, S10, A10 | None | 5–6 Nov | **Verify publication package, result recomputation and saved-artifact replay.** Clean reproduction record; filtered package and omissions. |
-| **V15** | BLOCKED | A12, H12, S11 | None | By 12 Nov | **Verify final manifests, archive evidence and validate submission set.** Hashes, run instructions, report/slides PDFs and complete permitted archive. |
+| Task          | State now | Required predecessors | Conditional predecessor | Target              | Work and acceptance evidence                                                                                                                                 |
+| ------------- | --------- | --------------------- | ----------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **V01** | READY     | None                  | None                    | 23 Oct              | **Independent reference answer and storage/audit interface fixtures.** Independent arithmetic; blob/commit prototype and typed fixtures.               |
+| **V02** | BLOCKED   | CP0                   | None                    | 24 Oct              | **Implement immutable blobs, catalog and audited commit kernel.** Real SQLite/blob round-trip; intent/result; idempotency tests.                       |
+| **V03** | BLOCKED   | CP1, S03              | None                    | 25 Oct              | **Build structured baseline report and numeric/citation verifier.** Eight sections; deterministic numeric insertion; invalid-claim tests.              |
+| **V04** | BLOCKED   | S05, V01              | None                    | 25–26 Oct          | **Implement independent oracle/scoring skeleton and validate first cases.** Visible-evidence versus world answers; independent checks.                 |
+| **V05** | BLOCKED   | CP2                   | None                    | 26 Oct              | **Complete trusted review, report repair and forbidden-claim checks.** All decisions; stale packets; spoof rejection; qualified reports.               |
+| **V06** | BLOCKED   | V05                   | None                    | 27 Oct              | **Implement local/public export, integrity and offline replay.** Verified bundles; rights-through-derivatives tests; no-provider replay.               |
+| **V07** | BLOCKED   | CP2                   | None                    | 27 Oct              | **Build minimal investigator runtime and enforce oracle isolation.** No hidden code/data mounts; attempted access denied and recorded.                 |
+| **V08** | BLOCKED   | CP3, V06, V07         | None                    | 28 Oct              | **Verify crash recovery, budgets, checkpoint lag and export integrity.** Failure-window/recovery tests and consistent restore evidence.                |
+| **V09** | BLOCKED   | S07, V04, H08         | None                    | 28–29 Oct          | **Independently validate full oracle and seal pilot/scorer versions.** Numeric/rubric validation; sealed digests; held-out access record.              |
+| **V10** | BLOCKED   | CP4                   | None                    | 30 Oct–1 Nov       | **Rehearse evaluator and freeze protocol, scorer and resource feasibility.** Dev dry-run; rubric/denominators/repeats/invalid-trial policy.            |
+| **V11** | BLOCKED   | CP5                   | None                    | 2–3 Nov            | **Execute sealed deterministic and non-model evaluation runs.** Closed trials; exact failure/usage/coverage records; no test tuning.                   |
+| **V12** | BLOCKED   | CP5, MG1              | None                    | 2–3 Nov if enabled | **Execute fixed-retrieval and adaptive real-model trials.** Matched V1/V2 registered trials; never use scripted model outputs.                         |
+| **V13** | BLOCKED   | V11, H10, S09         | V12                     | 3–4 Nov            | **Close scoring, adjudication, uncertainty and results ledger.** All scheduled attempts accounted for; reproducible paired summaries.                  |
+| **V14** | BLOCKED   | V13, H11, S10, A10    | None                    | 5–6 Nov            | **Verify publication package, result recomputation and saved-artifact replay.** Clean reproduction record; filtered package and omissions.             |
+| **V15** | BLOCKED   | A12, H12, S11         | None                    | By 12 Nov           | **Verify final manifests, archive evidence and validate submission set.** Hashes, run instructions, report/slides PDFs and complete permitted archive. |
 
 **Explicitly unplanned dependency**
 
-| Task | State now | Required predecessors | Conditional predecessor | Target | Work and acceptance evidence |
-| --- | --- | --- | --- | --- | --- |
-| **U01** | UNPLANNED | None | None | UNPLANNED | **Supply an actual contract-compatible C10 gateway.** External unscheduled prerequisite; no owner/provider/delivery assumed. |
+| Task          | State now | Required predecessors | Conditional predecessor | Target    | Work and acceptance evidence                                                                                                       |
+| ------------- | --------- | --------------------- | ----------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **U01** | UNPLANNED | None                  | None                    | UNPLANNED | **Supply an actual contract-compatible C10 gateway.** External unscheduled prerequisite; no owner/provider/delivery assumed. |
 
 V12 begins BLOCKED; if CP5 is approved NON_MODEL_ONLY, record V12 as NOT_RUN with that protocol reference. U01 remains UNPLANNED unless the team explicitly assigns and plans it later. Neither state is hidden by a successful scripted graph demonstration.
 
 ### 4.7 Checkpoint approval register and meeting contract
 
-| Gate | State now | Required accepted tasks | Target | Required shared decision |
-| --- | --- | --- | --- | --- |
-| **CP0** | WAITING | A02 | 23 Oct | Shared schema/fixture pack accepted by all four. |
-| **CP1** | WAITING | A04 | 24 Oct | Evidence foundation and first frozen reviewed snapshots. |
-| **CP2** | WAITING | A05 | 25 Oct | Deterministic baseline vertical slice. |
-| **CP3** | WAITING | A07, H07, S06 | 27 Oct | Integrated investigation and fault/temporal checks. |
-| **CP4** | WAITING | A08 | 29 Oct | Week 1 acceptance; declare offline versus real-agent level. |
-| **CP5** | WAITING | A09, H09, S08, V10; MG1 when INCLUDES_REAL_MODEL | 1 Nov, before held-out runs | Frozen experiment scope, candidate, data and scorer. |
-| **MG1** | WAITING | U01, A07, V07, V10 | Conditional, before V1/V2 | Real C10 compatibility, permissions, budgets, trace and isolation. |
-| **CP6** | WAITING | V13, H10, S09 | 3–4 Nov | Closed, adjudicated scientific results. |
-| **CP7** | WAITING | A11, V14, H11, S10 | 6 Nov | Final-review artifact freeze. |
-| **CP8** | WAITING | V15 | By 12 Nov | Final submission inventory and reproduction checks. |
+| Gate          | State now | Required accepted tasks                          | Target                      | Required shared decision                                           |
+| ------------- | --------- | ------------------------------------------------ | --------------------------- | ------------------------------------------------------------------ |
+| **CP0** | WAITING   | A02                                              | 23 Oct                      | Shared schema/fixture pack accepted by all four.                   |
+| **CP1** | WAITING   | A04                                              | 24 Oct                      | Evidence foundation and first frozen reviewed snapshots.           |
+| **CP2** | WAITING   | A05                                              | 25 Oct                      | Deterministic baseline vertical slice.                             |
+| **CP3** | WAITING   | A07, H07, S06                                    | 27 Oct                      | Integrated investigation and fault/temporal checks.                |
+| **CP4** | WAITING   | A08                                              | 29 Oct                      | Week 1 acceptance; declare offline versus real-agent level.        |
+| **CP5** | WAITING   | A09, H09, S08, V10; MG1 when INCLUDES_REAL_MODEL | 1 Nov, before held-out runs | Frozen experiment scope, candidate, data and scorer.               |
+| **MG1** | WAITING   | U01, A07, V07, V10                               | Conditional, before V1/V2   | Real C10 compatibility, permissions, budgets, trace and isolation. |
+| **CP6** | WAITING   | V13, H10, S09                                    | 3–4 Nov                    | Closed, adjudicated scientific results.                            |
+| **CP7** | WAITING   | A11, V14, H11, S10                               | 6 Nov                       | Final-review artifact freeze.                                      |
+| **CP8** | WAITING   | V15                                              | By 12 Nov                   | Final submission inventory and reproduction checks.                |
 
 For CP5 INCLUDES_REAL_MODEL, add MG1 as a required gate in that experiment's recorded scope. For CP6 and its scoring tasks, require all registered V12 trials closed whenever the conditional path is active. CP7 freezes the Review 4 artifacts; CP8 verifies the final submission set, not a claim that an academic paper was accepted.
 
@@ -540,19 +544,19 @@ Append the approval reference and actual date to the gate row when approved. The
 
 ### 4.8 Daily allowed queue and scope drift checks
 
-| Work window | Abhishek queue | Sampreeth queue | Sushanth queue | Vedantha queue |
-| --- | --- | --- | --- | --- |
-| Day 1 | A01 → A02; coordinate CP0 | H01; review A02/CP0 | S01; review A02/CP0 | V01; review A02/CP0 |
-| Day 2, after CP0 | A03 → A04 | H02 → H03 → H04 | S02 | V02; review CP1 |
-| Day 3, after CP1 | A05 after V03 | H05 | S03; S05 can start after CP0 | V03; V04 after S05 |
-| Day 4, after CP2 where required | A06 | H06 | S04; assist V04 review | V05; V04 |
-| Day 5 | A07; coordinate CP3 | H07 | S06 | V06; V07 |
-| Day 6 | Prepare A08 only when its prerequisites permit | H08 after CP3 | S07 | V08; V09 only after H08/S07 |
-| Day 7 | A08; coordinate CP4 | Validate H08 and CP4 evidence | Validate S07 and CP4 evidence | Complete V09/V08; CP4 review |
-| 30 Oct–1 Nov | A09; CP5 sign-off | H09; CP5 sign-off | S08; CP5 sign-off | V10; CP5 and conditional MG1 |
-| 2–3 Nov | Help registered trial execution under V11/V12; no test-driven tuning | H10 after required trial closure | S09 after required trial closure | V11; conditional V12; then V13 |
-| 4–6 Nov | A10 after CP6 → A11 after V14 | H11 | S10 | V13 → V14; CP6/CP7 coordination |
-| 8–12 Nov | A12 | H12 | S11 | V15 after A12/H12/S11; CP8 |
+| Work window                     | Abhishek queue                                                       | Sampreeth queue                  | Sushanth queue                   | Vedantha queue                   |
+| ------------------------------- | -------------------------------------------------------------------- | -------------------------------- | -------------------------------- | -------------------------------- |
+| Day 1                           | A01 → A02; coordinate CP0                                           | H01; review A02/CP0              | S01; review A02/CP0              | V01; review A02/CP0              |
+| Day 2, after CP0                | A03 → A04                                                           | H02 → H03 → H04                | S02                              | V02; review CP1                  |
+| Day 3, after CP1                | A05 after V03                                                        | H05                              | S03; S05 can start after CP0     | V03; V04 after S05               |
+| Day 4, after CP2 where required | A06                                                                  | H06                              | S04; assist V04 review           | V05; V04                         |
+| Day 5                           | A07; coordinate CP3                                                  | H07                              | S06                              | V06; V07                         |
+| Day 6                           | Prepare A08 only when its prerequisites permit                       | H08 after CP3                    | S07                              | V08; V09 only after H08/S07      |
+| Day 7                           | A08; coordinate CP4                                                  | Validate H08 and CP4 evidence    | Validate S07 and CP4 evidence    | Complete V09/V08; CP4 review     |
+| 30 Oct–1 Nov                   | A09; CP5 sign-off                                                    | H09; CP5 sign-off                | S08; CP5 sign-off                | V10; CP5 and conditional MG1     |
+| 2–3 Nov                        | Help registered trial execution under V11/V12; no test-driven tuning | H10 after required trial closure | S09 after required trial closure | V11; conditional V12; then V13   |
+| 4–6 Nov                        | A10 after CP6 → A11 after V14                                       | H11                              | S10                              | V13 → V14; CP6/CP7 coordination |
+| 8–12 Nov                       | A12                                                                  | H12                              | S11                              | V15 after A12/H12/S11; CP8       |
 
 A queue entry can span multiple days; no member must start every listed task on the target day. If the predecessor is not accepted, continue an already-open authorized task, review a producer handoff, or repair an explicitly assigned failed test. Do not invent another feature to appear busy. The midpoint/end sync checks task IDs, dependency states and actual evidence before discussing new work.
 
@@ -560,74 +564,74 @@ A queue entry can span multiple days; no member must start every listed task on 
 
 ### Day 1 — Friday, 23 October: contracts, scaffolding and first fixtures
 
-| Member | Work within the four-hour budget | Deliverable at CP0 |
-| --- | --- | --- |
-| Abhishek | Create Python package/CLI, `uv.lock`, basic CI, roots/config and common boundary models. Extract exact enum/decimal/time semantics from CONTRACTS; provide in-memory service interfaces and a scripted C10 test port. | Fresh `uv sync` works; fixture validation and initial contract tests pass. |
-| Sampreeth | Execute H01: curate source aliases/URLs and inspect accessible R02/operational-guide originals for source/locator fixtures and rights metadata. Define acquisition/extraction output fixtures; production audited intake is H02 after CP0/V02. | Reviewed lead manifest, source/locator examples and typed coverage fixtures. |
-| Sushanth | Author clean world schema and minimal visible dossier: supplied 100 kg obligation, one supported 55 kg allocation, overlapping observations, 25 kg paid/pending transaction and a comparison snapshot. Specify event-equivalence and arithmetic examples. | Original synthetic CSV/JSONL inputs plus typed records; no hidden answer labels in visible names. |
-| Vedantha | Execute V01: prototype the low-level hash/blob and SQLite commit boundary, supply audit intent/result fixtures, independently calculate the starter answer and define oracle/metric shapes. Production audited storage is V02 after CP0. | Prototype blob round-trip, typed intent/result example and independent 55 supported / 45 gap assertion. |
+| Member    | Work within the four-hour budget                                                                                                                                                                                                                          | Deliverable at CP0                                                                                      |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Abhishek  | Create Python package/CLI, `uv.lock`, basic CI, roots/config and common boundary models. Extract exact enum/decimal/time semantics from CONTRACTS; provide in-memory service interfaces and a scripted C10 test port.                                   | Fresh `uv sync` works; fixture validation and initial contract tests pass.                            |
+| Sampreeth | Execute H01: curate source aliases/URLs and inspect accessible R02/operational-guide originals for source/locator fixtures and rights metadata. Define acquisition/extraction output fixtures; production audited intake is H02 after CP0/V02.            | Reviewed lead manifest, source/locator examples and typed coverage fixtures.                            |
+| Sushanth  | Author clean world schema and minimal visible dossier: supplied 100 kg obligation, one supported 55 kg allocation, overlapping observations, 25 kg paid/pending transaction and a comparison snapshot. Specify event-equivalence and arithmetic examples. | Original synthetic CSV/JSONL inputs plus typed records; no hidden answer labels in visible names.       |
+| Vedantha  | Execute V01: prototype the low-level hash/blob and SQLite commit boundary, supply audit intent/result fixtures, independently calculate the starter answer and define oracle/metric shapes. Production audited storage is V02 after CP0.                  | Prototype blob round-trip, typed intent/result example and independent 55 supported / 45 gap assertion. |
 
 By the first midpoint, freeze a small usable subset: CommandContext, ServiceResult, Issue, BlobRef/EvidenceRef, Quantity/TemporalValue, receipts/observations, snapshot/profile references, CalculationResult, FindingRecord and audit operation/event shapes. Add remaining records incrementally without incompatible placeholders. All consumers reject unsupported contract versions.
 
 ### Day 2 — Saturday, 24 October: intake, persistence and source review
 
-| Member | Work | End-of-day handoff |
-| --- | --- | --- |
-| Abhishek | Wire C00 import/inspect and C05 snapshot publication to storage interfaces. Implement expected-version/profile approval capability checks and reproducible configuration loading. Attend Review 2 with the team. | Import command and snapshot/profile lifecycle usable by other streams. |
-| Sampreeth | Implement batch inventory, every-file receipts and structured extraction, then text-PDF page coverage. Acquire priority corpus, review relevant clauses/tables, source dates and first code/profile parameters. | C01/C03 real outputs; source failures recorded rather than silently skipped. |
-| Sushanth | Normalize units/metal/entity/time without losing raw values. Preserve observations, separate events/lots/allocations, implement F02 supported-versus-ambiguous equivalence and F03 legitimate reuse. | NormalizationBatch with provenance and explicit unresolved links. |
-| Vedantha | Complete blob-before-transaction sequence, foreign keys, append-only audit, idempotency conflicts and partial/failure output storage. Start deterministic eight-section report JSON/rendering. | Storage/commit service replacing the memory adapter; report fixture with calculation refs. |
+| Member    | Work                                                                                                                                                                                                             | End-of-day handoff                                                                         |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Abhishek  | Wire C00 import/inspect and C05 snapshot publication to storage interfaces. Implement expected-version/profile approval capability checks and reproducible configuration loading. Attend Review 2 with the team. | Import command and snapshot/profile lifecycle usable by other streams.                     |
+| Sampreeth | Implement batch inventory, every-file receipts and structured extraction, then text-PDF page coverage. Acquire priority corpus, review relevant clauses/tables, source dates and first code/profile parameters.  | C01/C03 real outputs; source failures recorded rather than silently skipped.               |
+| Sushanth  | Normalize units/metal/entity/time without losing raw values. Preserve observations, separate events/lots/allocations, implement F02 supported-versus-ambiguous equivalence and F03 legitimate reuse.             | NormalizationBatch with provenance and explicit unresolved links.                          |
+| Vedantha  | Complete blob-before-transaction sequence, foreign keys, append-only audit, idempotency conflicts and partial/failure output storage. Start deterministic eight-section report JSON/rendering.                   | Storage/commit service replacing the memory adapter; report fixture with calculation refs. |
 
 CP1 must exercise a duplicate file, an undeclared file, a missing declared file and a corrupt document. Every one gets an inventory outcome. A failed download is an acquisition attempt, not an acquired artifact with invented bytes/hash.
 
 ### Day 3 — Sunday, 25 October: baseline end to end
 
-| Member | Work | End-of-day handoff |
-| --- | --- | --- |
-| Abhishek | Connect import → normalization → snapshot → domain tools → report; add deterministic run mode, run state and audit inspection CLI. | CP2 command sequence executes on a fresh data root without network/model calls. |
-| Sampreeth | Build provision/table chunking and FTS5 index with stable locators, version manifests and source/application filters; begin labelled development retrieval questions. | Reviewed frozen corpus/index; lexical search returns exact provision refs. |
-| Sushanth | Implement exact balances, shared-lot conservation, historical bucket allocation and snapshot comparison. Generate six inspectable development cases covering clean, overlap, ID reuse, unit, payment and prior-liability behavior. | Deterministic baseline plus independent-oracle comparison inputs. |
-| Vedantha | Enforce numeric/citation/report section checks; add audit inventory and replay skeleton. Score starter cases independently and inspect raw→observation→allocation→report lineage. | Verified deterministic working paper, failures/partial cases retained. |
+| Member    | Work                                                                                                                                                                                                                               | End-of-day handoff                                                              |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Abhishek  | Connect import → normalization → snapshot → domain tools → report; add deterministic run mode, run state and audit inspection CLI.                                                                                             | CP2 command sequence executes on a fresh data root without network/model calls. |
+| Sampreeth | Build provision/table chunking and FTS5 index with stable locators, version manifests and source/application filters; begin labelled development retrieval questions.                                                              | Reviewed frozen corpus/index; lexical search returns exact provision refs.      |
+| Sushanth  | Implement exact balances, shared-lot conservation, historical bucket allocation and snapshot comparison. Generate six inspectable development cases covering clean, overlap, ID reuse, unit, payment and prior-liability behavior. | Deterministic baseline plus independent-oracle comparison inputs.               |
+| Vedantha  | Enforce numeric/citation/report section checks; add audit inventory and replay skeleton. Score starter cases independently and inspect raw→observation→allocation→report lineage.                                               | Verified deterministic working paper, failures/partial cases retained.          |
 
 The snapshot's 55 kg is comparison evidence, never the origin of support. Two corroborated observations of the same supported allocation still give 55 kg, not 110 kg. A new supported 25 kg allocation belongs in a new case version, producing 80 supported / 20 gap; a snapshot or paid invoice alone cannot do so.
 
 ### Day 4 — Monday, 26 October: temporal retrieval and bounded graph
 
-| Member | Work | End-of-day handoff |
-| --- | --- | --- |
-| Abhishek | Implement deterministic preflight, PlanRecord/action dispatch/ObservationAssessment, persisted budgets, loop detection, state transitions and checkpoint reconciliation. Build against injected C10 test results only. | Graph can observe weak evidence and request a different allowed check. |
-| Sampreeth | Implement locator resolution, reviewed amendment overlays, role/period filters, five evidence grades, bounded parent/header/footnote expansion and complete candidate dispositions. | Wrong-period, ambiguous amendment and notice-lead queries escalate correctly. |
-| Sushanth | Add entity/capability/product-weight/commercial checks, expiry/cancellation handling and full-server-universe calculations. Expand to at least twelve development dossiers, including missing/ambiguous evidence. | Versioned deterministic tools return PASS/FAIL/UNKNOWN with supporting refs. |
-| Vedantha | Implement trusted local review packet/decision services, stale dependency rejection, forbidden-verdict verification and report repair feedback interface. | Agent/service actors cannot approve; changed report invalidates its packet. |
+| Member    | Work                                                                                                                                                                                                                   | End-of-day handoff                                                            |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Abhishek  | Implement deterministic preflight, PlanRecord/action dispatch/ObservationAssessment, persisted budgets, loop detection, state transitions and checkpoint reconciliation. Build against injected C10 test results only. | Graph can observe weak evidence and request a different allowed check.        |
+| Sampreeth | Implement locator resolution, reviewed amendment overlays, role/period filters, five evidence grades, bounded parent/header/footnote expansion and complete candidate dispositions.                                    | Wrong-period, ambiguous amendment and notice-lead queries escalate correctly. |
+| Sushanth  | Add entity/capability/product-weight/commercial checks, expiry/cancellation handling and full-server-universe calculations. Expand to at least twelve development dossiers, including missing/ambiguous evidence.      | Versioned deterministic tools return PASS/FAIL/UNKNOWN with supporting refs.  |
+| Vedantha  | Implement trusted local review packet/decision services, stale dependency rejection, forbidden-verdict verification and report repair feedback interface.                                                              | Agent/service actors cannot approve; changed report invalidates its packet.   |
 
 ### Day 5 — Tuesday, 27 October: integrated investigation and adversarial checks
 
-| Member | Work | End-of-day handoff |
-| --- | --- | --- |
-| Abhishek | Integrate retrieval/domain/report tools into C09. Test retry accounting, budget exhaustion, cancellation, all eleven statuses and terminal-run reopening through a new parent-linked run. Inventory real C10 availability without assigning its implementation. | CP3 trace: objective → check → weak/refuting result → revised plan → verified qualified output. |
-| Sampreeth | Finish deadline register and missing-order cases; test amendments preserve unaffected clauses, general-role inclusion and unresolved authority. Inspect actual retrieval payloads, not just ranked snippets. | Retrieval regression set with expected support/abstention and actual coverage. |
-| Sushanth | Implement all F01–F16 transformations and generator invariants. Ensure dates, references, capacities and visible evidence support the intended ambiguity. | Generator can produce each fault family plus clean controls; paired clean/corrupt examples are reviewable privately. |
-| Vedantha | Implement complete-local/publication exports, rights checks through derivatives/prompts, integrity verification and artifact replay. Create isolated runtime image and attempt forbidden oracle/test-fixture access. | Export/replay integration and isolation test report. |
+| Member    | Work                                                                                                                                                                                                                                                            | End-of-day handoff                                                                                                   |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Abhishek  | Integrate retrieval/domain/report tools into C09. Test retry accounting, budget exhaustion, cancellation, all eleven statuses and terminal-run reopening through a new parent-linked run. Inventory real C10 availability without assigning its implementation. | CP3 trace: objective → check → weak/refuting result → revised plan → verified qualified output.                  |
+| Sampreeth | Finish deadline register and missing-order cases; test amendments preserve unaffected clauses, general-role inclusion and unresolved authority. Inspect actual retrieval payloads, not just ranked snippets.                                                    | Retrieval regression set with expected support/abstention and actual coverage.                                       |
+| Sushanth  | Implement all F01–F16 transformations and generator invariants. Ensure dates, references, capacities and visible evidence support the intended ambiguity.                                                                                                      | Generator can produce each fault family plus clean controls; paired clean/corrupt examples are reviewable privately. |
+| Vedantha  | Implement complete-local/publication exports, rights checks through derivatives/prompts, integrity verification and artifact replay. Create isolated runtime image and attempt forbidden oracle/test-fixture access.                                            | Export/replay integration and isolation test report.                                                                 |
 
 No real gateway means the graph demonstration remains a labelled integration test. It does not satisfy the live-model part of CP4/Review 3, and it cannot enter the model experiment table.
 
 ### Day 6 — Wednesday, 28 October: complete pilot and recovery
 
-| Member | Work | End-of-day handoff |
-| --- | --- | --- |
-| Abhishek | Own integration regressions, provider-independent context capture, dependency-version pins and clean-start CLI flow. Reconcile LangGraph checkpoints against authoritative committed operations. | Reproducible candidate build and command transcript. |
-| Sampreeth | Close acquisition/extraction gaps; cross-check active profile/corpus against original pages. Finish labelled development retrieval checks and identify unretrievable/missing materials. | Corpus/profile review manifest with limitations and unresolved leads. |
-| Sushanth | Generate proposed 48 dossiers, validate all references/decimals/coverage, assign grouped dev/test split through evaluator pipeline, and remove labels/seeds from visible outputs. | 24 development + 24 held-out dossiers; deterministic regeneration checks. |
-| Vedantha | Independently validate oracle arithmetic and justified conclusions; complete crash/timeout/idempotency/recovery and export-leakage tests. Register scorer/rubric and per-trial result schema. | Dataset/oracle validation report; detected defects cause regeneration/version changes. |
+| Member    | Work                                                                                                                                                                                             | End-of-day handoff                                                                     |
+| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------- |
+| Abhishek  | Own integration regressions, provider-independent context capture, dependency-version pins and clean-start CLI flow. Reconcile LangGraph checkpoints against authoritative committed operations. | Reproducible candidate build and command transcript.                                   |
+| Sampreeth | Close acquisition/extraction gaps; cross-check active profile/corpus against original pages. Finish labelled development retrieval checks and identify unretrievable/missing materials.          | Corpus/profile review manifest with limitations and unresolved leads.                  |
+| Sushanth  | Generate proposed 48 dossiers, validate all references/decimals/coverage, assign grouped dev/test split through evaluator pipeline, and remove labels/seeds from visible outputs.                | 24 development + 24 held-out dossiers; deterministic regeneration checks.              |
+| Vedantha  | Independently validate oracle arithmetic and justified conclusions; complete crash/timeout/idempotency/recovery and export-leakage tests. Register scorer/rubric and per-trial result schema.    | Dataset/oracle validation report; detected defects cause regeneration/version changes. |
 
 ### Day 7 — Thursday, 29 October: acceptance and handoff to evaluation
 
-| Member | Work | End-of-day handoff |
-| --- | --- | --- |
-| Abhishek | Run CP4 gate suite, freeze Week 1 release candidate and assemble demo/run instructions. State exact A/B completion level and remaining gateway dependency. | Candidate tag/commit, acceptance ledger and repeatable demo. |
-| Sampreeth | Independently reproduce import/index/retrieval on a fresh root; audit source locators, rights and applicability; draft data/source documentation. | Source/data card and retrieval limitations. |
-| Sushanth | Independently reproduce calculator/generator on the candidate environment; inspect every development case and generator invariants for all cases without distributing held-out answers. | Generator/tool documentation and deterministic baseline smoke results. |
-| Vedantha | Verify complete audit coverage, review/export/replay, isolated evaluation smoke and result ledger. Freeze hidden dataset/oracle digests and prepare Review 3 trace walkthrough. | Signed checkpoint manifest, evaluator readiness and test-set access log. |
+| Member    | Work                                                                                                                                                                                    | End-of-day handoff                                                       |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Abhishek  | Run CP4 gate suite, freeze Week 1 release candidate and assemble demo/run instructions. State exact A/B completion level and remaining gateway dependency.                              | Candidate tag/commit, acceptance ledger and repeatable demo.             |
+| Sampreeth | Independently reproduce import/index/retrieval on a fresh root; audit source locators, rights and applicability; draft data/source documentation.                                       | Source/data card and retrieval limitations.                              |
+| Sushanth  | Independently reproduce calculator/generator on the candidate environment; inspect every development case and generator invariants for all cases without distributing held-out answers. | Generator/tool documentation and deterministic baseline smoke results.   |
+| Vedantha  | Verify complete audit coverage, review/export/replay, isolated evaluation smoke and result ledger. Freeze hidden dataset/oracle digests and prepare Review 3 trace walkthrough.         | Signed checkpoint manifest, evaluator readiness and test-set access log. |
 
 Stop adding optional features. On 30 October fix only demonstrated prototype issues and tune against development data. If a mandatory gate is red, record the failure, owner and effect on claims; do not silently redefine the gate or remove difficult cases.
 
@@ -637,12 +641,12 @@ Stop adding optional features. On 30 October fix only demonstrated prototype iss
 
 Sampreeth maintains `configs/sources/source_leads.jsonl` and acquisition policies. Canonical aliases come from DOMAIN_RESEARCH's reconciliation table; preserve document-local aliases such as `domain:R02` and `cpcb:R02`. Review escaped URLs manually; do not import the uploaded Markdown or embedded image as authoritative corpus data.
 
-| Priority | Assets and intended use | Required completion evidence |
-| --- | --- | --- |
-| P0 | R02 base rules and R03–R06 amendments relevant to the selected period; R07 producer SOP; R08 FAQ; R09 framework; R10 historical transfer guide; R11 return instructions. | Ten acquisition outcomes, exact bytes where accessible, source-class/date metadata, page coverage and reviewed relevant provisions. Unavailable sources remain explicit gaps. |
-| P1 | R01 parent statute context; official notice/order leads needed by a dossier; dated public registration/capability sources if actually available. | Genuine body/metadata, applicability/freshness review, no inferred unseen notice contents. |
-| P2 | OGD national e-waste aggregates and wider contextual/benchmark references. | Actual payload and license/attribution verified before use; contextual only, never a producer transaction ledger. |
-| Excluded from active calculation | EC/pricing/tax/solar/refurbishing sources or older regimes outside v1. | Preserve leads/artifacts and exclusion reasons; use only scoped diagnostic/negative tests. |
+| Priority                         | Assets and intended use                                                                                                                                                   | Required completion evidence                                                                                                                                                  |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P0                               | R02 base rules and R03–R06 amendments relevant to the selected period; R07 producer SOP; R08 FAQ; R09 framework; R10 historical transfer guide; R11 return instructions. | Ten acquisition outcomes, exact bytes where accessible, source-class/date metadata, page coverage and reviewed relevant provisions. Unavailable sources remain explicit gaps. |
+| P1                               | R01 parent statute context; official notice/order leads needed by a dossier; dated public registration/capability sources if actually available.                          | Genuine body/metadata, applicability/freshness review, no inferred unseen notice contents.                                                                                    |
+| P2                               | OGD national e-waste aggregates and wider contextual/benchmark references.                                                                                                | Actual payload and license/attribution verified before use; contextual only, never a producer transaction ledger.                                                             |
+| Excluded from active calculation | EC/pricing/tax/solar/refurbishing sources or older regimes outside v1.                                                                                                    | Preserve leads/artifacts and exclusion reasons; use only scoped diagnostic/negative tests.                                                                                    |
 
 The prior research verified no openly licensed producer-level transaction dataset. Record new discoveries if obtained; do not turn that finding into a universal claim of nonexistence. Do not wait for private company data to start the synthetic benchmark. Authorized samples, if later obtained, need their own permission, adapter validation and separate evaluation cohort.
 
@@ -691,14 +695,14 @@ If review of a relevant rule or source fails, disable the affected affirmative c
 
 Sushanth implements deterministic generation: reviewed profile → clean world → linked document renderings → controlled visible faults. Vedantha validates independent oracle expectations. LLM-written narrative variation is optional; numeric/legal truth must remain deterministic and reviewed.
 
-| Stage | Required output and checks |
-| --- | --- |
-| World generation | Entity/alias validity, supplied obligations, historical liabilities, certificates/lots, lifecycle events, allocations, commercial records and capture dates; references conserve each lot's capacity. |
-| Visible rendering | Manifest plus JSONL/CSV, synthetic invoices/account-like text PDFs and supporting memos. All PDFs are watermarked `SYNTHETIC — NOT A CPCB RECORD`; use fictional identities and no official seals. |
-| Corruption | Apply recorded field/document omissions, overlaps, stale captures, conflicts and hostile text after clean generation. Preserve valid clean counterpart privately. Faults may intentionally make input schema invalid; intake must still receipt it. |
-| Oracle | World balances **and** justified visible-evidence balances, required findings/abstentions, permitted alternatives, prohibited actions and independent reference calculations. Hidden truth cannot justify an unsupported visible conclusion. |
-| Validation | Reference integrity, exact decimal totals, event chronology/precision, lot conservation, intended fault effect, watermark/rights checks and absence of answer-bearing filenames. |
-| Freeze | Dataset/generator/template/profile/corpus/scorer digests, seeds held privately, split membership, validation/review records and visible-asset manifest. |
+| Stage             | Required output and checks                                                                                                                                                                                                                          |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| World generation  | Entity/alias validity, supplied obligations, historical liabilities, certificates/lots, lifecycle events, allocations, commercial records and capture dates; references conserve each lot's capacity.                                               |
+| Visible rendering | Manifest plus JSONL/CSV, synthetic invoices/account-like text PDFs and supporting memos. All PDFs are watermarked `SYNTHETIC — NOT A CPCB RECORD`; use fictional identities and no official seals.                                               |
+| Corruption        | Apply recorded field/document omissions, overlaps, stale captures, conflicts and hostile text after clean generation. Preserve valid clean counterpart privately. Faults may intentionally make input schema invalid; intake must still receipt it. |
+| Oracle            | World balances **and** justified visible-evidence balances, required findings/abstentions, permitted alternatives, prohibited actions and independent reference calculations. Hidden truth cannot justify an unsupported visible conclusion.  |
+| Validation        | Reference integrity, exact decimal totals, event chronology/precision, lot conservation, intended fault effect, watermark/rights checks and absence of answer-bearing filenames.                                                                    |
+| Freeze            | Dataset/generator/template/profile/corpus/scorer digests, seeds held privately, split membership, validation/review records and visible-asset manifest.                                                                                             |
 
 ### 7.2 Visible dossier structure
 
@@ -737,24 +741,24 @@ Vedantha maintains held-out answers/access records. Other developers tune prompt
 
 ### 7.4 Required fault-family coverage and assertions
 
-| Family | Required test outcome |
-| --- | --- |
-| F01_CLEAN_BASELINE | Correct balances; no invented discrepancy. |
-| F02_OVERLAPPING_EXPORT | One allocation counted only with matching authoritative event ID or complete reviewed compound key plus corroboration; incomplete/colliding evidence remains PENDING. Both observations survive. |
-| F03_MULTISTAGE_ID_REUSE | Distinct legitimate events on one certificate survive normalization. |
-| F04_UNIT_DIMENSION_MIX | kg/tonne conversion is exact; EEE mass, money and unlike metals cannot be summed. |
-| F05_WRONG_ENTITY_ALIAS | No fuzzy sister-company join; dated proven alias can resolve. |
-| F06_STALE_SNAPSHOT | Compare event/capture/cut-off evidence; no unsupported fraud claim. |
-| F07_PAID_NO_TRANSFER | Payment/intermediate stage alone never creates supported credit. |
-| F08_PRIOR_ARREARS_DRAIN | Full historical state at allocation time enforces earlier-liability priority and shared capacity; missing history stays unresolved. |
-| F09_EXPIRED_CANCELLED | Use supported lifecycle/time rules or abstain; never assume missing cancellation history is valid credit. |
-| F10_CAPABILITY_MISMATCH | EEE capability and metal compatibility are checked separately with dated evidence. |
-| F11_WRONG_PERIOD_RULE | Incorrect temporal/regime source cannot support a verified conclusion. |
-| F12_UNSEEN_NOTICE_LEAD | Missing signed authority produces a request/escalation, not invented extension text. |
-| F13_WEIGHT_BASIS_CONFLICT | No silent average or switch between net/gross/component bases. |
-| F14_OUT_OF_SCOPE_REGIME | Unsupported calculation explicitly withheld; supplied ordinary gold bucket remains distinct from unsupported gold offsets. |
-| F15_EXTRACTION_PAGE_LOSS | Coverage/data-quality exception; no invented zero activity or missing-event accusation. |
-| F16_PROMPT_INJECTION | Hostile text retained as evidence; cannot alter tools, quantities, profiles or approval permissions. |
+| Family                    | Required test outcome                                                                                                                                                                            |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| F01_CLEAN_BASELINE        | Correct balances; no invented discrepancy.                                                                                                                                                       |
+| F02_OVERLAPPING_EXPORT    | One allocation counted only with matching authoritative event ID or complete reviewed compound key plus corroboration; incomplete/colliding evidence remains PENDING. Both observations survive. |
+| F03_MULTISTAGE_ID_REUSE   | Distinct legitimate events on one certificate survive normalization.                                                                                                                             |
+| F04_UNIT_DIMENSION_MIX    | kg/tonne conversion is exact; EEE mass, money and unlike metals cannot be summed.                                                                                                                |
+| F05_WRONG_ENTITY_ALIAS    | No fuzzy sister-company join; dated proven alias can resolve.                                                                                                                                    |
+| F06_STALE_SNAPSHOT        | Compare event/capture/cut-off evidence; no unsupported fraud claim.                                                                                                                              |
+| F07_PAID_NO_TRANSFER      | Payment/intermediate stage alone never creates supported credit.                                                                                                                                 |
+| F08_PRIOR_ARREARS_DRAIN   | Full historical state at allocation time enforces earlier-liability priority and shared capacity; missing history stays unresolved.                                                              |
+| F09_EXPIRED_CANCELLED     | Use supported lifecycle/time rules or abstain; never assume missing cancellation history is valid credit.                                                                                        |
+| F10_CAPABILITY_MISMATCH   | EEE capability and metal compatibility are checked separately with dated evidence.                                                                                                               |
+| F11_WRONG_PERIOD_RULE     | Incorrect temporal/regime source cannot support a verified conclusion.                                                                                                                           |
+| F12_UNSEEN_NOTICE_LEAD    | Missing signed authority produces a request/escalation, not invented extension text.                                                                                                             |
+| F13_WEIGHT_BASIS_CONFLICT | No silent average or switch between net/gross/component bases.                                                                                                                                   |
+| F14_OUT_OF_SCOPE_REGIME   | Unsupported calculation explicitly withheld; supplied ordinary gold bucket remains distinct from unsupported gold offsets.                                                                       |
+| F15_EXTRACTION_PAGE_LOSS  | Coverage/data-quality exception; no invented zero activity or missing-event accusation.                                                                                                          |
+| F16_PROMPT_INJECTION      | Hostile text retained as evidence; cannot alter tools, quantities, profiles or approval permissions.                                                                                             |
 
 Vedantha checks each generated case against the visible documents and an independent calculation/rubric. Sushanth's production calculator is useful for regression comparison but cannot be the sole answer generator and scorer. Manually check at least every distinct fault/combination recipe, every development dossier and all held-out expected numeric answers; record any limits on semantic/domain review. Rejected cases are corrected/versioned before freezing, not quietly removed after poor agent performance.
 
@@ -792,16 +796,16 @@ When a real gateway is eventually supplied, verify C10 compatibility separately:
 
 These are initial development policy settings to validate, not measured optimal values or a monetary guarantee. Pin the selected values in each RunSpec; tune on development data before experiment freeze.
 
-| Limit | Initial setting and accounting |
-| --- | --- |
-| Investigative calls | At most 8 tools per finding; at most 32 investigative calls per case. |
-| Total tool dispatches | At most 40 per case, including reserved preflight/verification work; classify and count every dispatch. |
-| Model calls | At most 16 per case if a real gateway is supplied; zero real calls in offline/test mode. |
-| Re-query/repair/retry | At most 2 query reformulations per finding, 1 report repair per case, 1 retry per retryable operation. All consume applicable case budgets. |
+| Limit                   | Initial setting and accounting                                                                                                                                                    |
+| ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Investigative calls     | At most 8 tools per finding; at most 32 investigative calls per case.                                                                                                             |
+| Total tool dispatches   | At most 40 per case, including reserved preflight/verification work; classify and count every dispatch.                                                                           |
+| Model calls             | At most 16 per case if a real gateway is supplied; zero real calls in offline/test mode.                                                                                          |
+| Re-query/repair/retry   | At most 2 query reformulations per finding, 1 report repair per case, 1 retry per retryable operation. All consume applicable case budgets.                                       |
 | Context/provider tokens | Proposed cumulative 64,000 input and 12,000 output tokens, enforced conservatively before dispatch with declared estimation policy; retain provider usage as null if unavailable. |
-| Elapsed time | Proposed 300 seconds per case, with cumulative accounting across resume/retry and an explicit qualified stop/failure path. |
-| Retrieval expansion | Maximum depth 2, 20 nodes; no hidden unbounded traversal. |
-| Monetary cost | Unplanned with C10. Keep cost/pricing refs null when unknown; never infer that a local/free provider has zero total computational cost. |
+| Elapsed time            | Proposed 300 seconds per case, with cumulative accounting across resume/retry and an explicit qualified stop/failure path.                                                        |
+| Retrieval expansion     | Maximum depth 2, 20 nodes; no hidden unbounded traversal.                                                                                                                         |
+| Monetary cost           | Unplanned with C10. Keep cost/pricing refs null when unknown; never infer that a local/free provider has zero total computational cost.                                           |
 
 Provider-independent dispatcher tests verify rejection before excess work, repeated/cyclic action detection and budgets that survive restart. A budget stop never turns pending evidence into supported credit. Agent-visible tools cannot run arbitrary SQL, filesystem commands or generated code.
 
@@ -823,20 +827,20 @@ Export both a complete permitted local bundle and a filtered publication bundle.
 
 Create meaningful tests around the existing G01–G12 gates and CONTRACTS §10. The filenames below are planned test targets; implement them with shared tiny fixtures and real SQLite/files where possible. Scripted model responses are appropriate for boundary/recovery tests, not scientific agent measurements.
 
-| Gate | Planned focused test/evidence | Owner; independent reviewer |
-| --- | --- | --- |
-| G01 Intake completeness | `test_intake_coverage.py`: declared/missing/extra/corrupt/duplicate assets and every-page/row terminal disposition. | Sampreeth; Vedantha |
-| G02 Provenance | `test_evidence_lineage.py`: report number → calculation → allocation/event/observation → exact original locator; unused files still inspectable. | Vedantha; Sampreeth |
-| G03 Numeric safety | `test_quantities.py`: exact decimals, conversions, mixed dimensions, signed gap/surplus, null versus zero and precision rejection. | Sushanth; Vedantha |
-| G04 Lifecycle | `test_event_equivalence.py`: supported F02, ambiguous collision, F03 stage reuse and expiry/cancellation. | Sushanth; Sampreeth |
-| G05 Allocation | `test_allocation_conservation.py`: cross-year shared lot, prior liability timing, incomplete history and selective caller inputs. | Sushanth; Abhishek |
-| G06 Temporal RAG | `test_temporal_retrieval.py`: partial overlays, general-role clauses, unknown intervals, wrong period, notice lead and deadline-type separation. | Sampreeth; Sushanth |
-| G07 Retrieval transparency | `test_retrieval_audit.py`: full filtered/ranked/expanded/not-scored/context-omitted candidate reconstruction. | Sampreeth; Vedantha |
-| G08 Injection boundary | `test_permissions.py`: hostile input cannot alter profile, invoke shell/arbitrary paths, mutate quantity or approve. | Abhishek; Vedantha |
-| G09 Recovery | `test_operation_recovery.py`: failure windows, stale checkpoint, idempotency collision, timeout unknown outcome and budget persistence. | Vedantha; Abhishek |
-| G10 Review/export | `test_review_export.py`: all review outcomes, stale digest, forbidden verdict, restricted derivatives and public omissions. | Vedantha; Sampreeth |
-| G11 Oracle isolation | `test_runtime_isolation.py`: deny hidden paths/labels/seeds/evaluator files via image, mounts, env, tool access, logs and UI. | Vedantha; Abhishek |
-| G12 Evaluation honesty | `test_scoring_protocol.py`: independent oracle, duplicate-finding match, failure inclusion, variant attribution and no fabricated usage/cost. | Vedantha; Sushanth |
+| Gate                       | Planned focused test/evidence                                                                                                                         | Owner; independent reviewer |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| G01 Intake completeness    | `test_intake_coverage.py`: declared/missing/extra/corrupt/duplicate assets and every-page/row terminal disposition.                                 | Sampreeth; Vedantha         |
+| G02 Provenance             | `test_evidence_lineage.py`: report number → calculation → allocation/event/observation → exact original locator; unused files still inspectable. | Vedantha; Sampreeth         |
+| G03 Numeric safety         | `test_quantities.py`: exact decimals, conversions, mixed dimensions, signed gap/surplus, null versus zero and precision rejection.                  | Sushanth; Vedantha          |
+| G04 Lifecycle              | `test_event_equivalence.py`: supported F02, ambiguous collision, F03 stage reuse and expiry/cancellation.                                           | Sushanth; Sampreeth         |
+| G05 Allocation             | `test_allocation_conservation.py`: cross-year shared lot, prior liability timing, incomplete history and selective caller inputs.                   | Sushanth; Abhishek          |
+| G06 Temporal RAG           | `test_temporal_retrieval.py`: partial overlays, general-role clauses, unknown intervals, wrong period, notice lead and deadline-type separation.    | Sampreeth; Sushanth         |
+| G07 Retrieval transparency | `test_retrieval_audit.py`: full filtered/ranked/expanded/not-scored/context-omitted candidate reconstruction.                                       | Sampreeth; Vedantha         |
+| G08 Injection boundary     | `test_permissions.py`: hostile input cannot alter profile, invoke shell/arbitrary paths, mutate quantity or approve.                                | Abhishek; Vedantha          |
+| G09 Recovery               | `test_operation_recovery.py`: failure windows, stale checkpoint, idempotency collision, timeout unknown outcome and budget persistence.             | Vedantha; Abhishek          |
+| G10 Review/export          | `test_review_export.py`: all review outcomes, stale digest, forbidden verdict, restricted derivatives and public omissions.                         | Vedantha; Sampreeth         |
+| G11 Oracle isolation       | `test_runtime_isolation.py`: deny hidden paths/labels/seeds/evaluator files via image, mounts, env, tool access, logs and UI.                       | Vedantha; Abhishek          |
+| G12 Evaluation honesty     | `test_scoring_protocol.py`: independent oracle, duplicate-finding match, failure inclusion, variant attribution and no fabricated usage/cost.       | Vedantha; Sushanth          |
 
 Use module tests during development, then producer/consumer contract tests, vertical-slice integration and one clean-environment acceptance run. Add a small CI workflow for `uv sync --frozen`, schema/contract validation and targeted/full relevant pytest suites. Integration tests using the real gateway are conditional and separately labelled; skipped gateway tests do not count as passing agent acceptance.
 
@@ -854,15 +858,15 @@ The coordinator starts the investigator using only opaque case/version refs; clo
 
 Here “tuning” means development-set improvements to prompts, retrieval, tools, stopping criteria and configuration. **Model weight fine-tuning is not planned**: no base model, training rights, compute or representative training set has been selected. A future fine-tuning experiment would need its own plan and training/validation/test separation.
 
-| Date | Abhishek | Sampreeth | Sushanth | Vedantha |
-| --- | --- | --- | --- | --- |
-| **30 Oct** | Rehearse prototype and classify integration/gateway gaps; tune graph only on dev cases. | Analyze dev retrieval misses and temporal/citation errors. | Analyze dev parser/calculation failures; fix genuine bugs with regression fixtures. | Dry-run scorer, isolation, export and metric denominators on dev; prepare R3 trace/feedback walkthrough. |
-| **31 Oct — R3** | Run local prototype and describe actual autonomy level; demonstrate real agent only if C10 exists. | Explain source/version and missing-authority behavior. | Explain allocation math and show one controlled correction. | Show full trace/review/replay and feedback; register final dev issues. |
-| **1 Nov** | Freeze candidate code, prompts, graph and shared budgets with team approval. | Freeze corpus/index and retrieval policy/questions. | Freeze generator/profile/tools and independent reference fixtures. | Freeze dataset/oracle/scorer/protocol; conduct CP5, queue held-out trials only after all prerequisites pass. |
-| **2 Nov** | Monitor scheduled trials/reliability, without test-answer-driven changes. | Validate captured retrieval/provenance artifacts against the frozen protocol. | Run deterministic baseline and recomputation comparisons. | Execute isolated held-out variants/repetitions; retain failures and invalid-trial reasons. |
-| **3 Nov** | Close any remaining registered trials; inspect failures after candidate evaluation is closed. | Blind-score citations/temporal support with the rubric. | Independently check numeric/finding matches; help classify failure layers. | Produce per-case scores, uncertainty estimates and adjudication records; keep variant labels hidden during qualitative scoring where practical. |
-| **4 Nov** | Draft implementation/architecture and variant comparison discussion. | Draft sources, temporal-RAG method and limitations. | Draft generator/benchmark method and deterministic results. | Produce tables/plots/data card, evaluate scorer agreement and assemble reproduction manifests. |
-| **5 Nov** | Reproduce candidate/demo from clean checkout; integrate technical report. | Verify references, rights and source attributions. | Verify baseline/pilot regeneration and contribution record. | Recompute headline tables from trial ledger, validate public package and archive full evidence. |
+| Date                   | Abhishek                                                                                           | Sampreeth                                                                     | Sushanth                                                                            | Vedantha                                                                                                                                        |
+| ---------------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| **30 Oct**       | Rehearse prototype and classify integration/gateway gaps; tune graph only on dev cases.            | Analyze dev retrieval misses and temporal/citation errors.                    | Analyze dev parser/calculation failures; fix genuine bugs with regression fixtures. | Dry-run scorer, isolation, export and metric denominators on dev; prepare R3 trace/feedback walkthrough.                                        |
+| **31 Oct — R3** | Run local prototype and describe actual autonomy level; demonstrate real agent only if C10 exists. | Explain source/version and missing-authority behavior.                        | Explain allocation math and show one controlled correction.                         | Show full trace/review/replay and feedback; register final dev issues.                                                                          |
+| **1 Nov**        | Freeze candidate code, prompts, graph and shared budgets with team approval.                       | Freeze corpus/index and retrieval policy/questions.                           | Freeze generator/profile/tools and independent reference fixtures.                  | Freeze dataset/oracle/scorer/protocol; conduct CP5, queue held-out trials only after all prerequisites pass.                                    |
+| **2 Nov**        | Monitor scheduled trials/reliability, without test-answer-driven changes.                          | Validate captured retrieval/provenance artifacts against the frozen protocol. | Run deterministic baseline and recomputation comparisons.                           | Execute isolated held-out variants/repetitions; retain failures and invalid-trial reasons.                                                      |
+| **3 Nov**        | Close any remaining registered trials; inspect failures after candidate evaluation is closed.      | Blind-score citations/temporal support with the rubric.                       | Independently check numeric/finding matches; help classify failure layers.          | Produce per-case scores, uncertainty estimates and adjudication records; keep variant labels hidden during qualitative scoring where practical. |
+| **4 Nov**        | Draft implementation/architecture and variant comparison discussion.                               | Draft sources, temporal-RAG method and limitations.                           | Draft generator/benchmark method and deterministic results.                         | Produce tables/plots/data card, evaluate scorer agreement and assemble reproduction manifests.                                                  |
+| **5 Nov**        | Reproduce candidate/demo from clean checkout; integrate technical report.                          | Verify references, rights and source attributions.                            | Verify baseline/pilot regeneration and contribution record.                         | Recompute headline tables from trial ledger, validate public package and archive full evidence.                                                 |
 
 On 6 November all four rehearse the final demonstration, inspect the 8–12-page report/slides and freeze the review artifact set. On 7 November present observed results, including a negative or absent agent comparison if that is what happened. On 8–12 November fix packaging/documentation and complete submission; keep scientific reruns separately versioned.
 
@@ -874,12 +878,12 @@ If C10 is still unplanned/unavailable at experiment freeze, execute the determin
 
 The main research question is whether bounded adaptive investigation improves **evidence-supported discrepancy resolution** over a fixed evidence path when both use the same deterministic reconciliation tools. A second question is how much the deterministic baseline already solves. Synthetic-only evaluation can test these hypotheses in this benchmark; it cannot establish deployment-ready regulatory accuracy.
 
-| Variant | Implementation and purpose |
-| --- | --- |
-| **V0 — Deterministic** | Fixed normalization/check/reconciliation/report pipeline; no model. Measures tool/data contribution. |
+| Variant                                       | Implementation and purpose                                                                                                              |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| **V0 — Deterministic**                 | Fixed normalization/check/reconciliation/report pipeline; no model. Measures tool/data contribution.                                    |
 | **V1 — Fixed retrieval + model/tools** | Predeclared query/check sequence with the same corpus and C08 tools; model explains evidence within fixed retrieval. Requires real C10. |
-| **V2 — Bounded adaptive investigator** | Same authorized evidence/tools, but model chooses follow-up actions and bounded re-queries through C09. Requires real C10. |
-| **V3 — Optional collector/auditor** | Separate roles under the same total budget; optional only after core comparisons are valid. Do not substitute this for V0–V2. |
+| **V2 — Bounded adaptive investigator** | Same authorized evidence/tools, but model chooses follow-up actions and bounded re-queries through C09. Requires real C10.              |
+| **V3 — Optional collector/auditor**    | Separate roles under the same total budget; optional only after core comparisons are valid. Do not substitute this for V0–V2.          |
 
 Pin identical case/corpus/profile/index/tool/prompt-family and code versions where appropriate, and one model configuration for V1/V2 to isolate orchestration. Make necessary variant prompt differences explicit. Match allowed evidence, tool access and total budgets; report actual usage and differences. Fixed-path unused budget is not filled with meaningless calls. Runtime acquisition of extra evidence is disabled in the primary comparison; use a separate named experiment if testing acquisition.
 
@@ -897,21 +901,21 @@ Start the candidate with **zero held-out tuning**. If a genuine infrastructure/o
 
 ### 13.3 Metrics, denominators and scoring
 
-| Metric | Operational definition and scorer |
-| --- | --- |
+| Metric                                    | Operational definition and scorer                                                                                                                                                                                                                                                                                                                                                               |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Primary: supported case success** | Successful eligible case-trials / all scheduled eligible case-trials. Success requires correct justified balance or correctly withheld unresolved quantity, required findings/next steps, traceable support and no prohibited action/unsupported critical claim. Rubric treats justified abstention as the correct answer where evidence is insufficient. Failures/timeouts count unsuccessful. |
-| Exact reconciliation | Compatible buckets with exact unrounded justified balance/gap / all oracle-required evaluable buckets. Report unresolved buckets separately and their correct withholding; also show case-level success so failed runs cannot inflate a completed-bucket percentage. |
-| Extraction accuracy | Exact critical identifier/date/unit/value matches / labelled critical fields in the inspected documents. Report missed pages/rows and schema errors separately; no fabricated OCR confidence probability. |
-| Finding precision/recall/F1 | Match by case, family, affected record/bucket, required assertion and evidence. One-to-one matching; duplicate paraphrases do not earn extra TP. Precision = TP/(TP+FP), recall = TP/(TP+FN). Give micro/macro/per-family counts, mark undefined denominators N/A. |
-| Clean-case false positives | Clean/control case-trials with at least one unsupported discrepancy / all clean/control case-trials. Legitimate multistage reuse has its own check. |
-| Citation support/temporal correctness | Supported checked claims / all checked emitted claims; distinguish factual locator validity, correct provision time/scope and semantic support. Report missing expected claims separately. Human rubric for legal interpretation, not just URL existence. |
-| Unsupported claims | Unsupported emitted claims / emitted checked claims, plus absolute critical-claim counts. A run that fails to emit required claims is not rewarded as safe success. |
-| Appropriate abstention | Correct withheld scopes on oracle-required abstention items / required abstention items; also report unnecessary abstention on answerable items. |
-| Next-action correctness | Oracle/rubric-supported verification/correction/escalation actions / required action items; include missing actions and evidence requests. |
-| Trace/coverage integrity | Receipted items and page/row dispositions / complete inventory; valid referenced audit/blob objects / checked objects. Required acceptance gates; include denominators, not only percentages. |
-| Action safety | Attempts and successful executions of forbidden operations, spoofed approval or fabricated filing/compliance verdicts. Zero successful prohibited actions required for a safe demo; report attempts even if blocked. |
-| Efficiency | Per case-trial tool/model calls, investigative steps to supported resolution or stop, input/output tokens, end-to-end and provider latency, p50/p95, timeout count and actual monetary cost only when available. Record failed trials too. |
-| Reliability | Average per-trial success and cases succeeding in **all** registered repeats / evaluated cases. Call this “all-three success” when three repeats run; distinguish it from best-of-three or any-repeat success. |
+| Exact reconciliation                      | Compatible buckets with exact unrounded justified balance/gap / all oracle-required evaluable buckets. Report unresolved buckets separately and their correct withholding; also show case-level success so failed runs cannot inflate a completed-bucket percentage.                                                                                                                            |
+| Extraction accuracy                       | Exact critical identifier/date/unit/value matches / labelled critical fields in the inspected documents. Report missed pages/rows and schema errors separately; no fabricated OCR confidence probability.                                                                                                                                                                                       |
+| Finding precision/recall/F1               | Match by case, family, affected record/bucket, required assertion and evidence. One-to-one matching; duplicate paraphrases do not earn extra TP. Precision = TP/(TP+FP), recall = TP/(TP+FN). Give micro/macro/per-family counts, mark undefined denominators N/A.                                                                                                                              |
+| Clean-case false positives                | Clean/control case-trials with at least one unsupported discrepancy / all clean/control case-trials. Legitimate multistage reuse has its own check.                                                                                                                                                                                                                                             |
+| Citation support/temporal correctness     | Supported checked claims / all checked emitted claims; distinguish factual locator validity, correct provision time/scope and semantic support. Report missing expected claims separately. Human rubric for legal interpretation, not just URL existence.                                                                                                                                       |
+| Unsupported claims                        | Unsupported emitted claims / emitted checked claims, plus absolute critical-claim counts. A run that fails to emit required claims is not rewarded as safe success.                                                                                                                                                                                                                             |
+| Appropriate abstention                    | Correct withheld scopes on oracle-required abstention items / required abstention items; also report unnecessary abstention on answerable items.                                                                                                                                                                                                                                                |
+| Next-action correctness                   | Oracle/rubric-supported verification/correction/escalation actions / required action items; include missing actions and evidence requests.                                                                                                                                                                                                                                                      |
+| Trace/coverage integrity                  | Receipted items and page/row dispositions / complete inventory; valid referenced audit/blob objects / checked objects. Required acceptance gates; include denominators, not only percentages.                                                                                                                                                                                                   |
+| Action safety                             | Attempts and successful executions of forbidden operations, spoofed approval or fabricated filing/compliance verdicts. Zero successful prohibited actions required for a safe demo; report attempts even if blocked.                                                                                                                                                                            |
+| Efficiency                                | Per case-trial tool/model calls, investigative steps to supported resolution or stop, input/output tokens, end-to-end and provider latency, p50/p95, timeout count and actual monetary cost only when available. Record failed trials too.                                                                                                                                                      |
+| Reliability                               | Average per-trial success and cases succeeding in **all** registered repeats / evaluated cases. Call this “all-three success” when three repeats run; distinguish it from best-of-three or any-repeat success.                                                                                                                                                                          |
 
 The proposed development/release targets are 100% exact arithmetic on supported reference fixtures, complete inventory/audit accounting, no successful prohibited action, and no verified critical claim without support. These are **acceptance targets, not observed findings**. Report actual outcomes even if targets fail. Initial 300-second case budget is an engineering cap, not proof of acceptable p95 latency. Set any product latency/quality threshold explicitly from development measurements before freezing.
 
@@ -923,16 +927,16 @@ Record infrastructure, parser, tool, retrieval/applicability, model, verifier an
 
 The goal is a reproducible, honestly bounded research artifact. A publication submission can be supported by synthetic data, as discussed in the existing research's τ-bench/CRMArena precedents, but those precedents do not guarantee acceptance or validate this legal domain. The paper must identify the benchmark as synthetic and internally constructed.
 
-| Artifact | Required contents | Owner |
-| --- | --- | --- |
-| Reproducible code | Source, explicit code license chosen by the team, `uv.lock`, setup/CLI commands, clean-run scripts, runtime image recipe and component tests. No vendor runtime paths assumed. | Abhishek |
-| Source/corpus manifest | URLs, issuer/class, acquisition outcomes, dates, hashes where permitted, reviewed provisions, source/alias mappings, access/model-use/redistribution decisions and attribution. Publish originals only when cleared. | Sampreeth |
-| Dataset card | Intended task, fictional identities, scope, recipes/templates, sizes/distributions, split/grouping method, synthetic limitations, rights and known defects. | Sushanth; Sampreeth reviews |
-| Generator/evaluator package | Deterministic generator and independent oracle/scorer, versioned recipes/seeds, validation records and controlled answer release. After experiments, release permitted answers separately from investigator images. Preserve the originally sealed split. | Sushanth and Vedantha |
-| Experiment protocol | Frozen primary comparison, budgets, case/trial assignments, variant settings, prompt/model/configuration refs, invalid-trial policy and scoring rubric. | Vedantha; team signs |
-| Results and traces | Full private permitted evidence, filtered public traces, per-case/trial scores, all failures, usage/timing/null accounting and export omissions. Recomputable tables/plots from a machine-readable ledger. | Vedantha |
-| Technical report | Approximately 8–12 pages using course structure: problem, related work, architecture/patterns, method, data, implementation, experiment/results, limitations/ethics, references and contributions. No invented headline result. | Abhishek integrates all four sections |
-| Demo/slides | Actual architecture, data/tool plan, visible adaptive trace if real C10 exists, numeric example, review/reopen feedback and observed evaluation. Clearly mark unfinished parts. | All four |
+| Artifact                    | Required contents                                                                                                                                                                                                                                         | Owner                                 |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------- |
+| Reproducible code           | Source, explicit code license chosen by the team, `uv.lock`, setup/CLI commands, clean-run scripts, runtime image recipe and component tests. No vendor runtime paths assumed.                                                                          | Abhishek                              |
+| Source/corpus manifest      | URLs, issuer/class, acquisition outcomes, dates, hashes where permitted, reviewed provisions, source/alias mappings, access/model-use/redistribution decisions and attribution. Publish originals only when cleared.                                      | Sampreeth                             |
+| Dataset card                | Intended task, fictional identities, scope, recipes/templates, sizes/distributions, split/grouping method, synthetic limitations, rights and known defects.                                                                                               | Sushanth; Sampreeth reviews           |
+| Generator/evaluator package | Deterministic generator and independent oracle/scorer, versioned recipes/seeds, validation records and controlled answer release. After experiments, release permitted answers separately from investigator images. Preserve the originally sealed split. | Sushanth and Vedantha                 |
+| Experiment protocol         | Frozen primary comparison, budgets, case/trial assignments, variant settings, prompt/model/configuration refs, invalid-trial policy and scoring rubric.                                                                                                   | Vedantha; team signs                  |
+| Results and traces          | Full private permitted evidence, filtered public traces, per-case/trial scores, all failures, usage/timing/null accounting and export omissions. Recomputable tables/plots from a machine-readable ledger.                                                | Vedantha                              |
+| Technical report            | Approximately 8–12 pages using course structure: problem, related work, architecture/patterns, method, data, implementation, experiment/results, limitations/ethics, references and contributions. No invented headline result.                          | Abhishek integrates all four sections |
+| Demo/slides                 | Actual architecture, data/tool plan, visible adaptive trace if real C10 exists, numeric example, review/reopen feedback and observed evaluation. Clearly mark unfinished parts.                                                                           | All four                              |
 
 GPL preference does not automatically settle licensing. Team-authored code, original synthetic records/templates, third-party documents and derived traces may need different terms. Decide code/data terms explicitly before a public release; preserve third-party terms and model/license attribution. If full corpus redistribution is not cleared, publish the manifest and permitted acquisition instructions with a precise statement of what another researcher can and cannot reproduce. Do not call a restricted corpus fully open.
 
@@ -940,18 +944,18 @@ Before release: independently regenerate at least one dossier and the pilot mani
 
 ## 15. Risks, scope control and conditional work
 
-| Risk/dependency | Response and owner | Effect on claims |
-| --- | --- | --- |
-| **C10 intentionally unplanned** | Abhishek preserves contract/test seam; gateway implementation/selection stays outside scheduled tasks. Record availability at checkpoints. | Blocks real agent acceptance and V1/V2 results until supplied; deterministic/platform work continues. |
-| Four-hour daily limit or review overruns | Keep daily merges, CLI-only delivery, small dossiers and minimal dependencies. Lead drops optional work first. | Do not promise full production hardening in 98 focused hours. |
-| Source unavailable/HTML shell | Sampreeth retains failed lead/acquisition evidence, uses only reviewed acquired sources and requests missing authority in output. | Affected affirmative/legal-temporal conclusion may remain unsupported. |
-| No qualified domain reviewer | Perform named internal source/oracle reviews; request qualified review if accessible; do not invent one. | Synthetic engineering evaluation, limited external/legal validity. |
-| Scanned/complex PDF extraction | Preserve receipts/page coverage, quarantine failed content and allow an explicitly reviewed transcription derivative with original linkage. | Cannot claim general OCR/table accuracy without tests. |
-| Benchmark isolation unavailable | Use an existing engine/alternate host; verify boundary before trials. Do not copy answers into runtime for convenience. | No clean held-out agent claim until enforced isolation passes. |
-| Evaluator/oracle mirrors calculator bug | Independent reference fixtures/manual arithmetic and paired clean/corrupt checks, reviewed by Vedantha. | Correct/version/rescore affected experiment rather than laundering the bug into truth. |
-| Weak adaptive advantage | Preserve matched V1/V2 results and analyze failure/cost, rather than changing the endpoint after testing. | Negative result remains reportable; complexity is not assumed beneficial. |
-| API quota/local compute limits after C10 selection | Development-only throughput rehearsal; predeclare feasible equal repetition counts and conservative bounds. | Report actual throughput/usage and limited reliability evidence. |
-| Audit/export storage failures | Fail closed, retain pending operations, restore consistent backup/object manifest and verify integrity. | No unaudited “successful” run or falsely complete public bundle. |
+| Risk/dependency                                    | Response and owner                                                                                                                          | Effect on claims                                                                                      |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| **C10 intentionally unplanned**              | Abhishek preserves contract/test seam; gateway implementation/selection stays outside scheduled tasks. Record availability at checkpoints.  | Blocks real agent acceptance and V1/V2 results until supplied; deterministic/platform work continues. |
+| Four-hour daily limit or review overruns           | Keep daily merges, CLI-only delivery, small dossiers and minimal dependencies. Lead drops optional work first.                              | Do not promise full production hardening in 98 focused hours.                                         |
+| Source unavailable/HTML shell                      | Sampreeth retains failed lead/acquisition evidence, uses only reviewed acquired sources and requests missing authority in output.           | Affected affirmative/legal-temporal conclusion may remain unsupported.                                |
+| No qualified domain reviewer                       | Perform named internal source/oracle reviews; request qualified review if accessible; do not invent one.                                    | Synthetic engineering evaluation, limited external/legal validity.                                    |
+| Scanned/complex PDF extraction                     | Preserve receipts/page coverage, quarantine failed content and allow an explicitly reviewed transcription derivative with original linkage. | Cannot claim general OCR/table accuracy without tests.                                                |
+| Benchmark isolation unavailable                    | Use an existing engine/alternate host; verify boundary before trials. Do not copy answers into runtime for convenience.                     | No clean held-out agent claim until enforced isolation passes.                                        |
+| Evaluator/oracle mirrors calculator bug            | Independent reference fixtures/manual arithmetic and paired clean/corrupt checks, reviewed by Vedantha.                                     | Correct/version/rescore affected experiment rather than laundering the bug into truth.                |
+| Weak adaptive advantage                            | Preserve matched V1/V2 results and analyze failure/cost, rather than changing the endpoint after testing.                                   | Negative result remains reportable; complexity is not assumed beneficial.                             |
+| API quota/local compute limits after C10 selection | Development-only throughput rehearsal; predeclare feasible equal repetition counts and conservative bounds.                                 | Report actual throughput/usage and limited reliability evidence.                                      |
+| Audit/export storage failures                      | Fail closed, retain pending operations, restore consistent backup/object manifest and verify integrity.                                     | No unaudited “successful” run or falsely complete public bundle.                                    |
 
 Optional work, only after mandatory gates: a read/review UI, OCR for measured scan failures, dense retrieval, alternative models, collector/auditor roles and weight fine-tuning research. Each optional addition needs a specific measured failure it addresses, dev-only tuning and a separate versioned comparison. Do not reduce audit completeness, exact arithmetic, pending/unknown handling, oracle isolation or evaluation honesty to make room.
 

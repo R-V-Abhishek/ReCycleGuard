@@ -3,6 +3,11 @@
 Owner: R V Abhishek. State: **IN_REVIEW**. CP0 remains **WAITING**.
 Independent reviewer: pending; no four-way interface acceptance is claimed.
 
+Integration branch: `checkpoint-0`. Other CP0 task PRs target this branch; A02
+performs the interface merge/freeze here. Create `checkpoint-1` from accepted CP0
+and merge to `main` only after CP1 approval. Follow the checkpoint branch policy
+in implementation plan §3.2 for later checkpoints.
+
 ## Delivered boundary
 
 - Installable Python 3.11+ package, Typer CLI, Pydantic core proposal, committed
