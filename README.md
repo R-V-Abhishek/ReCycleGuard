@@ -4,7 +4,7 @@ Agentic AI for e-waste Extended Producer Responsibility (EPR) compliance reconci
 
 This mini-project supports a compliance officer in investigating discrepancies between a producer's obligations and supporting records. The planned scope covers one producer, one reporting period, limited equipment categories, structured records, and a curated regulatory corpus. Outputs are advisory and subject to human review.
 
-## A01 development scaffold
+## CP0 development scaffold
 
 ```sh
 uv sync --locked
@@ -13,10 +13,12 @@ uv run pytest
 uv run scripts/export_schemas.py --check
 ```
 
-The package currently provides a read-only CLI, strict common-schema proposal,
-configuration and a test-only model seam. It does not yet implement ingestion,
+The accepted CP0 foundation provides a read-only CLI, 50 published boundary
+schemas, source and synthetic-dossier fixtures, a blob/audit prototype, configuration
+and a test-only model seam. It does not yet implement ingestion,
 reconciliation or a real model gateway. See the [A01 handoff](docs/decisions/A01_HANDOFF.md)
-for acceptance evidence and pending CP0 integration, and [configuration](configs/README.md)
+for the original A01 evidence, the [checkpoint construction log](docs/checkpoints/README.md)
+for per-member contributions, integration decisions and acceptance records, and [configuration](configs/README.md)
 for runtime roots and test-adapter guards. OCR/inference dependencies remain outside
 the base package while local options are evaluated.
 

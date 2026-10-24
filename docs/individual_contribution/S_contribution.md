@@ -73,9 +73,9 @@
 
 | Task ID | Component | Target Date | Description | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| **S02** | `C04 Normalization` | 24 Oct 2026 | Unit conversions (Tonne $\to$ KG via `Decimal`), F02 deduplication, F03 multi-stage reuse, `NormalizationBatch` output | **UP NEXT** |
+| **S02** | `C04 Normalization` | 24 Oct 2026 | Unit conversions (Tonne $\to$ KG via `Decimal`), F02 deduplication, F03 multi-stage reuse, `NormalizationBatch` output | READY after CP0 approval |
 | **S03** | `C08 Domain Tools` | 25 Oct 2026 | Exact baseline reconciliation, conservation, historical bucket allocation (CP1 milestone) | BLOCKED on CP1 |
-| **S05** | `C15 Generator` | 25 Oct 2026 | Clean-world renderer and first 6 visible development dossiers | BLOCKED on CP0 |
+| **S05** | `C15 Generator` | 25 Oct 2026 | Clean-world renderer and first 6 visible development dossiers | READY after CP0 approval |
 | **S04** | `C08 Domain Tools` | 26 Oct 2026 | Recycler capability, product weights, commercial validation, lifecycle checks | BLOCKED on S03 |
 | **S06** | `C15 Generator` | 27 Oct 2026 | Complete implementation of all 16 fault recipes (F01–F16) | BLOCKED on S05, S04 |
 | **S07** | `C15 Generator` | 28 Oct 2026 | Generate full grouped 48-case pilot (24 dev / 24 held-out) | BLOCKED on S06, V04 |

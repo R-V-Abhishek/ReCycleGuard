@@ -83,3 +83,14 @@ As part of the implementation plan, the user highlighted guidance from faculty:
 2. Review `SourceLead`, `SourceVersion`, `ProvisionVersion`, and `ExtractionResult` models for integration into `schemas/v1`.
 3. Confirm `configs/sources/source_leads.jsonl` provides the authoritative source inventory needed by C05 snapshot persistence.
 4. Merge `codex/h01-source-leads` into `checkpoint-0`.
+
+## A02 follow-up
+
+The original submission/evidence above is retained as history. The integrated
+CP0 candidate, corrected fixture digests, interface changes and pending
+acknowledgements are recorded in [checkpoint construction history](../checkpoints/checkpoint-0/README.md).
+
+CP0 acceptance update, 24 October 2026: H01 and A02 are DONE; CP0 is APPROVED.
+Abhishek reported that all four members acknowledged candidate c8fb512 and its
+integration repairs. The checkpoint ledger records this evidence separately from
+the original submission state above.

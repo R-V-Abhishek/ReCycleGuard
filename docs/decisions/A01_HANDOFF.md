@@ -90,3 +90,14 @@ candidates. Neither has been selected or measured here. The extraction owner
 should isolate backend-specific dependencies from the base package, preserve
 original bytes/coverage/failed-page receipts and measure actual memory/accuracy
 before enabling an adapter. A01 makes no OCR or 16 GB compatibility claim.
+
+## A02 follow-up
+
+The original submission/evidence above is retained as history. The integrated
+CP0 candidate, corrected fixture digests, interface changes and pending
+acknowledgements are recorded in [checkpoint construction history](../checkpoints/checkpoint-0/README.md).
+
+CP0 acceptance update, 24 October 2026: A01 and A02 are DONE; CP0 is APPROVED.
+Abhishek reported that all four members acknowledged candidate c8fb512 and its
+integration repairs. The checkpoint ledger records this evidence separately from
+the original submission state above.
