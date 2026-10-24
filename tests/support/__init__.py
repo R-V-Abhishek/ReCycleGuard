@@ -1,0 +1,1 @@
+"""Explicitly test-only adapters."""

@@ -1,0 +1,39 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "actor_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Actor Id",
+      "type": "string"
+    },
+    "actor_kind": {
+      "enum": [
+        "HUMAN",
+        "SERVICE",
+        "MODEL_PROPOSAL",
+        "EVALUATOR"
+      ],
+      "title": "Actor Kind",
+      "type": "string"
+    },
+    "authenticated_session_ref": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Authenticated Session Ref"
+    }
+  },
+  "required": [
+    "actor_id",
+    "actor_kind",
+    "authenticated_session_ref"
+  ],
+  "title": "ActorRef",
+  "type": "object"
+}

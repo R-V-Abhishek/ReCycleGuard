@@ -1,0 +1,84 @@
+{
+  "$defs": {
+    "BlobRef": {
+      "additionalProperties": false,
+      "properties": {
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_length": {
+          "minimum": 0,
+          "title": "Byte Length",
+          "type": "integer"
+        },
+        "media_type": {
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sha256",
+        "byte_length",
+        "media_type"
+      ],
+      "title": "BlobRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "model_configuration_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Model Configuration Id",
+      "type": "string"
+    },
+    "prompt_template_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Prompt Template Id",
+      "type": "string"
+    },
+    "prompt_template_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Prompt Template Digest",
+      "type": "string"
+    },
+    "exact_request_blob": {
+      "$ref": "#/$defs/BlobRef"
+    },
+    "context_manifest_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Context Manifest Id",
+      "type": "string"
+    },
+    "allowed_tool_schema_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Allowed Tool Schema Digest",
+      "type": "string"
+    },
+    "response_schema_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Response Schema Id",
+      "type": "string"
+    },
+    "budget_ref": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Budget Ref",
+      "type": "string"
+    }
+  },
+  "required": [
+    "model_configuration_id",
+    "prompt_template_id",
+    "prompt_template_digest",
+    "exact_request_blob",
+    "context_manifest_id",
+    "allowed_tool_schema_digest",
+    "response_schema_id",
+    "budget_ref"
+  ],
+  "title": "ModelCallRequest",
+  "type": "object"
+}

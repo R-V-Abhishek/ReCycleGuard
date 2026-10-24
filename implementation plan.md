@@ -437,7 +437,7 @@ All references are exact task/checkpoint IDs. Required predecessors are an AND c
 
 | Task | State now | Required predecessors | Conditional predecessor | Target | Work and acceptance evidence |
 | --- | --- | --- | --- | --- | --- |
-| **A01** | READY | None | None | 23 Oct | **Package, uv lock, CI/config/CLI skeleton and C10 test seam.** Installable scaffold; schema/test-port proposal; no real gateway. |
+| **A01** | IN_REVIEW | None | None | 23 Oct | **Package, uv lock, CI/config/CLI skeleton and C10 test seam.** Installable scaffold; schema/test-port proposal; no real gateway. [A01 evidence](docs/decisions/A01_HANDOFF.md); independent review pending. |
 | **A02** | BLOCKED | A01, H01, S01, V01 | None | 23 Oct | **Freeze shared models, service fixtures and module boundaries.** Four-way producer/consumer validation; schema version and review refs. |
 | **A03** | BLOCKED | CP0, V02 | None | 24 Oct | **Implement snapshot/profile persistence, review and version controls.** Immutable membership/profile revisions and trusted approval checks. |
 | **A04** | BLOCKED | A03, H03, H04, S02 | None | 24 Oct | **Integrate intake, normalization and first case/corpus snapshots.** Imported case and reviewed profile with complete coverage refs. |
