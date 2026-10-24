@@ -1,12 +1,12 @@
 """Content-addressed blob storage for the V01 commit-boundary prototype."""
 
-from __future__ import annotations
-
-from dataclasses import dataclass
 import hashlib
 import json
-from pathlib import Path
+import os
 import tempfile
+from pathlib import Path
+
+from recycleguard.contracts import BlobRef
 
 
 class BlobIntegrityError(ValueError):
@@ -24,32 +24,6 @@ def canonical_json_bytes(value: object) -> bytes:
     ).encode("utf-8")
 
 
-@dataclass(frozen=True)
-class BlobRef:
-    sha256: str
-    byte_length: int
-    media_type: str
-
-    def __post_init__(self) -> None:
-        if len(self.sha256) != 64 or self.sha256 != self.sha256.lower():
-            raise ValueError("sha256 must be lowercase SHA-256 hex")
-        try:
-            int(self.sha256, 16)
-        except ValueError as exc:
-            raise ValueError("sha256 must be hexadecimal") from exc
-        if self.byte_length < 0:
-            raise ValueError("byte_length must be non-negative")
-        if not self.media_type:
-            raise ValueError("media_type is required")
-
-    def as_dict(self) -> dict[str, object]:
-        return {
-            "sha256": self.sha256,
-            "byte_length": self.byte_length,
-            "media_type": self.media_type,
-        }
-
-
 class BlobStore:
     """Write-once SHA-256 objects with verification on every read."""
 
@@ -60,7 +34,7 @@ class BlobStore:
 
     def put(self, data: bytes, media_type: str) -> BlobRef:
         digest = hashlib.sha256(data).hexdigest()
-        reference = BlobRef(digest, len(data), media_type)
+        reference = BlobRef(sha256=digest, byte_length=len(data), media_type=media_type)
         destination = self.objects / digest[:2] / digest
         destination.parent.mkdir(parents=True, exist_ok=True)
         if destination.exists():
@@ -74,11 +48,13 @@ class BlobStore:
             temporary.write(data)
             temporary_path = Path(temporary.name)
         try:
-            temporary_path.replace(destination)
-        except FileExistsError:
+            os.link(temporary_path, destination)
+        except FileExistsError as exc:
             temporary_path.unlink(missing_ok=True)
             if self._read_verified(destination, reference) != data:
-                raise BlobIntegrityError(f"concurrent blob mismatch: {digest}")
+                raise BlobIntegrityError(f"concurrent blob mismatch: {digest}") from exc
+        finally:
+            temporary_path.unlink(missing_ok=True)
         return reference
 
     def get(self, reference: BlobRef) -> bytes:
@@ -96,4 +72,3 @@ class BlobStore:
         if hashlib.sha256(data).hexdigest() != reference.sha256:
             raise BlobIntegrityError(f"blob digest mismatch: {reference.sha256}")
         return data
-

@@ -17,8 +17,8 @@
   },
   "observation_type": "REGULATORY_FAQ_INTERPRETATION",
   "raw_fields": {
-    "question": "Whether EPR certificates are specific to EEE items?",
-    "answer": "The EPR obligation is generated for four key metals namely Gold, Iron, Copper & Aluminum. The EPR obligation is not specific to EEE items. However, the producer has to purchase EPR certificates from the recycler who has the recycling capability of the EEE items for which the producer has the EPR obligation."
+    "question": "Q. From whom a producer can purchase EPR Certificate for fulfilment of its EPR obligation? Can a Producer purchase EPR certificate from any recycler?",
+    "answer": "A Producer can purchase EPR certificate from only those e-waste recyclers, who are registered on the E-Waste EPR Portal and recycler has been given registration for recycling of EEE code for which Producer has been assigned EPR obligations. Q. Whether EPR obligations in terms of key metal are to be fulfilled through recycling only same EEE code for which obligation has been assigned to producer? A. The EPR Obligation is independent of EEE code. However, Producer has to ensure the capability Recycler for recycling EEE code for which Producer has been assigned EPR Obligation."
   },
   "parsed_fields": {
     "metal_obligation_eee_code_independent": true,
@@ -34,13 +34,13 @@
   "extraction_method": "PDF_TEXT",
   "field_quality": {
     "answer": {
-      "raw_score": 1.0,
+      "raw_score": null,
       "score_scale": "0_TO_1",
-      "engine": "pypdf_text",
+      "engine": "pdfplumber_fixture_check",
       "validation_checks": [
-        "exact_phrase_match"
+        "normalized_whitespace_match"
       ],
-      "review_state": "REVIEWED"
+      "review_state": "DRAFT"
     }
   },
   "event_time": {

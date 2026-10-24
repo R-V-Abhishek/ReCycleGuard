@@ -1,16 +1,23 @@
-# A01 schema proposal
+# CP0 boundary publication
 
-Generated from Pydantic boundaries using `uv run scripts/export_schemas.py`.
-Check drift using `uv run scripts/export_schemas.py --check`.
+Protocol: **1.1**. Payload schema generation: **1.0**. This is the A02 review
+candidate; four-member acceptance is recorded under `docs/checkpoints/checkpoint-0/`.
+Do not infer CP0 approval from schemas being present or CI passing.
 
-These schemas implement the common subset of protocol 1.1, not a CP0 freeze.
-The directory name describes payload-schema generation; it is not protocol 1.0.
-All nullable fields are required unless the model explicitly supplies a default.
-Higher-level receipt/observation, calculation, finding, snapshot/profile and audit
-models must be reconciled with H01/S01/V01 in A02. No placeholder models claim
-those services exist. `ServiceResult_Quantity` demonstrates the generic envelope;
-other consumers parameterize it with their approved output model.
+Generate with `uv run scripts/export_schemas.py`; check with
+`uv run scripts/export_schemas.py --check`. Fifty schemas cover common context,
+results, evidence, sources, receipts, extraction/coverage, the starter normalized
+record subset, dossier manifests, pinned references, snapshot shape, audit and
+calculation/finding interchange. Models are the source of truth. Cross-field and
+calendar checks also run in Pydantic and cannot all be expressed in JSON Schema.
 
-C10 usage/timing and validated-output schemas remain proposals: the seam retains
-JSON values without inventing a provider schema, usage or execution history.
-Strict output-schema validation belongs to the eventual C10 implementation.
+The scope is deliberately limited. Full calculation-profile policy, unsupported
+record families, richer adapter-specific observation payloads and provider output/
+usage/timing schemas require a reviewed publication before consumers use them.
+`SnapshotRef`/`ProfileRef` and the operation envelopes are CP0 binding conventions;
+they do not implement persistence, approval, authentication or C11 recovery.
+
+Common nullable fields are required unless their model supplies an explicit default.
+Defaults on optional domain payload fields implement the specification's optional
+fields. The record discriminator rejects unknown record types. Generic service
+results are illustrated for Quantity, ExtractionResult and CalculationResult.

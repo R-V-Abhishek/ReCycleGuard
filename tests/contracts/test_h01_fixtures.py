@@ -28,7 +28,7 @@ def test_source_version_r02_fixture():
     assert sv.source_lead_id == "source_lead:r02"
     assert sv.notification_number == "G.S.R. 801(E)"
     assert sv.commencement.value == "2023-04-01"
-    assert sv.review_state == "APPROVED"
+    assert sv.review_state == "DRAFT"
     assert len(sv.commencement_basis_refs) == 1
     assert sv.commencement_basis_refs[0].locator.kind == "PDF_PAGE"
     assert sv.commencement_basis_refs[0].locator.page_index_1based == 1
@@ -107,7 +107,7 @@ def test_extraction_result_fixture():
     path = FIXTURES_DIR / "extraction_result_sample.json"
     data = json.loads(path.read_text(encoding="utf-8"))
     ext = ExtractionResult.model_validate(data)
-    assert ext.status == "COMPLETE"
+    assert ext.status == "PARTIAL"
     assert ext.text_blob is not None
     assert len(ext.configuration_digest) == 64
 

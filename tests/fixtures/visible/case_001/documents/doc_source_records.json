@@ -1,0 +1,209 @@
+{
+  "source_rows": {
+    "obs:alloc_001": {
+      "allocation_id": "alloc:001",
+      "basis_refs": [
+        {
+          "artifact_revision_id": null,
+          "locator": null,
+          "ref_id": "evt:trans_001",
+          "ref_kind": "RECORD"
+        }
+      ],
+      "bucket_id": "bucket:prod_001_cu_2024_2025",
+      "credit_lot_id": "lot:rec_001",
+      "event_id": "evt:trans_001",
+      "profile_id": "profile:producer_snapshot_v1",
+      "quantity": {
+        "decimal": "55.0000",
+        "dimension": "METAL_MASS",
+        "metal": "CU",
+        "unit": "KG"
+      },
+      "state": "SUPPORTED"
+    },
+    "obs:ent_001": {
+      "aliases": [],
+      "entity_id": "entity:prod_001",
+      "identifiers": [
+        {
+          "evidence_refs": [],
+          "kind": "GSTIN",
+          "validation_state": "VALID",
+          "value": "29AAACA1234A1Z5"
+        },
+        {
+          "evidence_refs": [],
+          "kind": "PAN",
+          "validation_state": "VALID",
+          "value": "AAACA1234A"
+        }
+      ],
+      "legal_name": "Apex Electronics India Pvt Ltd",
+      "roles": [
+        "PRODUCER"
+      ],
+      "synthetic": true
+    },
+    "obs:ent_002": {
+      "aliases": [],
+      "entity_id": "entity:rec_001",
+      "identifiers": [
+        {
+          "evidence_refs": [],
+          "kind": "GSTIN",
+          "validation_state": "VALID",
+          "value": "27AAACG9876B1Z2"
+        }
+      ],
+      "legal_name": "GreenTech Recyclers LLP",
+      "roles": [
+        "RECYCLER"
+      ],
+      "synthetic": true
+    },
+    "obs:inv_001": {
+      "commercial_id": "comm:inv_001",
+      "credit_quantity": {
+        "decimal": "25.0000",
+        "dimension": "METAL_MASS",
+        "metal": "CU",
+        "unit": "KG"
+      },
+      "event_time": {
+        "interpretation_status": "REVIEWED",
+        "precision": "INSTANT",
+        "raw": "2024-10-10T14:15:00Z",
+        "timezone": "UTC",
+        "value": "2024-10-10T14:15:00Z"
+      },
+      "external_ref": "INV/2024-25/0842",
+      "issuer_entity_id": "entity:rec_001",
+      "linked_credit_refs": [],
+      "money": {
+        "decimal": "12500.0000",
+        "dimension": "MONEY",
+        "metal": null,
+        "unit": "INR"
+      },
+      "recipient_entity_id": "entity:prod_001",
+      "record_kind": "INVOICE"
+    },
+    "obs:ob_001": {
+      "adjustments": [],
+      "basis": "SUPPLIED_ACCOUNT",
+      "basis_refs": [
+        {
+          "artifact_revision_id": null,
+          "locator": null,
+          "ref_id": "obs:ob_001",
+          "ref_kind": "OBSERVATION"
+        }
+      ],
+      "bucket_id": "bucket:prod_001_cu_2024_2025",
+      "component": "STANDARD",
+      "liability_year": "2024-2025",
+      "metal": "CU",
+      "producer_entity_id": "entity:prod_001",
+      "profile_id": "profile:producer_snapshot_v1",
+      "target": {
+        "decimal": "100.0000",
+        "dimension": "METAL_MASS",
+        "metal": "CU",
+        "unit": "KG"
+      }
+    },
+    "obs:portal_snap_001": {
+      "balance_observation_id": "bal:snap_001",
+      "basis_refs": [
+        {
+          "artifact_revision_id": null,
+          "locator": null,
+          "ref_id": "obs:portal_snap_001",
+          "ref_kind": "OBSERVATION"
+        }
+      ],
+      "bucket_id": "bucket:prod_001_cu_2024_2025",
+      "business_cutoff": {
+        "interpretation_status": "REVIEWED",
+        "precision": "INSTANT",
+        "raw": "2024-09-30T23:59:59Z",
+        "timezone": "UTC",
+        "value": "2024-09-30T23:59:59Z"
+      },
+      "producer_entity_id": "entity:prod_001",
+      "reported_pending": {
+        "decimal": "0.0000",
+        "dimension": "METAL_MASS",
+        "metal": "CU",
+        "unit": "KG"
+      },
+      "reported_supported": {
+        "decimal": "55.0000",
+        "dimension": "METAL_MASS",
+        "metal": "CU",
+        "unit": "KG"
+      },
+      "source_capture_time": {
+        "interpretation_status": "REVIEWED",
+        "precision": "INSTANT",
+        "raw": "2024-10-15T09:00:00Z",
+        "timezone": "UTC",
+        "value": "2024-10-15T09:00:00Z"
+      }
+    },
+    "obs:reg_001": {
+      "covered_eee_codes": [
+        "ITEW4"
+      ],
+      "entity_id": "entity:prod_001",
+      "evidence_as_of": {
+        "interpretation_status": "REVIEWED",
+        "precision": "DATE",
+        "raw": "2024-04-01T00:00:00Z",
+        "timezone": "UTC",
+        "value": "2024-04-01"
+      },
+      "registration_ref": "CPCB/EPR/PROD/2023/1042",
+      "status_assertion": "ACTIVE",
+      "validity": {
+        "applicability_scope": "GENERAL",
+        "end": "2028-03-31",
+        "end_open_ended": false,
+        "evidence_refs": [],
+        "review_state": "APPROVED",
+        "start": "2023-04-01"
+      }
+    },
+    "obs:reg_002": {
+      "capacity": {
+        "decimal": "500000.0000",
+        "dimension": "METAL_MASS",
+        "metal": "CU",
+        "unit": "KG"
+      },
+      "covered_eee_codes": [
+        "ITEW4"
+      ],
+      "entity_id": "entity:rec_001",
+      "evidence_as_of": {
+        "interpretation_status": "REVIEWED",
+        "precision": "DATE",
+        "raw": "2024-04-01T00:00:00Z",
+        "timezone": "UTC",
+        "value": "2024-04-01"
+      },
+      "registration_ref": "CPCB/EPR/REC/2023/0589",
+      "status_assertion": "ACTIVE",
+      "validity": {
+        "applicability_scope": "GENERAL",
+        "end": "2028-03-31",
+        "end_open_ended": false,
+        "evidence_refs": [],
+        "review_state": "APPROVED",
+        "start": "2023-04-01"
+      }
+    }
+  },
+  "synthetic": true
+}

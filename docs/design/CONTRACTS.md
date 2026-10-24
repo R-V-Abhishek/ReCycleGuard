@@ -2,7 +2,7 @@
 
 **Contract version:** 1.1 — corrected 22 October 2026.
 
-**Status:** Normative specification for implementation; no APIs, generated schemas or datasets are implied to exist yet.
+**Status:** Normative specification. A CP0 implementation subset is published under `src/recycleguard/contracts/` and `schemas/v1/`; other service implementations and acceptance gates are not implied. See [CP0 construction record](../checkpoints/checkpoint-0/README.md).
 
 **Final consistency review:** 22 October 2026.
 
@@ -922,3 +922,39 @@ Earlier research names describe capabilities, not extra privileged tools. The di
 | `reopen_findings` | C05 `reopen_case` plus C08 `compare_versions`; C09 creates superseding affected finding revisions in a new run. Old findings/reviews remain unchanged. |
 
 `ReturnReadinessComparison = {comparison_id, draft_revision_id, calculation_refs, bucket_deltas, section_dispositions: ReturnSectionDisposition[], deadline_refs, readiness: READY_WITHIN_CHECKED_SECTIONS | NOT_READY | READINESS_UNDETERMINED, scope_limits, issues}`. Excluded/unsupported applicable sections prevent a claim of whole-return readiness even when all numerical comparisons match.
+
+## CP0 boundary publication and integration conventions
+
+The A02 candidate publishes 50 generated schemas from the Pydantic models.
+Protocol remains 1.1; payload schemas are generation 1.0. Approval/freeze status
+and exact candidate digests are recorded under `docs/checkpoints/checkpoint-0/`.
+No acceptance is implied by this publication alone.
+
+- `SnapshotRef = {snapshot_id: ID, membership_digest: Digest}` and
+  `ProfileRef = {profile_id: ID, profile_version: nonempty string, digest: Digest}`
+  pin references; they do not publish/approve snapshots or profiles.
+- The CP0 prototype's `OperationIntent` wraps the complete CommandContext with
+  idempotency_key, event_type, payload BlobRef, input_refs and stream_id.
+  OperationResult has operation_id, attempt_id, service status, nullable payload,
+  output_refs and typed issue_codes. These are prototype handoff envelopes, not
+  the full C11 multi-attempt operation/recovery implementation.
+- CalculationValueRef has calculation_id, bucket_id and a named BucketResult
+  field. Recommendation has kind (INVESTIGATE, REQUEST_EVIDENCE, ESCALATE or
+  NO_FURTHER_ACTION), description and evidence_refs. Hypothesis has text,
+  support_state (SUPPORTED, QUALIFIED or UNSUPPORTED) and refs. These structures
+  represent advisory output, not executable permissions or official verdicts.
+- The supported normalized record subset is Entity, Registration, ObligationBucket,
+  Certificate, CertificateEvent, Allocation, AccountBalanceObservation and
+  CommercialRecord, plus the derived CreditLot boundary. Other record families,
+  complete profile policy, provider-specific output/usage/timing schemas and
+  adapter-specific raw/parsed payloads require coordinated schema publication
+  before integration; they are not silently accepted by a permissive fallback.
+- Required nulls preserve omission/unknown semantics. Runtime timestamps are
+  validated UTC RFC 3339 values. Original source time preserves its precision.
+  A negative common Quantity may represent an adjustment/gap, while certificate,
+  allocation and other nonnegative metal-mass fields reject negatives.
+
+The starter manifest is DRAFT and schema examples do not activate an approved
+profile. Pre-freeze fixture corrections are retained in Git history; no accepted
+snapshot or historical original has been rewritten. The exact source/fixture
+corrections and prototype API changes are documented in the construction record.

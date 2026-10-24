@@ -1,0 +1,339 @@
+{
+  "$defs": {
+    "EvidenceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "ref_kind": {
+          "enum": [
+            "ARTIFACT",
+            "OBSERVATION",
+            "RECORD",
+            "PROVISION",
+            "CALCULATION",
+            "FINDING"
+          ],
+          "title": "Ref Kind",
+          "type": "string"
+        },
+        "ref_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Ref Id",
+          "type": "string"
+        },
+        "artifact_revision_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Artifact Revision Id"
+        },
+        "locator": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Locator"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "ref_kind",
+        "ref_id",
+        "artifact_revision_id",
+        "locator"
+      ],
+      "title": "EvidenceRef",
+      "type": "object"
+    },
+    "Locator": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "PDF_PAGE",
+            "PDF_CELL",
+            "CSV_ROW",
+            "JSON_POINTER",
+            "TEXT_SPAN",
+            "DB_RECORD"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "page_index_1based": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Page Index 1Based"
+        },
+        "printed_page_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Printed Page Label"
+        },
+        "row_index_1based": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Row Index 1Based"
+        },
+        "column_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Column Name"
+        },
+        "json_pointer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Json Pointer"
+        },
+        "text_start": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Text Start"
+        },
+        "text_end": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Text End"
+        },
+        "table_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Table Id"
+        },
+        "cell_row": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cell Row"
+        },
+        "cell_column": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cell Column"
+        }
+      },
+      "required": [
+        "kind",
+        "page_index_1based",
+        "printed_page_label",
+        "row_index_1based",
+        "column_name",
+        "json_pointer",
+        "text_start",
+        "text_end",
+        "table_id",
+        "cell_row",
+        "cell_column"
+      ],
+      "title": "Locator",
+      "type": "object"
+    },
+    "RightsMetadata": {
+      "additionalProperties": false,
+      "description": "Asset-level rights and licensing decisions pursuant to Indian copyright law.",
+      "properties": {
+        "copyright_owner": {
+          "title": "Copyright Owner",
+          "type": "string"
+        },
+        "statutory_exception_sec52": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Statutory Exception Sec52"
+        },
+        "asset_rights_seed": {
+          "enum": [
+            "REVIEW_REQUIRED",
+            "ALLOW",
+            "DENY"
+          ],
+          "title": "Asset Rights Seed",
+          "type": "string"
+        },
+        "redistribution_allowed": {
+          "title": "Redistribution Allowed",
+          "type": "boolean"
+        },
+        "attribution_text": {
+          "title": "Attribution Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "copyright_owner",
+        "statutory_exception_sec52",
+        "asset_rights_seed",
+        "redistribution_allowed",
+        "attribution_text"
+      ],
+      "title": "RightsMetadata",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Authoritative discovery lead for regulatory or operational sources (CONTRACTS §4.1).",
+  "properties": {
+    "source_lead_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Source Lead Id",
+      "type": "string"
+    },
+    "aliases": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Aliases",
+      "type": "array"
+    },
+    "official_url": {
+      "title": "Official Url",
+      "type": "string"
+    },
+    "discovery_evidence_refs": {
+      "items": {
+        "$ref": "#/$defs/EvidenceRef"
+      },
+      "title": "Discovery Evidence Refs",
+      "type": "array"
+    },
+    "source_class": {
+      "enum": [
+        "STATUTE",
+        "GAZETTE_RULE",
+        "ORDER",
+        "TECHNICAL_FRAMEWORK",
+        "SOP",
+        "PORTAL_INSTRUCTION",
+        "FAQ",
+        "NOTICE_LEAD",
+        "SUPPORTING_CONTEXT"
+      ],
+      "title": "Source Class",
+      "type": "string"
+    },
+    "regime": {
+      "title": "Regime",
+      "type": "string"
+    },
+    "state": {
+      "enum": [
+        "DISCOVERED",
+        "FETCH_FAILED",
+        "ACQUIRED",
+        "EXTRACTED",
+        "REVIEW_REQUIRED",
+        "READY",
+        "EXCLUDED"
+      ],
+      "title": "State",
+      "type": "string"
+    },
+    "acquired_artifact_revision_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Acquired Artifact Revision Id"
+    },
+    "rights_and_license": {
+      "$ref": "#/$defs/RightsMetadata"
+    }
+  },
+  "required": [
+    "source_lead_id",
+    "aliases",
+    "official_url",
+    "discovery_evidence_refs",
+    "source_class",
+    "regime",
+    "state",
+    "acquired_artifact_revision_id",
+    "rights_and_license"
+  ],
+  "title": "SourceLead",
+  "type": "object"
+}

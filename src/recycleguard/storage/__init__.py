@@ -1,6 +1,6 @@
 """Storage primitives used by the ReCycleGuard prototypes."""
 
-from .blob_store import BlobRef, BlobStore, canonical_json_bytes
+from .blob_store import BlobIntegrityError, BlobRef, BlobStore, canonical_json_bytes
 from .commit_boundary import (
     AuditContext,
     AuditEvent,
@@ -12,6 +12,7 @@ from .commit_boundary import (
 __all__ = [
     "AuditContext",
     "AuditEvent",
+    "BlobIntegrityError",
     "BlobRef",
     "BlobStore",
     "CommitBoundary",
@@ -19,4 +20,3 @@ __all__ = [
     "OperationResult",
     "canonical_json_bytes",
 ]
-

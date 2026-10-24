@@ -13,13 +13,18 @@ dependencies = ["pydantic>=2.10,<3", "typer>=0.15,<1"]
 recycleguard = "recycleguard.cli:app"
 
 [dependency-groups]
-dev = ["pytest>=8,<9", "ruff>=0.11,<1"]
+dev = [
+    "pdfplumber>=0.11.10",
+    "pytest>=8,<9",
+    "ruff>=0.11,<1",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/recycleguard"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 addopts = "--import-mode=importlib"
 
 [tool.ruff]

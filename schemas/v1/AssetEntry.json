@@ -1,0 +1,116 @@
+{
+  "$defs": {
+    "TemporalValue": {
+      "additionalProperties": false,
+      "properties": {
+        "raw": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Raw"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        },
+        "precision": {
+          "enum": [
+            "INSTANT",
+            "DATE",
+            "MONTH",
+            "YEAR",
+            "UNKNOWN"
+          ],
+          "title": "Precision",
+          "type": "string"
+        },
+        "timezone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Timezone"
+        },
+        "interpretation_status": {
+          "enum": [
+            "PARSED",
+            "REVIEWED",
+            "AMBIGUOUS",
+            "UNKNOWN"
+          ],
+          "title": "Interpretation Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "raw",
+        "value",
+        "precision",
+        "timezone",
+        "interpretation_status"
+      ],
+      "title": "TemporalValue",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "relative_path": {
+      "title": "Relative Path",
+      "type": "string"
+    },
+    "media_type": {
+      "title": "Media Type",
+      "type": "string"
+    },
+    "body_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Body Digest",
+      "type": "string"
+    },
+    "byte_length": {
+      "minimum": 0,
+      "title": "Byte Length",
+      "type": "integer"
+    },
+    "logical_record_type": {
+      "title": "Logical Record Type",
+      "type": "string"
+    },
+    "source_capture_time": {
+      "$ref": "#/$defs/TemporalValue"
+    },
+    "visibility": {
+      "const": "VISIBLE",
+      "title": "Visibility",
+      "type": "string"
+    }
+  },
+  "required": [
+    "relative_path",
+    "media_type",
+    "body_digest",
+    "byte_length",
+    "logical_record_type",
+    "source_capture_time",
+    "visibility"
+  ],
+  "title": "AssetEntry",
+  "type": "object"
+}

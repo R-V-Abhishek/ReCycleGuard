@@ -6,6 +6,8 @@ Owned by Sampreeth (C01 / H01 / H02).
 import json
 from pathlib import Path
 
+from pydantic import ValidationError
+
 from recycleguard.contracts.sources import SourceLead
 
 
@@ -25,7 +27,7 @@ def load_source_leads(manifest_path: str | Path) -> list[SourceLead]:
                 data = json.loads(stripped)
                 lead = SourceLead.model_validate(data)
                 leads.append(lead)
-            except Exception as exc:
+            except (json.JSONDecodeError, ValidationError) as exc:
                 raise ValueError(f"invalid SourceLead at line {line_num}: {exc}") from exc
 
     return leads

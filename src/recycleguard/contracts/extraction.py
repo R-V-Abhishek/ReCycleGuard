@@ -3,11 +3,11 @@
 Owned by Sampreeth (H01/H03). Reviewed by A02 before freeze.
 """
 
-from typing import Annotated, Literal
+from typing import Literal
 
-from pydantic import Field, model_validator
+from pydantic import JsonValue, model_validator
 
-from .core import ID, BlobRef, BoundaryModel, Digest, Issue, Locator, TemporalValue
+from .core import ID, BlobRef, BoundaryModel, Digest, Issue, Locator, TemporalValue, Timestamp
 
 ExtractionStatus = Literal["COMPLETE", "PARTIAL", "FAILED"]
 CoverageDisposition = Literal["PARSED", "QUARANTINED", "EXCLUDED", "FAILED", "NOT_APPLICABLE"]
@@ -34,20 +34,14 @@ class Observation(BoundaryModel):
     artifact_revision_id: ID
     locator: Locator
     observation_type: str
-    raw_fields: dict[str, object]
-    parsed_fields: dict[str, object]
+    raw_fields: dict[str, JsonValue]
+    parsed_fields: dict[str, JsonValue]
     validation_state: ValidationState
     extraction_method: ExtractionMethod
-    field_quality: dict[str, object]
+    field_quality: dict[str, JsonValue]
     event_time: TemporalValue
     source_capture_time: TemporalValue
-    ingestion_time: Annotated[
-        str,
-        Field(
-            pattern=r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$",
-            description="RFC 3339 timestamp",
-        ),
-    ]
+    ingestion_time: Timestamp
 
 
 class ExtractionResult(BoundaryModel):
@@ -66,6 +60,8 @@ class ExtractionResult(BoundaryModel):
 
     @model_validator(mode="after")
     def explicit_issues(self):
+        if self.status == "COMPLETE" and any(i.severity == "BLOCKING" for i in self.issues):
+            raise ValueError("complete extraction cannot contain blocking issues")
         if self.status != "COMPLETE" and not self.issues:
             raise ValueError("non-complete extraction requires explicit issues")
         return self

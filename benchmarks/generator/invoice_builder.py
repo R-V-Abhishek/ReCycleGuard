@@ -177,15 +177,15 @@ def build_b2b_invoice_pdf(
     cx, cy, r = 68.0, 706.0, 22.0
     k = 0.5522847 * r
     s.append(f"{p_rgb} rg")
-    s.append(f"{cx-r} {cy} m")
-    s.append(f"{cx-r} {cy+k} {cx-k} {cy+r} {cx} {cy+r} c")
-    s.append(f"{cx+k} {cy+r} {cx+r} {cy+k} {cx+r} {cy} c")
-    s.append(f"{cx+r} {cy-k} {cx+k} {cy-r} {cx} {cy-r} c")
-    s.append(f"{cx-k} {cy-r} {cx-r} {cy-k} {cx-r} {cy} c f")
+    s.append(f"{cx - r} {cy} m")
+    s.append(f"{cx - r} {cy + k} {cx - k} {cy + r} {cx} {cy + r} c")
+    s.append(f"{cx + k} {cy + r} {cx + r} {cy + k} {cx + r} {cy} c")
+    s.append(f"{cx + r} {cy - k} {cx + k} {cy - r} {cx} {cy - r} c")
+    s.append(f"{cx - k} {cy - r} {cx - r} {cy - k} {cx - r} {cy} c f")
 
     # White "LOGO" text inside circle
     s.append("1.0 1.0 1.0 rg")
-    s.append(f"BT /F1 9 Tf {cx-14:.1f} {cy-3:.1f} Td (LOGO) Tj ET")
+    s.append(f"BT /F1 9 Tf {cx - 14:.1f} {cy - 3:.1f} Td (LOGO) Tj ET")
 
     # Seller Information
     s.append(f"{p_rgb} rg")
@@ -213,12 +213,8 @@ def build_b2b_invoice_pdf(
     s.append(
         f"BT /F1 8.5 Tf 412 706 Td ({escape_pdf('INVOICE NO:  ' + data.invoice_number)}) Tj ET"
     )
-    s.append(
-        f"BT /F1 8.5 Tf 412 692 Td ({escape_pdf('DATE:        ' + data.invoice_date)}) Tj ET"
-    )
-    s.append(
-        f"BT /F1 8.5 Tf 412 678 Td ({escape_pdf('TERMS:       ' + data.payment_terms)}) Tj ET"
-    )
+    s.append(f"BT /F1 8.5 Tf 412 692 Td ({escape_pdf('DATE:        ' + data.invoice_date)}) Tj ET")
+    s.append(f"BT /F1 8.5 Tf 412 678 Td ({escape_pdf('TERMS:       ' + data.payment_terms)}) Tj ET")
 
     # =========================================================================
     # 3. PARTY ADDRESS BLOCKS: BILL TO (Left) | SHIP TO (Right)
@@ -236,12 +232,11 @@ def build_b2b_invoice_pdf(
     s.append(f"{p_rgb} rg")
     s.append(f"BT /F1 8.5 Tf 48 616 Td ({escape_pdf(data.buyer_name)}) Tj ET")
     s.append("0.25 0.25 0.25 rg")
-    s.append(
-        f"BT /F1 7.5 Tf 48 604 Td ({escape_pdf('GSTIN: ' + data.buyer_gstin)}) Tj ET"
-    )
+    s.append(f"BT /F1 7.5 Tf 48 604 Td ({escape_pdf('GSTIN: ' + data.buyer_gstin)}) Tj ET")
     s.append(f"BT /F1 7.5 Tf 48 593 Td ({escape_pdf(data.buyer_address)}) Tj ET")
     s.append(
-        f"BT /F1 7.5 Tf 48 582 Td ({escape_pdf(data.buyer_contact + ' | ' + data.buyer_state)}) Tj ET"
+        f"BT /F1 7.5 Tf 48 582 Td "
+        f"({escape_pdf(data.buyer_contact + ' | ' + data.buyer_state)}) Tj ET"
     )
 
     # Box 2: SHIP TO (x=316)
@@ -257,9 +252,7 @@ def build_b2b_invoice_pdf(
     s.append(f"BT /F1 8.5 Tf 324 616 Td ({escape_pdf(data.ship_to_facility)}) Tj ET")
     s.append("0.25 0.25 0.25 rg")
     s.append(f"BT /F1 7.5 Tf 324 604 Td ({escape_pdf(data.ship_to_address)}) Tj ET")
-    s.append(
-        f"BT /F1 7.5 Tf 324 593 Td ({escape_pdf(data.ship_to_eee_code)}) Tj ET"
-    )
+    s.append(f"BT /F1 7.5 Tf 324 593 Td ({escape_pdf(data.ship_to_eee_code)}) Tj ET")
     s.append(f"BT /F1 7.5 Tf 324 582 Td ({escape_pdf(data.ship_to_place)}) Tj ET")
 
     # =========================================================================
@@ -271,22 +264,20 @@ def build_b2b_invoice_pdf(
 
     # Table Header Background
     s.append(f"{p_rgb} rg")
-    s.append(f"40 {table_top-header_h} 532 {header_h} re f")
+    s.append(f"40 {table_top - header_h} 532 {header_h} re f")
 
     # Header Columns:
-    # Description (40-300, w=260) | QTY (300-380, w=80) | UNIT PRICE (380-475, w=95) | TOTAL (475-572, w=97)
+    # Columns: description 40-300; quantity 300-380; unit price 380-475; total 475-572.
     s.append("1.0 1.0 1.0 rg")
-    s.append(f"BT /F1 8.5 Tf 48 {table_top-13} Td (DESCRIPTION) Tj ET")
-    s.append(f"BT /F1 8.5 Tf 320 {table_top-13} Td (QTY) Tj ET")
-    s.append(f"BT /F1 8.5 Tf 400 {table_top-13} Td (UNIT PRICE (INR)) Tj ET")
-    s.append(f"BT /F1 8.5 Tf 505 {table_top-13} Td (TOTAL (INR)) Tj ET")
+    s.append(f"BT /F1 8.5 Tf 48 {table_top - 13} Td (DESCRIPTION) Tj ET")
+    s.append(f"BT /F1 8.5 Tf 320 {table_top - 13} Td (QTY) Tj ET")
+    s.append(f"BT /F1 8.5 Tf 400 {table_top - 13} Td (UNIT PRICE (INR)) Tj ET")
+    s.append(f"BT /F1 8.5 Tf 505 {table_top - 13} Td (TOTAL (INR)) Tj ET")
 
     # Table Grid Outer Border
     table_bottom = 430
     s.append(f"{b_rgb} RG 0.5 w")
-    s.append(
-        f"40 {table_bottom} 532 {table_top-table_bottom} re s"
-    )  # Outer box
+    s.append(f"40 {table_bottom} 532 {table_top - table_bottom} re s")  # Outer box
     # Column dividers
     s.append(f"300 {table_bottom} m 300 {table_top} l S")
     s.append(f"385 {table_bottom} m 385 {table_top} l S")
@@ -297,14 +288,10 @@ def build_b2b_invoice_pdf(
     for item in data.items:
         # Description & subtext
         s.append("0.1 0.1 0.1 rg")
-        s.append(
-            f"BT /F1 8.5 Tf 48 {row_y} Td ({escape_pdf(item.description)}) Tj ET"
-        )
+        s.append(f"BT /F1 8.5 Tf 48 {row_y} Td ({escape_pdf(item.description)}) Tj ET")
         if item.subtext:
             s.append("0.4 0.4 0.4 rg")
-            s.append(
-                f"BT /F1 7.5 Tf 48 {row_y-11} Td ({escape_pdf(item.subtext)}) Tj ET"
-            )
+            s.append(f"BT /F1 7.5 Tf 48 {row_y - 11} Td ({escape_pdf(item.subtext)}) Tj ET")
 
         # Quantity
         s.append("0.1 0.1 0.1 rg")
@@ -313,18 +300,14 @@ def build_b2b_invoice_pdf(
         )
 
         # Unit Price
-        s.append(
-            f"BT /F1 8.5 Tf 410 {row_y} Td ({escape_pdf(item.unit_price)}) Tj ET"
-        )
+        s.append(f"BT /F1 8.5 Tf 410 {row_y} Td ({escape_pdf(item.unit_price)}) Tj ET")
 
         # Total
-        s.append(
-            f"BT /F1 8.5 Tf 505 {row_y} Td ({escape_pdf(item.total)}) Tj ET"
-        )
+        s.append(f"BT /F1 8.5 Tf 505 {row_y} Td ({escape_pdf(item.total)}) Tj ET")
 
         # Subtle row separator
         s.append(f"{b_rgb} RG 0.25 w")
-        s.append(f"40 {row_y-16} m 572 {row_y-16} l S")
+        s.append(f"40 {row_y - 16} m 572 {row_y - 16} l S")
         row_y -= 30
 
     # Draw empty grid row lines to mimic invoice paper
@@ -345,10 +328,10 @@ def build_b2b_invoice_pdf(
 
     # Remarks Header Tab
     s.append(f"{a_rgb} rg")
-    s.append(f"40 {bottom_y+bottom_h-16} 290 16 re f")
+    s.append(f"40 {bottom_y + bottom_h - 16} 290 16 re f")
     s.append("1.0 1.0 1.0 rg")
     s.append(
-        f"BT /F1 8.5 Tf 48 {bottom_y+bottom_h-12} Td (Remarks / Payment Instructions:) Tj ET"
+        f"BT /F1 8.5 Tf 48 {bottom_y + bottom_h - 12} Td (Remarks / Payment Instructions:) Tj ET"
     )
 
     # Remarks Text
@@ -390,27 +373,27 @@ def build_b2b_invoice_pdf(
         s.append("0.1 0.1 0.1 rg")
         s.append(f"BT /F1 7.5 Tf 505 {cy_pos} Td ({escape_pdf(val)}) Tj ET")
         s.append(f"{b_rgb} RG 0.2 w")
-        s.append(f"345 {cy_pos-4} m 572 {cy_pos-4} l S")
+        s.append(f"345 {cy_pos - 4} m 572 {cy_pos - 4} l S")
         cy_pos -= 16
 
     # Highlighted Balance Due Bar at bottom of totals box (height 28)
     s.append(f"{p_rgb} rg")
     s.append(f"345 {bottom_y} 227 28 re f")
     s.append("1.0 1.0 1.0 rg")
-    s.append(f"BT /F1 9 Tf 355 {bottom_y+10} Td (Balance Due) Tj ET")
-    s.append(
-        f"BT /F1 10 Tf 485 {bottom_y+10} Td ({escape_pdf(data.balance_due + ' INR')}) Tj ET"
-    )
+    s.append(f"BT /F1 9 Tf 355 {bottom_y + 10} Td (Balance Due) Tj ET")
+    s.append(f"BT /F1 10 Tf 485 {bottom_y + 10} Td ({escape_pdf(data.balance_due + ' INR')}) Tj ET")
 
     # =========================================================================
     # 6. FOOTER
     # =========================================================================
     s.append("0.45 0.45 0.45 rg")
     s.append(
-        "BT /F1 7 Tf 120 220 Td (Registered under E-Waste \\(Management\\) Rules, 2022 | Central Pollution Control Board Compliance) Tj ET"
+        "BT /F1 7 Tf 120 220 Td (Registered under E-Waste \\(Management\\) Rules, 2022 "
+        "| Central Pollution Control Board Compliance) Tj ET"
     )
     s.append(
-        "BT /F1 6.5 Tf 165 210 Td (This document is synthetic and computer-generated for regulatory audit evaluation.) Tj ET"
+        "BT /F1 6.5 Tf 165 210 Td (This document is synthetic and computer-generated "
+        "for regulatory audit evaluation.) Tj ET"
     )
 
     # Build PDF Content
@@ -422,9 +405,7 @@ def build_b2b_invoice_pdf(
         b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
         b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
         b"/Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>",
-        f"<< /Length {content_len} >>\nstream\n".encode("utf-8")
-        + content
-        + b"\nendstream",
+        f"<< /Length {content_len} >>\nstream\n".encode() + content + b"\nendstream",
         b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
     ]
 
@@ -433,20 +414,19 @@ def build_b2b_invoice_pdf(
     curr = len(out[0])
     for i, obj in enumerate(objects, 1):
         offsets.append(curr)
-        chunk = f"{i} 0 obj\n".encode("utf-8") + obj + b"\nendobj\n"
+        chunk = f"{i} 0 obj\n".encode() + obj + b"\nendobj\n"
         out.append(chunk)
         curr += len(chunk)
 
     xref_offset = curr
-    xref = [f"xref\n0 {len(objects) + 1}\n".encode("utf-8")]
+    xref = [f"xref\n0 {len(objects) + 1}\n".encode()]
     xref.append(b"0000000000 65535 f \n")
     for off in offsets:
-        xref.append(f"{off:010d} 00000 n \n".encode("utf-8"))
+        xref.append(f"{off:010d} 00000 n \n".encode())
 
     trailer = (
-        f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\n"
-        f"startxref\n{xref_offset}\n%%EOF\n"
-    ).encode("utf-8")
+        f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref_offset}\n%%EOF\n"
+    ).encode()
 
     out.extend(xref)
     out.append(trailer)

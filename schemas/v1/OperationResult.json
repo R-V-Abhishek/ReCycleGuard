@@ -1,0 +1,120 @@
+{
+  "$defs": {
+    "BlobRef": {
+      "additionalProperties": false,
+      "properties": {
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_length": {
+          "minimum": 0,
+          "title": "Byte Length",
+          "type": "integer"
+        },
+        "media_type": {
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sha256",
+        "byte_length",
+        "media_type"
+      ],
+      "title": "BlobRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "operation_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Operation Id",
+      "type": "string"
+    },
+    "attempt_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Attempt Id",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "SUCCESS",
+        "PARTIAL",
+        "FAILED",
+        "REJECTED",
+        "CANCELLED",
+        "OUTCOME_UNKNOWN"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "payload": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BlobRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "output_refs": {
+      "items": {
+        "$ref": "#/$defs/BlobRef"
+      },
+      "title": "Output Refs",
+      "type": "array"
+    },
+    "issue_codes": {
+      "items": {
+        "enum": [
+          "INVALID_SCHEMA",
+          "ACCESS_DENIED",
+          "HASH_MISMATCH",
+          "MISSING_ARTIFACT",
+          "INCOMPLETE_COVERAGE",
+          "EXTRACTION_FAILED",
+          "UNCONFIRMED_IDENTIFIER",
+          "AMBIGUOUS_IDENTITY",
+          "AMBIGUOUS_EVENT",
+          "DIMENSION_MISMATCH",
+          "NUMERIC_PRECISION_EXCEEDED",
+          "EARLIER_LIABILITY_UNMET",
+          "LIABILITY_PRIORITY_UNRESOLVED",
+          "UNSUPPORTED_PROFILE",
+          "UNAPPROVED_PROFILE",
+          "APPLICABILITY_UNRESOLVED",
+          "RULE_CONFLICT",
+          "SOURCE_INCOMPLETE",
+          "STALE_SNAPSHOT",
+          "BUDGET_EXHAUSTED",
+          "CYCLE_DETECTED",
+          "PROVIDER_TIMEOUT",
+          "PROVIDER_INVALID_OUTPUT",
+          "AUDIT_UNAVAILABLE",
+          "CONCURRENT_MODIFICATION",
+          "STALE_REVIEW",
+          "EXPORT_RESTRICTED",
+          "PROHIBITED_VERDICT",
+          "CANCELLED",
+          "INTEGRITY_FAILED"
+        ],
+        "type": "string"
+      },
+      "title": "Issue Codes",
+      "type": "array"
+    }
+  },
+  "required": [
+    "operation_id",
+    "attempt_id",
+    "status",
+    "payload"
+  ],
+  "title": "OperationResult",
+  "type": "object"
+}

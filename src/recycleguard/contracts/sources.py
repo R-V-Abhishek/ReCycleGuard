@@ -69,7 +69,7 @@ class SourceVersion(BoundaryModel):
     publication_date: TemporalValue
     commencement: TemporalValue
     commencement_basis_refs: list[EvidenceRef]
-    website_upload_date: TemporalValue | None
+    website_upload_date: TemporalValue
     completeness: Literal["COMPLETE_TEXT", "PARTIAL_TEXT", "HTML_SHELL", "NOTICE_LEAD"]
     review_state: Literal["DRAFT", "APPROVED", "REJECTED"]
 

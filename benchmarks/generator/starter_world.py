@@ -11,21 +11,15 @@ Constructs the canonical 100/55/45 reference scenario (case_001) embodying:
 
 import hashlib
 import json
-import sys
 from pathlib import Path
 from typing import Any
 
-# Ensure project root is in sys.path when executed directly
-project_root = Path(__file__).resolve().parents[2]
-if str(project_root) not in sys.path:
-    sys.path.insert(0, str(project_root))
-
+from benchmarks.generator.cp0_sources import STAMP, complete_visible_provenance
 from benchmarks.generator.invoice_builder import (
     B2BInvoiceData,
     InvoiceItem,
     build_b2b_invoice_pdf,
 )
-from benchmarks.generator.pdf_builder import build_synthetic_pdf
 
 # Constants for case_001
 CASE_ID = "case:001"
@@ -152,7 +146,7 @@ def build_case_001(fixtures_dir: Path | str) -> dict[str, Any]:
             "status_assertion": "ACTIVE",
             "evidence_as_of": {
                 "raw": "2024-04-01T00:00:00Z",
-                "value": "2024-04-01T00:00:00Z",
+                "value": "2024-04-01",
                 "precision": "DATE",
                 "timezone": "UTC",
                 "interpretation_status": "REVIEWED",
@@ -188,7 +182,7 @@ def build_case_001(fixtures_dir: Path | str) -> dict[str, Any]:
             },
             "evidence_as_of": {
                 "raw": "2024-04-01T00:00:00Z",
-                "value": "2024-04-01T00:00:00Z",
+                "value": "2024-04-01",
                 "precision": "DATE",
                 "timezone": "UTC",
                 "interpretation_status": "REVIEWED",
@@ -285,6 +279,7 @@ def build_case_001(fixtures_dir: Path | str) -> dict[str, Any]:
             "certificate_id": CERT_ID,
             "credit_lot_id": LOT_ID,
             "event_kind": "TRANSFERRED",
+            "external_event_ref": "TXN-2024-001",
             "event_time": {
                 "raw": "2024-09-15T11:30:00Z",
                 "value": "2024-09-15T11:30:00Z",
@@ -407,9 +402,7 @@ def build_case_001(fixtures_dir: Path | str) -> dict[str, Any]:
             },
         },
     ]
-    write_jsonl(
-        records_dir / "certificate_observations.jsonl", certificate_observations
-    )
+    write_jsonl(records_dir / "certificate_observations.jsonl", certificate_observations)
 
     # 7. allocations.jsonl
     allocations = [
@@ -551,7 +544,7 @@ def build_case_001(fixtures_dir: Path | str) -> dict[str, Any]:
     with open(csv_path, "w", encoding="utf-8", newline="") as f:
         f.writelines(csv_rows)
 
-    # 11. Document 2: doc_invoice_payment.pdf (Dedicated B2B Tax invoice with layout matching template)
+    # 11. Synthetic B2B invoice/payment statement.
     pdf_path = docs_dir / "doc_invoice_payment.pdf"
     invoice_data = B2BInvoiceData(
         invoice_number="INV/2024-25/0842",
@@ -606,6 +599,8 @@ def build_case_001(fixtures_dir: Path | str) -> dict[str, Any]:
     )
     build_b2b_invoice_pdf(pdf_path, invoice_data, seed=42)
 
+    extra_paths = complete_visible_provenance(case_dir)
+
     # 12. case_manifest.json
     # Measure all asset digests and lengths
     all_asset_paths = [
@@ -620,6 +615,7 @@ def build_case_001(fixtures_dir: Path | str) -> dict[str, Any]:
         records_dir / "account_balances.jsonl",
         docs_dir / "doc_ledger_export.csv",
         docs_dir / "doc_invoice_payment.pdf",
+        *extra_paths,
     ]
 
     assets_manifest = []
@@ -629,13 +625,21 @@ def build_case_001(fixtures_dir: Path | str) -> dict[str, Any]:
         rel_path = str(p.relative_to(case_dir)).replace("\\", "/")
 
         if p.name.endswith(".jsonl"):
-            rec_type = p.stem.rstrip("s").capitalize()
-            if p.stem == "entities":
-                rec_type = "Entity"
-            elif p.stem == "obligations":
-                rec_type = "ObligationBucket"
-            elif p.stem == "account_balances":
-                rec_type = "AccountBalanceObservation"
+            record_types = {
+                "entities": "Entity",
+                "registrations": "Registration",
+                "obligations": "ObligationBucket",
+                "certificates": "Certificate",
+                "certificate_events": "CertificateEvent",
+                "certificate_observations": "Observation",
+                "observations": "Observation",
+                "allocations": "Allocation",
+                "commercial_records": "CommercialRecord",
+                "account_balances": "AccountBalanceObservation",
+                "artifacts": "ArtifactRevision",
+                "receipts": "AssetReceipt",
+            }
+            rec_type = record_types[p.stem]
             media_type = "application/x-ndjson"
         elif p.name.endswith(".csv"):
             rec_type = "DocumentExport"
@@ -643,6 +647,9 @@ def build_case_001(fixtures_dir: Path | str) -> dict[str, Any]:
         elif p.name.endswith(".pdf"):
             rec_type = "DocumentInvoice"
             media_type = "application/pdf"
+        elif p.suffix == ".json":
+            rec_type = "SourceDocument"
+            media_type = "application/json"
         else:
             rec_type = "Unknown"
             media_type = "application/octet-stream"
@@ -655,8 +662,8 @@ def build_case_001(fixtures_dir: Path | str) -> dict[str, Any]:
                 "byte_length": len(data),
                 "logical_record_type": rec_type,
                 "source_capture_time": {
-                    "raw": "2024-10-23T10:00:00Z",
-                    "value": "2024-10-23T10:00:00Z",
+                    "raw": STAMP,
+                    "value": STAMP,
                     "precision": "INSTANT",
                     "timezone": "UTC",
                     "interpretation_status": "REVIEWED",
@@ -696,7 +703,22 @@ def build_case_001(fixtures_dir: Path | str) -> dict[str, Any]:
                 "reason": "Return draft pending audit reconciliation",
             },
         ],
-        "status": "APPROVED",
+        "status": "DRAFT",
+        "business_cutoff": {
+            "raw": "2025-04-01T00:00:00Z",
+            "value": "2025-04-01T00:00:00Z",
+            "precision": "INSTANT",
+            "timezone": "UTC",
+            "interpretation_status": "PARSED",
+        },
+        "knowledge_cutoff": "2025-04-02T10:00:00Z",
+        "adapter_versions": {"structured_json": "1.0", "ledger_csv": "1.0"},
+        "evidence_expectations": [
+            "supplied obligation",
+            "supported allocation",
+            "dated account comparison",
+            "financial evidence does not establish allocation",
+        ],
     }
 
     manifest_path = case_dir / "case_manifest.json"
@@ -724,13 +746,19 @@ def build_case_001(fixtures_dir: Path | str) -> dict[str, Any]:
         "expected_findings": [
             {
                 "issue_type": "F02_OVERLAPPING_EXPORT",
-                "description": "Two raw observations of certificate cert:rec_001 corroborate the same 55.0000 KG allocation without double-counting.",
+                "description": (
+                    "Two raw observations of cert:rec_001 corroborate the same "
+                    "55.0000 KG allocation without double-counting."
+                ),
                 "resolution": "SUPPORTED_EQUIVALENCE",
                 "quantity": "55.0000",
             },
             {
                 "issue_type": "F07_PAID_NO_TRANSFER",
-                "description": "Commercial record comm:inv_001 shows financial payment for 25.0000 KG of CU credits, but transfer stage is pending.",
+                "description": (
+                    "Commercial record comm:inv_001 records payment for 25.0000 KG "
+                    "of CU credits; transfer remains pending."
+                ),
                 "resolution": "PENDING_VERIFICATION",
                 "quantity": "25.0000",
             },

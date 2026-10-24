@@ -84,11 +84,7 @@ def build_synthetic_pdf(
         b"/Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>"
     )
     # 4: Contents stream
-    stream_obj = (
-        f"<< /Length {content_len} >>\nstream\n".encode("utf-8")
-        + content
-        + b"\nendstream"
-    )
+    stream_obj = f"<< /Length {content_len} >>\nstream\n".encode() + content + b"\nendstream"
     objects.append(stream_obj)
     # 5: Font
     objects.append(b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>")
@@ -100,22 +96,21 @@ def build_synthetic_pdf(
 
     for i, obj in enumerate(objects, 1):
         offsets.append(current_offset)
-        header = f"{i} 0 obj\n".encode("utf-8")
+        header = f"{i} 0 obj\n".encode()
         footer = b"\nendobj\n"
         chunk = header + obj + footer
         out.append(chunk)
         current_offset += len(chunk)
 
     xref_offset = current_offset
-    xref = [f"xref\n0 {len(objects) + 1}\n".encode("utf-8")]
+    xref = [f"xref\n0 {len(objects) + 1}\n".encode()]
     xref.append(b"0000000000 65535 f \n")
     for offset in offsets:
-        xref.append(f"{offset:010d} 00000 n \n".encode("utf-8"))
+        xref.append(f"{offset:010d} 00000 n \n".encode())
 
     trailer = (
-        f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\n"
-        f"startxref\n{xref_offset}\n%%EOF\n"
-    ).encode("utf-8")
+        f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref_offset}\n%%EOF\n"
+    ).encode()
 
     out.extend(xref)
     out.append(trailer)

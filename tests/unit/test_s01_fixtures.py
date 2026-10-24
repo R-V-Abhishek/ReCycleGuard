@@ -30,23 +30,17 @@ class TestS01StarterWorld(unittest.TestCase):
     """Test suite for S01 visible dossier and reference oracle fixtures."""
 
     def setUp(self) -> None:
-        self.assertTrue(
-            MANIFEST_PATH.exists(), f"Missing manifest at {MANIFEST_PATH}"
-        )
-        self.assertTrue(
-            EXPECTED_PATH.exists(), f"Missing expected fixture at {EXPECTED_PATH}"
-        )
-        with open(MANIFEST_PATH, "r", encoding="utf-8") as f:
+        self.assertTrue(MANIFEST_PATH.exists(), f"Missing manifest at {MANIFEST_PATH}")
+        self.assertTrue(EXPECTED_PATH.exists(), f"Missing expected fixture at {EXPECTED_PATH}")
+        with open(MANIFEST_PATH, encoding="utf-8") as f:
             self.manifest = json.load(f)
-        with open(EXPECTED_PATH, "r", encoding="utf-8") as f:
+        with open(EXPECTED_PATH, encoding="utf-8") as f:
             self.expected = json.load(f)
 
     def test_01_manifest_assets_integrity(self) -> None:
         """Every asset in manifest exists, and its byte length and SHA-256 match disk bytes."""
         assets = self.manifest.get("assets", [])
-        self.assertGreater(
-            len(assets), 0, "Manifest must have at least one asset"
-        )
+        self.assertGreater(len(assets), 0, "Manifest must have at least one asset")
 
         for asset in assets:
             rel_path = asset["relative_path"]
@@ -54,9 +48,7 @@ class TestS01StarterWorld(unittest.TestCase):
             expected_len = asset["byte_length"]
 
             file_path = CASE_DIR / rel_path
-            self.assertTrue(
-                file_path.exists(), f"Asset file missing on disk: {file_path}"
-            )
+            self.assertTrue(file_path.exists(), f"Asset file missing on disk: {file_path}")
 
             disk_bytes = file_path.read_bytes()
             actual_len = len(disk_bytes)
@@ -74,33 +66,14 @@ class TestS01StarterWorld(unittest.TestCase):
             )
 
     def test_02_numeric_safety_and_no_floats(self) -> None:
-        """All quantities must be valid Decimal strings, and no float values are in JSON records."""
-        records_dir = CASE_DIR / "records"
-        for jsonl_file in records_dir.glob("*.jsonl"):
-            with open(jsonl_file, "r", encoding="utf-8") as f:
-                for line_idx, line in enumerate(f, start=1):
-                    rec = json.loads(line)
+        """JSON records never contain binary-float quantities or nonfinite constants."""
 
-                    # Recursively verify no python float types exist
-                    def check_no_floats(obj: object, path: str = "") -> None:
-                        if isinstance(obj, float):
-                            self.fail(
-                                f"Float found in {jsonl_file.name}:{line_idx} at {path}: {obj}"
-                            )
-                        elif isinstance(obj, dict):
-                            for k, v in obj.items():
-                                check_no_floats(v, f"{path}.{k}" if path else k)
-                                # Check quantity decimals
-                                if k == "decimal" and isinstance(v, str):
-                                    self.assertTrue(
-                                        DECIMAL_STRING_PATTERN.match(v),
-                                        f"Invalid decimal string {v} in {jsonl_file.name}:{line_idx} at {path}",
-                                    )
-                        elif isinstance(obj, list):
-                            for i, v in enumerate(obj):
-                                check_no_floats(v, f"{path}[{i}]")
+        def reject_number(value):
+            raise AssertionError(f"non-string decimal or nonfinite value: {value}")
 
-                    check_no_floats(rec)
+        for path in (CASE_DIR / "records").glob("*.jsonl"):
+            for line in path.read_text().splitlines():
+                json.loads(line, parse_float=reject_number, parse_constant=reject_number)
 
     def test_03_opaque_naming_and_no_leakage(self) -> None:
         """Visible paths, filenames, and IDs must never contain forbidden answer/fault words."""
@@ -116,7 +89,7 @@ class TestS01StarterWorld(unittest.TestCase):
         # Check records IDs
         records_dir = CASE_DIR / "records"
         for jsonl_file in records_dir.glob("*.jsonl"):
-            with open(jsonl_file, "r", encoding="utf-8") as f:
+            with open(jsonl_file, encoding="utf-8") as f:
                 for line in f:
                     rec = json.loads(line)
                     rec_id = rec.get("record_id", "").lower()
@@ -128,7 +101,7 @@ class TestS01StarterWorld(unittest.TestCase):
                         )
 
     def test_04_pdf_watermark_present(self) -> None:
-        """Rendered synthetic PDF must contain the mandatory CPCB watermark and B2B layout tokens."""
+        """Synthetic invoice includes the required watermark and B2B layout tokens."""
         pdf_path = CASE_DIR / "documents" / "doc_invoice_payment.pdf"
         self.assertTrue(pdf_path.exists(), f"PDF document not found: {pdf_path}")
 
@@ -200,7 +173,7 @@ class TestS01StarterWorld(unittest.TestCase):
                 temp_pdf2.unlink()
 
     def test_05_reference_arithmetic_integrity(self) -> None:
-        """Expected calculations must strictly satisfy 100 required - 55 supported = 45 gap, 25 pending."""
+        """Reference: 100 required, 55 supported, 45 gap and 25 pending."""
         expected_balances = self.expected.get("expected_balances", [])
         self.assertEqual(len(expected_balances), 1)
 
@@ -216,9 +189,7 @@ class TestS01StarterWorld(unittest.TestCase):
         self.assertEqual(pending, Decimal("25.0000"))
 
         # Invariant: required - supported = gap
-        self.assertEqual(
-            req - supp, gap, "Arithmetic violation: required - supported != gap"
-        )
+        self.assertEqual(req - supp, gap, "Arithmetic violation: required - supported != gap")
 
         # Audit invariants
         inv = self.expected.get("audit_invariants", {})

@@ -1,0 +1,80 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "receipt_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Receipt Id",
+      "type": "string"
+    },
+    "batch_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Batch Id",
+      "type": "string"
+    },
+    "declared_asset_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Declared Asset Id"
+    },
+    "supplied_path_or_url": {
+      "title": "Supplied Path Or Url",
+      "type": "string"
+    },
+    "intake_status": {
+      "enum": [
+        "RECEIVED",
+        "DECLARED_MISSING",
+        "REJECTED_ACCESS",
+        "FETCH_FAILED"
+      ],
+      "title": "Intake Status",
+      "type": "string"
+    },
+    "artifact_revision_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Artifact Revision Id"
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Reason"
+    },
+    "received_at": {
+      "title": "Received At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "receipt_id",
+    "batch_id",
+    "declared_asset_id",
+    "supplied_path_or_url",
+    "intake_status",
+    "artifact_revision_id",
+    "reason",
+    "received_at"
+  ],
+  "title": "AssetReceipt",
+  "type": "object"
+}

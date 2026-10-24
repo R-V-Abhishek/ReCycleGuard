@@ -23,7 +23,25 @@ def decimal_string(value: str) -> str:
     return value
 
 
-DecimalString = Annotated[str, BeforeValidator(decimal_string)]
+def utc_timestamp(value: str) -> str:
+    if type(value) is not str or not re.fullmatch(
+        r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|\+00:00)", value
+    ):
+        raise ValueError("runtime timestamp requires RFC 3339 UTC")
+    datetime.fromisoformat(value.replace("Z", "+00:00"))
+    return value
+
+
+Timestamp = Annotated[
+    str,
+    BeforeValidator(utc_timestamp),
+    Field(pattern=r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|\+00:00)$"),
+]
+
+
+DecimalString = Annotated[
+    str, BeforeValidator(decimal_string), Field(pattern=r"^-?(0|[1-9][0-9]{0,17})(\.[0-9]{1,8})?$")
+]
 ID = Annotated[str, Field(pattern=r"^[a-z][a-z0-9_]*:[^\s]+$")]
 Digest = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
 Nonempty = Annotated[str, Field(min_length=1)]

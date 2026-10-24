@@ -1,0 +1,353 @@
+{
+  "$defs": {
+    "NonnegativeMass": {
+      "additionalProperties": false,
+      "properties": {
+        "decimal": {
+          "title": "Decimal",
+          "type": "string"
+        },
+        "unit": {
+          "enum": [
+            "KG",
+            "TONNE",
+            "INR",
+            "UNIT_COUNT"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "dimension": {
+          "enum": [
+            "METAL_MASS",
+            "EQUIPMENT_MASS",
+            "MONEY",
+            "COUNT"
+          ],
+          "title": "Dimension",
+          "type": "string"
+        },
+        "metal": {
+          "anyOf": [
+            {
+              "enum": [
+                "AU",
+                "CU",
+                "AL",
+                "FE"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Metal"
+        }
+      },
+      "required": [
+        "decimal",
+        "unit",
+        "dimension",
+        "metal"
+      ],
+      "title": "NonnegativeMass",
+      "type": "object"
+    },
+    "TemporalValue": {
+      "additionalProperties": false,
+      "properties": {
+        "raw": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Raw"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        },
+        "precision": {
+          "enum": [
+            "INSTANT",
+            "DATE",
+            "MONTH",
+            "YEAR",
+            "UNKNOWN"
+          ],
+          "title": "Precision",
+          "type": "string"
+        },
+        "timezone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Timezone"
+        },
+        "interpretation_status": {
+          "enum": [
+            "PARSED",
+            "REVIEWED",
+            "AMBIGUOUS",
+            "UNKNOWN"
+          ],
+          "title": "Interpretation Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "raw",
+        "value",
+        "precision",
+        "timezone",
+        "interpretation_status"
+      ],
+      "title": "TemporalValue",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "record_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Record Id",
+      "type": "string"
+    },
+    "record_revision_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Record Revision Id",
+      "type": "string"
+    },
+    "case_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "observation_refs": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Observation Refs",
+      "type": "array"
+    },
+    "derived_from_record_refs": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Derived From Record Refs",
+      "type": "array"
+    },
+    "validation_state": {
+      "enum": [
+        "VALID",
+        "REVIEW_REQUIRED",
+        "INVALID"
+      ],
+      "title": "Validation State",
+      "type": "string"
+    },
+    "created_by_operation_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Created By Operation Id",
+      "type": "string"
+    },
+    "supersedes_revision_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Supersedes Revision Id"
+    },
+    "record_type": {
+      "const": "CertificateEvent",
+      "title": "Record Type",
+      "type": "string"
+    },
+    "event_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Event Id",
+      "type": "string"
+    },
+    "certificate_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Certificate Id",
+      "type": "string"
+    },
+    "credit_lot_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Credit Lot Id"
+    },
+    "event_kind": {
+      "enum": [
+        "GENERATED",
+        "TRANSFERRED",
+        "ADJUSTED",
+        "EXPIRED",
+        "CANCELLED",
+        "STATUS_OBSERVED"
+      ],
+      "title": "Event Kind",
+      "type": "string"
+    },
+    "event_time": {
+      "$ref": "#/$defs/TemporalValue"
+    },
+    "quantity": {
+      "$ref": "#/$defs/NonnegativeMass"
+    },
+    "assertion_state": {
+      "enum": [
+        "SUPPORTED",
+        "PENDING",
+        "CONFLICTING"
+      ],
+      "title": "Assertion State",
+      "type": "string"
+    },
+    "supporting_observations": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Supporting Observations",
+      "type": "array"
+    },
+    "external_event_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "External Event Ref"
+    },
+    "from_entity_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "From Entity Id"
+    },
+    "to_entity_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "To Entity Id"
+    },
+    "equivalence_assertion_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Equivalence Assertion Id"
+    },
+    "transfer_stage": {
+      "anyOf": [
+        {
+          "enum": [
+            "NOT_OBSERVED",
+            "INITIATED",
+            "OTP_INITIATED",
+            "PUBLIC_KEY_DISPATCHED",
+            "COMPLETED",
+            "UNKNOWN"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Transfer Stage"
+    },
+    "transfer_stage_mapping_ref": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Transfer Stage Mapping Ref"
+    }
+  },
+  "required": [
+    "record_id",
+    "record_revision_id",
+    "case_id",
+    "observation_refs",
+    "derived_from_record_refs",
+    "validation_state",
+    "created_by_operation_id",
+    "supersedes_revision_id",
+    "record_type",
+    "event_id",
+    "certificate_id",
+    "credit_lot_id",
+    "event_kind",
+    "event_time",
+    "quantity",
+    "assertion_state",
+    "supporting_observations"
+  ],
+  "title": "CertificateEvent",
+  "type": "object"
+}

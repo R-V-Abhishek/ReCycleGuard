@@ -1,4 +1,4 @@
-"""Generate/check the A01 proposal schemas from runtime models."""
+"""Generate/check the CP0 boundary schemas from runtime models."""
 
 import json
 from pathlib import Path
@@ -17,6 +17,45 @@ from recycleguard.contracts import (
     ServiceResult,
     TemporalValue,
 )
+from recycleguard.contracts.artifacts import (
+    ArtifactRevision,
+    AssetReceipt,
+    FrozenSnapshot,
+    ProfileRef,
+    SnapshotRef,
+)
+from recycleguard.contracts.audit import AuditEvent, OperationIntent, OperationResult
+from recycleguard.contracts.domain import (
+    AccountBalanceObservation,
+    Allocation,
+    Certificate,
+    CertificateEvent,
+    CommercialRecord,
+    CreditLot,
+    DatedAlias,
+    Entity,
+    Identifier,
+    ObligationBucket,
+    Registration,
+    ReviewedInterval,
+)
+from recycleguard.contracts.dossier import AssetEntry, CaseManifest, TableDisposition
+from recycleguard.contracts.extraction import CoverageItem, ExtractionResult, Observation
+from recycleguard.contracts.results import (
+    BucketResult,
+    CalculationRequest,
+    CalculationResult,
+    CalculationValueRef,
+    FindingRecord,
+    Hypothesis,
+    Recommendation,
+)
+from recycleguard.contracts.sources import (
+    ProvisionVersion,
+    RightsMetadata,
+    SourceLead,
+    SourceVersion,
+)
 from recycleguard.model_port import ModelCallRequest, ModelCallResult
 
 MODELS = [
@@ -31,6 +70,45 @@ MODELS = [
     ModelCallRequest,
     ModelCallResult,
     ServiceResult[Quantity],
+    ArtifactRevision,
+    AssetReceipt,
+    FrozenSnapshot,
+    ProfileRef,
+    SnapshotRef,
+    AuditEvent,
+    OperationIntent,
+    OperationResult,
+    AccountBalanceObservation,
+    Allocation,
+    Certificate,
+    CertificateEvent,
+    CommercialRecord,
+    CreditLot,
+    DatedAlias,
+    Entity,
+    Identifier,
+    ObligationBucket,
+    Registration,
+    ReviewedInterval,
+    AssetEntry,
+    CaseManifest,
+    TableDisposition,
+    CoverageItem,
+    ExtractionResult,
+    Observation,
+    BucketResult,
+    CalculationRequest,
+    CalculationResult,
+    CalculationValueRef,
+    FindingRecord,
+    Hypothesis,
+    Recommendation,
+    ProvisionVersion,
+    RightsMetadata,
+    SourceLead,
+    SourceVersion,
+    ServiceResult[CalculationResult],
+    ServiceResult[ExtractionResult],
 ]
 app = typer.Typer()
 
@@ -48,7 +126,7 @@ def export(check: Annotated[bool, typer.Option("--check")] = False):
                 raise typer.BadParameter(f"schema drift: {path.name}; regenerate schemas")
         else:
             path.write_text(expected)
-    typer.echo(f"{'Checked' if check else 'Generated'} {len(MODELS)} proposal schemas")
+    typer.echo(f"{'Checked' if check else 'Generated'} {len(MODELS)} boundary schemas")
 
 
 if __name__ == "__main__":
