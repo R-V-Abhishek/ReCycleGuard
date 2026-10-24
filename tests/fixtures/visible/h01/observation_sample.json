@@ -1,0 +1,61 @@
+{
+  "observation_id": "obs:faq_sec_c_metal_obligation_capability",
+  "extraction_id": "ext:cpcb_faq_20240123_run01",
+  "artifact_revision_id": "artifact_rev:cpcb_faq_20240123_pdf",
+  "locator": {
+    "kind": "PDF_PAGE",
+    "page_index_1based": 9,
+    "printed_page_label": null,
+    "row_index_1based": null,
+    "column_name": null,
+    "json_pointer": null,
+    "text_start": null,
+    "text_end": null,
+    "table_id": null,
+    "cell_row": null,
+    "cell_column": null
+  },
+  "observation_type": "REGULATORY_FAQ_INTERPRETATION",
+  "raw_fields": {
+    "question": "Whether EPR certificates are specific to EEE items?",
+    "answer": "The EPR obligation is generated for four key metals namely Gold, Iron, Copper & Aluminum. The EPR obligation is not specific to EEE items. However, the producer has to purchase EPR certificates from the recycler who has the recycling capability of the EEE items for which the producer has the EPR obligation."
+  },
+  "parsed_fields": {
+    "metal_obligation_eee_code_independent": true,
+    "recycler_eee_capability_mandatory": true,
+    "applicable_metals": [
+      "AU",
+      "FE",
+      "CU",
+      "AL"
+    ]
+  },
+  "validation_state": "VALID",
+  "extraction_method": "PDF_TEXT",
+  "field_quality": {
+    "answer": {
+      "raw_score": 1.0,
+      "score_scale": "0_TO_1",
+      "engine": "pypdf_text",
+      "validation_checks": [
+        "exact_phrase_match"
+      ],
+      "review_state": "REVIEWED"
+    }
+  },
+  "event_time": {
+    "raw": "January 23, 2024",
+    "value": "2024-01-23",
+    "precision": "DATE",
+    "timezone": null,
+    "interpretation_status": "REVIEWED"
+  },
+  "source_capture_time": {
+    "raw": "2026-10-24T12:35:00Z",
+    "value": "2026-10-24T12:35:00Z",
+    "precision": "INSTANT",
+    "timezone": "UTC",
+    "interpretation_status": "PARSED"
+  },
+  "ingestion_time": "2026-10-24T12:35:10Z"
+}
