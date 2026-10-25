@@ -146,7 +146,6 @@ def test_profile_store_integration_and_dependency_verification(tmp_path):
         event_type="intake.batch",
         payload=intent_payload,
         stream_id="stream:init_sources",
-        recorded_at="2026-10-25T00:00:00Z",
     )
     kernel.commit_intent(intent, capability=cap)
 

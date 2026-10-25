@@ -13,6 +13,7 @@ Verifies:
 
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 
 from recycleguard.contracts.core import ActorRef, CommandContext
@@ -84,8 +85,8 @@ def test_cp1_inventory_outcomes(tmp_path):
         "watermark": "SYNTHETIC - NOT A CPCB RECORD",
         "producer_entity_id": "entity:test",
         "fiscal_year": "2024-2025",
-        "period_start": "2024-04-01",
-        "period_end_exclusive": "2025-04-01",
+        "period_start": date(2024, 4, 1),
+        "period_end_exclusive": date(2025, 4, 1),
         "quarter": "ANNUAL",
         "allowed_eee_codes": ["ITEW4"],
         "allowed_metals": ["CU"],

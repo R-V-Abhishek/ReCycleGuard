@@ -166,7 +166,9 @@ def intake_batch(
                 receipt = AssetReceipt(
                     receipt_id=f"receipt:{uuid4().hex[:12]}",
                     batch_id=bid,
-                    declared_asset_id=rel_posix if rel_posix in declared_by_relpath else None,
+                    declared_asset_id=f"asset:{rel_posix}"
+                    if rel_posix in declared_by_relpath
+                    else None,
                     supplied_path_or_url=rel_posix,
                     intake_status="REJECTED_ACCESS",
                     artifact_revision_id=None,
@@ -292,7 +294,7 @@ def intake_batch(
             receipt = AssetReceipt(
                 receipt_id=f"receipt:{uuid4().hex[:12]}",
                 batch_id=bid,
-                declared_asset_id=rel_posix if declared is not None else None,
+                declared_asset_id=f"asset:{rel_posix}" if declared is not None else None,
                 supplied_path_or_url=rel_posix,
                 intake_status="RECEIVED",
                 artifact_revision_id=art_rev_id,
@@ -307,7 +309,7 @@ def intake_batch(
             receipt = AssetReceipt(
                 receipt_id=f"receipt:{uuid4().hex[:12]}",
                 batch_id=bid,
-                declared_asset_id=declared_relpath,
+                declared_asset_id=f"asset:{declared_relpath}",
                 supplied_path_or_url=declared_relpath,
                 intake_status="DECLARED_MISSING",
                 artifact_revision_id=None,
@@ -346,7 +348,6 @@ def intake_batch(
             event_type="intake.batch",
             payload=intent_payload,
             stream_id=f"stream:{bid}",
-            recorded_at=_utc_now_rfc3339(),
         )
         kernel.commit_intent(intent, capability=capability)
 

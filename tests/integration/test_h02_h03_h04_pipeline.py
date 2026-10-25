@@ -128,7 +128,6 @@ def test_complete_h02_h03_h04_pipeline(tmp_path):
         event_type="intake.batch",
         payload=sources_intent_payload,
         stream_id="stream:regulatory_sources",
-        recorded_at="2026-10-25T00:00:00Z",
     )
     kernel.commit_intent(sources_intent, capability=cap_service)
 

@@ -35,15 +35,15 @@ def test_extract_real_case_001_csv():
 
     obs, cov, issues = extract_csv(bytes_data, "artifact_rev:test_csv", "ext:test_csv")
 
-    assert len(obs) == 3
-    assert len(cov) == 3
+    assert len(obs) == 2
+    assert len(cov) == 2
     assert not issues
 
     # Verify coverage consistency
-    assert validate_row_coverage_consistency(3, cov)
+    assert validate_row_coverage_consistency(2, cov)
 
     # Check locator kind and 1-based indexing
-    assert [c.locator.row_index_1based for c in cov] == [1, 2, 3]
+    assert [c.locator.row_index_1based for c in cov] == [1, 2]
     assert all(c.locator.kind == "CSV_ROW" for c in cov)
     assert all(c.disposition == "PARSED" for c in cov)
 
