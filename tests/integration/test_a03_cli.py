@@ -110,7 +110,9 @@ def test_reviewer_bootstrap_does_not_overwrite_and_sessions_are_distinct(tmp_pat
     assert PASSWORD.encode() not in original
 
 
-@pytest.mark.skipif(os.name == "nt", reason="POSIX permissions and symlink tests require non-Windows")
+@pytest.mark.skipif(
+    os.name == "nt", reason="POSIX permissions and symlink tests require non-Windows"
+)
 @pytest.mark.parametrize("fault", ["permissions", "symlink"])
 def test_unsafe_credential_files_are_rejected(tmp_path, fault):
     initialize_reviewer(tmp_path, "human:lead", PASSWORD)

@@ -11,8 +11,7 @@ Guarantees:
 from __future__ import annotations
 
 import io
-from datetime import datetime, timezone
-from typing import Any
+from datetime import UTC, datetime
 from uuid import uuid4
 
 from recycleguard.contracts.core import Issue, Locator, TemporalValue
@@ -20,7 +19,7 @@ from recycleguard.contracts.extraction import CoverageItem, Observation
 
 
 def _utc_now_rfc3339() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def extract_pdf_pages(
@@ -157,7 +156,9 @@ def extract_pdf_pages(
                     issue_id=f"issue:{uuid4().hex[:8]}",
                     code="INCOMPLETE_COVERAGE",
                     severity="WARNING",
-                    message=f"Page {page_idx} contains no extractable text; quarantined as scan/empty",
+                    message=(
+                        f"Page {page_idx} contains no extractable text; quarantined as scan/empty"
+                    ),
                     field_path=f"page:{page_idx}",
                     evidence_refs=[],
                     retryable=False,

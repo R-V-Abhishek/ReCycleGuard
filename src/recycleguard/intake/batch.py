@@ -10,20 +10,17 @@ Symlinks and path traversals are rejected with REJECTED_ACCESS receipts.
 from __future__ import annotations
 
 import hashlib
-import json
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING
 from uuid import uuid4
 
 from recycleguard.contracts.artifacts import ArtifactRevision, AssetReceipt, EvidenceCapability
 from recycleguard.contracts.core import (
-    BlobRef,
     BoundaryModel,
     CommandContext,
     Issue,
-    Locator,
     TemporalValue,
 )
 from recycleguard.contracts.dossier import CaseManifest
@@ -36,7 +33,7 @@ if TYPE_CHECKING:
 
 
 def _utc_now_rfc3339() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def _infer_doc_type_and_capabilities(
@@ -272,13 +269,11 @@ def intake_batch(
             # Check hash / length consistency against manifest declaration
             receipt_reason: str | None = None
             if declared is not None:
-                if (
-                    sha256 != declared.body_digest
-                    or byte_len != declared.byte_length
-                ):
+                if sha256 != declared.body_digest or byte_len != declared.byte_length:
                     receipt_reason = (
                         f"Hash/length mismatch: declared (sha256={declared.body_digest}, "
-                        f"length={declared.byte_length}), actual (sha256={sha256}, length={byte_len})"
+                        f"length={declared.byte_length}), actual (sha256={sha256}, "
+                        f"length={byte_len})"
                     )
                     issues.append(
                         Issue(
@@ -307,7 +302,7 @@ def intake_batch(
             receipts.append(receipt)
 
     # 3. Check for declared missing files
-    for declared_relpath, declared_asset in declared_by_relpath.items():
+    for declared_relpath, _declared_asset in declared_by_relpath.items():
         if declared_relpath not in discovered_relpaths:
             receipt = AssetReceipt(
                 receipt_id=f"receipt:{uuid4().hex[:12]}",
@@ -333,7 +328,12 @@ def intake_batch(
             )
 
     # 4. If catalog and kernel are provided, commit to catalog in transaction
-    if catalog is not None and kernel is not None and capability is not None and context is not None:
+    if (
+        catalog is not None
+        and kernel is not None
+        and capability is not None
+        and context is not None
+    ):
         from recycleguard.contracts.audit import OperationIntent, OperationResult
         from recycleguard.storage.blob_store import canonical_json_bytes
 

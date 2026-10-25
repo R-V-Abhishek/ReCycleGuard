@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from recycleguard.contracts.artifacts import ArtifactRevision, ProfileRef
+from recycleguard.contracts.artifacts import ArtifactRevision
 from recycleguard.contracts.core import EvidenceRef, Locator
 from recycleguard.contracts.profiles import (
     AllocationPolicy,
@@ -26,19 +26,13 @@ from recycleguard.contracts.profiles import (
     EventEquivalencePolicy,
     NumericPolicy,
     ProfileDefinition,
-    ProfilePublication,
-    ProfileReview,
     PurchaseCeilingPolicy,
     SourceDependency,
     profile_digest,
 )
-from recycleguard.knowledge.provisions import R02_ARTIFACT_REV_ID, R08_ARTIFACT_REV_ID
 
 if TYPE_CHECKING:
-    from recycleguard.case_service import CaseService
-    from recycleguard.contracts.core import CommandContext
-    from recycleguard.profiles import ProfileStore
-    from recycleguard.storage.authority import Capability
+    pass
 
 
 def build_v1_profile_definition(
@@ -182,8 +176,10 @@ def build_v1_calculation_profile(
 ) -> CalculationProfile:
     """Construct complete CalculationProfile with exact digest matching CONTRACTS."""
     defn = build_v1_profile_definition(r02_revision, r08_revision)
-    refs = review_refs if review_refs is not None else (
-        ["review:h04_initial_source_review"] if review_state != "DRAFT" else []
+    refs = (
+        review_refs
+        if review_refs is not None
+        else (["review:h04_initial_source_review"] if review_state != "DRAFT" else [])
     )
 
     payload = defn.model_dump(mode="json")

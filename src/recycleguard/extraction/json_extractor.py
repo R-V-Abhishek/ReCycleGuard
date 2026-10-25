@@ -8,8 +8,7 @@ Emits observations and coverage items with JSON_POINTER locators.
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
-from typing import Any
+from datetime import UTC, datetime
 from uuid import uuid4
 
 from recycleguard.contracts.core import Issue, Locator, TemporalValue
@@ -17,7 +16,7 @@ from recycleguard.contracts.extraction import CoverageItem, Observation
 
 
 def _utc_now_rfc3339() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def extract_json(

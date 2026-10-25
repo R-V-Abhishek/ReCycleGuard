@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import csv
 import io
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
@@ -20,7 +20,7 @@ from recycleguard.contracts.extraction import CoverageItem, Observation
 
 
 def _utc_now_rfc3339() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def extract_csv(
@@ -92,7 +92,10 @@ def extract_csv(
                     issue_id=f"issue:{uuid4().hex[:8]}",
                     code="INCOMPLETE_COVERAGE",
                     severity="WARNING",
-                    message=f"Row {row_index} column count {len(row)} does not match header {expected_cols}",
+                    message=(
+                        f"Row {row_index} column count {len(row)} does not match "
+                        f"header {expected_cols}"
+                    ),
                     field_path=f"row:{row_index}",
                     evidence_refs=[],
                     retryable=False,
@@ -103,13 +106,15 @@ def extract_csv(
         # Build raw and parsed fields
         raw_fields: dict[str, Any] = {}
         parsed_fields: dict[str, Any] = {}
-        for col_name, val in zip(header, row):
+        for col_name, val in zip(header, row, strict=False):
             raw_fields[col_name] = val
             clean_val = val.strip()
             # Attempt basic numeric parsing for parsed fields
             if clean_val.replace(".", "", 1).isdigit():
                 try:
-                    parsed_fields[col_name] = float(clean_val) if "." in clean_val else int(clean_val)
+                    parsed_fields[col_name] = (
+                        float(clean_val) if "." in clean_val else int(clean_val)
+                    )
                 except ValueError:
                     parsed_fields[col_name] = clean_val
             else:

@@ -13,15 +13,10 @@ Verifies:
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
-from uuid import uuid4
 
-import pytest
-
-from recycleguard.contracts.artifacts import AssetReceipt
 from recycleguard.contracts.core import ActorRef, CommandContext
-from recycleguard.contracts.dossier import AssetEntry, CaseManifest
+from recycleguard.contracts.dossier import CaseManifest
 from recycleguard.contracts.sources import SourceLead
 from recycleguard.intake.acquisition import record_acquisition
 from recycleguard.intake.batch import intake_batch
@@ -46,7 +41,11 @@ def test_batch_intake_case_001_basic(tmp_path):
         if receipt.intake_status == "RECEIVED":
             assert receipt.artifact_revision_id is not None
             # Find revision
-            rev = next(r for r in result.artifact_revisions if r.artifact_revision_id == receipt.artifact_revision_id)
+            rev = next(
+                r
+                for r in result.artifact_revisions
+                if r.artifact_revision_id == receipt.artifact_revision_id
+            )
             blob_bytes = store.get(rev.blob)
             assert len(blob_bytes) == rev.blob.byte_length
 
@@ -151,7 +150,9 @@ def test_cp1_inventory_outcomes(tmp_path):
         "optional_table_dispositions": [],
         "status": "DRAFT",
     }
-    (batch_dir / "case_manifest.json").write_text(CaseManifest.model_validate(manifest_data).model_dump_json())
+    (batch_dir / "case_manifest.json").write_text(
+        CaseManifest.model_validate(manifest_data).model_dump_json()
+    )
 
     result = intake_batch(batch_dir, blob_store=store)
 
@@ -165,7 +166,10 @@ def test_cp1_inventory_outcomes(tmp_path):
     # Verify duplicate file received with separate receipt
     assert "records/duplicate.json" in receipt_map
     assert receipt_map["records/duplicate.json"].intake_status == "RECEIVED"
-    assert receipt_map["records/duplicate.json"].receipt_id != receipt_map["records/normal.json"].receipt_id
+    assert (
+        receipt_map["records/duplicate.json"].receipt_id
+        != receipt_map["records/normal.json"].receipt_id
+    )
 
     # Verify corrupt file received with hash mismatch issue
     assert "records/corrupt.json" in receipt_map
@@ -225,7 +229,9 @@ def test_failed_acquisition_attempt_creates_no_invented_blob(tmp_path):
 
 def test_audited_batch_intake_with_kernel_and_catalog(tmp_path):
     store = BlobStore(tmp_path / "blobs")
-    actor = ActorRef(actor_id="service:intake_worker", actor_kind="SERVICE", authenticated_session_ref=None)
+    actor = ActorRef(
+        actor_id="service:intake_worker", actor_kind="SERVICE", authenticated_session_ref=None
+    )
     authority = LocalAuthority({"intake_worker": TrustedPrincipal(actor, frozenset({"intake."}))})
     cap = authority.issue("intake_worker")
     db_path = tmp_path / "app.sqlite"

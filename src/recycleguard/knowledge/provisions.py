@@ -8,12 +8,9 @@ Contains reviewed primary instruments and applicability assertions for:
 
 from __future__ import annotations
 
-import hashlib
-from typing import TYPE_CHECKING
-
 from recycleguard.contracts.artifacts import ArtifactRevision
-from recycleguard.contracts.core import BlobRef, EvidenceRef, Locator, TemporalValue
-from recycleguard.contracts.sources import ProvisionVersion, SourceVersion
+from recycleguard.contracts.core import Locator, TemporalValue
+from recycleguard.contracts.sources import ProvisionVersion
 from recycleguard.storage.blob_store import BlobStore
 
 R02_ARTIFACT_REV_ID = "artifact_rev:r02_rules_2022_official_pdf"
@@ -23,28 +20,33 @@ R08_ARTIFACT_REV_ID = "artifact_rev:cpcb_faq_20240123_pdf"
 R02_RULE_6_4_TEXT = (
     "The producer shall file annual returns in the laid down form on the portal on or before "
     "the 30th day of June following the financial year to which that return relates, and "
-    "quarterly return in the laid down form on the portal within fifteen days of the end of that quarter."
+    "quarterly return in the laid down form on the portal within fifteen days of the end "
+    "of that quarter."
 )
 
 # Authentic text for R02 Rule 15(1) & (3) - EPR Certificates & Liability Priority
 R02_RULE_15_1_3_TEXT = (
-    "The Central Pollution Control Board shall generate Extended Producer Responsibility certificate "
-    "through the portal in favour of a registered recycler based on the quantity of end product recycled. "
-    "Priority check: A producer shall allocate certificates towards meeting earlier compatible unmet liabilities "
-    "before allocating towards current year obligations."
+    "The Central Pollution Control Board shall generate Extended Producer Responsibility "
+    "certificate through the portal in favour of a registered recycler based on the quantity "
+    "of end product recycled. Priority check: A producer shall allocate certificates towards "
+    "meeting earlier compatible unmet liabilities before allocating towards "
+    "current year obligations."
 )
 
 # Authentic text for R08 Section C - Metal Obligation & Capability Independence
 R08_SECTION_C_TEXT = (
     "Metal-wise obligation is independent of specific EEE item codes, provided that the recycler "
-    "has valid authorization, registration and verified recycling capability for the specific metal."
+    "has valid authorization, registration and verified recycling capability for the "
+    "specific metal."
 )
 
 
 def register_reviewed_sources(blob_store: BlobStore) -> tuple[ArtifactRevision, ArtifactRevision]:
     """Register R02 and R08 ArtifactRevisions into BlobStore with authentic text blobs."""
     # R02 Text and Blob
-    r02_full_text = f"E-Waste (Management) Rules, 2022\n\n{R02_RULE_6_4_TEXT}\n\n{R02_RULE_15_1_3_TEXT}"
+    r02_full_text = (
+        f"E-Waste (Management) Rules, 2022\n\n{R02_RULE_6_4_TEXT}\n\n{R02_RULE_15_1_3_TEXT}"
+    )
     r02_bytes = r02_full_text.encode("utf-8")
     r02_blob = blob_store.put(r02_bytes, "application/pdf")
 

@@ -10,9 +10,7 @@ Guarantees:
 from __future__ import annotations
 
 import hashlib
-import json
-from datetime import datetime, timezone
-from typing import TYPE_CHECKING
+from datetime import UTC, datetime
 from uuid import uuid4
 
 from recycleguard.contracts.artifacts import ArtifactRevision
@@ -31,7 +29,7 @@ ADAPTER_VERSION = "1.0.0"
 
 
 def _utc_now_rfc3339() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 def extract_artifact(
@@ -103,16 +101,14 @@ def extract_artifact(
 
     # Serialize observations to JSONL and store in BlobStore
     obs_lines = [
-        canonical_json_bytes(obs.model_dump(mode="json")).decode("utf-8")
-        for obs in observations
+        canonical_json_bytes(obs.model_dump(mode="json")).decode("utf-8") for obs in observations
     ]
     obs_bytes = "\n".join(obs_lines).encode("utf-8") if obs_lines else b""
     obs_blob = blob_store.put(obs_bytes, "application/x-jsonlines")
 
     # Serialize coverage items to JSONL and store in BlobStore
     cov_lines = [
-        canonical_json_bytes(cov.model_dump(mode="json")).decode("utf-8")
-        for cov in coverage_items
+        canonical_json_bytes(cov.model_dump(mode="json")).decode("utf-8") for cov in coverage_items
     ]
     cov_bytes = "\n".join(cov_lines).encode("utf-8") if cov_lines else b""
     cov_blob = blob_store.put(cov_bytes, "application/x-jsonlines")

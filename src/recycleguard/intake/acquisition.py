@@ -9,8 +9,7 @@ and an explicit failure reason, never an invented blob or hash.
 
 from __future__ import annotations
 
-import hashlib
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 from uuid import uuid4
@@ -21,13 +20,11 @@ from recycleguard.contracts.sources import SourceLead
 from recycleguard.storage.blob_store import BlobStore
 
 if TYPE_CHECKING:
-    from recycleguard.storage.audit_kernel import AuditKernel
-    from recycleguard.storage.authority import Capability
     from recycleguard.storage.catalog import ArtifactCatalog
 
 
 def _utc_now_rfc3339() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 class AcquisitionOutcome(BoundaryModel):
@@ -62,7 +59,9 @@ def record_acquisition(
     issues: list[Issue] = []
 
     if body_bytes is None or status_code >= 400 or error_message:
-        reason = error_message or f"HTTP {status_code} when attempting to fetch from {lead.official_url}"
+        reason = (
+            error_message or f"HTTP {status_code} when attempting to fetch from {lead.official_url}"
+        )
         receipt = AssetReceipt(
             receipt_id=receipt_id,
             batch_id=bid,
@@ -99,8 +98,10 @@ def record_acquisition(
     art_rev_id = lead.acquired_artifact_revision_id or f"artifact_rev:{uuid4().hex[:12]}"
 
     source_kind = "GAZETTE" if lead.source_class == "GAZETTE_RULE" else "OFFICIAL_GUIDANCE"
-    doc_type = "STATUTORY_INSTRUMENT" if lead.source_class == "GAZETTE_RULE" else (
-        "FAQ" if lead.source_class == "FAQ" else "TECHNICAL_FRAMEWORK"
+    doc_type = (
+        "STATUTORY_INSTRUMENT"
+        if lead.source_class == "GAZETTE_RULE"
+        else ("FAQ" if lead.source_class == "FAQ" else "TECHNICAL_FRAMEWORK")
     )
 
     revision = ArtifactRevision(

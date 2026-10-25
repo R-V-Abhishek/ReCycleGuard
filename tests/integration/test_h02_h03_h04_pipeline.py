@@ -17,7 +17,6 @@ from recycleguard.contracts.profiles import ProfilePublication, ProfileReview
 from recycleguard.extraction import extract_artifact
 from recycleguard.intake import intake_batch
 from recycleguard.knowledge import (
-    build_v1_calculation_profile,
     build_v1_profile_definition,
     register_reviewed_sources,
 )
@@ -35,7 +34,9 @@ def test_complete_h02_h03_h04_pipeline(tmp_path):
     data_root.mkdir()
     store = BlobStore(data_root)
 
-    actor = ActorRef(actor_id="service:pipeline_runner", actor_kind="SERVICE", authenticated_session_ref=None)
+    actor = ActorRef(
+        actor_id="service:pipeline_runner", actor_kind="SERVICE", authenticated_session_ref=None
+    )
     human_reviewer = ActorRef(
         actor_id="human:sampreeth",
         actor_kind="HUMAN",
@@ -116,9 +117,13 @@ def test_complete_h02_h03_h04_pipeline(tmp_path):
     from recycleguard.storage.blob_store import canonical_json_bytes
 
     # Commit sources to catalog under audited transaction
-    sources_intent_payload = store.put(canonical_json_bytes({"step": "register_sources"}), "application/json")
+    sources_intent_payload = store.put(
+        canonical_json_bytes({"step": "register_sources"}), "application/json"
+    )
     sources_intent = OperationIntent(
-        context=context.model_copy(update={"operation_id": "op:reg_sources", "idempotency_key": "key:reg_sources"}),
+        context=context.model_copy(
+            update={"operation_id": "op:reg_sources", "idempotency_key": "key:reg_sources"}
+        ),
         idempotency_key="key:reg_sources",
         event_type="intake.batch",
         payload=sources_intent_payload,
@@ -139,7 +144,9 @@ def test_complete_h02_h03_h04_pipeline(tmp_path):
         payload=sources_res_payload,
         issue_codes=[],
     )
-    kernel.commit_result(sources_intent, sources_result, capability=cap_service, mutation=_persist_sources)
+    kernel.commit_result(
+        sources_intent, sources_result, capability=cap_service, mutation=_persist_sources
+    )
 
     # Publish draft profile
     defn = build_v1_profile_definition(r02_rev, r08_rev)

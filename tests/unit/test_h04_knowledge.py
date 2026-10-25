@@ -10,9 +10,6 @@ Verifies:
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
-
 import pytest
 
 from recycleguard.contracts.artifacts import ProfileRef
@@ -104,8 +101,12 @@ def test_profile_store_integration_and_dependency_verification(tmp_path):
     store = BlobStore(tmp_path / "blobs")
     r02_rev, r08_rev = register_reviewed_sources(store)
 
-    actor = ActorRef(actor_id="service:profile_admin", actor_kind="SERVICE", authenticated_session_ref=None)
-    authority = LocalAuthority({"admin": TrustedPrincipal(actor, frozenset({"profile.", "intake."}))})
+    actor = ActorRef(
+        actor_id="service:profile_admin", actor_kind="SERVICE", authenticated_session_ref=None
+    )
+    authority = LocalAuthority(
+        {"admin": TrustedPrincipal(actor, frozenset({"profile.", "intake."}))}
+    )
     cap = authority.issue("admin")
     db_path = tmp_path / "app.sqlite"
     kernel = AuditKernel(db_path, store, authority=authority)
@@ -153,7 +154,9 @@ def test_profile_store_integration_and_dependency_verification(tmp_path):
         catalog.put_artifact_revision(r02_rev)
         catalog.put_artifact_revision(r08_rev)
 
-    res_payload = store.put(canonical_json_bytes({"status": "sources_registered"}), "application/json")
+    res_payload = store.put(
+        canonical_json_bytes({"status": "sources_registered"}), "application/json"
+    )
     res = OperationResult(
         operation_id=context.operation_id,
         attempt_id=context.attempt_id,
@@ -191,7 +194,9 @@ def test_profile_store_integration_and_dependency_verification(tmp_path):
         actor_kind="HUMAN",
         authenticated_session_ref="session:sampreeth_review",
     )
-    authority_review = LocalAuthority({"reviewer": TrustedPrincipal(human_actor, frozenset({"profile."}))})
+    authority_review = LocalAuthority(
+        {"reviewer": TrustedPrincipal(human_actor, frozenset({"profile."}))}
+    )
     cap_review = authority_review.issue("reviewer")
 
     context_review = context.model_copy(

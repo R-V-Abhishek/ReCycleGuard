@@ -12,8 +12,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
-
 from recycleguard.contracts.artifacts import ArtifactRevision
 from recycleguard.contracts.core import TemporalValue
 from recycleguard.extraction import (
