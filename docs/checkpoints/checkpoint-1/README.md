@@ -8,7 +8,7 @@ into checkpoint-1 before eventual CP1 approval/main integration.
 | Owner | Task | Evidence | State |
 | --- | --- | --- | --- |
 | Vedantha + Abhishek repair/review | V02 | [Storage handoff and repairs](v02.md) | DONE after local verification; remote CI tracked separately |
-| Abhishek | A03 | Snapshot/profile persistence and trusted version controls | READY after V02; subsequent work recorded separately |
+| Abhishek | A03 | [Immutable snapshot storage and version-bound review](a03.md) | IN_PROGRESS; profile persistence and complete facade remain |
 | Sampreeth | H02 | Audited batch intake | READY after V02 |
 | Sushanth | S02 / S05 | Normalization / visible renderer | READY from CP0; no new completion is inferred |
 

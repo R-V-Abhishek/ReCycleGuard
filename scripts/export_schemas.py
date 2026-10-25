@@ -50,6 +50,7 @@ from recycleguard.contracts.results import (
     Hypothesis,
     Recommendation,
 )
+from recycleguard.contracts.snapshots import SnapshotPublication, SnapshotReview
 from recycleguard.contracts.sources import (
     ProvisionVersion,
     RightsMetadata,
@@ -59,6 +60,8 @@ from recycleguard.contracts.sources import (
 from recycleguard.model_port import ModelCallRequest, ModelCallResult
 
 MODELS = [
+    SnapshotPublication,
+    SnapshotReview,
     ActorRef,
     BlobRef,
     CommandContext,

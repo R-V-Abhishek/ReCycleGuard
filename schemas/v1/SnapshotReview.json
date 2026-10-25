@@ -1,0 +1,54 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "scope_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "target_snapshot_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Target Snapshot Id",
+      "type": "string"
+    },
+    "target_membership_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Target Membership Digest",
+      "type": "string"
+    },
+    "expected_head": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Expected Head",
+      "type": "string"
+    },
+    "new_snapshot_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "New Snapshot Id",
+      "type": "string"
+    },
+    "decision": {
+      "enum": [
+        "APPROVE",
+        "REJECT"
+      ],
+      "title": "Decision",
+      "type": "string"
+    },
+    "reason": {
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+    }
+  },
+  "required": [
+    "scope_id",
+    "target_snapshot_id",
+    "target_membership_digest",
+    "expected_head",
+    "new_snapshot_id",
+    "decision",
+    "reason"
+  ],
+  "title": "SnapshotReview",
+  "type": "object"
+}
