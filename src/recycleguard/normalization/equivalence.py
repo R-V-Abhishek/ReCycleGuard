@@ -5,10 +5,8 @@ conforming to CONTRACTS §3.4 and §5.4.
 """
 
 from dataclasses import dataclass, field
-from decimal import Decimal
-from typing import Any
 
-from recycleguard.contracts.core import ID, Issue, TemporalValue
+from recycleguard.contracts.core import Issue
 from recycleguard.contracts.domain import CertificateEvent, NonnegativeMass
 from recycleguard.contracts.extraction import Observation
 from recycleguard.normalization.models import EventEquivalence
@@ -104,7 +102,9 @@ class EventEquivalenceEngine:
 
             # Check if there are conflicting observations for the same certificate
             # (e.g. same cert, same date, but different quantities -> Conflict)
-            quantities_seen = {k.quantity_kg for k in by_key.keys() if k.event_kind == "TRANSFERRED"}
+            quantities_seen = {
+                k.quantity_kg for k in by_key.keys() if k.event_kind == "TRANSFERRED"
+            }
             has_conflicting_quantity = len(quantities_seen) > 1
 
             for key, matched_obs in by_key.items():
@@ -117,7 +117,10 @@ class EventEquivalenceEngine:
                 # Determine assertion state
                 if has_conflicting_quantity:
                     assertion_state = "CONFLICTING"
-                elif key.transfer_stage == "COMPLETED" or key.event_kind in {"GENERATED", "TRANSFERRED"}:
+                elif key.transfer_stage == "COMPLETED" or key.event_kind in {
+                    "GENERATED",
+                    "TRANSFERRED",
+                }:
                     assertion_state = "SUPPORTED"
                 else:
                     assertion_state = "PENDING"

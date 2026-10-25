@@ -7,12 +7,8 @@ from pydantic import Field
 from recycleguard.contracts.core import ID, BoundaryModel, Issue
 from recycleguard.contracts.domain import NormalizedRecord
 
-ObservationDispositionKind = Literal[
-    "ACCEPTED", "QUARANTINED", "EXCLUDED", "OUT_OF_SCOPE"
-]
-EquivalenceBasis = Literal[
-    "AUTHORITATIVE_EVENT_ID", "EXACT_COMPOUND_KEY_AND_CORROBORATION"
-]
+ObservationDispositionKind = Literal["ACCEPTED", "QUARANTINED", "EXCLUDED", "OUT_OF_SCOPE"]
+EquivalenceBasis = Literal["AUTHORITATIVE_EVENT_ID", "EXACT_COMPOUND_KEY_AND_CORROBORATION"]
 EquivalenceAssertionState = Literal["SUPPORTED", "PENDING", "CONFLICTING"]
 ReviewState = Literal["DRAFT", "APPROVED", "REJECTED"]
 

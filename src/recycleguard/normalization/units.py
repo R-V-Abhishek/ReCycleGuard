@@ -4,11 +4,11 @@ Enforces exact Decimal arithmetic, strict unit standardization (Tonne -> KG),
 and dimension isolation across METAL_MASS, EQUIPMENT_MASS, MONEY, and COUNT.
 """
 
-from decimal import Context, Decimal, InvalidOperation, ROUND_HALF_EVEN
+from decimal import ROUND_HALF_EVEN, Context, Decimal, InvalidOperation
 from typing import Literal
 
-from recycleguard.contracts.core import DecimalString, Quantity
-from recycleguard.contracts.domain import Metal, NonnegativeMass
+from recycleguard.contracts.core import Quantity
+from recycleguard.contracts.domain import Metal
 
 # Canonical numeric context: 28 digits of precision, bankers rounding
 NUMERIC_CONTEXT = Context(prec=28, rounding=ROUND_HALF_EVEN, Emin=-999999, Emax=999999)
@@ -38,9 +38,7 @@ def parse_strict_decimal(value: str | int | Decimal) -> Decimal:
 
     val_str = value.strip().replace(",", "")
     if "e" in val_str.lower():
-        raise NumericSafetyError(
-            f"Scientific notation is forbidden in decimal values: {value}"
-        )
+        raise NumericSafetyError(f"Scientific notation is forbidden in decimal values: {value}")
     try:
         d = Decimal(val_str)
         if not d.is_finite():
@@ -66,9 +64,8 @@ def convert_mass_to_kg(value: str | int | Decimal, unit: str) -> Decimal:
     """Convert any supported mass unit to exact Kilograms (KG)."""
     unit_upper = unit.strip().upper()
     if unit_upper not in MASS_CONVERSION_FACTORS:
-        raise NumericSafetyError(
-            f"Unsupported mass unit '{unit}'. Supported units: {list(MASS_CONVERSION_FACTORS.keys())}"
-        )
+        supported = list(MASS_CONVERSION_FACTORS.keys())
+        raise NumericSafetyError(f"Unsupported mass unit '{unit}'. Supported units: {supported}")
     d = parse_strict_decimal(value)
     factor = MASS_CONVERSION_FACTORS[unit_upper]
     return d * factor
@@ -156,12 +153,11 @@ def add_quantities(q1: Quantity, q2: Quantity) -> Quantity:
             f"Dimension mismatch: cannot add {q1.dimension} and {q2.dimension}"
         )
     if q1.metal != q2.metal:
-        raise NumericSafetyError(
-            f"Metal mismatch: cannot add metal {q1.metal} and {q2.metal}"
-        )
+        raise NumericSafetyError(f"Metal mismatch: cannot add metal {q1.metal} and {q2.metal}")
     if q1.unit != q2.unit:
         raise NumericSafetyError(
-            f"Unit mismatch: quantities must be normalized to same unit first ({q1.unit} vs {q2.unit})"
+            f"Unit mismatch: quantities must be normalized to same unit first "
+            f"({q1.unit} vs {q2.unit})"
         )
 
     d1 = Decimal(q1.decimal)
@@ -188,7 +184,8 @@ def subtract_quantities(minuend: Quantity, subtrahend: Quantity) -> Quantity:
         )
     if minuend.unit != subtrahend.unit:
         raise NumericSafetyError(
-            f"Unit mismatch: quantities must be normalized to same unit first ({minuend.unit} vs {subtrahend.unit})"
+            f"Unit mismatch: quantities must be normalized to same unit first "
+            f"({minuend.unit} vs {subtrahend.unit})"
         )
 
     d1 = Decimal(minuend.decimal)

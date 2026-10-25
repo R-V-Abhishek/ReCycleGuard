@@ -1,4 +1,6 @@
-"""Unit tests for Gate G03 Numeric Safety: Decimal arithmetic, conversions, and dimension isolation."""
+"""Unit tests for Gate G03 Numeric Safety:
+Decimal arithmetic, conversions, and dimension isolation.
+"""
 
 import unittest
 from decimal import Decimal
@@ -7,7 +9,6 @@ from recycleguard.normalization.units import (
     NumericSafetyError,
     add_quantities,
     convert_mass_to_kg,
-    format_decimal_string,
     normalize_quantity,
     parse_strict_decimal,
     subtract_quantities,

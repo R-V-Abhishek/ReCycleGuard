@@ -160,7 +160,8 @@ class TestNormalizationService(unittest.TestCase):
         self.assertEqual(batch.case_id, "case:001")
         self.assertEqual(batch.batch_id, "batch:test_001")
 
-        # 1. Total records: 2 entities + 1 obligation + 1 certificate event + 1 commercial + 1 balance = 6
+        # 1. Total records: 2 entities + 1 obligation + 1 certificate event +
+        # 1 commercial + 1 balance = 6
         self.assertEqual(len(batch.records), 6)
 
         record_types = [r.record_type for r in batch.records]

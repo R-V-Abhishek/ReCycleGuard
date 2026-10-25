@@ -4,28 +4,19 @@ Transforms raw observations into validated domain records, resolves event
 equivalence, and packages a complete NormalizationBatch.
 """
 
-from pathlib import Path
-from typing import Any
-
-from recycleguard.contracts.core import ID, Issue, TemporalValue
+from recycleguard.contracts.core import Issue
 from recycleguard.contracts.domain import (
     AccountBalanceObservation,
-    Allocation,
-    Certificate,
-    CertificateEvent,
     CommercialRecord,
     Entity,
     Identifier,
     NonnegativeMass,
     NormalizedRecord,
     ObligationBucket,
-    Registration,
-    ReviewedInterval,
 )
 from recycleguard.contracts.extraction import Observation
 from recycleguard.normalization.equivalence import EventEquivalenceEngine
 from recycleguard.normalization.models import (
-    EventEquivalence,
     NormalizationBatch,
     ObservationDisposition,
 )
@@ -138,21 +129,16 @@ class NormalizationService:
                 money_val = parsed.get("money")
                 credit_qty_val = parsed.get("credit_quantity")
 
-                norm_money = (
-                    normalize_quantity(money_val, "INR", "MONEY")
-                    if money_val
-                    else None
-                )
-                norm_credit_qty = (
-                    NonnegativeMass(
-                        decimal=normalize_quantity(credit_qty_val, "KG", "METAL_MASS", metal="CU").decimal,
+                norm_money = normalize_quantity(money_val, "INR", "MONEY") if money_val else None
+                norm_credit_qty = None
+                if credit_qty_val:
+                    norm_cu = normalize_quantity(credit_qty_val, "KG", "METAL_MASS", metal="CU")
+                    norm_credit_qty = NonnegativeMass(
+                        decimal=norm_cu.decimal,
                         unit="KG",
                         dimension="METAL_MASS",
                         metal="CU",
                     )
-                    if credit_qty_val
-                    else None
-                )
 
                 cr = CommercialRecord(
                     record_id=comm_id,
@@ -233,11 +219,16 @@ class NormalizationService:
 
         for obs in cert_observations:
             derived_evts = obs_to_event.get(obs.observation_id, [])
+            reason = (
+                "Resolved via event equivalence"
+                if derived_evts
+                else "Unresolved certificate observation"
+            )
             dispositions.append(
                 ObservationDisposition(
                     observation_id=obs.observation_id,
                     disposition="ACCEPTED" if derived_evts else "QUARANTINED",
-                    reason="Resolved via event equivalence" if derived_evts else "Unresolved certificate observation",
+                    reason=reason,
                     derived_record_ids=derived_evts,
                 )
             )
