@@ -14,22 +14,91 @@ import hashlib
 import sqlite3
 import uuid
 from datetime import UTC, datetime
-from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from recycleguard.contracts import BlobRef, CommandContext
 from recycleguard.contracts.artifacts import ArtifactRevision, AssetReceipt, FrozenSnapshot
 from recycleguard.contracts.audit import OperationIntent, OperationResult
 from recycleguard.contracts.core import ActorRef, TemporalValue
-from recycleguard.storage import ArtifactCatalog, AuditKernel, BlobIntegrityError, BlobStore
-from recycleguard.storage import canonical_json_bytes
+from recycleguard.storage import ArtifactCatalog as RawCatalog
+from recycleguard.storage import AuditKernel as RawKernel
+from recycleguard.storage import BlobIntegrityError, BlobStore, canonical_json_bytes
+from recycleguard.storage.authority import LocalAuthority, TrustedPrincipal
 from recycleguard.storage.catalog import CatalogError
+
+
+class AuditKernel(RawKernel):
+    """Test dispatcher: supplies only the configured service capability."""
+
+    def __init__(self, database, store):
+        authority = LocalAuthority(
+            {
+                "service": TrustedPrincipal(
+                    actor=_actor(), event_prefixes=frozenset({"intake.", "snapshot.", "cp0."})
+                )
+            }
+        )
+        super().__init__(database, store, authority=authority)
+        self.service_capability = authority.issue("service")
+
+    def commit_intent(self, intent, **kwargs):
+        kwargs.setdefault("capability", self.service_capability)
+        return super().commit_intent(intent, **kwargs)
+
+    def record_attempt(self, intent, **kwargs):
+        kwargs.setdefault("capability", self.service_capability)
+        return super().record_attempt(intent, **kwargs)
+
+    def commit_result(self, intent, result, **kwargs):
+        kwargs.setdefault("capability", self.service_capability)
+        return super().commit_result(intent, result, **kwargs)
+
+
+class ArtifactCatalog(RawCatalog):
+    """Route legacy catalog round-trip assertions through the audited write API."""
+
+    def __init__(self, database, store):
+        coordinator = AuditKernel(database, store)
+        super().__init__(database, store, kernel=coordinator)
+
+    def _audited(self, method, value, event_type):
+        context = _context(uuid.uuid4().hex)
+        intent = _intent(
+            self.blob_store,
+            context,
+            event_type=event_type,
+            payload_bytes=canonical_json_bytes(value.model_dump(mode="json")),
+        )
+        self.kernel.commit_intent(intent)
+        captured = []
+
+        def mutation():
+            captured.append(method(value))
+
+        self.kernel.commit_result(
+            intent, _success_result(context, intent.payload), mutation=mutation
+        )
+        return captured[0]
+
+    def put_artifact_revision(self, value):
+        return self._audited(super().put_artifact_revision, value, "intake.artifact")
+
+    def put_receipt(self, value):
+        return self._audited(super().put_receipt, value, "intake.receipt")
+
+    def put_snapshot(self, value):
+        return self._audited(super().put_snapshot, value, "snapshot.create")
+
+    def close(self):
+        self.kernel.close()
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _now() -> str:
     return datetime.now(UTC).isoformat().replace("+00:00", "Z")
@@ -260,9 +329,7 @@ class TestArtifactCatalogRoundTrip:
         other_ref = store.put(other_body, "application/octet-stream")
         # Manually build another revision that would have the same artifact_revision_id
         # but different content — easiest via model_copy
-        different = rev.model_copy(
-            update={"blob": other_ref, "original_filename": "different.bin"}
-        )
+        different = rev.model_copy(update={"blob": other_ref, "original_filename": "different.bin"})
         with pytest.raises(CatalogError, match="different content"):
             catalog.put_artifact_revision(different)
         catalog.close()
@@ -283,8 +350,11 @@ class TestArtifactCatalogRoundTrip:
             source_url=None,
             fetch_attempt_id=None,
             captured_at=TemporalValue(
-                raw=None, value=None, precision="UNKNOWN",
-                timezone=None, interpretation_status="UNKNOWN"
+                raw=None,
+                value=None,
+                precision="UNKNOWN",
+                timezone=None,
+                interpretation_status="UNKNOWN",
             ),
             ingested_at=_now(),
             access_policy_id="policy:default",
@@ -306,7 +376,8 @@ class TestArtifactCatalogRoundTrip:
         listed = catalog.list_revisions_for_artifact("artifact:multi")
         assert len(listed) == 2
         assert {r.artifact_revision_id for r in listed} == {
-            r1.artifact_revision_id, r2.artifact_revision_id
+            r1.artifact_revision_id,
+            r2.artifact_revision_id,
         }
         catalog.close()
 
@@ -426,7 +497,7 @@ class TestSnapshotCatalogRoundTrip:
             catalog.put_snapshot(bad)
         catalog.close()
 
-    def test_snapshot_requires_received_receipts(self, tmp_path):
+    def test_snapshot_retains_failed_receipts(self, tmp_path):
         store = BlobStore(tmp_path)
         catalog = ArtifactCatalog(tmp_path / "catalog.sqlite", store)
         snapshot = self._make_snapshot(store, catalog)
@@ -434,11 +505,9 @@ class TestSnapshotCatalogRoundTrip:
         # Add a failed receipt and reference it from the snapshot
         failed_r = _receipt(None, "receipt:fail1", status="FETCH_FAILED")
         catalog.put_receipt(failed_r)
-        bad = snapshot.model_copy(
-            update={"source_receipt_ids": ["receipt:sr1", "receipt:fail1"]}
-        )
-        with pytest.raises(CatalogError, match="non-RECEIVED"):
-            catalog.put_snapshot(bad)
+        bad = snapshot.model_copy(update={"source_receipt_ids": ["receipt:sr1", "receipt:fail1"]})
+        stored = catalog.put_snapshot(bad)
+        assert "receipt:fail1" in stored.source_receipt_ids
         catalog.close()
 
     def test_snapshot_membership_digest_mismatch_raises(self, tmp_path):
@@ -474,10 +543,10 @@ class TestSnapshotCatalogRoundTrip:
         catalog = ArtifactCatalog(tmp_path / "catalog.sqlite", store)
         snapshot = self._make_snapshot(store, catalog)
         catalog.put_snapshot(snapshot)
-        updated = catalog.update_snapshot_review_state(snapshot.snapshot_id, "APPROVED")
-        assert updated.review_state == "APPROVED"
+        with pytest.raises(CatalogError, match="immutable"):
+            catalog.update_snapshot_review_state(snapshot.snapshot_id, "APPROVED")
         fetched = catalog.get_snapshot(snapshot.snapshot_id)
-        assert fetched.review_state == "APPROVED"
+        assert fetched.review_state == "DRAFT"
         catalog.close()
 
 
@@ -494,7 +563,7 @@ class TestIntentBeforeWrite:
         intent = _intent(store, ctx)
         result = _success_result(ctx, intent.payload)
         # Never commit the intent
-        with pytest.raises(ValueError, match="intent-before-write"):
+        with pytest.raises(ValueError, match="exact intent"):
             kernel.commit_result(intent, result)
         kernel.close()
 
@@ -507,7 +576,7 @@ class TestIntentBeforeWrite:
         # Forge a different intent with same operation_id
         forged = intent.model_copy(update={"event_type": "intake.forged"})
         result = _success_result(ctx, intent.payload)
-        with pytest.raises(ValueError, match="intent-before-write"):
+        with pytest.raises(ValueError, match="exact intent"):
             kernel.commit_result(forged, result)
         kernel.close()
 
@@ -550,7 +619,7 @@ class TestIntentBeforeWrite:
         # review.* events require HUMAN; SERVICE should be rejected
         ctx = _context("wrong_actor", actor_kind="SERVICE")
         intent = _intent(store, ctx, event_type="review.decision")
-        with pytest.raises(ValueError, match="actor_kind"):
+        with pytest.raises(ValueError, match="permitted"):
             kernel.commit_intent(intent)
         kernel.close()
 
@@ -559,8 +628,8 @@ class TestIntentBeforeWrite:
         kernel = AuditKernel(tmp_path / "audit.sqlite", store)
         ctx = _context("correct_actor", actor_kind="HUMAN", run_id=None, case_version_id=None)
         intent = _intent(store, ctx, event_type="review.decision")
-        stored = kernel.commit_intent(intent)
-        assert stored.idempotency_key == ctx.idempotency_key
+        with pytest.raises(ValueError, match="capability"):
+            kernel.commit_intent(intent)
         kernel.close()
 
 
@@ -619,7 +688,6 @@ class TestAtomicCommits:
 
     def test_event_hash_covers_all_fields(self, tmp_path):
         """Verify the stored event_hash matches a freshly computed digest."""
-        import hashlib
         from recycleguard.storage import canonical_json_bytes
 
         store = BlobStore(tmp_path)
@@ -662,7 +730,7 @@ class TestAtomicCommits:
             payload=None,
             issue_codes=["AUDIT_UNAVAILABLE"],
         )
-        event = kernel.commit_result(intent, result)
+        kernel.commit_result(intent, result)
         stored = kernel.get_result(ctx.operation_id)
         assert stored.status == "OUTCOME_UNKNOWN"
         assert "AUDIT_UNAVAILABLE" in stored.issue_codes
@@ -674,7 +742,7 @@ class TestAtomicCommits:
 
         def _commit_on_stream(suffix: str, stream: str):
             ctx = _context(suffix)
-            payload = store.put(f"{{\"s\":\"{stream}\"}}".encode(), "application/json")
+            payload = store.put(f'{{"s":"{stream}"}}'.encode(), "application/json")
             intent = OperationIntent(
                 context=ctx,
                 idempotency_key=ctx.idempotency_key,
@@ -721,7 +789,9 @@ class TestIdempotency:
         intent = _intent(store, ctx)
         kernel.commit_intent(intent)
         other_payload = store.put(b'{"v":2}', "application/json")
-        different = intent.model_copy(update={"payload": other_payload, "event_type": "intake.other"})
+        different = intent.model_copy(
+            update={"payload": other_payload, "event_type": "intake.other"}
+        )
         with pytest.raises(ValueError, match="different intent"):
             kernel.commit_intent(different)
         kernel.close()
@@ -824,7 +894,7 @@ class TestFailureHandling:
             status="SUCCESS",
             payload=forged_payload,
         )
-        with pytest.raises(ValueError, match="intent-before-write"):
+        with pytest.raises(ValueError, match="exact intent"):
             kernel.commit_result(forged_intent, result)
         kernel.close()
 
@@ -861,8 +931,8 @@ class TestFailureHandling:
         kernel.close()
 
     def test_non_success_result_requires_issue_codes(self):
-        """Verify contract: non-success OperationResult without issues raises at model validation."""
-        with pytest.raises(Exception):
+        """Non-success OperationResult requires explicit issues."""
+        with pytest.raises(ValidationError):
             OperationResult(
                 operation_id="operation:t",
                 attempt_id="attempt:t",
@@ -884,7 +954,7 @@ class TestFailureHandling:
         assert len(events) == 3
         assert [e.sequence for e in events] == [1, 2, 3]
         # Hash chain integrity
-        for prev, curr in zip(events, events[1:]):
+        for prev, curr in zip(events, events[1:], strict=False):
             assert curr.previous_event_hash == prev.event_hash
         kernel.close()
 

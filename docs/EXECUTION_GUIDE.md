@@ -17,15 +17,9 @@ uv --version
 git --version
 ```
 
-The visible fixtures include byte-level digests. On Windows, set Git to keep
-those files byte-stable before cloning or refreshing a checkout:
-
-```powershell
-git config --global core.autocrlf false
-```
-
-For an existing checkout, re-clone after changing this setting rather than
-relying on a line-ending conversion of already checked-out fixtures.
+The repository's `.gitattributes` enforces LF for text fixtures and preserves
+binary PDFs/images. No global Git configuration change is required. The same uv
+commands work on macOS/Linux; PowerShell examples below retain Windows paths.
 
 ## Set up the environment
 
@@ -105,7 +99,8 @@ reconciliation, or real-model workflow. Do not interpret a successful
 4. Run the narrowest relevant test command, then the full `uv run pytest`
    suite before handoff.
 5. Run schema export checks when a contract model or schema changes.
-6. Record the exact commands and results in the root `documentation.md`.
+6. Record exact commands/results and per-member contributions under
+   `docs/checkpoints/`, keeping historical checkpoint packets immutable.
 
 ## Troubleshooting
 
@@ -141,3 +136,25 @@ uv run pytest
 
 Do not commit generated runtime data, databases, secrets, hidden evaluation
 artifacts, or local environment directories.
+
+## Audited write API
+
+Create an `AuditKernel` with a trusted `LocalAuthority` configured by application
+composition. Issue an opaque capability to an authenticated/configured principal;
+never expose principal registration or capability issuance as model tools. A human
+principal requires a verified session supplied by the trusted entry point.
+
+Pass `capability=` to intent, attempt and result calls. Open `ArtifactCatalog`
+with `kernel=kernel` and the same database. Call its writes only through the
+`mutation=` callback of `kernel.commit_result`: catalog rows, attempt result,
+logical result and audit event then commit or roll back together. Standalone
+catalog connections are read-only through the public API.
+
+For a known retryable failure, record `commit_result(..., terminal=False)` without
+domain mutations. Register the next attempt with a new attempt ID and the same
+logical request/key; both outcomes remain archived. OUTCOME_UNKNOWN is terminal:
+provider completion must be resolved before any later authorized operation.
+A terminal logical result cannot trigger a new dispatch attempt.
+
+Snapshots retain missing/failed receipts as evidence. Snapshot objects are
+immutable; review must create a child revision rather than editing stored JSON.

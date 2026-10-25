@@ -51,8 +51,7 @@ def complete_visible_provenance(case_dir: Path) -> list[Path]:
     source_path = docs / "doc_source_records.json"
     with source_path.open("w", encoding="utf-8", newline="\n") as file:
         file.write(
-            json.dumps({"synthetic": True, "source_rows": rows}, indent=2, sort_keys=True)
-            + "\n"
+            json.dumps({"synthetic": True, "source_rows": rows}, indent=2, sort_keys=True) + "\n"
         )
     for observation_id, payload in rows.items():
         observations.append(

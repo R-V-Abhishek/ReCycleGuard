@@ -122,10 +122,11 @@ def export(check: Annotated[bool, typer.Option("--check")] = False):
         path = root / f"{name}.json"
         expected = json.dumps(model.model_json_schema(), indent=2, ensure_ascii=False) + "\n"
         if check:
-            if not path.exists() or path.read_text() != expected:
+            if not path.exists() or path.read_text(encoding="utf-8") != expected:
                 raise typer.BadParameter(f"schema drift: {path.name}; regenerate schemas")
         else:
-            path.write_text(expected)
+            with path.open("w", encoding="utf-8", newline="\n") as stream:
+                stream.write(expected)
     typer.echo(f"{'Checked' if check else 'Generated'} {len(MODELS)} boundary schemas")
 
 

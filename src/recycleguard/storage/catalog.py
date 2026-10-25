@@ -1,23 +1,22 @@
-"""V02 artifact catalog: SQLite-backed registry for artifact revisions, intake receipts and snapshots.
+"""V02 SQLite registry for artifact revisions, receipts and snapshots.
 
 Every catalog write enforces blob-before-reference: the BlobRef must be retrievable from the
 BlobStore before the catalog row is committed.  This prevents orphan references.
 
-Frozen snapshots additionally require that every source receipt listed resolves to a RECEIVED
-entry, and that the membership blob and coverage blob are both present in the store.
+Frozen snapshots retain missing/failed receipts as well as received evidence.
+Membership and coverage blobs must exist in the store.
 
 This module does not implement C05 approval workflow; approval state changes are made through
 the AuditKernel which requires an intent/result pair.
 """
 
-import json
 import sqlite3
 from pathlib import Path
 
 from recycleguard.contracts.artifacts import ArtifactRevision, AssetReceipt, FrozenSnapshot
 
+from .audit_kernel import AuditKernel
 from .blob_store import BlobStore, canonical_json_bytes
-
 
 _CATALOG_SCHEMA = """
 PRAGMA journal_mode = WAL;
@@ -57,18 +56,44 @@ class CatalogError(ValueError):
 class ArtifactCatalog:
     """SQLite-backed artifact catalog with blob-before-reference enforcement.
 
-    All writes are idempotent: re-inserting the same record with the same serialisation
+    All writes require an active shared AuditKernel transaction.
+    Reads may use a standalone connection. Re-inserting the same serialized record
     is a no-op; re-inserting with a different serialisation raises CatalogError.
     """
 
-    def __init__(self, database: str | Path, blob_store: BlobStore) -> None:
+    def __init__(
+        self, database: str | Path, blob_store: BlobStore, *, kernel: AuditKernel | None = None
+    ) -> None:
         self.blob_store = blob_store
-        self.connection = sqlite3.connect(database)
-        self.connection.row_factory = sqlite3.Row
+        if kernel is not None:
+            self.kernel = kernel
+            self.connection = kernel.connection
+            actual = self.connection.execute("PRAGMA database_list").fetchone()[2]
+            if Path(actual).resolve() != Path(database).resolve():
+                raise CatalogError("catalog and kernel must use the same database")
+            self._owns_connection = False
+        else:
+            self.kernel = None
+            self.connection = sqlite3.connect(database)
+            self.connection.row_factory = sqlite3.Row
+            self._owns_connection = True
+        if self.connection.in_transaction:
+            raise CatalogError("catalog must be opened before an audited transaction")
         self.connection.executescript(_CATALOG_SCHEMA)
 
     def close(self) -> None:
-        self.connection.close()
+        if self._owns_connection:
+            self.connection.close()
+
+    def _require_write(self, prefixes):
+        if (
+            self.kernel is None
+            or self.kernel.active_intent is None
+            or not self.connection.in_transaction
+        ):
+            raise CatalogError("catalog writes require the shared audited transaction")
+        if not any(self.kernel.active_intent.event_type.startswith(p) for p in prefixes):
+            raise CatalogError("active operation does not permit this catalog mutation")
 
     # ------------------------------------------------------------------
     # Artifact revisions
@@ -80,6 +105,7 @@ class ArtifactCatalog:
         Idempotent: returns the stored revision if an identical record already exists.
         Raises CatalogError if the same ID is reused with different content.
         """
+        self._require_write(("intake.", "extraction.", "normalization."))
         # blob-before-reference: raises FileNotFoundError / BlobIntegrityError on failure
         self.blob_store.get(revision.blob)
 
@@ -96,11 +122,10 @@ class ArtifactCatalog:
                 )
             return ArtifactRevision.model_validate_json(existing["revision_json"])
 
-        with self.connection:
-            self.connection.execute(
-                "INSERT INTO artifact_revisions VALUES (?, ?, ?, ?)",
-                (revision.artifact_revision_id, revision.artifact_id, revision.blob.sha256, encoded),
-            )
+        self.connection.execute(
+            "INSERT INTO artifact_revisions VALUES (?, ?, ?, ?)",
+            (revision.artifact_revision_id, revision.artifact_id, revision.blob.sha256, encoded),
+        )
         return revision
 
     def get_artifact_revision(self, artifact_revision_id: str) -> ArtifactRevision:
@@ -132,6 +157,7 @@ class ArtifactCatalog:
         Idempotent: same content → same stored receipt.
         Raises CatalogError for ID collision with different content.
         """
+        self._require_write(("intake.",))
         if receipt.intake_status == "RECEIVED":
             if receipt.artifact_revision_id is None:
                 raise CatalogError("RECEIVED receipt must have artifact_revision_id")
@@ -150,11 +176,10 @@ class ArtifactCatalog:
                 )
             return AssetReceipt.model_validate_json(existing["receipt_json"])
 
-        with self.connection:
-            self.connection.execute(
-                "INSERT INTO intake_receipts VALUES (?, ?, ?, ?)",
-                (receipt.receipt_id, receipt.batch_id, receipt.intake_status, encoded),
-            )
+        self.connection.execute(
+            "INSERT INTO intake_receipts VALUES (?, ?, ?, ?)",
+            (receipt.receipt_id, receipt.batch_id, receipt.intake_status, encoded),
+        )
         return receipt
 
     def get_receipt(self, receipt_id: str) -> AssetReceipt:
@@ -180,21 +205,23 @@ class ArtifactCatalog:
     def put_snapshot(self, snapshot: FrozenSnapshot) -> FrozenSnapshot:
         """Store a frozen snapshot after verifying membership and coverage blobs exist.
 
-        All source receipt IDs listed in the snapshot must have RECEIVED receipts in the catalog.
+        Every source receipt ID must exist, including missing/failed dispositions.
         Idempotent: same content → same stored snapshot.
         Raises CatalogError on ID collision with different content.
         """
+        self._require_write(("snapshot.", "review."))
+        if snapshot.review_state != "DRAFT" and not self.kernel.active_intent.event_type.startswith(
+            "review."
+        ):
+            raise CatalogError("snapshot approval requires a trusted review operation")
         # blob-before-reference for both membership and coverage blobs
         self.blob_store.get(snapshot.membership_blob)
         self.blob_store.get(snapshot.coverage_blob)
 
-        # Every declared source receipt must be present and RECEIVED
+        # Missing/failed receipts are evidence and remain in frozen membership.
+        # Only an absent receipt ID is invalid; downstream coverage controls conclusions.
         for rid in snapshot.source_receipt_ids:
-            receipt = self.get_receipt(rid)
-            if receipt.intake_status != "RECEIVED":
-                raise CatalogError(
-                    f"snapshot references non-RECEIVED receipt {rid}: {receipt.intake_status}"
-                )
+            self.get_receipt(rid)
 
         # Membership digest must match the declared value on the model
         if snapshot.membership_blob.sha256 != snapshot.membership_digest:
@@ -214,17 +241,16 @@ class ArtifactCatalog:
                 )
             return FrozenSnapshot.model_validate_json(existing["snapshot_json"])
 
-        with self.connection:
-            self.connection.execute(
-                "INSERT INTO frozen_snapshots VALUES (?, ?, ?, ?, ?)",
-                (
-                    snapshot.snapshot_id,
-                    snapshot.snapshot_kind,
-                    snapshot.membership_blob.sha256,
-                    snapshot.review_state,
-                    encoded,
-                ),
-            )
+        self.connection.execute(
+            "INSERT INTO frozen_snapshots VALUES (?, ?, ?, ?, ?)",
+            (
+                snapshot.snapshot_id,
+                snapshot.snapshot_kind,
+                snapshot.membership_blob.sha256,
+                snapshot.review_state,
+                encoded,
+            ),
+        )
         return snapshot
 
     def get_snapshot(self, snapshot_id: str) -> FrozenSnapshot:
@@ -251,18 +277,4 @@ class ArtifactCatalog:
         return [FrozenSnapshot.model_validate_json(r["snapshot_json"]) for r in rows]
 
     def update_snapshot_review_state(self, snapshot_id: str, new_state: str) -> FrozenSnapshot:
-        """Update the review_state of an existing snapshot (DRAFT → APPROVED/REJECTED).
-
-        This is a raw catalog update used by the AuditKernel after committing an approval intent.
-        It must not be called directly by application code; go through the kernel.
-        """
-        snapshot = self.get_snapshot(snapshot_id)
-        updated = snapshot.model_copy(update={"review_state": new_state})
-        encoded = canonical_json_bytes(updated.model_dump(mode="json")).decode()
-        with self.connection:
-            self.connection.execute(
-                "UPDATE frozen_snapshots SET review_state = ?, snapshot_json = ? "
-                "WHERE snapshot_id = ?",
-                (new_state, encoded, snapshot_id),
-            )
-        return updated
+        raise CatalogError("frozen snapshots are immutable; create a reviewed child revision")

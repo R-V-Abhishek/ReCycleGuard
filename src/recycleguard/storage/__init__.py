@@ -3,6 +3,7 @@
 from recycleguard.contracts.audit import AuditEvent, OperationIntent, OperationResult
 
 from .audit_kernel import AuditKernel
+from .authority import AuthorizationError, Capability, LocalAuthority, TrustedPrincipal
 from .blob_store import BlobIntegrityError, BlobRef, BlobStore, canonical_json_bytes
 from .catalog import ArtifactCatalog, CatalogError
 
@@ -19,6 +20,10 @@ __all__ = [
     "OperationResult",
     # V02 production kernel
     "AuditKernel",
+    "AuthorizationError",
+    "Capability",
+    "LocalAuthority",
+    "TrustedPrincipal",
     "ArtifactCatalog",
     "CatalogError",
     # Shared
