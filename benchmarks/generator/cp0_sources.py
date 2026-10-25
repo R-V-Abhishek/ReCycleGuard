@@ -22,7 +22,11 @@ ENVELOPE = {
 
 
 def write_jsonl(path, records):
-    path.write_text("".join(json.dumps(r, sort_keys=True) + "\n" for r in records))
+    path.write_text(
+        "".join(json.dumps(r, sort_keys=True) + "\n" for r in records),
+        encoding="utf-8",
+        newline="\n",
+    )
 
 
 def locator(kind, **coordinates):
@@ -49,7 +53,9 @@ def complete_visible_provenance(case_dir: Path) -> list[Path]:
                 rows[observation_id] = {k: v for k, v in record.items() if k not in ENVELOPE}
     source_path = docs / "doc_source_records.json"
     source_path.write_text(
-        json.dumps({"synthetic": True, "source_rows": rows}, indent=2, sort_keys=True) + "\n"
+        json.dumps({"synthetic": True, "source_rows": rows}, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+        newline="\n",
     )
     for observation_id, payload in rows.items():
         observations.append(
@@ -96,7 +102,11 @@ def complete_visible_provenance(case_dir: Path) -> list[Path]:
         ]
     }
     portal_path = docs / "doc_portal_transactions.json"
-    portal_path.write_text(json.dumps(portal_payload, indent=2, sort_keys=True) + "\n")
+    portal_path.write_text(
+        json.dumps(portal_payload, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
     certs[1]["raw_fields"] = portal_payload["portal_transactions"][0]
     for cert in certs:
         cert["ingestion_time"] = STAMP
