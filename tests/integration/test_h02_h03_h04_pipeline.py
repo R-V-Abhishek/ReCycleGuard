@@ -45,7 +45,7 @@ def test_complete_h02_h03_h04_pipeline(tmp_path):
     authority = LocalAuthority(
         {
             "service": TrustedPrincipal(actor, frozenset({"intake.", "profile."})),
-            "reviewer": TrustedPrincipal(human_reviewer, frozenset({"profile."})),
+            "reviewer": TrustedPrincipal(human_reviewer, frozenset({"review."})),
         }
     )
     cap_service = authority.issue("service")
@@ -84,7 +84,7 @@ def test_complete_h02_h03_h04_pipeline(tmp_path):
 
     assert len(intake_result.receipts) > 0
     assert len(intake_result.artifact_revisions) > 0
-    assert intake_result.case_id == "case:cp0_starter_001"
+    assert intake_result.case_id == "case:001"
 
     # -------------------------------------------------------------
     # Step 2 (H03): Extraction and Coverage Tracking
@@ -120,10 +120,16 @@ def test_complete_h02_h03_h04_pipeline(tmp_path):
     sources_intent_payload = store.put(
         canonical_json_bytes({"step": "register_sources"}), "application/json"
     )
+    sources_ctx = context.model_copy(
+        update={
+            "command_id": "cmd:reg_sources",
+            "operation_id": "op:reg_sources",
+            "attempt_id": "att:reg_sources",
+            "idempotency_key": "key:reg_sources",
+        }
+    )
     sources_intent = OperationIntent(
-        context=context.model_copy(
-            update={"operation_id": "op:reg_sources", "idempotency_key": "key:reg_sources"}
-        ),
+        context=sources_ctx,
         idempotency_key="key:reg_sources",
         event_type="intake.batch",
         payload=sources_intent_payload,
@@ -138,7 +144,7 @@ def test_complete_h02_h03_h04_pipeline(tmp_path):
     sources_res_payload = store.put(canonical_json_bytes({"status": "SUCCESS"}), "application/json")
     sources_result = OperationResult(
         operation_id="op:reg_sources",
-        attempt_id=context.attempt_id,
+        attempt_id="att:reg_sources",
         status="SUCCESS",
         payload=sources_res_payload,
         issue_codes=[],
@@ -150,7 +156,12 @@ def test_complete_h02_h03_h04_pipeline(tmp_path):
     # Publish draft profile
     defn = build_v1_profile_definition(r02_rev, r08_rev)
     pub_ctx = context.model_copy(
-        update={"operation_id": "op:publish_v1_prof", "idempotency_key": "key:publish_v1_prof"}
+        update={
+            "command_id": "cmd:publish_v1_prof",
+            "operation_id": "op:publish_v1_prof",
+            "attempt_id": "att:publish_v1_prof",
+            "idempotency_key": "key:publish_v1_prof",
+        }
     )
     draft_prof = profiles.publish(
         pub_ctx,
@@ -167,7 +178,9 @@ def test_complete_h02_h03_h04_pipeline(tmp_path):
     # Human review and approval
     rev_ctx = context.model_copy(
         update={
+            "command_id": "cmd:review_v1_prof",
             "operation_id": "op:review_v1_prof",
+            "attempt_id": "att:review_v1_prof",
             "idempotency_key": "key:review_v1_prof",
             "actor": human_reviewer,
         }

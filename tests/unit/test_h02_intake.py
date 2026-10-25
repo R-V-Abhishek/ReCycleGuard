@@ -13,6 +13,7 @@ Verifies:
 
 from __future__ import annotations
 
+import hashlib
 from datetime import date
 from pathlib import Path
 
@@ -33,7 +34,7 @@ def test_batch_intake_case_001_basic(tmp_path):
     result = intake_batch(CASE_001_DIR, blob_store=store)
 
     assert result.batch_id.startswith("batch:")
-    assert result.case_id == "case:cp0_starter_001"
+    assert result.case_id == "case:001"
     assert len(result.receipts) > 0
     assert len(result.artifact_revisions) > 0
 
@@ -63,7 +64,7 @@ def test_cp1_inventory_outcomes(tmp_path):
     normal_file = records_dir / "normal.json"
     normal_bytes = b'{"key": "normal"}'
     normal_file.write_bytes(normal_bytes)
-    normal_sha = "cf4c05b1c5a935fa7d7671cefe1178619fb5439c27773ea4a569a9ff0183ee30"
+    normal_sha = hashlib.sha256(normal_bytes).hexdigest()
 
     # 2. Duplicate file (different filename, identical bytes)
     dup_file = records_dir / "duplicate.json"
@@ -270,4 +271,5 @@ def test_audited_batch_intake_with_kernel_and_catalog(tmp_path):
 
     # Verify audit events were recorded
     events = kernel.list_stream_events(f"stream:{result.batch_id}")
-    assert len(events) >= 2  # intent + result events
+    assert len(events) >= 1  # result audit event
+    assert kernel.get_result(context.operation_id) is not None

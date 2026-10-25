@@ -104,10 +104,19 @@ def test_profile_store_integration_and_dependency_verification(tmp_path):
     actor = ActorRef(
         actor_id="service:profile_admin", actor_kind="SERVICE", authenticated_session_ref=None
     )
+    human_actor = ActorRef(
+        actor_id="human:sampreeth",
+        actor_kind="HUMAN",
+        authenticated_session_ref="session:sampreeth_review",
+    )
     authority = LocalAuthority(
-        {"admin": TrustedPrincipal(actor, frozenset({"profile.", "intake."}))}
+        {
+            "admin": TrustedPrincipal(actor, frozenset({"profile.", "intake."})),
+            "reviewer": TrustedPrincipal(human_actor, frozenset({"review."})),
+        }
     )
     cap = authority.issue("admin")
+    cap_review = authority.issue("reviewer")
     db_path = tmp_path / "app.sqlite"
     kernel = AuditKernel(db_path, store, authority=authority)
     catalog = ArtifactCatalog(db_path, store, kernel=kernel)
@@ -188,16 +197,6 @@ def test_profile_store_integration_and_dependency_verification(tmp_path):
     assert exc_info.value.code == "UNAPPROVED_PROFILE"
 
     # 3. Authenticate human reviewer and approve profile
-    human_actor = ActorRef(
-        actor_id="human:sampreeth",
-        actor_kind="HUMAN",
-        authenticated_session_ref="session:sampreeth_review",
-    )
-    authority_review = LocalAuthority(
-        {"reviewer": TrustedPrincipal(human_actor, frozenset({"profile."}))}
-    )
-    cap_review = authority_review.issue("reviewer")
-
     context_review = context.model_copy(
         update={
             "command_id": "cmd:prof_rev",
