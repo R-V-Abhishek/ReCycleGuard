@@ -1,13 +1,9 @@
-"""A03 internal snapshot persistence slice, built on the V02 audited coordinator.
-
-This is not the complete C05 facade: profile policy persistence, ServiceResult CLI
-handlers and trusted login/session establishment remain to be integrated.
-"""
+"""A03 immutable snapshot primitives. CaseService supplies the structured boundary."""
 
 from datetime import UTC, datetime
 
 from recycleguard.contracts import CommandContext
-from recycleguard.contracts.artifacts import FrozenSnapshot
+from recycleguard.contracts.artifacts import FrozenSnapshot, SnapshotRef
 from recycleguard.contracts.audit import OperationIntent, OperationResult
 from recycleguard.contracts.snapshots import SnapshotPublication, SnapshotReview
 from recycleguard.storage import ArtifactCatalog, AuditKernel, Capability, canonical_json_bytes
@@ -34,6 +30,17 @@ class SnapshotStore:
             "SELECT snapshot_id FROM snapshot_heads WHERE scope_id=?", (scope_id,)
         ).fetchone()
         return None if row is None else self.catalog.get_snapshot(row["snapshot_id"])
+
+    def get(self, reference: SnapshotRef) -> FrozenSnapshot:
+        """Resolve an exact frozen input, never substitute the scope's latest head."""
+        snapshot = self.catalog.get_snapshot(reference.snapshot_id)
+        if snapshot.membership_digest != reference.membership_digest:
+            raise CatalogError("STALE_SNAPSHOT: pinned membership digest does not match")
+        self.kernel.blob_store.get(snapshot.membership_blob)
+        self.kernel.blob_store.get(snapshot.coverage_blob)
+        for receipt_id in snapshot.source_receipt_ids:
+            self.catalog.get_receipt(receipt_id)
+        return snapshot
 
     def _begin(self, context, request, event_type, capability):
         self.kernel.authority.check(capability, context.actor, event_type)

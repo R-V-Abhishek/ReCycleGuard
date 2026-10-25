@@ -158,3 +158,39 @@ A terminal logical result cannot trigger a new dispatch attempt.
 
 Snapshots retain missing/failed receipts as evidence. Snapshot objects are
 immutable; review must create a child revision rather than editing stored JSON.
+
+## C05 local snapshot/profile commands
+
+A03 supplies a trusted local entry point on macOS/Linux. It uses
+`RECYCLEGUARD_DATA_ROOT` (default `.recycleguard`) for blobs, `application.sqlite`
+and a private `reviewer.json`. Keep that root outside Git. Existing membership,
+coverage and source artifacts must already be stored through audited intake;
+these commands do not perform H02 import or H03 extraction.
+
+```sh
+uv run recycleguard reviewer init human:lead
+uv run recycleguard snapshot publish /absolute/path/snapshot-publication.json
+uv run recycleguard snapshot review /absolute/path/snapshot-review.json
+uv run recycleguard snapshot reopen /absolute/path/case-reopen.json
+uv run recycleguard profile publish /absolute/path/profile-publication.json
+uv run recycleguard profile review /absolute/path/profile-review.json
+```
+
+Enrollment and review prompt for a password without echoing it. Enrollment refuses
+to overwrite an existing reviewer. Publication creates drafts; review creates new
+immutable APPROVED/REJECTED children, using exact expected heads and digests.
+Review decisions are internal working-paper decisions, not portal authorization.
+Use the corresponding generated schemas under `schemas/v1/` for request payloads.
+A CaseReopen contains complete replacement membership, an exact parent and reason.
+Do not add actor/session/capability fields to JSON; the application supplies them.
+
+Commands emit ServiceResult JSON after dispatch. Non-success exits with code 1;
+authentication and malformed-input preflight errors are printed before dispatch.
+OUTCOME_UNKNOWN requires durable-state inspection before recovery, never blind
+retry. A CLI invocation always creates a fresh operation context. Programmatic
+replay must retain the original CommandContext and exact request.
+
+Use `ProfileStore.get(profile_ref, require_approved=True)` for a pinned calculation
+profile. It rejects drafts and verifies source hashes again. Actual reviewed legal
+content remains H04 work. See [A03 handoff](checkpoints/checkpoint-1/a03.md) for API
+boundaries, policy limitations, authentication scope and verification evidence.

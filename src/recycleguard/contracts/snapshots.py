@@ -1,4 +1,4 @@
-"""A03 snapshot storage requests. These do not implement profile policy or CLI login."""
+"""A03 strict snapshot publication and exact-revision review requests."""
 
 from typing import Literal
 
@@ -44,3 +44,11 @@ class SnapshotReview(BoundaryModel):
         if self.new_snapshot_id == self.target_snapshot_id:
             raise ValueError("review creates a child revision; it cannot overwrite the target")
         return self
+
+
+class CaseReopen(SnapshotPublication):
+    """A replacement full manifest, with the reason retained in the audited request."""
+
+    snapshot_kind: Literal["CASE"]
+    expected_head: ID
+    reason: Nonempty

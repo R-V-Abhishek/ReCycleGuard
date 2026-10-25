@@ -41,6 +41,18 @@ from recycleguard.contracts.domain import (
 )
 from recycleguard.contracts.dossier import AssetEntry, CaseManifest, TableDisposition
 from recycleguard.contracts.extraction import CoverageItem, ExtractionResult, Observation
+from recycleguard.contracts.profiles import (
+    AllocationPolicy,
+    CalculationProfile,
+    EligibilityRule,
+    EventEquivalencePolicy,
+    NumericPolicy,
+    ProfileDefinition,
+    ProfilePublication,
+    ProfileReview,
+    PurchaseCeilingPolicy,
+    SourceDependency,
+)
 from recycleguard.contracts.results import (
     BucketResult,
     CalculationRequest,
@@ -50,7 +62,7 @@ from recycleguard.contracts.results import (
     Hypothesis,
     Recommendation,
 )
-from recycleguard.contracts.snapshots import SnapshotPublication, SnapshotReview
+from recycleguard.contracts.snapshots import CaseReopen, SnapshotPublication, SnapshotReview
 from recycleguard.contracts.sources import (
     ProvisionVersion,
     RightsMetadata,
@@ -60,6 +72,19 @@ from recycleguard.contracts.sources import (
 from recycleguard.model_port import ModelCallRequest, ModelCallResult
 
 MODELS = [
+    CaseReopen,
+    CalculationProfile,
+    ProfileDefinition,
+    ProfilePublication,
+    ProfileReview,
+    AllocationPolicy,
+    EligibilityRule,
+    EventEquivalencePolicy,
+    NumericPolicy,
+    PurchaseCeilingPolicy,
+    SourceDependency,
+    ServiceResult[CalculationProfile],
+    ServiceResult[FrozenSnapshot],
     SnapshotPublication,
     SnapshotReview,
     ActorRef,

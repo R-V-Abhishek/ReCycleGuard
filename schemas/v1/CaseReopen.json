@@ -1,0 +1,92 @@
+{
+  "$defs": {
+    "BlobRef": {
+      "additionalProperties": false,
+      "properties": {
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_length": {
+          "minimum": 0,
+          "title": "Byte Length",
+          "type": "integer"
+        },
+        "media_type": {
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sha256",
+        "byte_length",
+        "media_type"
+      ],
+      "title": "BlobRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A replacement full manifest, with the reason retained in the audited request.",
+  "properties": {
+    "scope_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "snapshot_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Snapshot Id",
+      "type": "string"
+    },
+    "snapshot_kind": {
+      "const": "CASE",
+      "title": "Snapshot Kind",
+      "type": "string"
+    },
+    "expected_head": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Expected Head",
+      "type": "string"
+    },
+    "membership_blob": {
+      "$ref": "#/$defs/BlobRef"
+    },
+    "membership_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Membership Digest",
+      "type": "string"
+    },
+    "coverage_blob": {
+      "$ref": "#/$defs/BlobRef"
+    },
+    "source_receipt_ids": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Source Receipt Ids",
+      "type": "array"
+    },
+    "reason": {
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+    }
+  },
+  "required": [
+    "scope_id",
+    "snapshot_id",
+    "snapshot_kind",
+    "expected_head",
+    "membership_blob",
+    "membership_digest",
+    "coverage_blob",
+    "source_receipt_ids",
+    "reason"
+  ],
+  "title": "CaseReopen",
+  "type": "object"
+}

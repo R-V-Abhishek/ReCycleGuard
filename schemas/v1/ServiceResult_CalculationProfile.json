@@ -1,0 +1,851 @@
+{
+  "$defs": {
+    "AllocationPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "priority_check": {
+          "const": "EARLIER_COMPATIBLE_AT_ALLOCATION_TIME",
+          "title": "Priority Check",
+          "type": "string"
+        },
+        "missing_history_outcome": {
+          "const": "LIABILITY_PRIORITY_UNRESOLVED",
+          "title": "Missing History Outcome",
+          "type": "string"
+        },
+        "prohibited_allocation_outcome": {
+          "const": "EARLIER_LIABILITY_UNMET",
+          "title": "Prohibited Allocation Outcome",
+          "type": "string"
+        },
+        "supported_basis": {
+          "const": "SUPPORTED_ALLOCATIONS_ONLY",
+          "title": "Supported Basis",
+          "type": "string"
+        },
+        "historical_buckets": {
+          "const": "SEPARATE",
+          "title": "Historical Buckets",
+          "type": "string"
+        }
+      },
+      "required": [
+        "priority_check",
+        "missing_history_outcome",
+        "prohibited_allocation_outcome",
+        "supported_basis",
+        "historical_buckets"
+      ],
+      "title": "AllocationPolicy",
+      "type": "object"
+    },
+    "BlobRef": {
+      "additionalProperties": false,
+      "properties": {
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_length": {
+          "minimum": 0,
+          "title": "Byte Length",
+          "type": "integer"
+        },
+        "media_type": {
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sha256",
+        "byte_length",
+        "media_type"
+      ],
+      "title": "BlobRef",
+      "type": "object"
+    },
+    "CalculationProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "supported_regime": {
+          "const": "EWASTE_EPR_SUPPLIED_TARGETS",
+          "title": "Supported Regime",
+          "type": "string"
+        },
+        "target_basis": {
+          "const": "SUPPLIED_METAL_WISE_OBLIGATIONS",
+          "title": "Target Basis",
+          "type": "string"
+        },
+        "supported_components": {
+          "items": {
+            "enum": [
+              "SUPPORTED_ALLOCATIONS",
+              "HISTORICAL_LIABILITIES"
+            ],
+            "type": "string"
+          },
+          "title": "Supported Components",
+          "type": "array"
+        },
+        "allowed_metals": {
+          "items": {
+            "enum": [
+              "AU",
+              "CU",
+              "AL",
+              "FE"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Allowed Metals",
+          "type": "array"
+        },
+        "category_scope": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 2,
+          "minItems": 1,
+          "title": "Category Scope",
+          "type": "array"
+        },
+        "applicability_assertion_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "minItems": 1,
+          "title": "Applicability Assertion Refs",
+          "type": "array"
+        },
+        "eligibility_rules": {
+          "items": {
+            "$ref": "#/$defs/EligibilityRule"
+          },
+          "title": "Eligibility Rules",
+          "type": "array"
+        },
+        "allocation_policy": {
+          "$ref": "#/$defs/AllocationPolicy"
+        },
+        "event_equivalence_policy": {
+          "$ref": "#/$defs/EventEquivalencePolicy"
+        },
+        "purchase_ceiling_policy": {
+          "$ref": "#/$defs/PurchaseCeilingPolicy"
+        },
+        "numeric_policy": {
+          "$ref": "#/$defs/NumericPolicy"
+        },
+        "unsupported_features": {
+          "items": {
+            "enum": [
+              "GOLD_OFFSETS",
+              "REFURBISHING_DEFERRALS",
+              "SALES_DERIVED_TARGETS",
+              "TAX_PRICING",
+              "SOLAR",
+              "ENVIRONMENTAL_COMPENSATION"
+            ],
+            "type": "string"
+          },
+          "title": "Unsupported Features",
+          "type": "array"
+        },
+        "source_dependencies": {
+          "items": {
+            "$ref": "#/$defs/SourceDependency"
+          },
+          "minItems": 1,
+          "title": "Source Dependencies",
+          "type": "array"
+        },
+        "profile_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Profile Id",
+          "type": "string"
+        },
+        "profile_version": {
+          "minLength": 1,
+          "title": "Profile Version",
+          "type": "string"
+        },
+        "review_state": {
+          "enum": [
+            "DRAFT",
+            "APPROVED",
+            "REJECTED"
+          ],
+          "title": "Review State",
+          "type": "string"
+        },
+        "review_refs": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Review Refs",
+          "type": "array"
+        },
+        "digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "supported_regime",
+        "target_basis",
+        "supported_components",
+        "allowed_metals",
+        "category_scope",
+        "applicability_assertion_refs",
+        "eligibility_rules",
+        "allocation_policy",
+        "event_equivalence_policy",
+        "purchase_ceiling_policy",
+        "numeric_policy",
+        "unsupported_features",
+        "source_dependencies",
+        "profile_id",
+        "profile_version",
+        "review_state",
+        "review_refs",
+        "digest"
+      ],
+      "title": "CalculationProfile",
+      "type": "object"
+    },
+    "EligibilityRule": {
+      "additionalProperties": false,
+      "properties": {
+        "condition": {
+          "enum": [
+            "ENTITY",
+            "PERIOD",
+            "METAL",
+            "CATEGORY",
+            "LIFECYCLE",
+            "CAPABILITY",
+            "REGISTRATION",
+            "ACHIEVEMENT_DEADLINE",
+            "CREDIT_EVENT_DEADLINE"
+          ],
+          "title": "Condition",
+          "type": "string"
+        },
+        "testability": {
+          "enum": [
+            "TESTABLE",
+            "UNAVAILABLE"
+          ],
+          "title": "Testability",
+          "type": "string"
+        },
+        "missing_fact_outcome": {
+          "const": "UNRESOLVED",
+          "title": "Missing Fact Outcome",
+          "type": "string"
+        },
+        "source_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "minItems": 1,
+          "title": "Source Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "condition",
+        "testability",
+        "missing_fact_outcome",
+        "source_refs"
+      ],
+      "title": "EligibilityRule",
+      "type": "object"
+    },
+    "EventEquivalencePolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "policy_version": {
+          "minLength": 1,
+          "title": "Policy Version",
+          "type": "string"
+        },
+        "required_exact_fields": {
+          "items": {
+            "enum": [
+              "CERTIFICATE_LOT",
+              "KIND_STAGE",
+              "TIME_VALUE_PRECISION_TIMEZONE",
+              "QUANTITY_DIMENSION_METAL",
+              "FROM_TO_PARTIES"
+            ],
+            "type": "string"
+          },
+          "title": "Required Exact Fields",
+          "type": "array"
+        },
+        "corroboration": {
+          "const": "EXTERNAL_ID_OR_COMPLETE_KEY_WITH_SOURCE_CONTINUITY",
+          "title": "Corroboration",
+          "type": "string"
+        },
+        "missing_or_conflicting_outcome": {
+          "const": "PENDING",
+          "title": "Missing Or Conflicting Outcome",
+          "type": "string"
+        },
+        "coarse_time_collision_outcome": {
+          "const": "PENDING",
+          "title": "Coarse Time Collision Outcome",
+          "type": "string"
+        }
+      },
+      "required": [
+        "policy_version",
+        "required_exact_fields",
+        "corroboration",
+        "missing_or_conflicting_outcome",
+        "coarse_time_collision_outcome"
+      ],
+      "title": "EventEquivalencePolicy",
+      "type": "object"
+    },
+    "EvidenceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "ref_kind": {
+          "enum": [
+            "ARTIFACT",
+            "OBSERVATION",
+            "RECORD",
+            "PROVISION",
+            "CALCULATION",
+            "FINDING"
+          ],
+          "title": "Ref Kind",
+          "type": "string"
+        },
+        "ref_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Ref Id",
+          "type": "string"
+        },
+        "artifact_revision_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Artifact Revision Id"
+        },
+        "locator": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Locator"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "ref_kind",
+        "ref_id",
+        "artifact_revision_id",
+        "locator"
+      ],
+      "title": "EvidenceRef",
+      "type": "object"
+    },
+    "Issue": {
+      "additionalProperties": false,
+      "properties": {
+        "issue_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Issue Id",
+          "type": "string"
+        },
+        "code": {
+          "enum": [
+            "INVALID_SCHEMA",
+            "ACCESS_DENIED",
+            "HASH_MISMATCH",
+            "MISSING_ARTIFACT",
+            "INCOMPLETE_COVERAGE",
+            "EXTRACTION_FAILED",
+            "UNCONFIRMED_IDENTIFIER",
+            "AMBIGUOUS_IDENTITY",
+            "AMBIGUOUS_EVENT",
+            "DIMENSION_MISMATCH",
+            "NUMERIC_PRECISION_EXCEEDED",
+            "EARLIER_LIABILITY_UNMET",
+            "LIABILITY_PRIORITY_UNRESOLVED",
+            "UNSUPPORTED_PROFILE",
+            "UNAPPROVED_PROFILE",
+            "APPLICABILITY_UNRESOLVED",
+            "RULE_CONFLICT",
+            "SOURCE_INCOMPLETE",
+            "STALE_SNAPSHOT",
+            "BUDGET_EXHAUSTED",
+            "CYCLE_DETECTED",
+            "PROVIDER_TIMEOUT",
+            "PROVIDER_INVALID_OUTPUT",
+            "AUDIT_UNAVAILABLE",
+            "CONCURRENT_MODIFICATION",
+            "STALE_REVIEW",
+            "EXPORT_RESTRICTED",
+            "PROHIBITED_VERDICT",
+            "CANCELLED",
+            "INTEGRITY_FAILED"
+          ],
+          "title": "Code",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "INFO",
+            "WARNING",
+            "BLOCKING"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "message": {
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        },
+        "field_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Field Path"
+        },
+        "evidence_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "retryable": {
+          "title": "Retryable",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "issue_id",
+        "code",
+        "severity",
+        "message",
+        "field_path",
+        "evidence_refs",
+        "retryable"
+      ],
+      "title": "Issue",
+      "type": "object"
+    },
+    "Locator": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "PDF_PAGE",
+            "PDF_CELL",
+            "CSV_ROW",
+            "JSON_POINTER",
+            "TEXT_SPAN",
+            "DB_RECORD"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "page_index_1based": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Page Index 1Based"
+        },
+        "printed_page_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Printed Page Label"
+        },
+        "row_index_1based": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Row Index 1Based"
+        },
+        "column_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Column Name"
+        },
+        "json_pointer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Json Pointer"
+        },
+        "text_start": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Text Start"
+        },
+        "text_end": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Text End"
+        },
+        "table_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Table Id"
+        },
+        "cell_row": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cell Row"
+        },
+        "cell_column": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cell Column"
+        }
+      },
+      "required": [
+        "kind",
+        "page_index_1based",
+        "printed_page_label",
+        "row_index_1based",
+        "column_name",
+        "json_pointer",
+        "text_start",
+        "text_end",
+        "table_id",
+        "cell_row",
+        "cell_column"
+      ],
+      "title": "Locator",
+      "type": "object"
+    },
+    "NumericPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "precision": {
+          "const": 28,
+          "title": "Precision",
+          "type": "integer"
+        },
+        "display_places": {
+          "const": 4,
+          "title": "Display Places",
+          "type": "integer"
+        },
+        "rounding": {
+          "const": "ROUND_HALF_EVEN",
+          "title": "Rounding",
+          "type": "string"
+        },
+        "trap_inexact": {
+          "const": true,
+          "title": "Trap Inexact",
+          "type": "boolean"
+        },
+        "trap_overflow": {
+          "const": true,
+          "title": "Trap Overflow",
+          "type": "boolean"
+        },
+        "rounding_stage": {
+          "const": "FINAL_DISPLAY_ONLY",
+          "title": "Rounding Stage",
+          "type": "string"
+        }
+      },
+      "required": [
+        "precision",
+        "display_places",
+        "rounding",
+        "trap_inexact",
+        "trap_overflow",
+        "rounding_stage"
+      ],
+      "title": "NumericPolicy",
+      "type": "object"
+    },
+    "PurchaseCeilingPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "enum": [
+            "DISABLED_REVIEW_REQUIRED",
+            "APPROVED"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "source_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Source Refs",
+          "type": "array"
+        },
+        "applicability_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Applicability Refs",
+          "type": "array"
+        },
+        "current_liability_basis": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Current Liability Basis"
+        },
+        "prior_liability_basis": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Prior Liability Basis"
+        },
+        "buffer_rate": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Buffer Rate"
+        },
+        "review_ref": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Review Ref"
+        }
+      },
+      "required": [
+        "state",
+        "source_refs",
+        "applicability_refs",
+        "current_liability_basis",
+        "prior_liability_basis",
+        "buffer_rate",
+        "review_ref"
+      ],
+      "title": "PurchaseCeilingPolicy",
+      "type": "object"
+    },
+    "SourceDependency": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_revision_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Artifact Revision Id",
+          "type": "string"
+        },
+        "blob_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Blob Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_revision_id",
+        "blob_digest"
+      ],
+      "title": "SourceDependency",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "contract_version": {
+      "const": "1.1",
+      "title": "Contract Version",
+      "type": "string"
+    },
+    "operation_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Operation Id",
+      "type": "string"
+    },
+    "attempt_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Attempt Id",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "SUCCESS",
+        "PARTIAL",
+        "FAILED",
+        "REJECTED",
+        "CANCELLED",
+        "OUTCOME_UNKNOWN"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "output": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CalculationProfile"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "output_blob": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BlobRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "issues": {
+      "items": {
+        "$ref": "#/$defs/Issue"
+      },
+      "title": "Issues",
+      "type": "array"
+    },
+    "dependencies": {
+      "items": {
+        "$ref": "#/$defs/EvidenceRef"
+      },
+      "title": "Dependencies",
+      "type": "array"
+    },
+    "audit_event_ids": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Audit Event Ids",
+      "type": "array"
+    }
+  },
+  "required": [
+    "contract_version",
+    "operation_id",
+    "attempt_id",
+    "status",
+    "output",
+    "output_blob",
+    "issues",
+    "dependencies",
+    "audit_event_ids"
+  ],
+  "title": "ServiceResult[CalculationProfile]",
+  "type": "object"
+}

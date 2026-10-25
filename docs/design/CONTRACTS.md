@@ -562,6 +562,24 @@ The underlying `write_blob` primitive only writes/hashes bytes; it does not recu
 
 **Side effects/dependencies:** C11 atomic publication and version checks. Corpus may contain incomplete notice leads labelled as such; they cannot automatically activate calculation rules. Profiles need explicit approval separate from corpus inclusion.
 
+**A03 executable boundary:** `CaseService` implements the publication calls using
+`SnapshotPublication` and the full-replacement `CaseReopen` (including reason).
+`SnapshotReview` creates a child approval/rejection. `ProfilePublication` accepts
+a strict `ProfileDefinition`; `ProfileReview` binds an exact ProfileRef and creates
+a new approved/rejected CalculationProfile revision. These calls return the common
+ServiceResult envelope. The executable policy subset and typed requests are
+published in `schemas/v1/`; existing CP0 models remain unchanged.
+
+Profile digest is SHA-256 of canonical JSON for all profile fields except `digest`.
+Source dependencies bind artifact revision IDs and their byte digests. Review
+references identify audited human operations. Purchase-ceiling activation requires
+a dedicated successful human `review.purchase_ceiling` intent whose payload is the
+canonical policy excluding `state` and `review_ref`; an unrelated approval is
+insufficient. A03 does not supply this specialized review command, source-content
+validation or calculation execution. H04/A04 provide the reviewed content and
+integrated membership. Local reviewer authentication is separate from statutory
+signatory authority. See the A03 checkpoint handoff for operational details.
+
 ### C06 — Index construction
 
 **Call:** `build_index(corpus_snapshot_id, retrieval_configuration_id) -> IndexManifest`.

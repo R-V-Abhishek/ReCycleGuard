@@ -1,0 +1,21 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "artifact_revision_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Artifact Revision Id",
+      "type": "string"
+    },
+    "blob_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Blob Digest",
+      "type": "string"
+    }
+  },
+  "required": [
+    "artifact_revision_id",
+    "blob_digest"
+  ],
+  "title": "SourceDependency",
+  "type": "object"
+}

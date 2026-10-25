@@ -1,0 +1,45 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "precision": {
+      "const": 28,
+      "title": "Precision",
+      "type": "integer"
+    },
+    "display_places": {
+      "const": 4,
+      "title": "Display Places",
+      "type": "integer"
+    },
+    "rounding": {
+      "const": "ROUND_HALF_EVEN",
+      "title": "Rounding",
+      "type": "string"
+    },
+    "trap_inexact": {
+      "const": true,
+      "title": "Trap Inexact",
+      "type": "boolean"
+    },
+    "trap_overflow": {
+      "const": true,
+      "title": "Trap Overflow",
+      "type": "boolean"
+    },
+    "rounding_stage": {
+      "const": "FINAL_DISPLAY_ONLY",
+      "title": "Rounding Stage",
+      "type": "string"
+    }
+  },
+  "required": [
+    "precision",
+    "display_places",
+    "rounding",
+    "trap_inexact",
+    "trap_overflow",
+    "rounding_stage"
+  ],
+  "title": "NumericPolicy",
+  "type": "object"
+}
