@@ -161,6 +161,12 @@ immutable; review must create a child revision rather than editing stored JSON.
 
 ## C05 local snapshot/profile commands
 
+CP1 integration uses `checkpoint-1`, created from the verified V02/A03 commit
+`8750265`. Base new CP1 workstream branches on it and target their pull requests
+at `checkpoint-1`. Keep existing workstream history intact; merge the checkpoint
+into `main` only after the checkpoint's integration checks and approval. See the
+[CP1 log](checkpoints/checkpoint-1/README.md) for task states and branch provenance.
+
 A03 supplies a trusted local entry point on macOS/Linux. It uses
 `RECYCLEGUARD_DATA_ROOT` (default `.recycleguard`) for blobs, `application.sqlite`
 and a private `reviewer.json`. Keep that root outside Git. Existing membership,
