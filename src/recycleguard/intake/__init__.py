@@ -9,6 +9,8 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from recycleguard.contracts.sources import SourceLead
+from recycleguard.intake.acquisition import AcquisitionOutcome, record_acquisition
+from recycleguard.intake.batch import IntakeBatchResult, intake_batch
 
 
 def load_source_leads(manifest_path: str | Path) -> list[SourceLead]:
@@ -59,4 +61,12 @@ def validate_lead_manifest(leads: list[SourceLead]) -> tuple[bool, list[str]]:
     return (len(issues) == 0, issues)
 
 
-__all__ = ["SourceLead", "load_source_leads", "validate_lead_manifest"]
+__all__ = [
+    "AcquisitionOutcome",
+    "IntakeBatchResult",
+    "SourceLead",
+    "intake_batch",
+    "load_source_leads",
+    "record_acquisition",
+    "validate_lead_manifest",
+]
