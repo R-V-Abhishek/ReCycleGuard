@@ -7,20 +7,19 @@ A failed fetch creates a receipt with intake_status='FETCH_FAILED', artifact_rev
 and an explicit failure reason, never an invented blob or hash.
 """
 
-from __future__ import annotations
-
+import hashlib
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
 from uuid import uuid4
 
 from recycleguard.contracts.artifacts import ArtifactRevision, AssetReceipt
-from recycleguard.contracts.core import BoundaryModel, Issue, TemporalValue
+from recycleguard.contracts.audit import OperationIntent, OperationResult
+from recycleguard.contracts.core import BoundaryModel, CommandContext, Issue, TemporalValue
 from recycleguard.contracts.sources import SourceLead
+from recycleguard.storage import AuditKernel, canonical_json_bytes
+from recycleguard.storage.authority import Capability
 from recycleguard.storage.blob_store import BlobStore
-
-if TYPE_CHECKING:
-    from recycleguard.storage.catalog import ArtifactCatalog
+from recycleguard.storage.catalog import ArtifactCatalog
 
 
 def _utc_now_rfc3339() -> str:
@@ -36,7 +35,7 @@ class AcquisitionOutcome(BoundaryModel):
     issues: list[Issue]
 
 
-def record_acquisition(
+def _prepare_acquisition(
     lead: SourceLead,
     *,
     body_bytes: bytes | None,
@@ -148,3 +147,75 @@ def record_acquisition(
         artifact_revision=revision,
         issues=[],
     )
+
+
+def record_acquisition(
+    lead: SourceLead,
+    *,
+    body_bytes: bytes | None,
+    media_type: str = "application/pdf",
+    status_code: int = 200,
+    error_message: str | None = None,
+    blob_store: BlobStore,
+    batch_id: str | None = None,
+    catalog: ArtifactCatalog | None = None,
+    kernel: AuditKernel | None = None,
+    capability: Capability | None = None,
+    context: CommandContext | None = None,
+) -> AcquisitionOutcome:
+    """Prepare an outcome or atomically persist it with a complete trusted dispatcher."""
+    audited = any(value is not None for value in (catalog, kernel, capability, context))
+    if audited:
+        if any(value is None for value in (catalog, kernel, capability, context)):
+            raise ValueError("audited acquisition requires the complete dispatcher")
+        if catalog.kernel is not kernel or kernel.blob_store is not blob_store:
+            raise ValueError("acquisition must use the shared coordinator")
+        kernel.authority.check(capability, context.actor, "intake.acquisition")
+        request = {
+            "lead": lead.model_dump(mode="json"),
+            "body_digest": None if body_bytes is None else hashlib.sha256(body_bytes).hexdigest(),
+            "media_type": media_type,
+            "status_code": status_code,
+            "error_message": error_message,
+            "batch_id": batch_id,
+        }
+        payload = blob_store.put(canonical_json_bytes(request), "application/json")
+        intent = OperationIntent(
+            context=context,
+            idempotency_key=context.idempotency_key,
+            event_type="intake.acquisition",
+            payload=payload,
+            stream_id=f"stream:{lead.source_lead_id}",
+        )
+        kernel.commit_intent(intent, capability=capability)
+        existing = kernel.get_result(context.operation_id)
+        if existing is not None:
+            return AcquisitionOutcome.model_validate_json(blob_store.get(existing.payload))
+    output = _prepare_acquisition(
+        lead,
+        body_bytes=body_bytes,
+        media_type=media_type,
+        status_code=status_code,
+        error_message=error_message,
+        blob_store=blob_store,
+        batch_id=batch_id,
+    )
+    if audited:
+        payload = blob_store.put(
+            canonical_json_bytes(output.model_dump(mode="json")), "application/json"
+        )
+        result = OperationResult(
+            operation_id=context.operation_id,
+            attempt_id=context.attempt_id,
+            status="SUCCESS" if output.status == "RECEIVED" else "PARTIAL",
+            payload=payload,
+            issue_codes=[issue.code for issue in output.issues],
+        )
+
+        def persist():
+            if output.artifact_revision is not None:
+                catalog.put_artifact_revision(output.artifact_revision)
+            catalog.put_receipt(output.receipt)
+
+        kernel.commit_result(intent, result, capability=capability, mutation=persist)
+    return output

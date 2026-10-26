@@ -43,6 +43,9 @@ def make_test_observation(
             "quantity": qty,
             "metal": metal,
             "event_kind": event_kind,
+            "external_event_ref": f"TXN-{cert_id}-{event_time_str}",
+            "credit_lot_id": "lot:test",
+            "unit": "KG",
             "transfer_stage": stage,
             "from_entity_id": from_ent,
             "to_entity_id": to_ent,
@@ -54,14 +57,14 @@ def make_test_observation(
             raw=event_time_str,
             value=event_time_str,
             precision="INSTANT",
-            timezone=None,
+            timezone="UTC",
             interpretation_status="PARSED",
         ),
         source_capture_time=TemporalValue(
             raw="2024-09-30T18:00:00Z",
             value="2024-09-30T18:00:00Z",
             precision="INSTANT",
-            timezone=None,
+            timezone="UTC",
             interpretation_status="REVIEWED",
         ),
         ingestion_time="2024-10-01T10:00:00Z",
@@ -72,7 +75,9 @@ class TestEventEquivalence(unittest.TestCase):
     """Test suite asserting Gate G04 Lifecycle and Equivalence compliance."""
 
     def setUp(self) -> None:
-        self.engine = EventEquivalenceEngine(operation_id="op:test_norm")
+        self.engine = EventEquivalenceEngine(
+            operation_id="op:test_norm", authoritative_artifact_ids=frozenset({"art:test_001"})
+        )
 
     def test_01_f02_duplicate_observations_collapse_to_supported_event(self) -> None:
         """Two duplicate observations of cert:rec_001 collapse into 1 supported event (F02)."""
@@ -98,7 +103,7 @@ class TestEventEquivalence(unittest.TestCase):
         eq = res.equivalences[0]
         self.assertEqual(eq.certificate_id, "cert:rec_001")
         self.assertEqual(eq.resolved_event_id, evt.event_id)
-        self.assertEqual(eq.matching_basis, "EXACT_COMPOUND_KEY_AND_CORROBORATION")
+        self.assertEqual(eq.matching_basis, "AUTHORITATIVE_EVENT_ID")
         self.assertEqual(eq.assertion_state, "SUPPORTED")
 
     def test_02_f02_conflicting_quantities_remain_conflicting(self) -> None:

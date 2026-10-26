@@ -200,3 +200,25 @@ Use `ProfileStore.get(profile_ref, require_approved=True)` for a pinned calculat
 profile. It rejects drafts and verifies source hashes again. Actual reviewed legal
 content remains H04 work. See [A03 handoff](checkpoints/checkpoint-1/a03.md) for API
 boundaries, policy limitations, authentication scope and verification evidence.
+
+## A04 integrated foundation and CP1 lock
+
+`uv run recycleguard foundation build request.json` accepts FoundationRequest from
+`schemas/v1/`. It connects audited intake, text extraction, normalization and draft
+case/corpus/profile publication. The request supplies case/source paths and exact
+new snapshot/profile IDs, with expected heads for intentional revisions.
+
+A draft candidate returns ServiceResult PARTIAL and exit code 1 while still
+emitting its complete JSON result. Review is a separate trusted dispatch through
+FoundationReviewer, using an authenticated human capability and server-owned
+publication grants. It records approval evidence, creates new reviewed versions,
+then republishes final case membership pinned to the approved profile and corpus.
+It preserves original drafts and all evidence qualifications; no identity or grant
+is accepted from review JSON.
+
+CP1 was accepted by the lead within its qualified scope on 26 October 2026, as
+recorded under [the CP1 log](checkpoints/checkpoint-1/README.md). Its lock tag is
+`checkpoint-1-approved-2026-10-26`. The lead's explicit acceptance is recorded as a
+CP1-specific exception to the four-person acknowledgement rule. Do not reinterpret
+this as four-person review, an approved legal verdict or permission to drop the
+unresolved applicability/deadline/rights and normalization qualifications.

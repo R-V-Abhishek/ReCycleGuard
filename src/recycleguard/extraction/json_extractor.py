@@ -5,8 +5,6 @@ Handles JSONL line-by-line and JSON document structures.
 Emits observations and coverage items with JSON_POINTER locators.
 """
 
-from __future__ import annotations
-
 import json
 from datetime import UTC, datetime
 from uuid import uuid4
@@ -51,7 +49,7 @@ def extract_json(
             if not stripped or stripped.startswith("#"):
                 continue
 
-            ptr = f"/{idx}"
+            ptr = f"/{idx - 1}"
             locator = Locator(
                 kind="JSON_POINTER",
                 page_index_1based=None,
@@ -126,7 +124,7 @@ def extract_json(
             parsed = json.loads(text)
             if isinstance(parsed, list):
                 for idx, item in enumerate(parsed):
-                    ptr = f"/{idx}"
+                    ptr = f"/{idx - 1}"
                     locator = Locator(
                         kind="JSON_POINTER",
                         page_index_1based=None,
@@ -169,7 +167,7 @@ def extract_json(
                         )
                     )
             elif isinstance(parsed, dict):
-                ptr = "/"
+                ptr = ""
                 locator = Locator(
                     kind="JSON_POINTER",
                     page_index_1based=None,
@@ -211,7 +209,9 @@ def extract_json(
                         child_observation_ids=[obs_id],
                     )
                 )
-        except json.JSONDecodeError as exc:
+            else:
+                raise ValueError("JSON document must be an object or array")
+        except (json.JSONDecodeError, ValueError) as exc:
             locator = Locator(
                 kind="JSON_POINTER",
                 page_index_1based=None,

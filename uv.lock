@@ -725,6 +725,7 @@ name = "recycleguard"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "pdfplumber" },
     { name = "pydantic" },
     { name = "typer" },
     { name = "tzdata" },
@@ -732,13 +733,13 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "pdfplumber" },
     { name = "pytest" },
     { name = "ruff" },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "pdfplumber", specifier = ">=0.11.10" },
     { name = "pydantic", specifier = ">=2.10,<3" },
     { name = "typer", specifier = ">=0.15,<1" },
     { name = "tzdata", specifier = ">=2024.1" },
@@ -746,7 +747,6 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "pdfplumber", specifier = ">=0.11.10" },
     { name = "pytest", specifier = ">=8,<9" },
     { name = "ruff", specifier = ">=0.11,<1" },
 ]

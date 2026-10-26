@@ -8,7 +8,7 @@ Verifies:
 - ProfileStore validates approved status and unapproved profile rejection.
 """
 
-from __future__ import annotations
+from pathlib import Path
 
 import pytest
 
@@ -26,12 +26,30 @@ from recycleguard.knowledge import (
     R08_ARTIFACT_REV_ID,
     build_v1_calculation_profile,
     build_v1_profile_definition,
-    get_reviewed_provisions,
-    register_reviewed_sources,
+)
+from recycleguard.knowledge import (
+    get_reviewed_provisions as _get_reviewed_provisions,
+)
+from recycleguard.knowledge import (
+    register_reviewed_sources as _register_reviewed_sources,
 )
 from recycleguard.profiles import ProfileError, ProfileStore
 from recycleguard.storage import ArtifactCatalog, AuditKernel, BlobStore
 from recycleguard.storage.authority import LocalAuthority, TrustedPrincipal
+
+
+def register_reviewed_sources(store):
+    fixtures = Path(__file__).resolve().parents[1] / "fixtures/visible"
+    return _register_reviewed_sources(
+        store,
+        r02_path=fixtures / "h04/acquired_originals/e-waste_rules_2022.pdf",
+        r08_path=fixtures / "h01/acquired_originals/cpcb_faq_20240123.pdf",
+    )
+
+
+def get_reviewed_provisions(store):
+    r02, r08 = register_reviewed_sources(store)
+    return _get_reviewed_provisions(store, r02_revision=r02, r08_revision=r08)
 
 
 def test_reviewed_sources_and_provisions_registration(tmp_path):
@@ -59,12 +77,12 @@ def test_reviewed_sources_and_provisions_registration(tmp_path):
     p6 = pv_map["provision:r02_rule6_sub4"]
     assert p6.role_scope == "SPECIFIC"
     assert p6.affected_roles == ["PRODUCER"]
-    assert p6.locator.page_index_1based == 8
+    assert p6.locator.page_index_1based == 24
 
     p15 = pv_map["provision:r02_rule15_sub1_sub3"]
     assert p15.role_scope == "GENERAL"
     assert set(p15.affected_roles) == {"PRODUCER", "RECYCLER"}
-    assert p15.locator.page_index_1based == 14
+    assert p15.locator.page_index_1based == 27
 
     p_faq = pv_map["provision:r08_sec_c_recycler_capability"]
     assert p_faq.locator.page_index_1based == 9
@@ -85,12 +103,14 @@ def test_v1_profile_definition_and_exact_digest(tmp_path):
     assert len(defn.source_dependencies) == 2
 
     # Build calculation profile
-    profile = build_v1_calculation_profile(r02_rev, r08_rev, review_state="APPROVED")
+    profile = build_v1_calculation_profile(r02_rev, r08_rev)
+    with pytest.raises(ValueError, match="only build drafts"):
+        build_v1_calculation_profile(r02_rev, r08_rev, review_state="APPROVED")
     assert isinstance(profile, CalculationProfile)
     assert profile.profile_id == "profile:producer_snapshot_v1"
     assert profile.profile_version == "1.0"
-    assert profile.review_state == "APPROVED"
-    assert len(profile.review_refs) == 1
+    assert profile.review_state == "DRAFT"
+    assert profile.review_refs == []
 
     # Verify digest calculation matches model digest
     expected_digest = profile_digest(profile.model_dump(mode="json", exclude={"digest"}))

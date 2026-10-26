@@ -7,8 +7,6 @@ Guarantees:
 - Generates Observation records with raw_fields, parsed_fields, and CSV_ROW locators.
 """
 
-from __future__ import annotations
-
 import csv
 import io
 from datetime import UTC, datetime
@@ -109,16 +107,8 @@ def extract_csv(
         for col_name, val in zip(header, row, strict=False):
             raw_fields[col_name] = val
             clean_val = val.strip()
-            # Attempt basic numeric parsing for parsed fields
-            if clean_val.replace(".", "", 1).isdigit():
-                try:
-                    parsed_fields[col_name] = (
-                        float(clean_val) if "." in clean_val else int(clean_val)
-                    )
-                except ValueError:
-                    parsed_fields[col_name] = clean_val
-            else:
-                parsed_fields[col_name] = clean_val
+            # Parsing a CSV cell never changes its decimal or identifier representation.
+            parsed_fields[col_name] = clean_val
 
         obs_id = f"obs:{uuid4().hex[:12]}"
         obs = Observation(

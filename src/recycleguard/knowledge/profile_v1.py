@@ -13,10 +13,6 @@ Specifies the authoritative profile definition for CP1:
 - Pinned source dependencies to reviewed R02 and R08 revisions
 """
 
-from __future__ import annotations
-
-from typing import TYPE_CHECKING
-
 from recycleguard.contracts.artifacts import ArtifactRevision
 from recycleguard.contracts.core import EvidenceRef, Locator
 from recycleguard.contracts.profiles import (
@@ -31,9 +27,6 @@ from recycleguard.contracts.profiles import (
     profile_digest,
 )
 
-if TYPE_CHECKING:
-    pass
-
 
 def build_v1_profile_definition(
     r02_revision: ArtifactRevision,
@@ -47,8 +40,8 @@ def build_v1_profile_definition(
         artifact_revision_id=r02_revision.artifact_revision_id,
         locator=Locator(
             kind="PDF_PAGE",
-            page_index_1based=14,
-            printed_page_label="14",
+            page_index_1based=27,
+            printed_page_label=None,
             row_index_1based=None,
             column_name=None,
             json_pointer=None,
@@ -94,7 +87,7 @@ def build_v1_profile_definition(
     eligibility_rules = [
         EligibilityRule(
             condition=cond,
-            testability="TESTABLE",
+            testability="UNAVAILABLE" if cond.endswith("DEADLINE") else "TESTABLE",
             missing_fact_outcome="UNRESOLVED",
             source_refs=[r02_ref if cond != "CAPABILITY" else r08_ref],
         )
@@ -171,16 +164,14 @@ def build_v1_calculation_profile(
     r02_revision: ArtifactRevision,
     r08_revision: ArtifactRevision,
     *,
-    review_state: str = "APPROVED",
+    review_state: str = "DRAFT",
     review_refs: list[str] | None = None,
 ) -> CalculationProfile:
     """Construct complete CalculationProfile with exact digest matching CONTRACTS."""
     defn = build_v1_profile_definition(r02_revision, r08_revision)
-    refs = (
-        review_refs
-        if review_refs is not None
-        else (["review:h04_initial_source_review"] if review_state != "DRAFT" else [])
-    )
+    if review_state != "DRAFT" or review_refs:
+        raise ValueError("profile helpers only build drafts; use ProfileStore.review for decisions")
+    refs = []
 
     payload = defn.model_dump(mode="json")
     payload["profile_id"] = "profile:producer_snapshot_v1"

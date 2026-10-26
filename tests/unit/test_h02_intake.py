@@ -11,8 +11,6 @@ Verifies:
 - Audited catalog persistence with AuditKernel and capability checks.
 """
 
-from __future__ import annotations
-
 import hashlib
 from datetime import date
 from pathlib import Path

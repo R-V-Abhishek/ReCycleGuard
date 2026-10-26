@@ -1,0 +1,2074 @@
+{
+  "$defs": {
+    "AccountBalanceObservation": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Record Id",
+          "type": "string"
+        },
+        "record_revision_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Record Revision Id",
+          "type": "string"
+        },
+        "case_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Case Id",
+          "type": "string"
+        },
+        "observation_refs": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Observation Refs",
+          "type": "array"
+        },
+        "derived_from_record_refs": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Derived From Record Refs",
+          "type": "array"
+        },
+        "validation_state": {
+          "enum": [
+            "VALID",
+            "REVIEW_REQUIRED",
+            "INVALID"
+          ],
+          "title": "Validation State",
+          "type": "string"
+        },
+        "created_by_operation_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Created By Operation Id",
+          "type": "string"
+        },
+        "supersedes_revision_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Supersedes Revision Id"
+        },
+        "record_type": {
+          "const": "AccountBalanceObservation",
+          "title": "Record Type",
+          "type": "string"
+        },
+        "balance_observation_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Balance Observation Id",
+          "type": "string"
+        },
+        "producer_entity_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Producer Entity Id",
+          "type": "string"
+        },
+        "bucket_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Bucket Id",
+          "type": "string"
+        },
+        "reported_supported": {
+          "$ref": "#/$defs/NonnegativeMass"
+        },
+        "source_capture_time": {
+          "$ref": "#/$defs/TemporalValue"
+        },
+        "business_cutoff": {
+          "$ref": "#/$defs/TemporalValue"
+        },
+        "basis_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Basis Refs",
+          "type": "array"
+        },
+        "reported_pending": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NonnegativeMass"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "record_id",
+        "record_revision_id",
+        "case_id",
+        "observation_refs",
+        "derived_from_record_refs",
+        "validation_state",
+        "created_by_operation_id",
+        "supersedes_revision_id",
+        "record_type",
+        "balance_observation_id",
+        "producer_entity_id",
+        "bucket_id",
+        "reported_supported",
+        "source_capture_time",
+        "business_cutoff",
+        "basis_refs"
+      ],
+      "title": "AccountBalanceObservation",
+      "type": "object"
+    },
+    "Allocation": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Record Id",
+          "type": "string"
+        },
+        "record_revision_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Record Revision Id",
+          "type": "string"
+        },
+        "case_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Case Id",
+          "type": "string"
+        },
+        "observation_refs": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Observation Refs",
+          "type": "array"
+        },
+        "derived_from_record_refs": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Derived From Record Refs",
+          "type": "array"
+        },
+        "validation_state": {
+          "enum": [
+            "VALID",
+            "REVIEW_REQUIRED",
+            "INVALID"
+          ],
+          "title": "Validation State",
+          "type": "string"
+        },
+        "created_by_operation_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Created By Operation Id",
+          "type": "string"
+        },
+        "supersedes_revision_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Supersedes Revision Id"
+        },
+        "record_type": {
+          "const": "Allocation",
+          "title": "Record Type",
+          "type": "string"
+        },
+        "allocation_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Allocation Id",
+          "type": "string"
+        },
+        "credit_lot_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Credit Lot Id",
+          "type": "string"
+        },
+        "event_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Event Id",
+          "type": "string"
+        },
+        "bucket_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Bucket Id",
+          "type": "string"
+        },
+        "quantity": {
+          "$ref": "#/$defs/NonnegativeMass"
+        },
+        "basis_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Basis Refs",
+          "type": "array"
+        },
+        "state": {
+          "enum": [
+            "SUPPORTED",
+            "PENDING",
+            "REJECTED"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "profile_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Profile Id",
+          "type": "string"
+        },
+        "supersedes_allocation_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Supersedes Allocation Id"
+        }
+      },
+      "required": [
+        "record_id",
+        "record_revision_id",
+        "case_id",
+        "observation_refs",
+        "derived_from_record_refs",
+        "validation_state",
+        "created_by_operation_id",
+        "supersedes_revision_id",
+        "record_type",
+        "allocation_id",
+        "credit_lot_id",
+        "event_id",
+        "bucket_id",
+        "quantity",
+        "basis_refs",
+        "state",
+        "profile_id"
+      ],
+      "title": "Allocation",
+      "type": "object"
+    },
+    "Certificate": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Record Id",
+          "type": "string"
+        },
+        "record_revision_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Record Revision Id",
+          "type": "string"
+        },
+        "case_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Case Id",
+          "type": "string"
+        },
+        "observation_refs": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Observation Refs",
+          "type": "array"
+        },
+        "derived_from_record_refs": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Derived From Record Refs",
+          "type": "array"
+        },
+        "validation_state": {
+          "enum": [
+            "VALID",
+            "REVIEW_REQUIRED",
+            "INVALID"
+          ],
+          "title": "Validation State",
+          "type": "string"
+        },
+        "created_by_operation_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Created By Operation Id",
+          "type": "string"
+        },
+        "supersedes_revision_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Supersedes Revision Id"
+        },
+        "record_type": {
+          "const": "Certificate",
+          "title": "Record Type",
+          "type": "string"
+        },
+        "certificate_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Certificate Id",
+          "type": "string"
+        },
+        "external_certificate_ref": {
+          "minLength": 1,
+          "title": "External Certificate Ref",
+          "type": "string"
+        },
+        "issuer_entity_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Issuer Entity Id",
+          "type": "string"
+        },
+        "metal": {
+          "enum": [
+            "AU",
+            "CU",
+            "AL",
+            "FE"
+          ],
+          "title": "Metal",
+          "type": "string"
+        },
+        "face_quantity": {
+          "$ref": "#/$defs/NonnegativeMass"
+        },
+        "identity_evidence": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Identity Evidence",
+          "type": "array"
+        },
+        "generation_time": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TemporalValue"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "expiry_time": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TemporalValue"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "raw_status": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Raw Status"
+        }
+      },
+      "required": [
+        "record_id",
+        "record_revision_id",
+        "case_id",
+        "observation_refs",
+        "derived_from_record_refs",
+        "validation_state",
+        "created_by_operation_id",
+        "supersedes_revision_id",
+        "record_type",
+        "certificate_id",
+        "external_certificate_ref",
+        "issuer_entity_id",
+        "metal",
+        "face_quantity",
+        "identity_evidence"
+      ],
+      "title": "Certificate",
+      "type": "object"
+    },
+    "CertificateEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Record Id",
+          "type": "string"
+        },
+        "record_revision_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Record Revision Id",
+          "type": "string"
+        },
+        "case_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Case Id",
+          "type": "string"
+        },
+        "observation_refs": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Observation Refs",
+          "type": "array"
+        },
+        "derived_from_record_refs": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Derived From Record Refs",
+          "type": "array"
+        },
+        "validation_state": {
+          "enum": [
+            "VALID",
+            "REVIEW_REQUIRED",
+            "INVALID"
+          ],
+          "title": "Validation State",
+          "type": "string"
+        },
+        "created_by_operation_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Created By Operation Id",
+          "type": "string"
+        },
+        "supersedes_revision_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Supersedes Revision Id"
+        },
+        "record_type": {
+          "const": "CertificateEvent",
+          "title": "Record Type",
+          "type": "string"
+        },
+        "event_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Event Id",
+          "type": "string"
+        },
+        "certificate_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Certificate Id",
+          "type": "string"
+        },
+        "credit_lot_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Credit Lot Id"
+        },
+        "event_kind": {
+          "enum": [
+            "GENERATED",
+            "TRANSFERRED",
+            "ADJUSTED",
+            "EXPIRED",
+            "CANCELLED",
+            "STATUS_OBSERVED"
+          ],
+          "title": "Event Kind",
+          "type": "string"
+        },
+        "event_time": {
+          "$ref": "#/$defs/TemporalValue"
+        },
+        "quantity": {
+          "$ref": "#/$defs/NonnegativeMass"
+        },
+        "assertion_state": {
+          "enum": [
+            "SUPPORTED",
+            "PENDING",
+            "CONFLICTING"
+          ],
+          "title": "Assertion State",
+          "type": "string"
+        },
+        "supporting_observations": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Supporting Observations",
+          "type": "array"
+        },
+        "external_event_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "External Event Ref"
+        },
+        "from_entity_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "From Entity Id"
+        },
+        "to_entity_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "To Entity Id"
+        },
+        "equivalence_assertion_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Equivalence Assertion Id"
+        },
+        "transfer_stage": {
+          "anyOf": [
+            {
+              "enum": [
+                "NOT_OBSERVED",
+                "INITIATED",
+                "OTP_INITIATED",
+                "PUBLIC_KEY_DISPATCHED",
+                "COMPLETED",
+                "UNKNOWN"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Transfer Stage"
+        },
+        "transfer_stage_mapping_ref": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Transfer Stage Mapping Ref"
+        }
+      },
+      "required": [
+        "record_id",
+        "record_revision_id",
+        "case_id",
+        "observation_refs",
+        "derived_from_record_refs",
+        "validation_state",
+        "created_by_operation_id",
+        "supersedes_revision_id",
+        "record_type",
+        "event_id",
+        "certificate_id",
+        "credit_lot_id",
+        "event_kind",
+        "event_time",
+        "quantity",
+        "assertion_state",
+        "supporting_observations"
+      ],
+      "title": "CertificateEvent",
+      "type": "object"
+    },
+    "CommercialRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Record Id",
+          "type": "string"
+        },
+        "record_revision_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Record Revision Id",
+          "type": "string"
+        },
+        "case_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Case Id",
+          "type": "string"
+        },
+        "observation_refs": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Observation Refs",
+          "type": "array"
+        },
+        "derived_from_record_refs": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Derived From Record Refs",
+          "type": "array"
+        },
+        "validation_state": {
+          "enum": [
+            "VALID",
+            "REVIEW_REQUIRED",
+            "INVALID"
+          ],
+          "title": "Validation State",
+          "type": "string"
+        },
+        "created_by_operation_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Created By Operation Id",
+          "type": "string"
+        },
+        "supersedes_revision_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Supersedes Revision Id"
+        },
+        "record_type": {
+          "const": "CommercialRecord",
+          "title": "Record Type",
+          "type": "string"
+        },
+        "commercial_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Commercial Id",
+          "type": "string"
+        },
+        "record_kind": {
+          "enum": [
+            "CONTRACT",
+            "PO",
+            "INVOICE",
+            "PAYMENT"
+          ],
+          "title": "Record Kind",
+          "type": "string"
+        },
+        "issuer_entity_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Issuer Entity Id",
+          "type": "string"
+        },
+        "recipient_entity_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Recipient Entity Id",
+          "type": "string"
+        },
+        "external_ref": {
+          "minLength": 1,
+          "title": "External Ref",
+          "type": "string"
+        },
+        "event_time": {
+          "$ref": "#/$defs/TemporalValue"
+        },
+        "linked_credit_refs": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Linked Credit Refs",
+          "type": "array"
+        },
+        "money": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Quantity"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "credit_quantity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NonnegativeMass"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "record_id",
+        "record_revision_id",
+        "case_id",
+        "observation_refs",
+        "derived_from_record_refs",
+        "validation_state",
+        "created_by_operation_id",
+        "supersedes_revision_id",
+        "record_type",
+        "commercial_id",
+        "record_kind",
+        "issuer_entity_id",
+        "recipient_entity_id",
+        "external_ref",
+        "event_time",
+        "linked_credit_refs"
+      ],
+      "title": "CommercialRecord",
+      "type": "object"
+    },
+    "DatedAlias": {
+      "additionalProperties": false,
+      "properties": {
+        "alias": {
+          "minLength": 1,
+          "title": "Alias",
+          "type": "string"
+        },
+        "interval": {
+          "$ref": "#/$defs/ReviewedInterval"
+        },
+        "evidence_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "alias",
+        "interval",
+        "evidence_refs"
+      ],
+      "title": "DatedAlias",
+      "type": "object"
+    },
+    "Entity": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Record Id",
+          "type": "string"
+        },
+        "record_revision_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Record Revision Id",
+          "type": "string"
+        },
+        "case_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Case Id",
+          "type": "string"
+        },
+        "observation_refs": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Observation Refs",
+          "type": "array"
+        },
+        "derived_from_record_refs": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Derived From Record Refs",
+          "type": "array"
+        },
+        "validation_state": {
+          "enum": [
+            "VALID",
+            "REVIEW_REQUIRED",
+            "INVALID"
+          ],
+          "title": "Validation State",
+          "type": "string"
+        },
+        "created_by_operation_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Created By Operation Id",
+          "type": "string"
+        },
+        "supersedes_revision_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Supersedes Revision Id"
+        },
+        "record_type": {
+          "const": "Entity",
+          "title": "Record Type",
+          "type": "string"
+        },
+        "entity_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Entity Id",
+          "type": "string"
+        },
+        "legal_name": {
+          "minLength": 1,
+          "title": "Legal Name",
+          "type": "string"
+        },
+        "roles": {
+          "items": {
+            "enum": [
+              "PRODUCER",
+              "MANUFACTURER",
+              "RECYCLER",
+              "REFURBISHER"
+            ],
+            "type": "string"
+          },
+          "title": "Roles",
+          "type": "array"
+        },
+        "identifiers": {
+          "items": {
+            "$ref": "#/$defs/Identifier"
+          },
+          "title": "Identifiers",
+          "type": "array"
+        },
+        "synthetic": {
+          "title": "Synthetic",
+          "type": "boolean"
+        },
+        "aliases": {
+          "items": {
+            "$ref": "#/$defs/DatedAlias"
+          },
+          "title": "Aliases",
+          "type": "array"
+        }
+      },
+      "required": [
+        "record_id",
+        "record_revision_id",
+        "case_id",
+        "observation_refs",
+        "derived_from_record_refs",
+        "validation_state",
+        "created_by_operation_id",
+        "supersedes_revision_id",
+        "record_type",
+        "entity_id",
+        "legal_name",
+        "roles",
+        "identifiers",
+        "synthetic"
+      ],
+      "title": "Entity",
+      "type": "object"
+    },
+    "EventEquivalence": {
+      "additionalProperties": false,
+      "description": "Explicit mapping linking multiple raw observations to one resolved event.",
+      "properties": {
+        "equivalence_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Equivalence Id",
+          "type": "string"
+        },
+        "certificate_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Certificate Id",
+          "type": "string"
+        },
+        "resolved_event_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Resolved Event Id",
+          "type": "string"
+        },
+        "observation_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Observation Ids",
+          "type": "array"
+        },
+        "matching_basis": {
+          "enum": [
+            "AUTHORITATIVE_EVENT_ID",
+            "EXACT_COMPOUND_KEY_AND_CORROBORATION"
+          ],
+          "title": "Matching Basis",
+          "type": "string"
+        },
+        "assertion_state": {
+          "enum": [
+            "SUPPORTED",
+            "PENDING",
+            "CONFLICTING"
+          ],
+          "title": "Assertion State",
+          "type": "string"
+        },
+        "review_state": {
+          "default": "DRAFT",
+          "enum": [
+            "DRAFT",
+            "APPROVED",
+            "REJECTED"
+          ],
+          "title": "Review State",
+          "type": "string"
+        }
+      },
+      "required": [
+        "equivalence_id",
+        "certificate_id",
+        "resolved_event_id",
+        "observation_ids",
+        "matching_basis",
+        "assertion_state"
+      ],
+      "title": "EventEquivalence",
+      "type": "object"
+    },
+    "EvidenceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "ref_kind": {
+          "enum": [
+            "ARTIFACT",
+            "OBSERVATION",
+            "RECORD",
+            "PROVISION",
+            "CALCULATION",
+            "FINDING"
+          ],
+          "title": "Ref Kind",
+          "type": "string"
+        },
+        "ref_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Ref Id",
+          "type": "string"
+        },
+        "artifact_revision_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Artifact Revision Id"
+        },
+        "locator": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Locator"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "ref_kind",
+        "ref_id",
+        "artifact_revision_id",
+        "locator"
+      ],
+      "title": "EvidenceRef",
+      "type": "object"
+    },
+    "Identifier": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "GSTIN",
+            "PAN",
+            "CIN",
+            "IEC",
+            "PROJECT_ID",
+            "OTHER"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "value": {
+          "minLength": 1,
+          "title": "Value",
+          "type": "string"
+        },
+        "validation_state": {
+          "enum": [
+            "VALID",
+            "REVIEW_REQUIRED",
+            "INVALID"
+          ],
+          "title": "Validation State",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind",
+        "value",
+        "validation_state",
+        "evidence_refs"
+      ],
+      "title": "Identifier",
+      "type": "object"
+    },
+    "Issue": {
+      "additionalProperties": false,
+      "properties": {
+        "issue_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Issue Id",
+          "type": "string"
+        },
+        "code": {
+          "enum": [
+            "INVALID_SCHEMA",
+            "ACCESS_DENIED",
+            "HASH_MISMATCH",
+            "MISSING_ARTIFACT",
+            "INCOMPLETE_COVERAGE",
+            "EXTRACTION_FAILED",
+            "UNCONFIRMED_IDENTIFIER",
+            "AMBIGUOUS_IDENTITY",
+            "AMBIGUOUS_EVENT",
+            "DIMENSION_MISMATCH",
+            "NUMERIC_PRECISION_EXCEEDED",
+            "EARLIER_LIABILITY_UNMET",
+            "LIABILITY_PRIORITY_UNRESOLVED",
+            "UNSUPPORTED_PROFILE",
+            "UNAPPROVED_PROFILE",
+            "APPLICABILITY_UNRESOLVED",
+            "RULE_CONFLICT",
+            "SOURCE_INCOMPLETE",
+            "STALE_SNAPSHOT",
+            "BUDGET_EXHAUSTED",
+            "CYCLE_DETECTED",
+            "PROVIDER_TIMEOUT",
+            "PROVIDER_INVALID_OUTPUT",
+            "AUDIT_UNAVAILABLE",
+            "CONCURRENT_MODIFICATION",
+            "STALE_REVIEW",
+            "EXPORT_RESTRICTED",
+            "PROHIBITED_VERDICT",
+            "CANCELLED",
+            "INTEGRITY_FAILED"
+          ],
+          "title": "Code",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "INFO",
+            "WARNING",
+            "BLOCKING"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "message": {
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        },
+        "field_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Field Path"
+        },
+        "evidence_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "retryable": {
+          "title": "Retryable",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "issue_id",
+        "code",
+        "severity",
+        "message",
+        "field_path",
+        "evidence_refs",
+        "retryable"
+      ],
+      "title": "Issue",
+      "type": "object"
+    },
+    "Locator": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "PDF_PAGE",
+            "PDF_CELL",
+            "CSV_ROW",
+            "JSON_POINTER",
+            "TEXT_SPAN",
+            "DB_RECORD"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "page_index_1based": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Page Index 1Based"
+        },
+        "printed_page_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Printed Page Label"
+        },
+        "row_index_1based": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Row Index 1Based"
+        },
+        "column_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Column Name"
+        },
+        "json_pointer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Json Pointer"
+        },
+        "text_start": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Text Start"
+        },
+        "text_end": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Text End"
+        },
+        "table_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Table Id"
+        },
+        "cell_row": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cell Row"
+        },
+        "cell_column": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cell Column"
+        }
+      },
+      "required": [
+        "kind",
+        "page_index_1based",
+        "printed_page_label",
+        "row_index_1based",
+        "column_name",
+        "json_pointer",
+        "text_start",
+        "text_end",
+        "table_id",
+        "cell_row",
+        "cell_column"
+      ],
+      "title": "Locator",
+      "type": "object"
+    },
+    "NonnegativeMass": {
+      "additionalProperties": false,
+      "properties": {
+        "decimal": {
+          "title": "Decimal",
+          "type": "string"
+        },
+        "unit": {
+          "enum": [
+            "KG",
+            "TONNE",
+            "INR",
+            "UNIT_COUNT"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "dimension": {
+          "enum": [
+            "METAL_MASS",
+            "EQUIPMENT_MASS",
+            "MONEY",
+            "COUNT"
+          ],
+          "title": "Dimension",
+          "type": "string"
+        },
+        "metal": {
+          "anyOf": [
+            {
+              "enum": [
+                "AU",
+                "CU",
+                "AL",
+                "FE"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Metal"
+        }
+      },
+      "required": [
+        "decimal",
+        "unit",
+        "dimension",
+        "metal"
+      ],
+      "title": "NonnegativeMass",
+      "type": "object"
+    },
+    "ObligationBucket": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Record Id",
+          "type": "string"
+        },
+        "record_revision_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Record Revision Id",
+          "type": "string"
+        },
+        "case_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Case Id",
+          "type": "string"
+        },
+        "observation_refs": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Observation Refs",
+          "type": "array"
+        },
+        "derived_from_record_refs": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Derived From Record Refs",
+          "type": "array"
+        },
+        "validation_state": {
+          "enum": [
+            "VALID",
+            "REVIEW_REQUIRED",
+            "INVALID"
+          ],
+          "title": "Validation State",
+          "type": "string"
+        },
+        "created_by_operation_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Created By Operation Id",
+          "type": "string"
+        },
+        "supersedes_revision_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Supersedes Revision Id"
+        },
+        "record_type": {
+          "const": "ObligationBucket",
+          "title": "Record Type",
+          "type": "string"
+        },
+        "bucket_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Bucket Id",
+          "type": "string"
+        },
+        "producer_entity_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Producer Entity Id",
+          "type": "string"
+        },
+        "liability_year": {
+          "pattern": "^\\d{4}-\\d{4}$",
+          "title": "Liability Year",
+          "type": "string"
+        },
+        "component": {
+          "minLength": 1,
+          "title": "Component",
+          "type": "string"
+        },
+        "metal": {
+          "enum": [
+            "AU",
+            "CU",
+            "AL",
+            "FE"
+          ],
+          "title": "Metal",
+          "type": "string"
+        },
+        "target": {
+          "$ref": "#/$defs/NonnegativeMass"
+        },
+        "basis": {
+          "enum": [
+            "SUPPLIED_ACCOUNT",
+            "REVIEWED_CALCULATION"
+          ],
+          "title": "Basis",
+          "type": "string"
+        },
+        "basis_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Basis Refs",
+          "type": "array"
+        },
+        "profile_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Profile Id",
+          "type": "string"
+        },
+        "adjustments": {
+          "items": {
+            "$ref": "#/$defs/SignedAdjustment"
+          },
+          "title": "Adjustments",
+          "type": "array"
+        }
+      },
+      "required": [
+        "record_id",
+        "record_revision_id",
+        "case_id",
+        "observation_refs",
+        "derived_from_record_refs",
+        "validation_state",
+        "created_by_operation_id",
+        "supersedes_revision_id",
+        "record_type",
+        "bucket_id",
+        "producer_entity_id",
+        "liability_year",
+        "component",
+        "metal",
+        "target",
+        "basis",
+        "basis_refs",
+        "profile_id"
+      ],
+      "title": "ObligationBucket",
+      "type": "object"
+    },
+    "ObservationDisposition": {
+      "additionalProperties": false,
+      "description": "Disposition of an individual raw observation following normalization.",
+      "properties": {
+        "observation_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Observation Id",
+          "type": "string"
+        },
+        "disposition": {
+          "enum": [
+            "ACCEPTED",
+            "QUARANTINED",
+            "EXCLUDED",
+            "OUT_OF_SCOPE"
+          ],
+          "title": "Disposition",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "derived_record_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Derived Record Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "observation_id",
+        "disposition",
+        "reason"
+      ],
+      "title": "ObservationDisposition",
+      "type": "object"
+    },
+    "Quantity": {
+      "additionalProperties": false,
+      "properties": {
+        "decimal": {
+          "title": "Decimal",
+          "type": "string"
+        },
+        "unit": {
+          "enum": [
+            "KG",
+            "TONNE",
+            "INR",
+            "UNIT_COUNT"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "dimension": {
+          "enum": [
+            "METAL_MASS",
+            "EQUIPMENT_MASS",
+            "MONEY",
+            "COUNT"
+          ],
+          "title": "Dimension",
+          "type": "string"
+        },
+        "metal": {
+          "anyOf": [
+            {
+              "enum": [
+                "AU",
+                "CU",
+                "AL",
+                "FE"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Metal"
+        }
+      },
+      "required": [
+        "decimal",
+        "unit",
+        "dimension",
+        "metal"
+      ],
+      "title": "Quantity",
+      "type": "object"
+    },
+    "Registration": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Record Id",
+          "type": "string"
+        },
+        "record_revision_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Record Revision Id",
+          "type": "string"
+        },
+        "case_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Case Id",
+          "type": "string"
+        },
+        "observation_refs": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Observation Refs",
+          "type": "array"
+        },
+        "derived_from_record_refs": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Derived From Record Refs",
+          "type": "array"
+        },
+        "validation_state": {
+          "enum": [
+            "VALID",
+            "REVIEW_REQUIRED",
+            "INVALID"
+          ],
+          "title": "Validation State",
+          "type": "string"
+        },
+        "created_by_operation_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Created By Operation Id",
+          "type": "string"
+        },
+        "supersedes_revision_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Supersedes Revision Id"
+        },
+        "record_type": {
+          "const": "Registration",
+          "title": "Record Type",
+          "type": "string"
+        },
+        "entity_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Entity Id",
+          "type": "string"
+        },
+        "registration_ref": {
+          "minLength": 1,
+          "title": "Registration Ref",
+          "type": "string"
+        },
+        "validity": {
+          "$ref": "#/$defs/ReviewedInterval"
+        },
+        "covered_eee_codes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Covered Eee Codes",
+          "type": "array"
+        },
+        "status_assertion": {
+          "title": "Status Assertion",
+          "type": "string"
+        },
+        "evidence_as_of": {
+          "$ref": "#/$defs/TemporalValue"
+        },
+        "facility_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Facility Id"
+        },
+        "capacity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Quantity"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "consent_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Consent Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "record_id",
+        "record_revision_id",
+        "case_id",
+        "observation_refs",
+        "derived_from_record_refs",
+        "validation_state",
+        "created_by_operation_id",
+        "supersedes_revision_id",
+        "record_type",
+        "entity_id",
+        "registration_ref",
+        "validity",
+        "covered_eee_codes",
+        "status_assertion",
+        "evidence_as_of"
+      ],
+      "title": "Registration",
+      "type": "object"
+    },
+    "ReviewedInterval": {
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Start"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "End"
+        },
+        "end_open_ended": {
+          "title": "End Open Ended",
+          "type": "boolean"
+        },
+        "review_state": {
+          "enum": [
+            "DRAFT",
+            "APPROVED",
+            "REJECTED"
+          ],
+          "title": "Review State",
+          "type": "string"
+        },
+        "applicability_scope": {
+          "enum": [
+            "GENERAL",
+            "SPECIFIC",
+            "UNKNOWN"
+          ],
+          "title": "Applicability Scope",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "start",
+        "end",
+        "end_open_ended",
+        "review_state",
+        "applicability_scope",
+        "evidence_refs"
+      ],
+      "title": "ReviewedInterval",
+      "type": "object"
+    },
+    "SignedAdjustment": {
+      "additionalProperties": false,
+      "properties": {
+        "adjustment_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Adjustment Id",
+          "type": "string"
+        },
+        "quantity": {
+          "$ref": "#/$defs/Quantity"
+        },
+        "basis_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Basis Refs",
+          "type": "array"
+        },
+        "review_ref": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Review Ref",
+          "type": "string"
+        }
+      },
+      "required": [
+        "adjustment_id",
+        "quantity",
+        "basis_refs",
+        "review_ref"
+      ],
+      "title": "SignedAdjustment",
+      "type": "object"
+    },
+    "TemporalValue": {
+      "additionalProperties": false,
+      "properties": {
+        "raw": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Raw"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        },
+        "precision": {
+          "enum": [
+            "INSTANT",
+            "DATE",
+            "MONTH",
+            "YEAR",
+            "UNKNOWN"
+          ],
+          "title": "Precision",
+          "type": "string"
+        },
+        "timezone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Timezone"
+        },
+        "interpretation_status": {
+          "enum": [
+            "PARSED",
+            "REVIEWED",
+            "AMBIGUOUS",
+            "UNKNOWN"
+          ],
+          "title": "Interpretation Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "raw",
+        "value",
+        "precision",
+        "timezone",
+        "interpretation_status"
+      ],
+      "title": "TemporalValue",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Container envelope for all normalized domain records from a case.",
+  "properties": {
+    "batch_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Batch Id",
+      "type": "string"
+    },
+    "case_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "records": {
+      "items": {
+        "discriminator": {
+          "mapping": {
+            "AccountBalanceObservation": "#/$defs/AccountBalanceObservation",
+            "Allocation": "#/$defs/Allocation",
+            "Certificate": "#/$defs/Certificate",
+            "CertificateEvent": "#/$defs/CertificateEvent",
+            "CommercialRecord": "#/$defs/CommercialRecord",
+            "Entity": "#/$defs/Entity",
+            "ObligationBucket": "#/$defs/ObligationBucket",
+            "Registration": "#/$defs/Registration"
+          },
+          "propertyName": "record_type"
+        },
+        "oneOf": [
+          {
+            "$ref": "#/$defs/Entity"
+          },
+          {
+            "$ref": "#/$defs/Registration"
+          },
+          {
+            "$ref": "#/$defs/ObligationBucket"
+          },
+          {
+            "$ref": "#/$defs/Certificate"
+          },
+          {
+            "$ref": "#/$defs/CertificateEvent"
+          },
+          {
+            "$ref": "#/$defs/Allocation"
+          },
+          {
+            "$ref": "#/$defs/AccountBalanceObservation"
+          },
+          {
+            "$ref": "#/$defs/CommercialRecord"
+          }
+        ]
+      },
+      "title": "Records",
+      "type": "array"
+    },
+    "dispositions": {
+      "items": {
+        "$ref": "#/$defs/ObservationDisposition"
+      },
+      "title": "Dispositions",
+      "type": "array"
+    },
+    "equivalences": {
+      "items": {
+        "$ref": "#/$defs/EventEquivalence"
+      },
+      "title": "Equivalences",
+      "type": "array"
+    },
+    "issues": {
+      "items": {
+        "$ref": "#/$defs/Issue"
+      },
+      "title": "Issues",
+      "type": "array"
+    },
+    "mapping_version": {
+      "default": "1.0",
+      "title": "Mapping Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "batch_id",
+    "case_id",
+    "records",
+    "dispositions"
+  ],
+  "title": "NormalizationBatch",
+  "type": "object"
+}

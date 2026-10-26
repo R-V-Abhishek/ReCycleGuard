@@ -12,8 +12,10 @@ from recycleguard import __version__
 from recycleguard.application import local_application
 from recycleguard.config import Settings
 from recycleguard.contracts import PROTOCOL_VERSION, CommandContext, Quantity
+from recycleguard.contracts.foundation import FoundationRequest
 from recycleguard.contracts.profiles import ProfilePublication, ProfileReview
 from recycleguard.contracts.snapshots import CaseReopen, SnapshotPublication, SnapshotReview
+from recycleguard.foundation import FoundationService
 from recycleguard.local_session import initialize_reviewer
 
 app = typer.Typer(no_args_is_help=True, help="ReCycleGuard local application scaffold.")
@@ -87,6 +89,23 @@ profile_app = typer.Typer(help="Publish and review immutable calculation profile
 app.add_typer(reviewer_app, name="reviewer")
 app.add_typer(snapshot_app, name="snapshot")
 app.add_typer(profile_app, name="profile")
+foundation_app = typer.Typer(help="Build the A04 evidence foundation for human review.")
+app.add_typer(foundation_app, name="foundation")
+
+
+@foundation_app.command("build")
+def foundation_build(path: Annotated[Path, typer.Argument(exists=True, dir_okay=False)]):
+    """Build audited case/corpus/profile drafts. This does not approve CP1."""
+    try:
+        request = FoundationRequest.model_validate_json(path.read_bytes())
+        with local_application(Settings.from_environment()) as (cases, context, capability):
+            output = FoundationService(cases).build(context, request, capability=capability)
+            typer.echo(output.model_dump_json())
+            if output.status != "SUCCESS":
+                raise typer.Exit(1)
+    except (ValueError, OSError, sqlite3.Error) as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc
 
 
 @reviewer_app.command("init")

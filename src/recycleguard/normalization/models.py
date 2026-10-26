@@ -5,7 +5,7 @@ from typing import Literal
 from pydantic import Field
 
 from recycleguard.contracts.core import ID, BoundaryModel, Issue
-from recycleguard.contracts.domain import NormalizedRecord
+from recycleguard.contracts.domain import Record
 
 ObservationDispositionKind = Literal["ACCEPTED", "QUARANTINED", "EXCLUDED", "OUT_OF_SCOPE"]
 EquivalenceBasis = Literal["AUTHORITATIVE_EVENT_ID", "EXACT_COMPOUND_KEY_AND_CORROBORATION"]
@@ -31,7 +31,7 @@ class EventEquivalence(BoundaryModel):
     observation_ids: list[ID]
     matching_basis: EquivalenceBasis
     assertion_state: EquivalenceAssertionState
-    review_state: ReviewState = "APPROVED"
+    review_state: ReviewState = "DRAFT"
 
 
 class NormalizationBatch(BoundaryModel):
@@ -39,7 +39,7 @@ class NormalizationBatch(BoundaryModel):
 
     batch_id: ID
     case_id: ID
-    records: list[NormalizedRecord]
+    records: list[Record]
     dispositions: list[ObservationDisposition]
     equivalences: list[EventEquivalence] = Field(default_factory=list)
     issues: list[Issue] = Field(default_factory=list)

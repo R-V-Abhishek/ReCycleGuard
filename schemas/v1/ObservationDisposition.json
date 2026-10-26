@@ -1,0 +1,40 @@
+{
+  "additionalProperties": false,
+  "description": "Disposition of an individual raw observation following normalization.",
+  "properties": {
+    "observation_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Observation Id",
+      "type": "string"
+    },
+    "disposition": {
+      "enum": [
+        "ACCEPTED",
+        "QUARANTINED",
+        "EXCLUDED",
+        "OUT_OF_SCOPE"
+      ],
+      "title": "Disposition",
+      "type": "string"
+    },
+    "reason": {
+      "title": "Reason",
+      "type": "string"
+    },
+    "derived_record_ids": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Derived Record Ids",
+      "type": "array"
+    }
+  },
+  "required": [
+    "observation_id",
+    "disposition",
+    "reason"
+  ],
+  "title": "ObservationDisposition",
+  "type": "object"
+}

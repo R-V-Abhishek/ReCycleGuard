@@ -8,8 +8,6 @@ Verifies:
 - Complete ExtractionResult conforms to CONTRACTS §3.3.
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 
 from recycleguard.contracts.artifacts import ArtifactRevision

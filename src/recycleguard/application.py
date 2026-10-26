@@ -40,7 +40,9 @@ def local_application(settings, reviewer_password: str | None = None):
         actor_id="service:local_c05", actor_kind="SERVICE", authenticated_session_ref=None
     )
     prefixes = (
-        frozenset({"review."}) if reviewer is not None else frozenset({"snapshot.", "profile."})
+        frozenset({"review."})
+        if reviewer is not None
+        else frozenset({"snapshot.", "profile.", "intake.", "extraction.", "normalization."})
     )
     authority = LocalAuthority({"dispatcher": TrustedPrincipal(actor, prefixes)})
     capability = authority.issue("dispatcher")

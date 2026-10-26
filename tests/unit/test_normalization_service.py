@@ -14,6 +14,15 @@ def make_obs(
     event_time_str: str = "2024-09-15T11:30:00Z",
 ) -> Observation:
     """Helper to construct contract-valid Observation instances."""
+    parsed_fields = dict(parsed_fields)
+    if obs_type == "CertificateObservation":
+        parsed_fields.update(
+            {"external_event_ref": "TXN-FIXTURE", "credit_lot_id": "lot:fixture", "unit": "KG"}
+        )
+    elif obs_type == "ObligationObservation":
+        parsed_fields["profile_id"] = "profile:producer_snapshot_v1"
+    elif obs_type in {"CommercialObservation", "AccountBalanceObservation"}:
+        parsed_fields.update({"unit": "KG", "metal": "CU"})
     return Observation(
         observation_id=obs_id,
         extraction_id="ext:case_001",
@@ -41,14 +50,14 @@ def make_obs(
             raw=event_time_str,
             value=event_time_str,
             precision="INSTANT",
-            timezone=None,
+            timezone="UTC",
             interpretation_status="PARSED",
         ),
         source_capture_time=TemporalValue(
             raw="2024-09-30T18:00:00Z",
             value="2024-09-30T18:00:00Z",
             precision="INSTANT",
-            timezone=None,
+            timezone="UTC",
             interpretation_status="REVIEWED",
         ),
         ingestion_time="2024-10-01T10:00:00Z",
@@ -59,7 +68,9 @@ class TestNormalizationService(unittest.TestCase):
     """Test suite asserting end-to-end normalization service functionality."""
 
     def setUp(self) -> None:
-        self.service = NormalizationService(operation_id="op:norm_test")
+        self.service = NormalizationService(
+            operation_id="op:norm_test", authoritative_artifact_ids=frozenset({"art:doc_001"})
+        )
 
     def test_01_normalize_case_001_observations(self) -> None:
         """Normalizes case_001 observations, resolving F02 and retaining provenance."""
@@ -185,7 +196,7 @@ class TestNormalizationService(unittest.TestCase):
         eq = batch.equivalences[0]
         self.assertEqual(eq.certificate_id, "cert:rec_001")
         self.assertEqual(eq.resolved_event_id, evt.event_id)
-        self.assertEqual(eq.matching_basis, "EXACT_COMPOUND_KEY_AND_CORROBORATION")
+        self.assertEqual(eq.matching_basis, "AUTHORITATIVE_EVENT_ID")
 
         # 4. Check Dispositions (every observation has an ACCEPTED disposition)
         self.assertEqual(len(batch.dispositions), len(observations))

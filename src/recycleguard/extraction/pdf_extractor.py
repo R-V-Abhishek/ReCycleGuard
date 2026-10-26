@@ -8,8 +8,6 @@ Guarantees:
 - Emits Observation records per page with PDF_PAGE locator and full extracted text.
 """
 
-from __future__ import annotations
-
 import io
 from datetime import UTC, datetime
 from uuid import uuid4
@@ -46,49 +44,36 @@ def extract_pdf_pages(
 
     pages_data: list[tuple[int, str]] = []
 
-    # Method 1: Try pdfplumber
-    try:
-        import pdfplumber
+    import pdfplumber
+    from pdfminer.pdfdocument import PDFPasswordIncorrect
+    from pdfminer.pdfparser import PDFSyntaxError
+    from pdfminer.psparser import PSEOF
+    from pdfplumber.utils.exceptions import PdfminerException
 
+    try:
         with pdfplumber.open(io.BytesIO(pdf_bytes)) as pdf:
             for i, page in enumerate(pdf.pages, 1):
-                text = page.extract_text() or ""
-                pages_data.append((i, text))
-    except Exception as exc1:
-        # Method 2: Try pypdfium2
-        try:
-            import pypdfium2
-
-            pdf = pypdfium2.PdfDocument(pdf_bytes)
-            for i, page in enumerate(pdf, 1):
-                textpage = page.get_textpage()
-                text = textpage.get_text_range() or ""
-                pages_data.append((i, text))
-        except Exception as exc2:
-            # Method 3: Try pdfminer
-            try:
-                from pdfminer.high_level import extract_pages
-                from pdfminer.layout import LTTextContainer
-
-                for i, page_layout in enumerate(extract_pages(io.BytesIO(pdf_bytes)), 1):
-                    page_text = ""
-                    for element in page_layout:
-                        if isinstance(element, LTTextContainer):
-                            page_text += element.get_text()
-                    pages_data.append((i, page_text))
-            except Exception as exc3:
-                issues.append(
-                    Issue(
-                        issue_id=f"issue:{uuid4().hex[:8]}",
-                        code="EXTRACTION_FAILED",
-                        severity="BLOCKING",
-                        message=f"No PDF extractor succeeded on document: {exc1}; {exc2}; {exc3}",
-                        field_path="pdf_document",
-                        evidence_refs=[],
-                        retryable=False,
-                    )
-                )
-                return observations, coverage_items, "", issues
+                pages_data.append((i, page.extract_text() or ""))
+    except (
+        ValueError,
+        OSError,
+        PDFSyntaxError,
+        PDFPasswordIncorrect,
+        PSEOF,
+        PdfminerException,
+    ) as exc:
+        issues.append(
+            Issue(
+                issue_id=f"issue:{uuid4().hex}",
+                code="EXTRACTION_FAILED",
+                severity="BLOCKING",
+                message=f"PDF parsing failed: {exc}",
+                field_path=None,
+                evidence_refs=[],
+                retryable=False,
+            )
+        )
+        return [], [], "", issues
 
     # Now process pages_data
     for page_idx, page_text in pages_data:

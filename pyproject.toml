@@ -7,14 +7,18 @@ name = "recycleguard"
 version = "0.1.0"
 description = "Auditable e-waste EPR reconciliation prototype"
 requires-python = ">=3.11"
-dependencies = ["pydantic>=2.10,<3", "typer>=0.15,<1", "tzdata>=2024.1"]
+dependencies = [
+    "pdfplumber>=0.11.10",
+    "pydantic>=2.10,<3",
+    "typer>=0.15,<1",
+    "tzdata>=2024.1",
+]
 
 [project.scripts]
 recycleguard = "recycleguard.cli:app"
 
 [dependency-groups]
 dev = [
-    "pdfplumber>=0.11.10",
     "pytest>=8,<9",
     "ruff>=0.11,<1",
 ]

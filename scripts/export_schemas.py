@@ -41,6 +41,14 @@ from recycleguard.contracts.domain import (
 )
 from recycleguard.contracts.dossier import AssetEntry, CaseManifest, TableDisposition
 from recycleguard.contracts.extraction import CoverageItem, ExtractionResult, Observation
+from recycleguard.contracts.foundation import (
+    ApplicabilityProposal,
+    ExtractedBatch,
+    FoundationApproval,
+    FoundationRequest,
+    FoundationResult,
+    SourceBatch,
+)
 from recycleguard.contracts.profiles import (
     AllocationPolicy,
     CalculationProfile,
@@ -69,9 +77,28 @@ from recycleguard.contracts.sources import (
     SourceLead,
     SourceVersion,
 )
+from recycleguard.intake.acquisition import AcquisitionOutcome
+from recycleguard.intake.batch import IntakeBatchResult
 from recycleguard.model_port import ModelCallRequest, ModelCallResult
+from recycleguard.normalization.models import (
+    EventEquivalence,
+    NormalizationBatch,
+    ObservationDisposition,
+)
 
 MODELS = [
+    FoundationApproval,
+    ApplicabilityProposal,
+    ExtractedBatch,
+    FoundationRequest,
+    FoundationResult,
+    SourceBatch,
+    EventEquivalence,
+    NormalizationBatch,
+    ObservationDisposition,
+    IntakeBatchResult,
+    AcquisitionOutcome,
+    ServiceResult[FoundationResult],
     CaseReopen,
     CalculationProfile,
     ProfileDefinition,

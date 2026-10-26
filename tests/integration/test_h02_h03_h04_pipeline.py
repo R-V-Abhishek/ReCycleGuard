@@ -7,8 +7,6 @@ Proves the complete Sampreeth workstream (C01, C03, C06, C07) is ready for A04/C
 4. Reviewed sources R02/R08 and canonical profile producer_snapshot_v1 are validated and approved.
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 
 from recycleguard.contracts.artifacts import ProfileRef
@@ -18,11 +16,11 @@ from recycleguard.extraction import extract_artifact
 from recycleguard.intake import intake_batch
 from recycleguard.knowledge import (
     build_v1_profile_definition,
-    register_reviewed_sources,
 )
 from recycleguard.profiles import ProfileStore
 from recycleguard.storage import ArtifactCatalog, AuditKernel, BlobStore
 from recycleguard.storage.authority import LocalAuthority, TrustedPrincipal
+from tests.unit.test_h04_knowledge import register_reviewed_sources
 
 FIXTURES_DIR = Path(__file__).resolve().parents[1] / "fixtures"
 CASE_001_DIR = FIXTURES_DIR / "visible/case_001"

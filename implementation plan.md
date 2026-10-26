@@ -444,7 +444,7 @@ All references are exact task/checkpoint IDs. Required predecessors are an AND c
 | **A01** | DONE | None                  | None                    | 23 Oct        | **Package, uv lock, CI/config/CLI skeleton and C10 test seam.** Installable scaffold; schema/test-port proposal; no real gateway. [A01 evidence](docs/decisions/A01_HANDOFF.md); review accepted via lead-reported all-four acknowledgement.                       |
 | **A02** | DONE | A01, H01, S01, V01    | None                    | 23 Oct        | **Freeze shared models, service fixtures and module boundaries.** Four-way producer/consumer validation; schema version and review refs. [CP0 integration evidence](docs/checkpoints/checkpoint-0/README.md); accepted 24 Oct; lead-reported all-four acknowledgement of c8fb512. |
 | **A03** | DONE | CP0, V02              | None                    | 24 Oct        | **Implement snapshot/profile persistence, review and version controls.** Immutable membership/profile revisions and trusted approval checks. [A03 service handoff](docs/checkpoints/checkpoint-1/a03.md); verified 25 Oct. |
-| **A04** | BLOCKED   | A03, H03, H04, S02    | None                    | 24 Oct        | **Integrate intake, normalization and first case/corpus snapshots.** Imported case and reviewed profile with complete coverage refs.                    |
+| **A04** | DONE | A03, H03, H04, S02    | None                    | 24 Oct        | Integrated qualified foundation accepted by lead on 26 Oct; [A04 evidence](docs/checkpoints/checkpoint-1/a04.md). |
 | **A05** | BLOCKED   | CP1, S03, V03         | None                    | 25 Oct        | **Connect deterministic CLI vertical slice and baseline audit view.** Fresh-root original-bytes-to-working-paper transcript.                            |
 | **A06** | BLOCKED   | CP2                   | None                    | 26 Oct        | **Implement bounded graph, checkpointed state and budget controls.** Plan/action/assessment loop; scripted-port state/budget tests.                     |
 | **A07** | BLOCKED   | A06, H06, S04, V05    | None                    | 27 Oct        | **Integrate graph with real retrieval/domain/report services.** Audited adaptive trace; retry/cancel/all-status integration tests.                      |
@@ -461,8 +461,8 @@ All references are exact task/checkpoint IDs. Required predecessors are an AND c
 | **H01** | DONE | None                  | None                    | 23 Oct        | **Curate source leads, aliases and initial source/locator fixtures.** Reviewed lead inventory; accessible-original fixture and metadata. [CP0 integration evidence](docs/checkpoints/checkpoint-0/README.md); accepted 24 Oct; lead-reported all-four acknowledgement of c8fb512. |
 | **H02** | DONE      | CP0, V02, H01         | None                    | 24 Oct        | **Implement auditable acquisition and every-file batch intake.** Exact bytes; fetch attempts; declared/missing/extra receipts. [H02-H04 evidence](docs/checkpoints/checkpoint-1/h02_h04.md). |
 | **H03** | DONE      | H02                   | None                    | 24 Oct        | **Implement CSV/JSON/text-PDF extraction and page/row coverage.** ExtractionResult; terminal dispositions; source/dossier adapter tests. [H02-H04 evidence](docs/checkpoints/checkpoint-1/h02_h04.md). |
-| **H04** | DONE      | H03                   | None                    | 24 Oct        | **Review initial source applicability and v1 profile content.** Named internal review; exact provisions; initial approved content. [H02-H04 evidence](docs/checkpoints/checkpoint-1/h02_h04.md). |
-| **H05** | BLOCKED   | CP1                   | None                    | 25 Oct        | **Build provision/table chunks and frozen lexical index.** FTS5 index manifest, membership digest and exact locators.                               |
+| **H04** | DONE | H03                   | None                    | 24 Oct        | Corrected original-source/profile scope accepted by lead on 26 Oct with unresolved applicability/deadlines retained; [approval](docs/checkpoints/checkpoint-1/approvals.json). |
+| **H05** | READY | CP1                   | None                    | 25 Oct        | **Build provision/table chunks and frozen lexical index.** FTS5 index manifest, membership digest and exact locators.                               |
 | **H06** | BLOCKED   | H05                   | None                    | 26 Oct        | **Implement filtered retrieval, locator resolution and evidence grades.** Full candidate dispositions; five grades; bounded context expansion.      |
 | **H07** | BLOCKED   | H06, H04              | None                    | 27 Oct        | **Complete temporal overlays, deadline register and missing-order tests.** Amendment/role/time tests; separate deadline types; explicit abstention. |
 | **H08** | BLOCKED   | H07, CP3              | None                    | 28 Oct        | **Audit final corpus/profile and development retrieval regressions.** Reviewed exact source/index/profile versions; limitations and rights.         |
@@ -476,8 +476,8 @@ All references are exact task/checkpoint IDs. Required predecessors are an AND c
 | Task          | State now | Required predecessors | Conditional predecessor | Target        | Work and acceptance evidence                                                                                                                               |
 | ------------- | --------- | --------------------- | ----------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **S01** | DONE | None                  | None                    | 23 Oct        | **Define clean world and starter visible dossier fixtures.** Opaque visible files and 100/55/45 reference scenario. [CP0 integration evidence](docs/checkpoints/checkpoint-0/README.md); accepted 24 Oct; lead-reported all-four acknowledgement of c8fb512. |
-| **S02** | READY | CP0                   | None                    | 24 Oct        | **Normalize observations, units, identity and F02/F03 relationships.** NormalizationBatch; raw lineage; supported/ambiguous equivalence tests.       |
-| **S03** | BLOCKED   | CP1                   | None                    | 25 Oct        | **Implement exact baseline balances, allocations and comparisons.** 55 supported / 45 gap; conservation; unknown/pending tests.                      |
+| **S02** | DONE | CP0                   | None                    | 24 Oct        | Integrated with A04 repairs and complete normalization dispositions; [CP1 evidence](docs/checkpoints/checkpoint-1/a04.md). |
+| **S03** | READY | CP1                   | None                    | 25 Oct        | **Implement exact baseline balances, allocations and comparisons.** 55 supported / 45 gap; conservation; unknown/pending tests.                      |
 | **S05** | READY | CP0                   | None                    | 25 Oct        | **Implement clean-world renderer and first six visible cases.** Linked CSV/JSONL/text-PDF fixtures; hidden world kept separate.                      |
 | **S04** | BLOCKED   | S03                   | None                    | 26 Oct        | **Complete lifecycle, priority, entity/capability/product/commercial tools.** Full-server-input checks; F08/F09; PASS/FAIL/UNKNOWN results.          |
 | **S06** | BLOCKED   | S05, S04, H04         | None                    | 27 Oct        | **Implement all F01–F16 fault recipes and generation invariants.** Each recipe has a visible effect, clean reference and validation.                |
@@ -520,7 +520,7 @@ V12 begins BLOCKED; if CP5 is approved NON_MODEL_ONLY, record V12 as NOT_RUN wit
 | Gate          | State now | Required accepted tasks                          | Target                      | Required shared decision                                           |
 | ------------- | --------- | ------------------------------------------------ | --------------------------- | ------------------------------------------------------------------ |
 | **CP0** | APPROVED | A02                                              | 23 Oct                      | Shared schema/fixture pack accepted by all four. Approved 24 Oct for c8fb512; [acknowledgement ledger](docs/checkpoints/checkpoint-0/approvals.json). |
-| **CP1** | WAITING   | A04                                              | 24 Oct                      | Evidence foundation and first frozen reviewed snapshots.           |
+| **CP1** | APPROVED | A04                                              | 24 Oct                      | Lead accepted qualified evidence foundation on 26 Oct; explicit CP1 exception to four-person acknowledgement. [Approval ledger](docs/checkpoints/checkpoint-1/approvals.json). |
 | **CP2** | WAITING   | A05                                              | 25 Oct                      | Deterministic baseline vertical slice.                             |
 | **CP3** | WAITING   | A07, H07, S06                                    | 27 Oct                      | Integrated investigation and fault/temporal checks.                |
 | **CP4** | WAITING   | A08                                              | 29 Oct                      | Week 1 acceptance; declare offline versus real-agent level.        |
@@ -531,6 +531,12 @@ V12 begins BLOCKED; if CP5 is approved NON_MODEL_ONLY, record V12 as NOT_RUN wit
 | **CP8** | WAITING   | V15                                              | By 12 Nov                   | Final submission inventory and reproduction checks.                |
 
 For CP5 INCLUDES_REAL_MODEL, add MG1 as a required gate in that experiment's recorded scope. For CP6 and its scoring tasks, require all registered V12 trials closed whenever the conditional path is active. CP7 freezes the Review 4 artifacts; CP8 verifies the final submission set, not a claim that an academic paper was accepted.
+
+CP1-specific exception, 26 October 2026: Abhishek explicitly accepted the qualified
+candidate after the agent's technical review and requested a lock. The approval
+ledger records LEAD_EXPLICIT_ACCEPTANCE, the exact user instruction and accepted
+qualifications. Four-person acknowledgement is not claimed. The normal policy
+continues to apply to other checkpoints.
 
 At each checkpoint, all four must answer:
 

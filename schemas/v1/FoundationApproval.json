@@ -1,0 +1,94 @@
+{
+  "$defs": {
+    "BlobRef": {
+      "additionalProperties": false,
+      "properties": {
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_length": {
+          "minimum": 0,
+          "title": "Byte Length",
+          "type": "integer"
+        },
+        "media_type": {
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sha256",
+        "byte_length",
+        "media_type"
+      ],
+      "title": "BlobRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "candidate_blob": {
+      "$ref": "#/$defs/BlobRef"
+    },
+    "approval_evidence_blob": {
+      "$ref": "#/$defs/BlobRef"
+    },
+    "approval_reference": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Approval Reference",
+      "type": "string"
+    },
+    "accepted_qualifications": {
+      "minLength": 1,
+      "title": "Accepted Qualifications",
+      "type": "string"
+    },
+    "reviewed_profile_version": {
+      "minLength": 1,
+      "title": "Reviewed Profile Version",
+      "type": "string"
+    },
+    "approved_profile_version": {
+      "minLength": 1,
+      "title": "Approved Profile Version",
+      "type": "string"
+    },
+    "reviewed_case_snapshot_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Reviewed Case Snapshot Id",
+      "type": "string"
+    },
+    "approved_case_snapshot_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Approved Case Snapshot Id",
+      "type": "string"
+    },
+    "reviewed_corpus_snapshot_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Reviewed Corpus Snapshot Id",
+      "type": "string"
+    },
+    "approved_corpus_snapshot_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Approved Corpus Snapshot Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "candidate_blob",
+    "approval_evidence_blob",
+    "approval_reference",
+    "accepted_qualifications",
+    "reviewed_profile_version",
+    "approved_profile_version",
+    "reviewed_case_snapshot_id",
+    "approved_case_snapshot_id",
+    "reviewed_corpus_snapshot_id",
+    "approved_corpus_snapshot_id"
+  ],
+  "title": "FoundationApproval",
+  "type": "object"
+}

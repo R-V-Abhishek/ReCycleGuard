@@ -4,7 +4,16 @@ Enforces exact Decimal arithmetic, strict unit standardization (Tonne -> KG),
 and dimension isolation across METAL_MASS, EQUIPMENT_MASS, MONEY, and COUNT.
 """
 
-from decimal import ROUND_HALF_EVEN, Context, Decimal, InvalidOperation
+import re
+from decimal import (
+    ROUND_HALF_EVEN,
+    Context,
+    Decimal,
+    Inexact,
+    InvalidOperation,
+    Overflow,
+    localcontext,
+)
 from typing import Literal
 
 from recycleguard.contracts.core import Quantity
@@ -12,6 +21,8 @@ from recycleguard.contracts.domain import Metal
 
 # Canonical numeric context: 28 digits of precision, bankers rounding
 NUMERIC_CONTEXT = Context(prec=28, rounding=ROUND_HALF_EVEN, Emin=-999999, Emax=999999)
+NUMERIC_CONTEXT.traps[Inexact] = True
+NUMERIC_CONTEXT.traps[Overflow] = True
 
 MASS_CONVERSION_FACTORS: dict[str, Decimal] = {
     "KG": Decimal("1"),
@@ -25,18 +36,19 @@ class NumericSafetyError(ValueError):
 
 def parse_strict_decimal(value: str | int | Decimal) -> Decimal:
     """Parse an input into a strict Decimal without using binary floats."""
-    if isinstance(value, float):
+    if type(value) is float or type(value) is bool:
         raise NumericSafetyError(
             f"Binary float {value} is strictly prohibited; supply a DecimalString"
         )
-    if isinstance(value, Decimal):
-        return value
-    if isinstance(value, int):
-        return Decimal(value)
-    if not isinstance(value, str):
+    if type(value) in {Decimal, int}:
+        value = format(value, "f")
+    if type(value) is not str:
         raise NumericSafetyError(f"Expected decimal string or int, got {type(value)}")
 
-    val_str = value.strip().replace(",", "")
+    raw = value.strip()
+    if not re.fullmatch(r"-?(?:0|[1-9][0-9]*|[1-9][0-9]{0,2}(?:,[0-9]{3})+)(?:\.[0-9]+)?", raw):
+        raise NumericSafetyError("invalid decimal representation or thousands grouping")
+    val_str = raw.replace(",", "")
     if "e" in val_str.lower():
         raise NumericSafetyError(f"Scientific notation is forbidden in decimal values: {value}")
     try:
@@ -50,8 +62,13 @@ def parse_strict_decimal(value: str | int | Decimal) -> Decimal:
 
 def format_decimal_string(d: Decimal, decimal_places: int = 4) -> str:
     """Format a Decimal into an exact DecimalString with fixed fractional digits."""
-    q = Decimal(10) ** -decimal_places
-    quantized = d.quantize(q, context=NUMERIC_CONTEXT)
+    # Preserve every supported source digit; four places are padding, not rounding.
+    fractional_places = max(0, -d.as_tuple().exponent)
+    q = Decimal(10) ** -max(decimal_places, fractional_places)
+    try:
+        quantized = d.quantize(q, context=NUMERIC_CONTEXT)
+    except (Inexact, Overflow, InvalidOperation) as exc:
+        raise NumericSafetyError("numeric precision exceeded") from exc
     s = f"{quantized:f}"
     # Validate against contract rules
     integral, _, fractional = s.lstrip("-").partition(".")
@@ -68,7 +85,11 @@ def convert_mass_to_kg(value: str | int | Decimal, unit: str) -> Decimal:
         raise NumericSafetyError(f"Unsupported mass unit '{unit}'. Supported units: {supported}")
     d = parse_strict_decimal(value)
     factor = MASS_CONVERSION_FACTORS[unit_upper]
-    return d * factor
+    try:
+        with localcontext(NUMERIC_CONTEXT):
+            return d * factor
+    except (Inexact, Overflow, InvalidOperation) as exc:
+        raise NumericSafetyError("numeric precision exceeded") from exc
 
 
 def normalize_quantity(
@@ -162,7 +183,8 @@ def add_quantities(q1: Quantity, q2: Quantity) -> Quantity:
 
     d1 = Decimal(q1.decimal)
     d2 = Decimal(q2.decimal)
-    total = d1 + d2
+    with localcontext(NUMERIC_CONTEXT):
+        total = d1 + d2
     formatted = format_decimal_string(total)
     return Quantity(
         decimal=formatted,
@@ -190,7 +212,8 @@ def subtract_quantities(minuend: Quantity, subtrahend: Quantity) -> Quantity:
 
     d1 = Decimal(minuend.decimal)
     d2 = Decimal(subtrahend.decimal)
-    res = d1 - d2
+    with localcontext(NUMERIC_CONTEXT):
+        res = d1 - d2
     formatted = format_decimal_string(res)
     return Quantity(
         decimal=formatted,

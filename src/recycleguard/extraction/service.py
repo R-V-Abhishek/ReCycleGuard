@@ -7,8 +7,6 @@ Guarantees:
 - Enforces explicit issue accounting on partial or failed extractions.
 """
 
-from __future__ import annotations
-
 import hashlib
 from datetime import UTC, datetime
 from uuid import uuid4
