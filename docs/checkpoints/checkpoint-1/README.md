@@ -16,8 +16,8 @@ after CP1 approval. Branch creation alone does not approve the checkpoint.
 | --- | --- | --- | --- |
 | Vedantha + Abhishek repair/review | V02 | [Storage handoff and repairs](v02.md) | DONE after local verification; remote CI tracked separately |
 | Abhishek | A03 | [Snapshot/profile persistence, structured service and trusted CLI](a03.md) | DONE; 214 tests and CI passed on Python 3.11/3.12 at `8750265` |
-| Sampreeth | H02 | Audited batch intake | READY after V02 |
+| Sampreeth | H02 / H03 / H04 | [Audited batch intake, extraction coverage, and reviewed profile](h02_h04.md) | DONE; full intake, extraction, and reviewed profile ready for A04 |
 | Sushanth | S02 / S05 | Normalization / visible renderer | READY from CP0; no new completion is inferred |
 
-A03 supplies the persistence/review handoff; H02 can use the repaired shared write coordinator. H03/H04 and S02
-remain prerequisites for A04, so this update does not approve CP1.
+A03 and H02–H04 are complete and tested. A04 will integrate intake, normalization (S02), and reviewed profile into CP1 snapshots.
+

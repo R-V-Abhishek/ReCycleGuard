@@ -8,6 +8,10 @@ from recycleguard.contracts.extraction import (
     ExtractionResult,
     Observation,
 )
+from recycleguard.extraction.csv_extractor import extract_csv
+from recycleguard.extraction.json_extractor import extract_json
+from recycleguard.extraction.pdf_extractor import extract_pdf_pages
+from recycleguard.extraction.service import extract_artifact
 
 
 def validate_row_coverage_consistency(discovered_rows: int, items: list[CoverageItem]) -> bool:
@@ -26,5 +30,9 @@ __all__ = [
     "CoverageItem",
     "ExtractionResult",
     "Observation",
+    "extract_artifact",
+    "extract_csv",
+    "extract_json",
+    "extract_pdf_pages",
     "validate_row_coverage_consistency",
 ]
