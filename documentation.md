@@ -86,3 +86,43 @@ Append-only log of work done per session. Source of truth for execution state re
 
 ### Next permitted step
 - Re-freeze the visible CP0 fixture pack with S01/S05 ownership, then rerun the full pytest suite.
+
+## 2026-10-26 IST — Sushanth — CP1 — S03
+
+**Task state at start:** READY
+**Predecessors verified:** CP1 APPROVED (qualified evidence foundation, lead acceptance 2026-10-26)
+
+### Done
+- Added the C08 package `src/recycleguard/domain/`: `universe.py` (server-side input universe + membership digest), `lots.py` (derived credit lots), `allocation.py` (validity + event/lot conservation, demote-only), `priority.py` (earlier-liability check at allocation time), `reconcile.py` (pure engine: required, supported, signed gap, shortfall, surplus, pending, portal comparison, dispositions, coverage), `service.py` (thin `compute_reconciliation`), `models.py`, `arith.py`.
+- Strict no-promotion rule: PENDING allocations/events are never turned into supported quantity; checks can only exclude or leave pending.
+- Callers cannot supply records: the API takes a pinned `SnapshotRef`; `bucket_ids` select outputs only; a mismatching `expected_input_membership_digest` is rejected with `STALE_SNAPSHOT`.
+- Tests: `test_allocation_conservation.py` (G05), `test_reconciliation.py`, `test_c08_universe.py`, `tests/integration/test_s03_cp1_snapshot.py`; builders in `tests/support/c08.py`.
+
+### Evidence
+- Commit/branch: `S_branch`, uncommitted
+- Tests run: `pytest` (full, Windows) → 293 passed, 12 failed, 3 skipped. The 12 failures are pre-existing and unrelated: `os.O_NOFOLLOW` in `intake/batch.py` (POSIX-only) and `os.getuid` in `local_session.py`; the same 12 failed before S03 (236 passed before, 57 new tests). With a local `O_NOFOLLOW` shim (not committed) the real CP1 pipeline test passes; 5 `getuid` failures remain.
+- Real CP1 snapshot through C08 (shim run): required 100.0000, supported 0.0000, pending 80.0000 (55 PENDING allocation + 25 unlinked invoice), coverage QUALIFIED. Reviewed-state `case_001` reference records: required 100, supported 55, signed gap 45, pending 25, portal 55, delta 0.0000, matching `case_001_expected.json`.
+- `ruff check` / `ruff format --check` clean; `scripts/export_schemas.py --check` → 77 boundary schemas (unchanged: no contract edits).
+- Mutation check (in-process, not committed): disabling the lot cap, promoting pending, or removing the priority check each makes the gate tests fail.
+- Gate(s) touched: G05 (new), G03 exercised.
+
+### Limitations / open issues (this is a THIN implementation; raise in the PR)
+- No audit/persistence: `storage/authority.py` has no `calculation.` event prefix, so a calculation cannot be committed as an audited operation. The service archives three blobs and writes no audit event (`audit_event_ids=[]`). Owner: Vedantha / Abhishek (A05).
+- No CLI or dispatcher hook; `cli.py` untouched. Owner: Abhishek (A05).
+- `QuantityDisposition` exists only as prose in CONTRACTS §6.2; S03 uses an internal model with no generated schema. Owner: Abhishek.
+- `Allocation` has no allocation timestamp, so priority-at-allocation-time is `UNKNOWN` on real CP1 data; `FAIL`/`PASS` only with the explicit `allocation_order` input. Needs an `allocated_at` field or a reviewed ordering input. Owner: Abhishek / Sampreeth.
+- No over-allocation `ErrorCode`; S03 uses `INTEGRITY_FAILED`. `UNSUPPORTED_FEATURE` is an `AbstentionReason`, not an `ErrorCode`, so the disabled purchase ceiling appears only in the derivation (`NOT_EVALUATED`). Owner: Abhishek.
+- Real CP1 events/allocations stay PENDING, so there is no path to SUPPORTED in the real pipeline until a reviewed support assertion exists. Owner: Abhishek (review design).
+- `CreditLot` is not a `Record`; lots are derived from `Certificate` + events (capacity = certificate face quantity). Needs confirmation of the C04/C08 split.
+- Commercial handling is minimal (one unlinked INVOICE/PAYMENT per compatible bucket counts as pending; anything ambiguous is left unassigned). Full matching, F07/F08/F09 and lifecycle expiry are S04.
+- Priority rule is stricter than the plan text: with an earlier owing bucket and no order, the result is UNKNOWN even when the earlier bucket ends fully met (end-of-year totals are not used).
+- Windows: the 12 pre-existing failures above mean the CP1 pipeline cannot be verified on Windows without a shim; CI (Linux) is the real check for the integration test.
+
+### Updates required
+- **implementation_plan.md:** propose S03 READY → IN_REVIEW (needs an independent reviewer before DONE). V03 and A05 may start against `compute_reconciliation` / `CalculationResult` once merged.
+- **CONTRACTS.md / SYSTEM_DESIGN.md:** none applied; proposals listed above (allocation timestamp, over-allocation code, QuantityDisposition schema, `calculation.` event prefix)
+- **Other docs / fixtures / schemas / tests:** none
+- **Other members affected:** Vedantha (persistence/prefix), Abhishek (A05 wiring, contract proposals), Sampreeth (applicability/deadlines keep results QUALIFIED)
+
+### Next permitted step
+- Independent review of S03, then S04 (unblocked by S03 acceptance). S05 is independently READY.
