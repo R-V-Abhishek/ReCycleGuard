@@ -40,7 +40,7 @@
    * Automatically enforces the mandatory watermark banner: `SYNTHETIC — NOT A CPCB RECORD`.
 
 4. **Visible Test Dossier (`tests/fixtures/visible/case_001/`):**
-   * **Manifest:** `case_manifest.json` (11 assets, exact SHA-256 hashes and byte lengths).
+   * **Manifest:** `case_manifest.json` (16 assets, exact SHA-256 hashes and byte lengths).
    * **Records:**
      * `entities.jsonl`: Apex Electronics India Pvt Ltd (`entity:prod_001`, Producer) & GreenTech Recyclers LLP (`entity:rec_001`, Recycler).
      * `registrations.jsonl`: CPCB EPR registration references, validity periods, and facility capacities.
@@ -69,12 +69,51 @@
 
 ---
 
+### Task S02: Normalization and Event Equivalence (C04)
+* **Target Date:** 24 October 2026 (Day 2)
+* **Status:** **COMPLETED & VERIFIED**
+* **Integration Milestone:** Ready for Pull Request to **`checkpoint-1`**; unblocks Abhishek's **A04 (Integrated evidence snapshots)** for **Checkpoint 1 (CP1 — Evidence Foundation)**.
+
+#### What Was Implemented:
+1. **Unit and Dimension Normalization (`src/recycleguard/normalization/units.py`):**
+   * Strict `Decimal` parsing and arithmetic under canonical context (precision 28, `ROUND_HALF_EVEN`), prohibiting binary floats and scientific notation.
+   * Exact mass standardization to Kilograms (`convert_mass_to_kg`: $1\text{ Tonne} = 1000\text{ KG}$).
+   * Dimension safety and isolation: strictly enforces separation of `METAL_MASS`, `EQUIPMENT_MASS`, `MONEY`, and `COUNT`. Traps cross-dimension arithmetic (e.g. adding mass to currency or adding unlike metals).
+   * Gate **G03 Numeric Safety** fully addressed.
+
+2. **Event Equivalence Engine (`src/recycleguard/normalization/equivalence.py`):**
+   * Implements canonical 8-field compound key: `(certificate_id, metal, quantity_kg, from_entity_id, to_entity_id, event_kind, transfer_stage, event_date)`.
+   * **`F02` Deduplication (Overlapping Exports):** Collapses multiple raw observations referring to the same certificate transfer into a single `55.0000 KG` supported `CertificateEvent`. Retains all source observation IDs in `supporting_observations` for complete audit lineage, and emits an `EventEquivalence` record.
+   * **`F02` Conflict Handling:** Identifies conflicting observations (e.g. mismatched quantities or recipient entities) and flags them with `assertion_state = "CONFLICTING"`.
+   * **`F03` Legitimate Multi-Stage Reuse:** Preserves distinct lifecycle stages (e.g. `GENERATED` vs `TRANSFERRED`) sharing the same certificate ID as separate `CertificateEvent` records without false deduplication.
+   * Gate **G04 Lifecycle** fully addressed.
+
+3. **Normalization Boundary Models (`src/recycleguard/normalization/models.py`):**
+   * `ObservationDisposition`: Assigns an explicit terminal disposition (`ACCEPTED`, `QUARANTINED`, `EXCLUDED`, `OUT_OF_SCOPE`) and derived record IDs to every observation.
+   * `EventEquivalence`: Explicitly maps duplicate observation IDs to the single resolved event ID with review and assertion states.
+   * `NormalizationBatch`: Container envelope bundling normalized domain records, observation dispositions, equivalence assertions, and issues.
+
+4. **Normalization Service (`src/recycleguard/normalization/service.py`):**
+   * End-to-end normalization pipeline converting raw observations (`EntityObservation`, `ObligationObservation`, `CommercialObservation`, `AccountBalanceObservation`, and `CertificateObservation`) into typed domain models conforming to CONTRACTS v1.1 §3.4.
+
+5. **Project Environment & Dependencies:**
+   * Created standard `requirements.txt` containing runtime and development dependencies (`pydantic`, `typer`, `tzdata`, `pdfplumber`, `pytest`, `ruff`).
+   * Configured local `.venv` environment for reproducible offline execution.
+
+6. **Automated Verification Test Suites:**
+   * [`tests/unit/test_quantities.py`](file:///d:/ReCycleGuard/tests/unit/test_quantities.py) (5 tests): Strict decimals, mass conversion, metal mass constraints, dimension isolation.
+   * [`tests/unit/test_event_equivalence.py`](file:///d:/ReCycleGuard/tests/unit/test_event_equivalence.py) (3 tests): F02 deduplication, F02 conflicting quantities, F03 multi-stage preservation.
+   * [`tests/unit/test_normalization_service.py`](file:///d:/ReCycleGuard/tests/unit/test_normalization_service.py) (1 test): End-to-end normalization of `case_001` observations into `NormalizationBatch`.
+   * **All 33 repository unit tests pass cleanly** (16 S01/S02 tests + 17 framework tests in 1.19s).
+
+---
+
 ## 2. Upcoming Roadmap & Next Steps
 
 | Task ID | Component | Target Date | Description | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| **S02** | `C04 Normalization` | 24 Oct 2026 | Unit conversions (Tonne $\to$ KG via `Decimal`), F02 deduplication, F03 multi-stage reuse, `NormalizationBatch` output | READY after CP0 approval |
-| **S03** | `C08 Domain Tools` | 25 Oct 2026 | Exact baseline reconciliation, conservation, historical bucket allocation (CP1 milestone) | BLOCKED on CP1 |
+| **S02** | `C04 Normalization` | 24 Oct 2026 | Unit conversions (Tonne $\to$ KG via `Decimal`), F02 deduplication, F03 multi-stage reuse, `NormalizationBatch` output | **COMPLETED & VERIFIED** |
+| **S03** | `C08 Domain Tools` | 25 Oct 2026 | Exact baseline reconciliation, conservation, historical bucket allocation (CP1 milestone) | READY for implementation |
 | **S05** | `C15 Generator` | 25 Oct 2026 | Clean-world renderer and first 6 visible development dossiers | READY after CP0 approval |
 | **S04** | `C08 Domain Tools` | 26 Oct 2026 | Recycler capability, product weights, commercial validation, lifecycle checks | BLOCKED on S03 |
 | **S06** | `C15 Generator` | 27 Oct 2026 | Complete implementation of all 16 fault recipes (F01–F16) | BLOCKED on S05, S04 |
@@ -91,3 +130,5 @@
 | Date | Task | Commit / Activity Summary | Deliverables & Artifacts |
 | :--- | :--- | :--- | :--- |
 | **2026-10-24** | **S01** | Implementation and verification of starter world (`case_001`), reference oracle, generic & dedicated B2B PDF builders, and unit tests | `benchmarks/generator/starter_world.py`<br/>`benchmarks/generator/invoice_builder.py`<br/>`benchmarks/generator/pdf_builder.py`<br/>`tests/fixtures/visible/case_001/*`<br/>`tests/fixtures/expected/case_001_expected.json`<br/>`tests/unit/test_s01_fixtures.py` |
+| **2026-10-25** | **S02** | Implementation of C04 Normalization & Equivalence service, unit converter (G03), F02/F03 equivalence engine (G04), NormalizationBatch models, requirements.txt, and unit tests | `src/recycleguard/normalization/units.py`<br/>`src/recycleguard/normalization/equivalence.py`<br/>`src/recycleguard/normalization/models.py`<br/>`src/recycleguard/normalization/service.py`<br/>`requirements.txt`<br/>`tests/unit/test_quantities.py`<br/>`tests/unit/test_event_equivalence.py`<br/>`tests/unit/test_normalization_service.py` |
+| **2026-10-25** | **CI / Fix** | Enforce LF line endings across visible fixtures, manifests, and generator scripts (`.gitattributes`, `cp0_sources.py`); resolve Windows CRLF byte-length inflation in CI | `.gitattributes`<br/>`benchmarks/generator/cp0_sources.py`<br/>`tests/fixtures/visible/case_001/case_manifest.json`<br/>`tests/fixtures/visible/case_001/records/artifacts.jsonl` |
