@@ -4,6 +4,8 @@ Accepted by R V Abhishek on **26 October 2026**, following the agent's technical
 review and his explicit instruction to accept the candidate and lock the checkpoint.
 Approval mode: **LEAD_EXPLICIT_ACCEPTANCE**. Scope: **QUALIFIED_EVIDENCE_FOUNDATION**.
 [Approval evidence and exact frozen references](approvals.json).
+[Lock manifest](boundary-manifest.json) pins 169 files at the verified implementation
+commit; [verification evidence](verification.md) includes the passing GitHub CI run.
 
 The lead explicitly accepted this checkpoint after being told that four-person
 acknowledgement would not be claimed. This is a recorded CP1-specific exception to

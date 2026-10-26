@@ -16,6 +16,6 @@ Date: 26 October 2026. Scope: qualified evidence foundation.
   and visually inspected. No generated replacement PDF was used.
 - No hidden oracle/expected-answer data was loaded into the A04 runtime.
 
-Task PRs #5 and #6 are retained through merge ancestry. GitHub CI is recorded after
-push. Approval evidence and accepted qualifications are in approvals.json; this
+Task PRs #5 and #6 are retained through merge ancestry. [GitHub CI for `5f33213`](https://github.com/R-V-Abhishek/ReCycleGuard/actions/runs/40264677971)
+passed on Python 3.11 and 3.12, including tests, schemas, lint and package builds. Approval evidence and accepted qualifications are in approvals.json; this
 record does not assert independent four-person acknowledgement.
