@@ -20,6 +20,7 @@ from recycleguard.contracts.core import EvidenceRef
 from recycleguard.contracts.extraction import ExtractionResult, Observation
 from recycleguard.contracts.results import CalculationRequest
 from recycleguard.contracts.snapshots import SnapshotPublication, SnapshotReview
+from recycleguard.local_session import initialize_reviewer
 from recycleguard.storage import canonical_json_bytes
 from recycleguard.storage.authority import AuthorizationError, Capability
 from recycleguard.support_review import SupportReviewer
@@ -41,7 +42,9 @@ def approved_foundation(tmp_path_factory):
 @pytest.fixture
 def data_root(tmp_path, approved_foundation):
     root = tmp_path / "data"
-    shutil.copytree(approved_foundation, root)
+    # Copy immutable evidence, not machine-bound reviewer credentials/ACLs.
+    shutil.copytree(approved_foundation, root, ignore=shutil.ignore_patterns("reviewer.json"))
+    initialize_reviewer(root, "human:review_test", PASSWORD)
     return root
 
 
