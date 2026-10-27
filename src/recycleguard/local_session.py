@@ -45,13 +45,16 @@ def initialize_reviewer(root: Path, actor_id: str, password: str):
 
 def authenticate_reviewer(root: Path, password: str) -> ActorRef:
     path = root / "reviewer.json"
-    descriptor = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+    descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
     with os.fdopen(descriptor, "r", encoding="utf-8") as stream:
         metadata = os.fstat(stream.fileno())
         if (
             not stat.S_ISREG(metadata.st_mode)
-            or metadata.st_uid != os.getuid()
-            or stat.S_IMODE(metadata.st_mode) & 0o077
+            # POSIX owner/mode bits do not exist on Windows; NTFS ACLs are not checked here.
+            or (
+                os.name != "nt"
+                and (metadata.st_uid != os.getuid() or stat.S_IMODE(metadata.st_mode) & 0o077)
+            )
         ):
             raise AuthorizationError("reviewer credentials require an owner-only regular file")
         record = ReviewerCredential.model_validate_json(stream.read())

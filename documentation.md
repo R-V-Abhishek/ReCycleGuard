@@ -86,3 +86,101 @@ Append-only log of work done per session. Source of truth for execution state re
 
 ### Next permitted step
 - Re-freeze the visible CP0 fixture pack with S01/S05 ownership, then rerun the full pytest suite.
+
+## 2026-10-26 IST — Sushanth — CP1 — S03
+
+**Task state at start:** READY
+**Predecessors verified:** CP1 APPROVED (qualified evidence foundation, lead acceptance 2026-10-26)
+
+### Done
+- Added the C08 package `src/recycleguard/domain/`: `universe.py` (server-side input universe + membership digest), `lots.py` (derived credit lots), `allocation.py` (validity + event/lot conservation, demote-only), `priority.py` (earlier-liability check at allocation time), `reconcile.py` (pure engine: required, supported, signed gap, shortfall, surplus, pending, portal comparison, dispositions, coverage), `service.py` (thin `compute_reconciliation`), `models.py`, `arith.py`.
+- Strict no-promotion rule: PENDING allocations/events are never turned into supported quantity; checks can only exclude or leave pending.
+- Callers cannot supply records: the API takes a pinned `SnapshotRef`; `bucket_ids` select outputs only; a mismatching `expected_input_membership_digest` is rejected with `STALE_SNAPSHOT`.
+- Tests: `test_allocation_conservation.py` (G05), `test_reconciliation.py`, `test_c08_universe.py`, `tests/integration/test_s03_cp1_snapshot.py`; builders in `tests/support/c08.py`.
+
+### Evidence
+- Commit/branch: `S_branch`, uncommitted
+- Tests run: `pytest` (full, Windows) → 293 passed, 12 failed, 3 skipped. The 12 failures are pre-existing and unrelated: `os.O_NOFOLLOW` in `intake/batch.py` (POSIX-only) and `os.getuid` in `local_session.py`; the same 12 failed before S03 (236 passed before, 57 new tests). With a local `O_NOFOLLOW` shim (not committed) the real CP1 pipeline test passes; 5 `getuid` failures remain.
+- Real CP1 snapshot through C08 (shim run): required 100.0000, supported 0.0000, pending 80.0000 (55 PENDING allocation + 25 unlinked invoice), coverage QUALIFIED. Reviewed-state `case_001` reference records: required 100, supported 55, signed gap 45, pending 25, portal 55, delta 0.0000, matching `case_001_expected.json`.
+- `ruff check` / `ruff format --check` clean; `scripts/export_schemas.py --check` → 77 boundary schemas (unchanged: no contract edits).
+- Mutation check (in-process, not committed): disabling the lot cap, promoting pending, or removing the priority check each makes the gate tests fail.
+- Gate(s) touched: G05 (new), G03 exercised.
+
+### Limitations / open issues (this is a THIN implementation; raise in the PR)
+- No audit/persistence: `storage/authority.py` has no `calculation.` event prefix, so a calculation cannot be committed as an audited operation. The service archives three blobs and writes no audit event (`audit_event_ids=[]`). Owner: Vedantha / Abhishek (A05).
+- No CLI or dispatcher hook; `cli.py` untouched. Owner: Abhishek (A05).
+- `QuantityDisposition` exists only as prose in CONTRACTS §6.2; S03 uses an internal model with no generated schema. Owner: Abhishek.
+- `Allocation` has no allocation timestamp, so priority-at-allocation-time is `UNKNOWN` on real CP1 data; `FAIL`/`PASS` only with the explicit `allocation_order` input. Needs an `allocated_at` field or a reviewed ordering input. Owner: Abhishek / Sampreeth.
+- No over-allocation `ErrorCode`; S03 uses `INTEGRITY_FAILED`. `UNSUPPORTED_FEATURE` is an `AbstentionReason`, not an `ErrorCode`, so the disabled purchase ceiling appears only in the derivation (`NOT_EVALUATED`). Owner: Abhishek.
+- Real CP1 events/allocations stay PENDING, so there is no path to SUPPORTED in the real pipeline until a reviewed support assertion exists. Owner: Abhishek (review design).
+- `CreditLot` is not a `Record`; lots are derived from `Certificate` + events (capacity = certificate face quantity). Needs confirmation of the C04/C08 split.
+- Commercial handling is minimal (one unlinked INVOICE/PAYMENT per compatible bucket counts as pending; anything ambiguous is left unassigned). Full matching, F07/F08/F09 and lifecycle expiry are S04.
+- Priority rule is stricter than the plan text: with an earlier owing bucket and no order, the result is UNKNOWN even when the earlier bucket ends fully met (end-of-year totals are not used).
+- Windows: the 12 pre-existing failures above mean the CP1 pipeline cannot be verified on Windows without a shim; CI (Linux) is the real check for the integration test.
+
+### Updates required
+- **implementation_plan.md:** propose S03 READY → IN_REVIEW (needs an independent reviewer before DONE). V03 and A05 may start against `compute_reconciliation` / `CalculationResult` once merged.
+- **CONTRACTS.md / SYSTEM_DESIGN.md:** none applied; proposals listed above (allocation timestamp, over-allocation code, QuantityDisposition schema, `calculation.` event prefix)
+- **Other docs / fixtures / schemas / tests:** none
+- **Other members affected:** Vedantha (persistence/prefix), Abhishek (A05 wiring, contract proposals), Sampreeth (applicability/deadlines keep results QUALIFIED)
+
+### Next permitted step
+- Independent review of S03, then S04 (unblocked by S03 acceptance). S05 is independently READY.
+
+## 2026-10-27 IST — Vedantha — CP1 — V03
+
+**Task state at start:** READY after S03 was marked DONE
+**Predecessors verified:** CP1 APPROVED; S03 DONE in `implementation plan.md`
+
+### Done
+- Added `src/recycleguard/reporting/baseline.py` with the eight ordered C12 sections, typed claims, calculation references, deterministic decimal insertion, and Markdown rendering.
+- Added numeric/citation verification for section order, evidence presence, calculation-reference resolution, unresolved placeholders, prohibited verdicts, and qualified coverage.
+- Added focused V03 tests in `tests/unit/test_v03_reporting.py` for clean output, stale numeric references, missing citations, and prohibited claims.
+
+### Evidence
+- Commit/branch: uncommitted
+- Tests run: focused static diagnostics → no errors; V03 pytest → NOT RUN (terminal execution unavailable)
+- Fixtures/schema versions: existing C08 `CalculationResult`; no schema changes
+- Gate(s) touched: G03, G12
+
+### Limitations / open issues
+- Report persistence, audit events, review packets, and blob-backed report artifacts remain downstream work; this V03 slice is a deterministic in-memory builder/verifier.
+- The verifier validates citation structure and supplied evidence membership, not semantic/legal correctness.
+
+### Updates required
+- **implementation_plan.md:** propose V03 BLOCKED → IN_REVIEW after independent review and focused pytest evidence
+- **CONTRACTS.md / SYSTEM_DESIGN.md:** none
+- **Other docs / fixtures / schemas / tests:** no schema changes; review the new V03 test file
+- **Other members affected:** Abhishek/A05 can consume the report object after V03 acceptance; V05 will add trusted review and repair behavior
+
+### Next permitted step
+- Run `pytest tests/unit/test_v03_reporting.py`, review the V03 handoff, then integrate report persistence through the authorized A05/V05 path.
+
+## 2026-10-27 IST — Vedantha — CP1 — V03 verification review
+
+**Task state at start:** DONE in `implementation plan.md`; acceptance verification requested
+**Predecessors verified:** CP1 APPROVED; S03 DONE
+
+### Done
+- Verified the V03 implementation and focused test file against the eight-section, deterministic numeric insertion, and invalid-claim requirements.
+- Confirmed static diagnostics report no errors for `src/recycleguard/reporting/baseline.py` and `tests/unit/test_v03_reporting.py`.
+- Confirmed the focused pytest command remains unexecuted because terminal execution was unavailable.
+
+### Evidence
+- Commit/branch: uncommitted
+- Tests run: static diagnostics → no errors; `pytest tests/unit/test_v03_reporting.py` → NOT RUN
+- Fixtures/schema versions: existing C08 `CalculationResult`; no schema changes
+- Gate(s) touched: G03, G12
+
+### Limitations / open issues
+- Blocking runtime defect: the builder always enters the empty `NEXT_ACTIONS` path and references `finding` even when `findings` is empty, so the clean-report test is expected to fail with `NameError`.
+- The report/verifier remains an in-memory V03 slice; persistence, audit events, review packets and locator-level citation resolution remain downstream or documented limitations.
+
+### Updates required
+- **implementation_plan.md:** propose V03 DONE → IN_PROGRESS, then IN_REVIEW after repairing the empty-findings path and producing focused pytest evidence; do not mark DONE from static diagnostics alone.
+- **CONTRACTS.md / SYSTEM_DESIGN.md:** none.
+- **Other docs / fixtures / schemas / tests:** repair `src/recycleguard/reporting/baseline.py`; rerun `tests/unit/test_v03_reporting.py`.
+- **Other members affected:** Abhishek/A05 should treat V03 as unaccepted until the focused test evidence is available.
+
+### Next permitted step
+- Repair the empty-findings `NEXT_ACTIONS` construction, run `pytest tests/unit/test_v03_reporting.py`, and obtain independent review before restoring V03 acceptance.

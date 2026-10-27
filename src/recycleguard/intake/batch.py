@@ -129,7 +129,9 @@ def intake_batch(
                 elif entry.is_file(follow_symlinks=False):
                     seen.add(rel)
                     try:
-                        flags = os.O_RDONLY | os.O_NOFOLLOW
+                        flags = (
+                            os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_BINARY", 0)
+                        )
                         with os.fdopen(os.open(path, flags), "rb") as stream:
                             data = stream.read()
                     except OSError as exc:
