@@ -41,11 +41,11 @@ _WINDOWS_CHECK = r"""
 $ErrorActionPreference = 'Stop'
 $path = $env:RECYCLEGUARD_CREDENTIAL_PATH
 $owner = [System.Security.Principal.WindowsIdentity]::GetCurrent().User
-$item = Get-Item -LiteralPath $path -Force
-if (($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+$attributes = [System.IO.File]::GetAttributes($path)
+if (($attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
     throw 'Credential reparse points are prohibited'
 }
-$acl = Get-Acl -LiteralPath $path
+$acl = [System.IO.File]::GetAccessControl($path)
 if ($acl.GetOwner([System.Security.Principal.SecurityIdentifier]).Value -ne $owner.Value) {
     throw 'Credential owner is not the current user'
 }
@@ -69,6 +69,7 @@ def _windows_acl(path: Path, *, create: bool = False):
         )
         environment = os.environ.copy()
         environment["RECYCLEGUARD_CREDENTIAL_PATH"] = str(path.absolute())
+        environment["PSModulePath"] = str(executable.parent / "Modules")
         completed = subprocess.run(
             [
                 str(executable),

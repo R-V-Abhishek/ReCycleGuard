@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from recycleguard.local_session import authenticate_reviewer, initialize_reviewer
+from recycleguard.local_session import _windows_acl, authenticate_reviewer, initialize_reviewer
 from recycleguard.storage.authority import AuthorizationError
 
 pytestmark = pytest.mark.skipif(os.name != "nt", reason="requires native Windows NTFS ACLs")
@@ -18,6 +18,7 @@ def powershell(path, script):
     environment = os.environ.copy()
     environment["RECYCLEGUARD_CREDENTIAL_PATH"] = str(path.absolute())
     executable = Path(os.environ["SystemRoot"]) / "System32/WindowsPowerShell/v1.0/powershell.exe"
+    environment["PSModulePath"] = str(executable.parent / "Modules")
     return subprocess.run(
         [str(executable), "-NoProfile", "-NonInteractive", "-Command", script],
         env=environment,
@@ -26,6 +27,43 @@ def powershell(path, script):
         text=True,
         timeout=15,
     ).stdout
+
+
+def test_windows_atomic_security_descriptor(tmp_path):
+    """Inspect the native descriptor independently of the application's CHECK script."""
+    path = tmp_path / "empty-credential.json"
+    _windows_acl(path, create=True)
+    security = json.loads(
+        powershell(
+            path,
+            r"""
+        $ErrorActionPreference = 'Stop'
+        $acl = [System.IO.File]::GetAccessControl($env:RECYCLEGUARD_CREDENTIAL_PATH)
+        $sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User
+        $rules = @($acl.GetAccessRules($true, $true,
+            [System.Security.Principal.SecurityIdentifier]))
+        $access = @($rules | ForEach-Object {
+            @{ identity = $_.IdentityReference.Value; inherited = $_.IsInherited;
+               rights = [string]$_.FileSystemRights; access = [string]$_.AccessControlType }
+        })
+        @{ owner = $acl.GetOwner([System.Security.Principal.SecurityIdentifier]).Value;
+           current = $sid.Value; protected = $acl.AreAccessRulesProtected;
+           sddl = $acl.Sddl; rules = $access } | ConvertTo-Json -Depth 5 -Compress
+    """,
+        )
+    )
+    assert security["owner"] == security["current"], security
+    assert security["protected"] is True, security
+    assert security["rules"] == [
+        {
+            "identity": security["current"],
+            "inherited": False,
+            "rights": "FullControl",
+            "access": "Allow",
+        }
+    ], security
+    assert path.read_bytes() == b""
+    _windows_acl(path)
 
 
 def test_windows_private_acl_authentication_and_literal_paths(tmp_path):
@@ -37,7 +75,7 @@ def test_windows_private_acl_authentication_and_literal_paths(tmp_path):
             path,
             r"""
         $ErrorActionPreference = 'Stop'
-        $acl = Get-Acl -LiteralPath $env:RECYCLEGUARD_CREDENTIAL_PATH
+        $acl = [System.IO.File]::GetAccessControl($env:RECYCLEGUARD_CREDENTIAL_PATH)
         $sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User
         $rules = @($acl.GetAccessRules($true, $true,
             [System.Security.Principal.SecurityIdentifier]))
@@ -70,13 +108,13 @@ def test_windows_foreign_read_grant_is_rejected(tmp_path):
         r"""
         $ErrorActionPreference = 'Stop'
         $path = $env:RECYCLEGUARD_CREDENTIAL_PATH
-        $acl = Get-Acl -LiteralPath $path
+        $acl = [System.IO.File]::GetAccessControl($path)
         $everyone = [System.Security.Principal.SecurityIdentifier]::new('S-1-1-0')
         $rule = [System.Security.AccessControl.FileSystemAccessRule]::new(
             $everyone, [System.Security.AccessControl.FileSystemRights]::Read,
             [System.Security.AccessControl.AccessControlType]::Allow)
         $acl.AddAccessRule($rule)
-        Set-Acl -LiteralPath $path -AclObject $acl
+        [System.IO.File]::SetAccessControl($path, $acl)
     """,
     )
     with pytest.raises(AuthorizationError, match="current-user-only ACL"):
@@ -90,9 +128,9 @@ def test_windows_reenabled_acl_inheritance_is_rejected(tmp_path):
         r"""
         $ErrorActionPreference = 'Stop'
         $path = $env:RECYCLEGUARD_CREDENTIAL_PATH
-        $acl = Get-Acl -LiteralPath $path
+        $acl = [System.IO.File]::GetAccessControl($path)
         $acl.SetAccessRuleProtection($false, $false)
-        Set-Acl -LiteralPath $path -AclObject $acl
+        [System.IO.File]::SetAccessControl($path, $acl)
     """,
     )
     with pytest.raises(AuthorizationError, match="current-user-only ACL"):
