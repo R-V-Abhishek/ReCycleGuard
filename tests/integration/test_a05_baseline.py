@@ -7,7 +7,7 @@ import pytest
 from typer.testing import CliRunner
 
 from recycleguard.application import command_context, local_application, local_review_application
-from recycleguard.baseline import BaselineService
+from recycleguard.baseline import BaselineOutput, BaselineService
 from recycleguard.cli import app
 from recycleguard.config import Settings
 from recycleguard.contracts.artifacts import SnapshotRef
@@ -150,6 +150,10 @@ def test_support_review_enables_exact_baseline_and_preserves_original_drafts(dat
         assert (bucket.required.decimal, bucket.supported.decimal) == ("100.0000", "55.0000")
         assert (bucket.signed_gap.decimal, bucket.pending.decimal) == ("45.0000", "25.0000")
         assert result.output.verification.verdict != "BLOCKED"
+        assert (
+            BaselineOutput.model_validate_json(cases.kernel.blob_store.get(result.output_blob))
+            == result.output
+        )
         assert result.audit_event_ids
         assert service.run(context, request, capability=cap) == result
         assert len(cases.kernel.list_attempts(context.operation_id)) == 1

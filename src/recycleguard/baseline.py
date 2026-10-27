@@ -18,6 +18,7 @@ from recycleguard.reporting.baseline import (
     ReportVerifier,
     VerificationResult,
 )
+from recycleguard.storage import canonical_json_bytes
 from recycleguard.storage.authority import AuthorizationError
 from recycleguard.storage.blob_store import BlobIntegrityError
 from recycleguard.storage.catalog import CatalogError
@@ -49,7 +50,9 @@ class BaselineService:
             return self._failure(context, "ACCESS_DENIED", str(exc))
         intent = None
         try:
-            payload = self.blobs.put(request.model_dump_json().encode(), "application/json")
+            payload = self.blobs.put(
+                canonical_json_bytes(request.model_dump(mode="json")), "application/json"
+            )
             intent = OperationIntent(
                 context=context,
                 idempotency_key=context.idempotency_key,
@@ -60,10 +63,8 @@ class BaselineService:
             self.kernel.commit_intent(intent, capability=capability)
             previous = self.kernel.get_result(context.operation_id)
             if previous is not None:
-                return (
-                    ServiceResult[BaselineOutput]
-                    .model_validate_json(self.blobs.get(previous.payload))
-                    .model_copy(update={"output_blob": previous.payload})
+                return ServiceResult[BaselineOutput].model_validate_json(
+                    self.blobs.get(previous.payload)
                 )
             snapshot = self.cases.snapshots.get(request.snapshot)
             if snapshot.snapshot_kind != "CASE" or snapshot.review_state != "APPROVED":
@@ -169,12 +170,27 @@ class BaselineService:
     def _persist(self, context, intent, envelope, capability):
         event_id = f"event:result_{context.operation_id}"
         event_ids = [e.event_id for e in self.kernel.list_stream_events(intent.stream_id)]
-        envelope = envelope.model_copy(update={"audit_event_ids": event_ids + [event_id]})
-        blob = self.blobs.put(envelope.model_dump_json().encode(), "application/json")
+        output_blob = (
+            None
+            if envelope.output is None
+            else self.blobs.put(
+                canonical_json_bytes(envelope.output.model_dump(mode="json")), "application/json"
+            )
+        )
+        envelope = envelope.model_copy(
+            update={
+                "audit_event_ids": event_ids + [event_id],
+                "output_blob": output_blob,
+            }
+        )
+        blob = self.blobs.put(
+            canonical_json_bytes(envelope.model_dump(mode="json")), "application/json"
+        )
         refs = []
         if envelope.output is not None:
             calc = envelope.output.calculation
             refs = [
+                output_blob,
                 calc.analyzed_input_membership_blob,
                 calc.quantity_dispositions_blob,
                 calc.derivation_blob,
@@ -191,7 +207,7 @@ class BaselineService:
             ),
             capability=capability,
         )
-        return envelope.model_copy(update={"output_blob": blob})
+        return envelope
 
     @staticmethod
     def _report(calculation):

@@ -33,7 +33,9 @@ class SupportReviewer:
             idempotency_key=context.idempotency_key,
             event_type="review.record_support",
             stream_id=f"stream:{context.correlation_id}",
-            payload=blobs.put(request.model_dump_json().encode(), "application/json"),
+            payload=blobs.put(
+                canonical_json_bytes(request.model_dump(mode="json")), "application/json"
+            ),
         )
         self.kernel.commit_intent(intent, capability=capability)
         previous = self.kernel.get_result(context.operation_id)
@@ -64,7 +66,9 @@ class SupportReviewer:
                 operation_id=context.operation_id,
                 attempt_id=context.attempt_id,
                 status="SUCCESS",
-                payload=blobs.put(output.model_dump_json().encode(), "application/json"),
+                payload=blobs.put(
+                    canonical_json_bytes(output.model_dump(mode="json")), "application/json"
+                ),
             ),
             capability=capability,
         )
