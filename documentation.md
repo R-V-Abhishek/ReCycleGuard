@@ -266,3 +266,41 @@ Append-only log of work done per session. Source of truth for execution state re
 
 ### Next permitted step
 - Run `uv run --no-sync ruff check .` and `pytest tests/unit/test_v03_reporting.py`, then attach both outputs for independent V03 review.
+
+## 2026-10-27 IST — Sushanth — CP1 — S05
+
+**Task state at start:** READY
+**Predecessors verified:** CP0 APPROVED; CP1 APPROVED (2026-10-26)
+
+### Done
+- Added the C15 clean-world pipeline under `benchmarks/generator/`: `world.py` (typed world, fictional Indian party catalogue, synthetic identity helpers), `s05_cases.py` (six seeded templates with a reusable `Draft` builder), `invariants.py`, `render.py` (visible projection; every record validated with `RECORD_ADAPTER`, manifest with `CaseManifest`), `documents.py` (Indian inter-office memorandum, lakh/crore money, amount in words, Indian date styles), `pdf_style.py` (seeded paper/ink/font/size, vector diagonal watermark, deterministic multi-page PDF writer), `hidden.py`, `generate.py` (CLI with `--check`), `README.md` (method, hidden format, sources).
+- `invoice_builder.py`: optional `style`/`type_scale`. A styled invoice gets the paper colour, "TAX INVOICE" / "ORIGINAL FOR RECIPIENT", a monogram, fit-to-box text and the vector watermark instead of the top banner. With `style=None` the output is byte-identical to before (`case_001` digests unchanged; tested).
+- Six visible dev cases committed under `tests/fixtures/visible/`: `case_b91622485e` (exact coverage), `case_188162b68d` (CSV+portal overlap and a paid invoice with transfer initiated), `case_6421c2dbfa` (surplus), `case_13f88bd325` (CU + AL), `case_8b2a26e233` (FY 2023-24 + 2024-25 with a lot split across years), `case_0a13c3ddbf` (target supplied in TONNE, two recyclers). The mapping from case to shape lives only in the hidden record; it is stated here for reviewers.
+- `.gitignore`: `benchmarks/hidden/`. Hidden record at `benchmarks/hidden/s05-dev-0.1/` (generation manifest, world, visible map, reference balances).
+- Tests: `tests/unit/test_s05_generator.py` (12) and `tests/integration/test_s05_pipeline.py` (12).
+
+### Evidence
+- Commit/branch: `S_branch` (base `b207462`), uncommitted
+- Tests run: `pytest` (full, Windows) → 329 passed, 3 skipped (305 before plus 24 new). The S05 integration tests run the real `FoundationService` on Windows (the O_NOFOLLOW fix from `b207462` made intake portable).
+- `python -m benchmarks.generator.generate ... --check` → "visible cases are current". `ruff check` / `ruff format --check` clean. `scripts/export_schemas.py --check` → 77 boundary schemas (no contract changes).
+- Real pipeline per case: every asset RECEIVED with a matching digest; the only BLOCKING issue is the CP1 `UNAPPROVED_PROFILE` gate; every observation gets ACCEPTED/QUARANTINED; all visible record IDs are normalized; certificate observations carry complete keys (no `UNCONFIRMED_IDENTIFIER`, unlike `case_001`); C08 on the pipeline snapshot gives supported 0 and QUALIFIED (no promotion).
+- C08 self-consistency on the reviewed JSONL records (with the hidden allocation order): required, supported, signed gap, shortfall, surplus, pending, portal and delta match the world reference for all six cases.
+- Gate(s) touched: none owned; G05 exercised by the self-consistency tests.
+
+### Limitations / open issues
+- **S05 sign-off is on hold:** the hidden format (`benchmarks/hidden/<version>/...`, README "Hidden record") is my proposal and needs Vedantha's agreement for V04. Do not mark S05 DONE before that.
+- Clean worlds only (plus the two fixture-1 behaviours in one case). Fault recipes are S06.
+- Visible PDFs are still page-text only in the pipeline: invoice/memo pages are quarantined (`No approved mapping for PDF_PAGE_TEXT`). Field extraction from invoices is a planned later improvement.
+- GST at 18% on EPR certificates is a labelled generator assumption (no reviewed source). The price bands come from press reports of the CPCB 2024 floor/ceiling, not a reviewed official table.
+- The priority check needs the hidden allocation order (no allocation timestamp in the contract; see S03 limitations). Without it, the historical case is QUALIFIED with `LIABILITY_PRIORITY_UNRESOLVED`.
+- `case_001` keeps realistic-looking GSTINs/PANs (frozen). New cases use `SYNTH-...` identifiers per SYSTEM_DESIGN §5.5.
+- The integration tests add about 90 s to the suite (six full foundation builds).
+
+### Updates required
+- **implementation_plan.md:** propose S05 READY → IN_REVIEW; DONE only after an independent review **and** V04 agreement on the hidden format.
+- **CONTRACTS.md / SYSTEM_DESIGN.md:** none applied. Proposal: record the hidden directory layout under CONTRACTS §5.3 once V04 agrees.
+- **Other docs / fixtures / schemas / tests:** six new visible fixtures; generator README.
+- **Other members affected:** Vedantha (V04 hidden-format agreement; oracle input), Sampreeth (PDF field extraction would turn invoices into observations), Abhishek (more dossiers for CLI/A05 demos).
+
+### Next permitted step
+- Hidden-format agreement with Vedantha (V04), then independent review of S05. S06 stays blocked on S05 + S04.
