@@ -27,6 +27,20 @@ from .extraction import (
     Observation,
     ValidationState,
 )
+from .retrieval import (
+    CandidateDisposition,
+    CandidateDispositionKind,
+    DenseConfiguration,
+    EvidenceBundle,
+    EvidenceGrade,
+    ExpansionPolicy,
+    GradeVerdict,
+    IndexManifest,
+    LexicalConfiguration,
+    LocatorLookupRequest,
+    RetrievalAttempt,
+    SearchRulesRequest,
+)
 from .sources import (
     ProvisionVersion,
     RightsMetadata,
@@ -38,6 +52,18 @@ from .sources import (
 )
 
 __all__ = [
+    "CandidateDisposition",
+    "CandidateDispositionKind",
+    "DenseConfiguration",
+    "EvidenceBundle",
+    "EvidenceGrade",
+    "ExpansionPolicy",
+    "GradeVerdict",
+    "IndexManifest",
+    "LexicalConfiguration",
+    "LocatorLookupRequest",
+    "RetrievalAttempt",
+    "SearchRulesRequest",
     "ArtifactRevision",
     "AssetReceipt",
     "FrozenSnapshot",
