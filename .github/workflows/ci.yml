@@ -20,6 +20,8 @@ jobs:
       - run: uv sync --locked --python ${{ matrix.python }}
       - run: uv run --no-sync ruff check .
       - run: uv run --no-sync ruff format --check .
+      - if: runner.os == 'Windows'
+        run: uv run --no-sync pytest tests/unit/test_local_session_windows.py -q
       - run: uv run --no-sync pytest
       - run: uv run --no-sync scripts/export_schemas.py --check
       - run: uv run --no-sync recycleguard doctor

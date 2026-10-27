@@ -86,7 +86,10 @@ def _windows_acl(path: Path, *, create: bool = False):
     except (KeyError, OSError, subprocess.TimeoutExpired) as exc:
         raise AuthorizationError("Windows credential ACL operation is unavailable") from exc
     if completed.returncode != 0:
-        raise AuthorizationError("Windows reviewer credentials require a current-user-only ACL")
+        raise AuthorizationError(
+            "Windows reviewer credentials require a current-user-only ACL: "
+            + completed.stderr.strip()
+        )
 
 
 def _windows_regular_file(path: Path):
