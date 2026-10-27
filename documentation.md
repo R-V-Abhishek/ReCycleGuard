@@ -184,3 +184,85 @@ Append-only log of work done per session. Source of truth for execution state re
 
 ### Next permitted step
 - Repair the empty-findings `NEXT_ACTIONS` construction, run `pytest tests/unit/test_v03_reporting.py`, and obtain independent review before restoring V03 acceptance.
+
+## 2026-10-27 IST — Vedantha — CP1 — V03 lint/runtime repair
+
+**Task state at start:** IN_PROGRESS proposed by the verification review
+**Predecessors verified:** CP1 APPROVED; S03 DONE
+
+### Done
+- Fixed the empty-findings `NEXT_ACTIONS` path in `src/recycleguard/reporting/baseline.py`; findings now contribute recommendation claims and clean reports receive only the explicit limitation claim.
+- Applied the reported Ruff fixes: import ordering, unused `Mapping` and `claims` removal, and line wrapping for E501 violations.
+- Corrected the V03 test import grouping in `tests/unit/test_v03_reporting.py`.
+
+### Evidence
+- Commit/branch: uncommitted
+- Tests run: static diagnostics → no errors; `uv run --no-sync ruff check .` → NOT RUN; `pytest tests/unit/test_v03_reporting.py` → NOT RUN
+- Fixtures/schema versions: existing C08 `CalculationResult`; no schema changes
+- Gate(s) touched: G03, G12
+
+### Limitations / open issues
+- CI commands still need to run in the locked environment. No passing Ruff or pytest result is claimed here.
+- Independent review is still required before V03 can return to DONE.
+
+### Updates required
+- **implementation_plan.md:** retain V03 as unaccepted/in progress until Ruff and focused pytest evidence are attached; then move to IN_REVIEW for independent review.
+- **CONTRACTS.md / SYSTEM_DESIGN.md:** none.
+- **Other docs / fixtures / schemas / tests:** no schema or fixture changes.
+- **Other members affected:** Abhishek/A05 should continue treating V03 as unaccepted until executable evidence is available.
+
+### Next permitted step
+- Run `uv run --no-sync ruff check .` and `pytest tests/unit/test_v03_reporting.py`, then attach the outputs for independent V03 review.
+
+## 2026-10-27 IST — Vedantha — CP1 — V03 final Ruff cleanup
+
+**Task state at start:** IN_PROGRESS proposed by the verification review
+**Predecessors verified:** CP1 APPROVED; S03 DONE
+
+### Done
+- Wrapped the final `calculations` comprehension reported by Ruff as E501.
+- Removed the extra blank separator in the V03 test imports reported as I001.
+
+### Evidence
+- Commit/branch: uncommitted
+- Tests run: static diagnostics → no errors; user-reported Ruff output before repair → 2 findings; post-repair shell Ruff result → not captured in this session
+- Fixtures/schema versions: existing C08 `CalculationResult`; no schema changes
+- Gate(s) touched: G03, G12
+
+### Limitations / open issues
+- Focused pytest and independent V03 review remain pending.
+
+### Updates required
+- **implementation_plan.md:** retain V03 as unaccepted/in progress until focused pytest and independent review evidence are attached.
+- **CONTRACTS.md / SYSTEM_DESIGN.md:** none.
+- **Other docs / fixtures / schemas / tests:** no schema or fixture changes.
+- **Other members affected:** Abhishek/A05 should continue treating V03 as unaccepted until executable evidence is available.
+
+### Next permitted step
+- Re-run `uv run --no-sync ruff check .` and `pytest tests/unit/test_v03_reporting.py`, then attach both outputs for independent V03 review.
+
+## 2026-10-27 IST — Vedantha — CP1 — V03 import formatting cleanup
+
+**Task state at start:** IN_PROGRESS proposed by the verification review
+**Predecessors verified:** CP1 APPROVED; S03 DONE
+
+### Done
+- Removed the extra blank line after the imports in `tests/unit/test_v03_reporting.py`, resolving the remaining Ruff I001 finding.
+
+### Evidence
+- Commit/branch: uncommitted
+- Tests run: static diagnostics for `tests/unit/test_v03_reporting.py` → no errors; shell Ruff rerun → NOT RUN in this session
+- Fixtures/schema versions: existing C08 `CalculationResult`; no schema changes
+- Gate(s) touched: G03, G12
+
+### Limitations / open issues
+- Focused pytest and independent V03 review remain pending.
+
+### Updates required
+- **implementation_plan.md:** retain V03 as unaccepted/in progress until shell Ruff, focused pytest and independent review evidence are attached.
+- **CONTRACTS.md / SYSTEM_DESIGN.md:** none.
+- **Other docs / fixtures / schemas / tests:** no schema or fixture changes.
+- **Other members affected:** Abhishek/A05 should continue treating V03 as unaccepted until executable evidence is available.
+
+### Next permitted step
+- Run `uv run --no-sync ruff check .` and `pytest tests/unit/test_v03_reporting.py`, then attach both outputs for independent V03 review.

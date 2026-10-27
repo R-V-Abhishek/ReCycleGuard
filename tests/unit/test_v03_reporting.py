@@ -6,7 +6,6 @@ from recycleguard.contracts.results import CalculationValueRef
 from recycleguard.reporting import BaselineReportBuilder, ReportVerifier
 from tests.support.c08 import clean_case, run
 
-
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures"
 
 
