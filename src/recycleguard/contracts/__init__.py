@@ -42,6 +42,10 @@ from .retrieval import (
     SearchRulesRequest,
 )
 from .sources import (
+    AmendmentEdge,
+    ApplicabilityAssertion,
+    DeadlineEntry,
+    DeadlineKind,
     ProvisionVersion,
     RightsMetadata,
     Role,
@@ -87,6 +91,10 @@ __all__ = [
     "Locator",
     "Observation",
     "ProvisionVersion",
+    "ApplicabilityAssertion",
+    "AmendmentEdge",
+    "DeadlineEntry",
+    "DeadlineKind",
     "Quantity",
     "RightsMetadata",
     "Role",
