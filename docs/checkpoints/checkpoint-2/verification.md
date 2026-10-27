@@ -5,8 +5,8 @@ and V03 `ee2f64a`, based on approved CP1 commit `7797672`.
 
 ## Executed checks
 
-- Full suite after integration repairs: **348 passed**. Windows-specific credential
-  tests are being added; final platform counts and CI links are recorded below.
+- Full applicable suite passed on both supported operating systems and Python versions;
+  exact native CI totals are recorded below.
 - 94 generated schemas checked against actual runtime models.
 - Ruff lint and format checks passed.
 - Wheel and source distribution built successfully. The first sandbox build could
@@ -44,7 +44,25 @@ structural checks.
 
 ## Platform matrix
 
-Pending: GitHub Actions runs the complete applicable suite, schema checks, lint,
-format, doctor, fresh-root demonstration and package build on Windows/Linux with
-Python 3.11 and 3.12. Native POSIX permission tests have Windows ACL counterparts;
-functional pipeline tests are not skipped because of missing O_NOFOLLOW.
+All four jobs passed on technical candidate `a55138d541a35b227d36e09b71bb48f8c8a397bc`:
+[GitHub Actions evidence](https://github.com/R-V-Abhishek/ReCycleGuard/actions/runs/40538495376).
+
+| OS | Python | Full suite | Additional checks |
+| --- | --- | --- | --- |
+| Windows | 3.11 | 352 passed, 2 POSIX-only skips | Native ACL smoke, fresh-root demo, schemas, lint/format, doctor and build passed |
+| Windows | 3.12 | 352 passed, 2 POSIX-only skips | Native ACL smoke, fresh-root demo, schemas, lint/format, doctor and build passed |
+| Linux | 3.11 | 348 passed, 6 Windows-only skips | Fresh-root demo, schemas, lint/format, doctor and build passed |
+| Linux | 3.12 | 348 passed, 6 Windows-only skips | Fresh-root demo, schemas, lint/format, doctor and build passed |
+
+No functional pipeline test is skipped because O_NOFOLLOW is unavailable. Platform
+primitive tests run against their actual OS: Windows ACL owner/inheritance/grants,
+atomic creation and link refusal; POSIX owner/mode/symlink checks.
+
+The first native runs exposed a PowerShell module-autoload collision and copied
+fixture credential ownership. Direct .NET ACL operations plus a subprocess-local
+module path resolved the former. Re-enrolling the reviewer when cloning evidence
+fixtures resolved the latter. Ownership and permission checks were not weakened.
+
+The lock documentation commit contains no source/test/config changes relative to
+this passing technical candidate. The boundary manifest freezes 242 code/config,
+fixture and schema files plus the checked-in demonstration evidence.

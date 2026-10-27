@@ -10,8 +10,8 @@ These are release checks and owned follow-ups, not a scheduled background monito
 | Contract gaps | Repaired: QuantityDisposition and derivation/report/request schemas exported; OVER_ALLOCATION and UNSUPPORTED_FEATURE codes added. | A; schema freshness is enforced in CI. |
 | No route from PENDING to SUPPORTED | Repaired for CP2's structured synthetic originals: authenticated review creates new support revisions and a new approved case. Baseline checks the persisted support assertion. Imported source flags alone cannot promote support. | A/V; additional real-document capability mappings remain outside this narrow handler. |
 | Minimal commercial handling | Deliberately bounded: unlinked invoice/payment quantity remains pending; ambiguous commercial assignments remain unassigned. No monetary amount becomes metal credit. | S04: complete commercial links, lifecycle, expiry/cancellation and F08/F09 checks. |
-| Windows compatibility | Full functional suite and fresh-root demonstration added to Windows/Linux CI. Native Windows credential ACL checks replace the unsafe permission-check bypass. | A/V; all four OS/Python jobs must pass before this candidate is approved. |
+| Windows compatibility | Full functional suite and fresh-root demonstration added to Windows/Linux CI. Native Windows credential ACL checks replace the unsafe permission-check bypass. | A/V; all four OS/Python jobs passed; keep this matrix required for subsequent changes. |
 
-After approval: A06, S04, V05 and V07 become READY. H05 and S05 remain independently
+CP2 is approved. Next readiness: A06, S04, V05 and V07 become READY. H05 and S05 remain independently
 READY. V04 still depends on S05; A07 still requires A06, H06, S04 and V05. None of
 those tasks is marked DONE by this checkpoint.

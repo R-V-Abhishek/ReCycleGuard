@@ -1,12 +1,15 @@
 # CP2: deterministic baseline vertical slice
 
-Status: **IN_REVIEW**, pending the Windows/Linux CI matrix. Integration branch:
+Status: **APPROVED on 27 October 2026**, by explicit lead acceptance after the
+Windows/Linux CI matrix passed. Integration branch:
 `checkpoint-2`. The approved CP1 tag remains unchanged.
 
 The lead requested finalization and approval on 27 October 2026, then explicitly
-required Windows support. Approval is recorded only after the integration and
-cross-platform checks pass. This is acceptance of a **qualified synthetic baseline**,
+required Windows support. The integration and cross-platform checks passed on technical candidate
+`a55138d`. Lock tag: `checkpoint-2-approved-2026-10-27`. This is acceptance of a **qualified synthetic baseline**,
 not a legal verdict, a real-model run or four-person acknowledgement.
+
+[Passing four-job CI matrix](https://github.com/R-V-Abhishek/ReCycleGuard/actions/runs/40538495376).
 
 ## Construction order
 
