@@ -13,9 +13,7 @@ from recycleguard.contracts.domain import (
     Certificate,
     CertificateEvent,
     CommercialRecord,
-    Entity,
     ObligationBucket,
-    Registration,
 )
 from recycleguard.contracts.profiles import CalculationProfile
 from recycleguard.contracts.results import BucketResult
@@ -455,7 +453,7 @@ def _finish(
     seen = set()
     for d in decisions:
         for code in dict.fromkeys(d.codes):
-            if code in {"INTEGRITY_FAILED"} and d.conservation_fault:
+            if code == "OVER_ALLOCATION" and d.conservation_fault:
                 key = (code, d.reason, d.allocation.credit_lot_id)
                 if key in seen:
                     continue
@@ -472,6 +470,9 @@ def _finish(
                 )
             elif code == "EARLIER_LIABILITY_UNMET":
                 issues.append(_issue(code, "WARNING", d.reason, [record_ref(d.allocation)]))
+            else:
+                issues.append(_issue(code, "WARNING", d.reason, [record_ref(d.allocation)]))
+                overall = _worse(overall, "QUALIFIED")
     if not analyzed:
         overall = "BLOCKED"
         issues.append(_issue("INCOMPLETE_COVERAGE", "BLOCKING", "No bucket could be analyzed"))
@@ -543,7 +544,7 @@ def _dispositions(
             state, reason = "EXCLUDED", "Superseded revision kept as history"
         elif record.record_id in universe.ambiguous_ids:
             state, reason = "EXCLUDED", "Several active revisions of one record; none is trusted"
-        elif isinstance(record, Allocation):
+        elif record.record_type == "Allocation":
             d = by_revision[record.record_revision_id]
             state, reason, quantity, bucket_id = (
                 d.state,
@@ -551,7 +552,7 @@ def _dispositions(
                 record.quantity,
                 record.bucket_id,
             )
-        elif isinstance(record, ObligationBucket):
+        elif record.record_type == "ObligationBucket":
             quantity = record.target
             if record.bucket_id not in scoped:
                 state, reason = "OUT_OF_SCOPE", "Bucket is outside the profile's metals or identity"
@@ -563,7 +564,7 @@ def _dispositions(
                     "Not requested for output; still used for conservation",
                 )
             bucket_id = record.bucket_id
-        elif isinstance(record, AccountBalanceObservation):
+        elif record.record_type == "AccountBalanceObservation":
             quantity, bucket_id = record.reported_supported, record.bucket_id
             if record.balance_observation_id in chosen_balances:
                 state, reason = "INCLUDED", "Comparison view only; never added to supported"
@@ -572,7 +573,7 @@ def _dispositions(
                     "EXCLUDED",
                     "Comparison-only observation not selected for this bucket",
                 )
-        elif isinstance(record, CommercialRecord):
+        elif record.record_type == "CommercialRecord":
             quantity = record.credit_quantity
             target, why = commercial_map.get(
                 record.record_id, (None, "Not a payable credit record")
@@ -581,7 +582,7 @@ def _dispositions(
             payable = record.record_kind in {"INVOICE", "PAYMENT"} and quantity is not None
             state = "PENDING" if payable and not record.linked_credit_refs else "OUT_OF_SCOPE"
             reason = why
-        elif isinstance(record, CertificateEvent):
+        elif record.record_type == "CertificateEvent":
             quantity = record.quantity
             if record.assertion_state == "SUPPORTED":
                 state, reason = (
@@ -592,7 +593,7 @@ def _dispositions(
                 state, reason = "EXCLUDED", "Conflicting event assertion"
             else:
                 state, reason = "PENDING", "Event eligibility is unresolved"
-        elif isinstance(record, Certificate):
+        elif record.record_type == "Certificate":
             quantity = record.face_quantity
             state = (
                 "INCLUDED"
@@ -604,7 +605,7 @@ def _dispositions(
                 if state == "INCLUDED"
                 else "No lot is derived from this certificate"
             )
-        elif isinstance(record, (Entity, Registration)):
+        elif record.record_type in {"Entity", "Registration"}:
             state, reason = "OUT_OF_SCOPE", "Identity or registration context; checked by S04"
         else:  # pragma: no cover - the Record union is closed
             state, reason = "OUT_OF_SCOPE", "Unclassified record type"

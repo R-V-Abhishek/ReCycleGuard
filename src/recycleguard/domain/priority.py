@@ -9,7 +9,7 @@ from decimal import Decimal
 
 from recycleguard.contracts.domain import ObligationBucket
 from recycleguard.domain.allocation import Decision
-from recycleguard.domain.arith import ZERO, subtract, total
+from recycleguard.domain.arith import subtract, total
 from recycleguard.domain.models import CheckState, PriorityCheck
 
 
@@ -76,7 +76,9 @@ def _evaluate(
             "No earlier compatible liability was supplied; completeness of history is not "
             "verifiable from this case",
         )
-    owing = [b for b in earlier if required.get(b.bucket_id, ZERO) > 0]
+    if any(b.bucket_id not in required for b in earlier):
+        return "UNKNOWN", "An earlier compatible liability has an unusable required quantity"
+    owing = [b for b in earlier if required[b.bucket_id] > 0]
     if not owing:
         return "PASS", "Every earlier compatible liability is zero"
     mine = None if ordering is None else ordering.get(d.allocation.allocation_id)

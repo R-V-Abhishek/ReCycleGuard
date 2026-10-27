@@ -42,7 +42,17 @@ def local_application(settings, reviewer_password: str | None = None):
     prefixes = (
         frozenset({"review."})
         if reviewer is not None
-        else frozenset({"snapshot.", "profile.", "intake.", "extraction.", "normalization."})
+        else frozenset(
+            {
+                "snapshot.",
+                "profile.",
+                "intake.",
+                "extraction.",
+                "normalization.",
+                "calculation.",
+                "report.",
+            }
+        )
     )
     authority = LocalAuthority({"dispatcher": TrustedPrincipal(actor, prefixes)})
     capability = authority.issue("dispatcher")
@@ -55,4 +65,31 @@ def local_application(settings, reviewer_password: str | None = None):
         yield service, command_context(actor), capability
     finally:
         authority.revoke(capability)
+        kernel.close()
+
+
+@contextmanager
+def local_review_application(settings, password: str):
+    """Authenticated human review with a separate server-owned publication grant."""
+    human = authenticate_reviewer(settings.data_root, password)
+    actor = ActorRef(
+        actor_id="service:local_c05", actor_kind="SERVICE", authenticated_session_ref=None
+    )
+    authority = LocalAuthority(
+        {
+            "service": TrustedPrincipal(actor, frozenset({"snapshot.", "profile."})),
+            "human": TrustedPrincipal(human, frozenset({"review."})),
+        }
+    )
+    service_cap, human_cap = authority.issue("service"), authority.issue("human")
+    blobs = BlobStore(settings.data_root)
+    database = settings.data_root / "application.sqlite"
+    kernel = AuditKernel(database, blobs, authority=authority)
+    try:
+        catalog = ArtifactCatalog(database, blobs, kernel=kernel)
+        cases = CaseService(SnapshotStore(kernel, catalog), ProfileStore(kernel, catalog))
+        yield cases, command_context(human), human_cap, actor, service_cap
+    finally:
+        authority.revoke(service_cap)
+        authority.revoke(human_cap)
         kernel.close()

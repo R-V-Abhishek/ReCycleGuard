@@ -77,6 +77,8 @@ ErrorCode = Literal[
     "PROHIBITED_VERDICT",
     "CANCELLED",
     "INTEGRITY_FAILED",
+    "OVER_ALLOCATION",
+    "UNSUPPORTED_FEATURE",
 ]
 
 

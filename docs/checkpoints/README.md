@@ -8,6 +8,9 @@ execution register in [implementation plan](../../implementation%20plan.md).
 | --- | --- | --- | --- |
 | CP0: interfaces | `checkpoint-0` | [Construction and acceptance](checkpoint-0/README.md) | APPROVED on 24 October 2026; all-four acknowledgement reported by lead |
 
+| CP1: evidence foundation | `checkpoint-1` | [Construction and acceptance](checkpoint-1/README.md) | APPROVED on 26 October 2026; qualified lead acceptance |
+| CP2: baseline vertical slice | `checkpoint-2` | [Construction and acceptance](checkpoint-2/README.md) | IN_REVIEW; Windows/Linux verification pending |
+
 For every subsequent checkpoint, create `checkpoint-N/` with:
 
 1. A construction/acceptance record: purpose, exact task and PR/commit inputs,

@@ -57,7 +57,7 @@ def test_lot_overflow_excludes_every_supported_allocation_on_the_lot(tmp_path):
     assert result.status == "PARTIAL" and result.output.coverage == "BLOCKED"
     assert bucket_result(result, A).supported.decimal == "0.0000"
     assert bucket_result(result, B).supported.decimal == "0.0000"
-    assert any(i.code == "INTEGRITY_FAILED" and i.severity == "BLOCKING" for i in result.issues)
+    assert any(i.code == "OVER_ALLOCATION" and i.severity == "BLOCKING" for i in result.issues)
     states = dispositions(result, tmp_path_blobs(tmp_path))
     assert states["rev:alloc_1"]["state"] == states["rev:alloc_2"]["state"] == "EXCLUDED"
 
@@ -87,6 +87,7 @@ def test_event_over_allocation_is_a_conservation_fault(tmp_path):
     result = run(tmp_path, records)
     assert result.output.coverage == "BLOCKED"
     assert bucket_result(result).supported.decimal == "0.0000"
+    assert any(i.code == "OVER_ALLOCATION" for i in result.issues)
 
 
 def test_pending_allocations_that_would_overflow_only_qualify(tmp_path):
@@ -309,4 +310,21 @@ def test_portal_balance_never_creates_supported_quantity(tmp_path):
     out = bucket_result(result)
     assert out.supported.decimal == "0.0000" and out.portal_reported.decimal == "55.0000"
     assert out.delta.decimal == "55.0000"
+    assert result.output.coverage == "QUALIFIED"
+
+
+def test_unusable_earlier_required_quantity_does_not_become_zero(tmp_path):
+    from tests.support.c08 import signed_qty
+
+    records = two_year()
+    records[0] = bucket(A, "2023-2024", "60.0000", adjustments=[signed_qty("-100.0000")])
+    result = run(tmp_path, records, (A, B), order={"alloc:a": 1, "alloc:b": 2})
+    assert states(result, tmp_path)["alloc:b"] == "UNKNOWN"
+    assert result.output.coverage == "BLOCKED"
+
+
+def test_bad_allocation_is_reported_as_an_issue_not_silently_excluded(tmp_path):
+    records = [bucket(), certificate(), event(to="entity:other"), allocation()]
+    result = run(tmp_path, records)
+    assert any(issue.code == "AMBIGUOUS_IDENTITY" for issue in result.issues)
     assert result.output.coverage == "QUALIFIED"

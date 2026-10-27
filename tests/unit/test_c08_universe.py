@@ -56,3 +56,13 @@ def test_universe_cannot_span_cases():
     other = bucket("bucket:b").model_copy(update={"case_id": "case:other"})
     with pytest.raises(UniverseError):
         universe_from_records(SNAPSHOT, [bucket(), other])
+
+
+def test_membership_digest_binds_full_record_payload_not_just_ids():
+    original = bucket(target="100.0000")
+    changed = bucket(target="101.0000")
+    assert original.record_revision_id == changed.record_revision_id
+    assert (
+        universe_from_records(SNAPSHOT, [original]).digest
+        != universe_from_records(SNAPSHOT, [changed]).digest
+    )

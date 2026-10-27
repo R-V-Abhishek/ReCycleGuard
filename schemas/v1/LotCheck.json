@@ -1,0 +1,144 @@
+{
+  "$defs": {
+    "Quantity": {
+      "additionalProperties": false,
+      "properties": {
+        "decimal": {
+          "title": "Decimal",
+          "type": "string"
+        },
+        "unit": {
+          "enum": [
+            "KG",
+            "TONNE",
+            "INR",
+            "UNIT_COUNT"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "dimension": {
+          "enum": [
+            "METAL_MASS",
+            "EQUIPMENT_MASS",
+            "MONEY",
+            "COUNT"
+          ],
+          "title": "Dimension",
+          "type": "string"
+        },
+        "metal": {
+          "anyOf": [
+            {
+              "enum": [
+                "AU",
+                "CU",
+                "AL",
+                "FE"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Metal"
+        }
+      },
+      "required": [
+        "decimal",
+        "unit",
+        "dimension",
+        "metal"
+      ],
+      "title": "Quantity",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "credit_lot_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Credit Lot Id",
+      "type": "string"
+    },
+    "certificate_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Certificate Id"
+    },
+    "resolution_state": {
+      "enum": [
+        "SUPPORTED",
+        "PENDING",
+        "CONFLICTING"
+      ],
+      "title": "Resolution State",
+      "type": "string"
+    },
+    "capacity": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Quantity"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "supported_allocated": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Quantity"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "observed_allocated": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Quantity"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "conservation": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNKNOWN",
+        "NOT_EVALUATED"
+      ],
+      "title": "Conservation",
+      "type": "string"
+    },
+    "reason": {
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+    }
+  },
+  "required": [
+    "credit_lot_id",
+    "certificate_id",
+    "resolution_state",
+    "capacity",
+    "supported_allocated",
+    "observed_allocated",
+    "conservation",
+    "reason"
+  ],
+  "title": "LotCheck",
+  "type": "object"
+}

@@ -1,8 +1,4 @@
-"""C08 archived-derivation models.
-
-These are internal to the dispositions/derivation blobs. `QuantityDisposition` is described in
-CONTRACTS §6.2 prose but has no generated boundary schema yet (see the S03 handoff note).
-"""
+"""Versioned models for archived C08 quantity dispositions and derivation blobs."""
 
 from typing import Literal
 

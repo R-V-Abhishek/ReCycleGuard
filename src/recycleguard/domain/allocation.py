@@ -129,7 +129,7 @@ def _enforce_event_caps(decisions: list[Decision], events: dict[str, Certificate
                 _exclude(
                     d,
                     "Supported allocations exceed the event quantity; excess cannot be identified",
-                    "INTEGRITY_FAILED",
+                    "OVER_ALLOCATION",
                     fault=True,
                 )
 
@@ -151,7 +151,7 @@ def enforce_lot_caps(decisions: list[Decision], lots: dict[str, Lot]) -> list[Lo
                 conservation = "FAIL"
                 reason = "Supported allocations exceed lot capacity; excess cannot be identified"
                 for d in supported:
-                    _exclude(d, reason, "INTEGRITY_FAILED", fault=True)
+                    _exclude(d, reason, "OVER_ALLOCATION", fault=True)
             elif total(d.kg for d in observed) > capacity:
                 conservation = "UNKNOWN"
                 reason = "Supported fits, but supported plus pending would exceed lot capacity"

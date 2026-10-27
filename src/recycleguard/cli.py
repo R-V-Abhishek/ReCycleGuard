@@ -1,5 +1,6 @@
 """Local CLI with read-only diagnostics and trusted C05 publication/review."""
 
+import hashlib
 import json
 import sqlite3
 from pathlib import Path
@@ -9,14 +10,19 @@ import typer
 from pydantic import ValidationError
 
 from recycleguard import __version__
-from recycleguard.application import local_application
+from recycleguard.application import local_application, local_review_application
+from recycleguard.baseline import BaselineService
 from recycleguard.config import Settings
 from recycleguard.contracts import PROTOCOL_VERSION, CommandContext, Quantity
-from recycleguard.contracts.foundation import FoundationRequest
+from recycleguard.contracts.baseline import BaselineRequest, RecordSupportReview
+from recycleguard.contracts.foundation import FoundationApproval, FoundationRequest
 from recycleguard.contracts.profiles import ProfilePublication, ProfileReview
 from recycleguard.contracts.snapshots import CaseReopen, SnapshotPublication, SnapshotReview
 from recycleguard.foundation import FoundationService
+from recycleguard.foundation_review import FoundationReviewer
 from recycleguard.local_session import initialize_reviewer
+from recycleguard.storage import canonical_json_bytes
+from recycleguard.support_review import SupportReviewer
 
 app = typer.Typer(no_args_is_help=True, help="ReCycleGuard local application scaffold.")
 
@@ -175,6 +181,98 @@ def profile_publish(path: Annotated[Path, typer.Argument(exists=True, dir_okay=F
 def profile_review(path: Annotated[Path, typer.Argument(exists=True, dir_okay=False)]):
     """Reauthenticate and review the exact profile ID, version and digest."""
     _dispatch(path, ProfileReview, "review_profile", review=True)
+
+
+baseline_app = typer.Typer(help="Deterministic calculation, verified report and audit inspection.")
+app.add_typer(baseline_app, name="baseline")
+
+
+@baseline_app.command("run")
+def baseline_run(path: Annotated[Path, typer.Argument(exists=True, dir_okay=False)]):
+    """Run against exact approved stored inputs. PARTIAL remains visible with exit code 2."""
+    try:
+        request = BaselineRequest.model_validate_json(path.read_bytes())
+        with local_application(Settings.from_environment()) as (cases, context, capability):
+            result = BaselineService(cases).run(context, request, capability=capability)
+            typer.echo(result.model_dump_json())
+            if result.status != "SUCCESS":
+                raise typer.Exit(2 if result.status == "PARTIAL" else 1)
+    except (ValueError, OSError, sqlite3.Error) as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc
+
+
+@baseline_app.command("audit")
+def baseline_audit(operation_id: Annotated[str, typer.Argument()]):
+    """Inspect the archived baseline result and hash-chain event references."""
+    try:
+        with local_application(Settings.from_environment()) as (cases, _, _):
+            intent = cases.kernel.get_intent(operation_id)
+            result = cases.kernel.get_result(operation_id)
+            if intent is None:
+                raise ValueError("unknown operation")
+            events = cases.kernel.list_stream_events(intent.stream_id)
+            previous = None
+            for sequence, event in enumerate(events, 1):
+                digest = hashlib.sha256(
+                    canonical_json_bytes(event.model_dump(mode="json", exclude={"event_hash"}))
+                ).hexdigest()
+                if (
+                    event.sequence != sequence
+                    or event.previous_event_hash != previous
+                    or event.event_hash != digest
+                ):
+                    raise ValueError("audit hash chain failed verification")
+                for ref in [event.payload_blob, *event.input_refs, *event.output_refs]:
+                    cases.kernel.blob_store.get(ref)
+                previous = digest
+            typer.echo(
+                json.dumps(
+                    {
+                        "audit_valid": True,
+                        "intent": intent.model_dump(mode="json"),
+                        "result": None if result is None else result.model_dump(mode="json"),
+                        "events": [e.model_dump(mode="json") for e in events],
+                    }
+                )
+            )
+    except (ValueError, OSError, sqlite3.Error) as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc
+
+
+@baseline_app.command("support-review")
+def support_review(path: Annotated[Path, typer.Argument(exists=True, dir_okay=False)]):
+    """Authenticate a human and publish exact evidence-bound support revisions."""
+    try:
+        request = RecordSupportReview.model_validate_json(path.read_bytes())
+        password = typer.prompt("Reviewer password", hide_input=True, err=True)
+        with local_review_application(Settings.from_environment(), password) as args:
+            cases, context, human_cap, actor, service_cap = args
+            result = SupportReviewer(
+                cases, service_actor=actor, service_capability=service_cap
+            ).approve(context, request, capability=human_cap)
+            typer.echo(result.model_dump_json())
+    except (ValueError, KeyError, OSError, sqlite3.Error) as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc
+
+
+@foundation_app.command("review")
+def foundation_review(path: Annotated[Path, typer.Argument(exists=True, dir_okay=False)]):
+    """Accept exact foundation inputs and qualifications after human authentication."""
+    try:
+        request = FoundationApproval.model_validate_json(path.read_bytes())
+        password = typer.prompt("Reviewer password", hide_input=True, err=True)
+        with local_review_application(Settings.from_environment(), password) as args:
+            cases, context, human_cap, actor, service_cap = args
+            result = FoundationReviewer(
+                cases, service_actor=actor, service_capability=service_cap
+            ).approve(context, request, capability=human_cap)
+            typer.echo(result.model_dump_json())
+    except (ValueError, KeyError, OSError, sqlite3.Error) as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc
 
 
 if __name__ == "__main__":

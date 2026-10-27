@@ -6,6 +6,7 @@ from typing import Annotated
 
 import typer
 
+from recycleguard.baseline import BaselineOutput, VerifiedReport
 from recycleguard.contracts import (
     ActorRef,
     BlobRef,
@@ -25,6 +26,11 @@ from recycleguard.contracts.artifacts import (
     SnapshotRef,
 )
 from recycleguard.contracts.audit import AuditEvent, OperationIntent, OperationResult
+from recycleguard.contracts.baseline import (
+    BaselineRequest,
+    RecordSupportAssertion,
+    RecordSupportReview,
+)
 from recycleguard.contracts.domain import (
     AccountBalanceObservation,
     Allocation,
@@ -77,6 +83,15 @@ from recycleguard.contracts.sources import (
     SourceLead,
     SourceVersion,
 )
+from recycleguard.domain.models import (
+    BucketDerivation,
+    Derivation,
+    EligibilityOutcome,
+    LotCheck,
+    PortalComparison,
+    PriorityCheck,
+    QuantityDisposition,
+)
 from recycleguard.intake.acquisition import AcquisitionOutcome
 from recycleguard.intake.batch import IntakeBatchResult
 from recycleguard.model_port import ModelCallRequest, ModelCallResult
@@ -85,8 +100,32 @@ from recycleguard.normalization.models import (
     NormalizationBatch,
     ObservationDisposition,
 )
+from recycleguard.reporting.baseline import (
+    BaselineReport,
+    ReportClaim,
+    ReportRevision,
+    ReportSection,
+    VerificationResult,
+)
 
 MODELS = [
+    BaselineOutput,
+    VerifiedReport,
+    BaselineRequest,
+    RecordSupportReview,
+    RecordSupportAssertion,
+    BaselineReport,
+    ReportClaim,
+    ReportSection,
+    ReportRevision,
+    VerificationResult,
+    QuantityDisposition,
+    Derivation,
+    BucketDerivation,
+    EligibilityOutcome,
+    LotCheck,
+    PortalComparison,
+    PriorityCheck,
     FoundationApproval,
     ApplicabilityProposal,
     ExtractedBatch,
