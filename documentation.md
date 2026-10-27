@@ -126,3 +126,61 @@ Append-only log of work done per session. Source of truth for execution state re
 
 ### Next permitted step
 - Independent review of S03, then S04 (unblocked by S03 acceptance). S05 is independently READY.
+
+## 2026-10-27 IST — Vedantha — CP1 — V03
+
+**Task state at start:** READY after S03 was marked DONE
+**Predecessors verified:** CP1 APPROVED; S03 DONE in `implementation plan.md`
+
+### Done
+- Added `src/recycleguard/reporting/baseline.py` with the eight ordered C12 sections, typed claims, calculation references, deterministic decimal insertion, and Markdown rendering.
+- Added numeric/citation verification for section order, evidence presence, calculation-reference resolution, unresolved placeholders, prohibited verdicts, and qualified coverage.
+- Added focused V03 tests in `tests/unit/test_v03_reporting.py` for clean output, stale numeric references, missing citations, and prohibited claims.
+
+### Evidence
+- Commit/branch: uncommitted
+- Tests run: focused static diagnostics → no errors; V03 pytest → NOT RUN (terminal execution unavailable)
+- Fixtures/schema versions: existing C08 `CalculationResult`; no schema changes
+- Gate(s) touched: G03, G12
+
+### Limitations / open issues
+- Report persistence, audit events, review packets, and blob-backed report artifacts remain downstream work; this V03 slice is a deterministic in-memory builder/verifier.
+- The verifier validates citation structure and supplied evidence membership, not semantic/legal correctness.
+
+### Updates required
+- **implementation_plan.md:** propose V03 BLOCKED → IN_REVIEW after independent review and focused pytest evidence
+- **CONTRACTS.md / SYSTEM_DESIGN.md:** none
+- **Other docs / fixtures / schemas / tests:** no schema changes; review the new V03 test file
+- **Other members affected:** Abhishek/A05 can consume the report object after V03 acceptance; V05 will add trusted review and repair behavior
+
+### Next permitted step
+- Run `pytest tests/unit/test_v03_reporting.py`, review the V03 handoff, then integrate report persistence through the authorized A05/V05 path.
+
+## 2026-10-27 IST — Vedantha — CP1 — V03 verification review
+
+**Task state at start:** DONE in `implementation plan.md`; acceptance verification requested
+**Predecessors verified:** CP1 APPROVED; S03 DONE
+
+### Done
+- Verified the V03 implementation and focused test file against the eight-section, deterministic numeric insertion, and invalid-claim requirements.
+- Confirmed static diagnostics report no errors for `src/recycleguard/reporting/baseline.py` and `tests/unit/test_v03_reporting.py`.
+- Confirmed the focused pytest command remains unexecuted because terminal execution was unavailable.
+
+### Evidence
+- Commit/branch: uncommitted
+- Tests run: static diagnostics → no errors; `pytest tests/unit/test_v03_reporting.py` → NOT RUN
+- Fixtures/schema versions: existing C08 `CalculationResult`; no schema changes
+- Gate(s) touched: G03, G12
+
+### Limitations / open issues
+- Blocking runtime defect: the builder always enters the empty `NEXT_ACTIONS` path and references `finding` even when `findings` is empty, so the clean-report test is expected to fail with `NameError`.
+- The report/verifier remains an in-memory V03 slice; persistence, audit events, review packets and locator-level citation resolution remain downstream or documented limitations.
+
+### Updates required
+- **implementation_plan.md:** propose V03 DONE → IN_PROGRESS, then IN_REVIEW after repairing the empty-findings path and producing focused pytest evidence; do not mark DONE from static diagnostics alone.
+- **CONTRACTS.md / SYSTEM_DESIGN.md:** none.
+- **Other docs / fixtures / schemas / tests:** repair `src/recycleguard/reporting/baseline.py`; rerun `tests/unit/test_v03_reporting.py`.
+- **Other members affected:** Abhishek/A05 should treat V03 as unaccepted until the focused test evidence is available.
+
+### Next permitted step
+- Repair the empty-findings `NEXT_ACTIONS` construction, run `pytest tests/unit/test_v03_reporting.py`, and obtain independent review before restoring V03 acceptance.
