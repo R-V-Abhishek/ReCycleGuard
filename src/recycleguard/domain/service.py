@@ -1,7 +1,7 @@
-"""Thin C08 `compute_reconciliation` service (S03).
+"""Internal C08 engine adapter and blob construction.
 
-Deliberately thin: it archives the three calculation blobs but writes no audit event and has
-no dispatcher or CLI hook. Persisting the result as an audited operation is A05/V02 work.
+BaselineService is the audited dispatcher/CLI boundary. These lower-level functions
+also support isolated engine experiments; they do not grant approval or audit authority.
 """
 
 import hashlib
@@ -121,6 +121,7 @@ def reconcile_universe(
                 "snapshot": universe.snapshot_id,
                 "buckets": sorted(output.analyzed_bucket_ids),
                 "tool": TOOL_VERSION,
+                "allocation_order": None if allocation_order is None else dict(allocation_order),
             }
         )
     ).hexdigest()

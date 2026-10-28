@@ -13,6 +13,7 @@ EVENT_ROLES = {
     "intake.": {"SERVICE"},
     "extraction.": {"SERVICE"},
     "normalization.": {"SERVICE"},
+    "calculation.": {"SERVICE"},
     "snapshot.": {"SERVICE"},
     "profile.": {"SERVICE"},
     "review.": {"HUMAN"},

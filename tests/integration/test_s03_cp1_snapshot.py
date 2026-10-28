@@ -1,10 +1,7 @@
-"""S03 through the real snapshot store and, where the platform allows, the real CP1 pipeline."""
+"""S03 through the real snapshot store and the cross-platform CP1 pipeline."""
 
 import json
-import os
 from pathlib import Path
-
-import pytest
 
 from recycleguard.application import local_application
 from recycleguard.config import Settings
@@ -24,9 +21,6 @@ from tests.support.c08 import (
 )
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures/visible"
-needs_posix_intake = pytest.mark.skipif(
-    not hasattr(os, "O_NOFOLLOW"), reason="CP1 intake uses O_NOFOLLOW (POSIX only)"
-)
 
 
 def publish_case(cases, context, cap, membership, snapshot_id="snapshot:s03"):
@@ -135,7 +129,6 @@ def test_corpus_snapshot_is_rejected(tmp_path):
         assert result.status == "REJECTED" and result.issues[0].code == "INVALID_SCHEMA"
 
 
-@needs_posix_intake
 def test_real_cp1_pipeline_is_honestly_qualified_not_manufactured_support(tmp_path):
     """The accepted CP1 foundation leaves the 55 kg allocation PENDING; C08 must not promote it."""
     foundation_request = FoundationRequest(

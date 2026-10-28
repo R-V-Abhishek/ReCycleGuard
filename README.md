@@ -4,23 +4,30 @@ Agentic AI for e-waste Extended Producer Responsibility (EPR) compliance reconci
 
 This mini-project supports a compliance officer in investigating discrepancies between a producer's obligations and supporting records. The planned scope covers one producer, one reporting period, limited equipment categories, structured records, and a curated regulatory corpus. Outputs are advisory and subject to human review.
 
-## CP0 development scaffold
+## Development and checkpoint verification
 
 ```sh
 uv sync --locked
 uv run recycleguard doctor
 uv run pytest
 uv run scripts/export_schemas.py --check
+uv run scripts/verify_cp2.py --data-root .recycleguard/cp2-reproduction --output tmp/cp2-reproduction
 ```
 
-The accepted CP0 foundation provides a read-only CLI, 50 published boundary
-schemas, source and synthetic-dossier fixtures, a blob/audit prototype, configuration
-and a test-only model seam. It does not yet implement ingestion,
-reconciliation or a real model gateway. See the [A01 handoff](docs/decisions/A01_HANDOFF.md)
-for the original A01 evidence, the [checkpoint construction log](docs/checkpoints/README.md)
-for per-member contributions, integration decisions and acceptance records, and [configuration](configs/README.md)
-for runtime roots and test-adapter guards. OCR/inference dependencies remain outside
-the base package while local options are evaluated.
+CP1 is locked. CP2 integrates original-file intake, extraction, normalization,
+reviewed frozen inputs, deterministic reconciliation, an eight-section verified
+working paper and audited outcomes. Its synthetic baseline demonstrates 100 kg
+required, 55 supported, 45 gap and 25 pending after exact evidence-support review.
+Applicability and deadline limits remain explicit, so this result is qualified.
+See the [CP2 record](docs/checkpoints/checkpoint-2/README.md) for approval status,
+operating-system verification, member contributions and reproduction details.
+
+Use new, separate paths for each reproduction run. The fixture review identity is
+synthetic test data, not actual team approval. Runtime has no real model gateway
+or hidden oracle. OCR/inference dependencies remain outside the base package while
+local options are evaluated. See [configuration](configs/README.md) for runtime
+roots and test-adapter guards, and the [checkpoint construction log](docs/checkpoints/README.md)
+for the preserved CP0/CP1 history.
 
 ## Current artifacts
 
@@ -50,7 +57,7 @@ The initial research notes are dated 16 October 2026; the additional CPCB data/R
 
 The specifications were drafted on 18 October and corrected against the research review on 22 October 2026. They qualify tentative research assumptions and describe planned implementation.
 
-The repository currently contains planning documents; the agent implementation is forthcoming.
+The deterministic evidence and reporting pipeline is implemented. The bounded investigator, real model gateway and wider evaluation remain subsequent work.
 
 ## Build the Review 2 design document
 

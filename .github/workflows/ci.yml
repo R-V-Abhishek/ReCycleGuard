@@ -1,13 +1,16 @@
-name: Python scaffold
+name: Checkpoint verification
 on: [push, pull_request]
 permissions:
   contents: read
 jobs:
   check:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
+        os: [ubuntu-latest, windows-latest]
         python: ["3.11", "3.12"]
+    env:
+      PYTHONUTF8: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
@@ -17,7 +20,10 @@ jobs:
       - run: uv sync --locked --python ${{ matrix.python }}
       - run: uv run --no-sync ruff check .
       - run: uv run --no-sync ruff format --check .
+      - if: runner.os == 'Windows'
+        run: uv run --no-sync pytest tests/unit/test_local_session_windows.py -q
       - run: uv run --no-sync pytest
       - run: uv run --no-sync scripts/export_schemas.py --check
       - run: uv run --no-sync recycleguard doctor
+      - run: uv run --no-sync scripts/verify_cp2.py --data-root .recycleguard/ci-cp2 --output tmp/ci-cp2-output
       - run: uv build

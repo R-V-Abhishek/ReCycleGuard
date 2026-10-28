@@ -304,3 +304,22 @@ Append-only log of work done per session. Source of truth for execution state re
 
 ### Next permitted step
 - Hidden-format agreement with Vedantha (V04), then independent review of S05. S06 stays blocked on S05 + S04.
+
+
+## 2026-10-27 IST — Abhishek — CP2 / A05 integration acceptance
+
+Integrated S03 `47c4482` and V03 `ee2f64a` on `checkpoint-2`. Repaired the
+empty-findings report failure, authoritative numeric/citation verification,
+calculation/report audit dispatch, contract error/schema gaps and exact human
+support revisions. The original 0 supported / 100 gap fixture becomes 55 supported /
+45 gap only after reviewed certificate/event/allocation evidence; 25 remains pending.
+Temporal/deadline/historical qualifiers remain explicit. Full commercial checks stay S04.
+
+Technical candidate `a55138d` passed the complete Windows/Linux Python 3.11/3.12
+matrix, including the fresh-root demonstration, 94 schemas and package build.
+Windows: 352 passed and 2 POSIX-only skips on each Python version. Linux: 348 passed
+and 6 Windows-only skips on each version. Native Windows ACL tests passed without
+bypassing authentication. See [CP2 construction, contribution and approval evidence](docs/checkpoints/checkpoint-2/README.md).
+
+CP2 is approved by explicit lead instruction; no other member acknowledgement is
+inferred. A05 is DONE; A06, S04, V05 and V07 are READY. A07 remains dependency-gated.

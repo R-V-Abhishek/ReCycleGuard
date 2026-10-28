@@ -7,7 +7,7 @@ import hashlib
 from collections import Counter
 from dataclasses import dataclass
 
-from recycleguard.contracts.domain import RECORD_ADAPTER, Allocation, Record
+from recycleguard.contracts.domain import RECORD_ADAPTER, Record
 from recycleguard.storage import canonical_json_bytes
 
 
@@ -33,7 +33,7 @@ class Universe:
         return [
             r
             for r in self.records
-            if isinstance(r, kind)
+            if r.record_type == kind.__name__
             and r.record_revision_id not in self.superseded
             and r.record_id not in self.ambiguous_ids
         ]
@@ -54,10 +54,10 @@ def _superseded_revisions(records: list[Record]) -> frozenset[str]:
     for newer in records:
         if newer.supersedes_revision_id is not None:
             gone.add(newer.supersedes_revision_id)
-        if isinstance(newer, Allocation) and newer.supersedes_allocation_id is not None:
+        if newer.record_type == "Allocation" and newer.supersedes_allocation_id is not None:
             for older in records:
                 if (
-                    isinstance(older, Allocation)
+                    older.record_type == "Allocation"
                     and older.allocation_id == newer.supersedes_allocation_id
                     and older.record_revision_id != newer.record_revision_id
                 ):
@@ -78,9 +78,7 @@ def universe_from_records(snapshot_id: str, records: list[Record]) -> Universe:
     live = Counter(r.record_id for r in ordered if r.record_revision_id not in superseded)
     ambiguous = frozenset(record_id for record_id, count in live.items() if count > 1)
     digest = hashlib.sha256(
-        canonical_json_bytes(
-            sorted([r.record_type, r.record_id, r.record_revision_id] for r in ordered)
-        )
+        canonical_json_bytes([r.model_dump(mode="json") for r in ordered])
     ).hexdigest()
     return Universe(
         snapshot_id=snapshot_id,

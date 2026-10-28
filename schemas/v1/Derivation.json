@@ -1,0 +1,586 @@
+{
+  "$defs": {
+    "BucketDerivation": {
+      "additionalProperties": false,
+      "properties": {
+        "bucket_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Bucket Id",
+          "type": "string"
+        },
+        "target": {
+          "$ref": "#/$defs/Quantity"
+        },
+        "adjustments": {
+          "items": {
+            "$ref": "#/$defs/Quantity"
+          },
+          "title": "Adjustments",
+          "type": "array"
+        },
+        "required": {
+          "$ref": "#/$defs/Quantity"
+        },
+        "supported_allocation_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Supported Allocation Ids",
+          "type": "array"
+        },
+        "pending_allocation_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Pending Allocation Ids",
+          "type": "array"
+        },
+        "pending_commercial_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Pending Commercial Ids",
+          "type": "array"
+        },
+        "formula": {
+          "minLength": 1,
+          "title": "Formula",
+          "type": "string"
+        },
+        "coverage": {
+          "enum": [
+            "COMPLETE_WITHIN_SCOPE",
+            "QUALIFIED",
+            "BLOCKED"
+          ],
+          "title": "Coverage",
+          "type": "string"
+        }
+      },
+      "required": [
+        "bucket_id",
+        "target",
+        "adjustments",
+        "required",
+        "supported_allocation_ids",
+        "pending_allocation_ids",
+        "pending_commercial_ids",
+        "formula",
+        "coverage"
+      ],
+      "title": "BucketDerivation",
+      "type": "object"
+    },
+    "EligibilityOutcome": {
+      "additionalProperties": false,
+      "properties": {
+        "condition": {
+          "minLength": 1,
+          "title": "Condition",
+          "type": "string"
+        },
+        "testability": {
+          "enum": [
+            "TESTABLE",
+            "UNAVAILABLE"
+          ],
+          "title": "Testability",
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "UNKNOWN",
+            "NOT_EVALUATED"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "condition",
+        "testability",
+        "state",
+        "reason"
+      ],
+      "title": "EligibilityOutcome",
+      "type": "object"
+    },
+    "LotCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "credit_lot_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Credit Lot Id",
+          "type": "string"
+        },
+        "certificate_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Certificate Id"
+        },
+        "resolution_state": {
+          "enum": [
+            "SUPPORTED",
+            "PENDING",
+            "CONFLICTING"
+          ],
+          "title": "Resolution State",
+          "type": "string"
+        },
+        "capacity": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Quantity"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "supported_allocated": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Quantity"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "observed_allocated": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Quantity"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "conservation": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "UNKNOWN",
+            "NOT_EVALUATED"
+          ],
+          "title": "Conservation",
+          "type": "string"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "credit_lot_id",
+        "certificate_id",
+        "resolution_state",
+        "capacity",
+        "supported_allocated",
+        "observed_allocated",
+        "conservation",
+        "reason"
+      ],
+      "title": "LotCheck",
+      "type": "object"
+    },
+    "PortalComparison": {
+      "additionalProperties": false,
+      "properties": {
+        "comparison_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Comparison Id",
+          "type": "string"
+        },
+        "bucket_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Bucket Id",
+          "type": "string"
+        },
+        "balance_observation_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Balance Observation Id"
+        },
+        "portal_reported": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Quantity"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ledger_supported": {
+          "$ref": "#/$defs/Quantity"
+        },
+        "delta": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Quantity"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "source_capture_time": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TemporalValue"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "business_cutoff": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TemporalValue"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "note": {
+          "minLength": 1,
+          "title": "Note",
+          "type": "string"
+        }
+      },
+      "required": [
+        "comparison_id",
+        "bucket_id",
+        "balance_observation_id",
+        "portal_reported",
+        "ledger_supported",
+        "delta",
+        "source_capture_time",
+        "business_cutoff",
+        "note"
+      ],
+      "title": "PortalComparison",
+      "type": "object"
+    },
+    "PriorityCheck": {
+      "additionalProperties": false,
+      "properties": {
+        "allocation_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Allocation Id",
+          "type": "string"
+        },
+        "bucket_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Bucket Id",
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "UNKNOWN",
+            "NOT_EVALUATED"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "earlier_bucket_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Earlier Bucket Ids",
+          "type": "array"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "allocation_id",
+        "bucket_id",
+        "state",
+        "earlier_bucket_ids",
+        "reason"
+      ],
+      "title": "PriorityCheck",
+      "type": "object"
+    },
+    "Quantity": {
+      "additionalProperties": false,
+      "properties": {
+        "decimal": {
+          "title": "Decimal",
+          "type": "string"
+        },
+        "unit": {
+          "enum": [
+            "KG",
+            "TONNE",
+            "INR",
+            "UNIT_COUNT"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "dimension": {
+          "enum": [
+            "METAL_MASS",
+            "EQUIPMENT_MASS",
+            "MONEY",
+            "COUNT"
+          ],
+          "title": "Dimension",
+          "type": "string"
+        },
+        "metal": {
+          "anyOf": [
+            {
+              "enum": [
+                "AU",
+                "CU",
+                "AL",
+                "FE"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Metal"
+        }
+      },
+      "required": [
+        "decimal",
+        "unit",
+        "dimension",
+        "metal"
+      ],
+      "title": "Quantity",
+      "type": "object"
+    },
+    "TemporalValue": {
+      "additionalProperties": false,
+      "properties": {
+        "raw": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Raw"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        },
+        "precision": {
+          "enum": [
+            "INSTANT",
+            "DATE",
+            "MONTH",
+            "YEAR",
+            "UNKNOWN"
+          ],
+          "title": "Precision",
+          "type": "string"
+        },
+        "timezone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Timezone"
+        },
+        "interpretation_status": {
+          "enum": [
+            "PARSED",
+            "REVIEWED",
+            "AMBIGUOUS",
+            "UNKNOWN"
+          ],
+          "title": "Interpretation Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "raw",
+        "value",
+        "precision",
+        "timezone",
+        "interpretation_status"
+      ],
+      "title": "TemporalValue",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "tool_version": {
+      "minLength": 1,
+      "title": "Tool Version",
+      "type": "string"
+    },
+    "snapshot_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Snapshot Id",
+      "type": "string"
+    },
+    "membership_digest": {
+      "minLength": 1,
+      "title": "Membership Digest",
+      "type": "string"
+    },
+    "profile_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "profile_digest": {
+      "minLength": 1,
+      "title": "Profile Digest",
+      "type": "string"
+    },
+    "requested_bucket_ids": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Requested Bucket Ids",
+      "type": "array"
+    },
+    "buckets": {
+      "items": {
+        "$ref": "#/$defs/BucketDerivation"
+      },
+      "title": "Buckets",
+      "type": "array"
+    },
+    "lots": {
+      "items": {
+        "$ref": "#/$defs/LotCheck"
+      },
+      "title": "Lots",
+      "type": "array"
+    },
+    "priority_checks": {
+      "items": {
+        "$ref": "#/$defs/PriorityCheck"
+      },
+      "title": "Priority Checks",
+      "type": "array"
+    },
+    "portal_comparisons": {
+      "items": {
+        "$ref": "#/$defs/PortalComparison"
+      },
+      "title": "Portal Comparisons",
+      "type": "array"
+    },
+    "eligibility": {
+      "items": {
+        "$ref": "#/$defs/EligibilityOutcome"
+      },
+      "title": "Eligibility",
+      "type": "array"
+    },
+    "purchase_ceiling": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNKNOWN",
+        "NOT_EVALUATED"
+      ],
+      "title": "Purchase Ceiling",
+      "type": "string"
+    },
+    "purchase_ceiling_reason": {
+      "minLength": 1,
+      "title": "Purchase Ceiling Reason",
+      "type": "string"
+    },
+    "unsupported_features": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Unsupported Features",
+      "type": "array"
+    },
+    "coverage": {
+      "enum": [
+        "COMPLETE_WITHIN_SCOPE",
+        "QUALIFIED",
+        "BLOCKED"
+      ],
+      "title": "Coverage",
+      "type": "string"
+    }
+  },
+  "required": [
+    "tool_version",
+    "snapshot_id",
+    "membership_digest",
+    "profile_id",
+    "profile_digest",
+    "requested_bucket_ids",
+    "buckets",
+    "lots",
+    "priority_checks",
+    "portal_comparisons",
+    "eligibility",
+    "purchase_ceiling",
+    "purchase_ceiling_reason",
+    "unsupported_features",
+    "coverage"
+  ],
+  "title": "Derivation",
+  "type": "object"
+}

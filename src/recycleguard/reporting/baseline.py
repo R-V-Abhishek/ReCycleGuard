@@ -12,7 +12,12 @@ from recycleguard.contracts.core import (
     EvidenceRef,
     Issue,
 )
-from recycleguard.contracts.results import CalculationResult, CalculationValueRef, FindingRecord
+from recycleguard.contracts.results import (
+    BucketResult,
+    CalculationResult,
+    CalculationValueRef,
+    FindingRecord,
+)
 from recycleguard.storage import canonical_json_bytes
 
 SECTION_IDS = (
@@ -103,7 +108,7 @@ def _issue(code: str, message: str, *, claim_id: str | None = None) -> Issue:
         issue_id=f"issue:{code.lower()}_{token}",
         code=code,
         severity="BLOCKING"
-        if code in {"PROHIBITED_VERDICT", "INVALID_SCHEMA", "INTEGRITY_FAILED"}
+        if code in {"PROHIBITED_VERDICT", "INVALID_SCHEMA", "INTEGRITY_FAILED", "MISSING_ARTIFACT"}
         else "WARNING",
         message=message,
         field_path=None if claim_id is None else f"claims.{claim_id}",
@@ -112,20 +117,33 @@ def _issue(code: str, message: str, *, claim_id: str | None = None) -> Issue:
     )
 
 
+def _quantity(bucket: BucketResult, reference: CalculationValueRef):
+    return {
+        "required": bucket.required,
+        "supported": bucket.supported,
+        "signed_gap": bucket.signed_gap,
+        "shortfall": bucket.shortfall,
+        "surplus": bucket.surplus,
+        "pending": bucket.pending,
+        "portal_reported": bucket.portal_reported,
+        "ledger_supported": bucket.ledger_supported,
+        "delta": bucket.delta,
+    }[reference.field]
+
+
 def _value(calculation: CalculationResult, reference: CalculationValueRef) -> str | None:
     bucket = next(
-        (b for b in calculation.bucket_results if b.bucket_id == reference.bucket_id),
-        None,
+        (b for b in calculation.bucket_results if b.bucket_id == reference.bucket_id), None
     )
     if bucket is None:
         return None
-    quantity = getattr(bucket, reference.field)
+    quantity = _quantity(bucket, reference)
     return None if quantity is None else quantity.decimal
 
 
 def _quantity_label(calculation: CalculationResult, reference: CalculationValueRef) -> str:
     bucket = next(b for b in calculation.bucket_results if b.bucket_id == reference.bucket_id)
-    quantity = getattr(bucket, reference.field)
+    quantity = _quantity(bucket, reference)
     return "unavailable" if quantity is None else f"{quantity.decimal} {quantity.unit}"
 
 
@@ -230,17 +248,13 @@ class BaselineReportBuilder:
                 add(
                     "FINDING_REGISTER",
                     "Finding register",
-                    (
-                        f"{finding.issue_type}: {finding.advisory_status}; "
-                        f"priority {finding.priority}."
-                    ),
+                    f"{finding.issue_type}: {finding.advisory_status}; "
+                    f"priority {finding.priority}.",
                     "INTERPRETATION",
                     evidence_refs=finding.fact_refs or [coverage_ref],
-                    status=(
-                        "QUALIFIED"
-                        if finding.advisory_status != "RECONCILED_WITHIN_SCOPE"
-                        else support
-                    ),
+                    status="QUALIFIED"
+                    if finding.advisory_status != "RECONCILED_WITHIN_SCOPE"
+                    else support,
                 )
             )
             section_claims["NEXT_ACTIONS"].append(
@@ -330,6 +344,9 @@ class BaselineReportBuilder:
             "claims": [claim.model_dump(mode="json") for claim in claims],
             "sections": [section.model_dump(mode="json") for section in sections],
             "run_id": run_id,
+            "finding_revision_ids": [finding.finding_revision_id for finding in findings],
+            "findings": [finding.model_dump(mode="json") for finding in findings],
+            "coverage_ref": coverage_ref.model_dump(mode="json"),
         }
         digest = hashlib.sha256(canonical_json_bytes(revision_payload)).hexdigest()
         revision = ReportRevision(
@@ -374,29 +391,117 @@ def render_markdown(report: BaselineReport) -> str:
 class ReportVerifier:
     """Verify report structure, exact numeric references, citations and scope safety."""
 
-    version = "v03.1"
+    version = "v03.2"
 
     def verify(
         self,
         report: BaselineReport,
         *,
+        authoritative_calculations: Iterable[CalculationResult],
         available_evidence_refs: Iterable[EvidenceRef] = (),
+        findings: Iterable[FindingRecord] = (),
     ) -> VerificationResult:
         issues: list[Issue] = []
         checks: list[dict[str, str | bool]] = []
-        calculations = {
-            calculation.calculation_id: calculation for calculation in report.calculations
+        authoritative = tuple(authoritative_calculations)
+        findings = tuple(findings)
+        calculations = {calculation.calculation_id: calculation for calculation in authoritative}
+        available = {
+            canonical_json_bytes(ref.model_dump(mode="json")) for ref in available_evidence_refs
         }
-        available = {(ref.ref_kind, ref.ref_id) for ref in available_evidence_refs}
+        available.update(
+            canonical_json_bytes(
+                EvidenceRef(
+                    ref_kind="CALCULATION",
+                    ref_id=calculation.calculation_id,
+                    artifact_revision_id=None,
+                    locator=None,
+                ).model_dump(mode="json")
+            )
+            for calculation in authoritative
+        )
+
+        def check(name: str, passed: bool, message: str):
+            checks.append({"check": name, "passed": passed})
+            if not passed:
+                issues.append(_issue("INTEGRITY_FAILED", message))
+
+        check(
+            "authoritative_calculation",
+            len(authoritative) == 1 and report.calculations == list(authoritative),
+            "baseline report must match exactly one authoritative calculation",
+        )
+        for name, identifiers in (
+            ("claim", [claim.claim_id for claim in report.claims]),
+            ("section", [section.structured_content_ref for section in report.sections]),
+            ("calculation", [calculation.calculation_id for calculation in report.calculations]),
+            ("finding", [finding.finding_revision_id for finding in findings]),
+        ):
+            check(
+                f"unique_{name}_ids",
+                len(identifiers) == len(set(identifiers)),
+                f"duplicate {name} identifiers",
+            )
+
+        # A baseline is deterministic. Reconstruct it from trusted calculation/finding
+        # inputs rather than accepting claims, numeric values or revision indexes
+        # merely because the report carries them itself.
+        if len(authoritative) == 1:
+            check(
+                "calculation_coverage",
+                authoritative[0].coverage != "BLOCKED",
+                "blocked calculation cannot produce a publishable baseline report",
+            )
+            check(
+                "finding_scope",
+                all(
+                    finding.case_version_id == authoritative[0].case_version_id
+                    and set(finding.bucket_ids).issubset(authoritative[0].analyzed_bucket_ids)
+                    and set(finding.calculation_refs).issubset(calculations)
+                    for finding in findings
+                ),
+                "finding case, bucket or calculation scope differs from authoritative input",
+            )
+            expected = BaselineReportBuilder().build(
+                authoritative[0],
+                findings=findings,
+                coverage_ref=report.revision.coverage_ref,
+                run_id=report.revision.run_id,
+            )
+            check(
+                "canonical_claims",
+                report.claims == expected.claims,
+                "claims differ from authoritative baseline inputs",
+            )
+            check(
+                "canonical_sections",
+                report.sections == expected.sections,
+                "section claims or metadata differ from the baseline",
+            )
+            check(
+                "revision_metadata",
+                report.revision == expected.revision,
+                "report revision indexes, identity or dependency digest are inconsistent",
+            )
+            check(
+                "rendered_content",
+                report.rendered_markdown == expected.rendered_markdown,
+                "rendered Markdown differs from verified deterministic content",
+            )
+
+        cited_refs = [report.revision.coverage_ref]
+        cited_refs.extend(ref for section in report.sections for ref in section.evidence_refs)
+        for ref in cited_refs:
+            if canonical_json_bytes(ref.model_dump(mode="json")) not in available:
+                issues.append(
+                    _issue("MISSING_ARTIFACT", "coverage or section cites unavailable evidence")
+                )
 
         ordered = tuple(section.section_id for section in report.sections)
         checks.append({"check": "section_order", "passed": ordered == SECTION_IDS})
         if ordered != SECTION_IDS:
             issues.append(
-                _issue(
-                    "INVALID_SCHEMA",
-                    "report must contain the eight sections in contract order",
-                )
+                _issue("INVALID_SCHEMA", "report must contain the eight sections in contract order")
             )
 
         for claim in report.claims:
@@ -404,8 +509,9 @@ class ReportVerifier:
                 issues.append(
                     _issue("MISSING_ARTIFACT", "claim has no citation", claim_id=claim.claim_id)
                 )
-            if available and any(
-                (ref.ref_kind, ref.ref_id) not in available for ref in claim.evidence_refs
+            if any(
+                canonical_json_bytes(ref.model_dump(mode="json")) not in available
+                for ref in claim.evidence_refs
             ):
                 issues.append(
                     _issue(
@@ -443,11 +549,13 @@ class ReportVerifier:
                             claim_id=claim.claim_id,
                         )
                     )
-                if "{value}" not in claim.template_or_text:
+                if claim.template_or_text.count("{value}") != 1 or re.search(
+                    r"[{}]", claim.template_or_text.replace("{value}", "")
+                ):
                     issues.append(
                         _issue(
                             "INTEGRITY_FAILED",
-                            "numeric claim must use deterministic value insertion",
+                            "numeric claim must use exactly one deterministic value insertion",
                             claim_id=claim.claim_id,
                         )
                     )
@@ -469,16 +577,12 @@ class ReportVerifier:
 
         rendered = report.rendered_markdown
         checks.append(
-            {
-                "check": "rendered_numeric_placeholders",
-                "passed": "{value}" not in rendered,
-            }
+            {"check": "rendered_numeric_placeholders", "passed": "{value}" not in rendered}
         )
         if "{value}" in rendered:
             issues.append(
                 _issue(
-                    "INTEGRITY_FAILED",
-                    "rendered report contains an unresolved numeric placeholder",
+                    "INTEGRITY_FAILED", "rendered report contains an unresolved numeric placeholder"
                 )
             )
 
@@ -488,10 +592,7 @@ class ReportVerifier:
         elif (
             issues
             or any(claim.support_status == "UNSUPPORTED" for claim in report.claims)
-            or any(
-                calculation.coverage != "COMPLETE_WITHIN_SCOPE"
-                for calculation in report.calculations
-            )
+            or any(calculation.coverage != "COMPLETE_WITHIN_SCOPE" for calculation in authoritative)
         ):
             verdict = "QUALIFIED"
         else:

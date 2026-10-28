@@ -1,0 +1,993 @@
+{
+  "$defs": {
+    "BaselineReport": {
+      "additionalProperties": false,
+      "properties": {
+        "revision": {
+          "$ref": "#/$defs/ReportRevision"
+        },
+        "sections": {
+          "items": {
+            "$ref": "#/$defs/ReportSection"
+          },
+          "title": "Sections",
+          "type": "array"
+        },
+        "claims": {
+          "items": {
+            "$ref": "#/$defs/ReportClaim"
+          },
+          "title": "Claims",
+          "type": "array"
+        },
+        "calculations": {
+          "items": {
+            "$ref": "#/$defs/CalculationResult"
+          },
+          "title": "Calculations",
+          "type": "array"
+        },
+        "rendered_markdown": {
+          "title": "Rendered Markdown",
+          "type": "string"
+        }
+      },
+      "required": [
+        "revision",
+        "sections",
+        "claims",
+        "calculations",
+        "rendered_markdown"
+      ],
+      "title": "BaselineReport",
+      "type": "object"
+    },
+    "BlobRef": {
+      "additionalProperties": false,
+      "properties": {
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_length": {
+          "minimum": 0,
+          "title": "Byte Length",
+          "type": "integer"
+        },
+        "media_type": {
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sha256",
+        "byte_length",
+        "media_type"
+      ],
+      "title": "BlobRef",
+      "type": "object"
+    },
+    "BucketResult": {
+      "additionalProperties": false,
+      "properties": {
+        "bucket_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Bucket Id",
+          "type": "string"
+        },
+        "required": {
+          "$ref": "#/$defs/NonnegativeMass"
+        },
+        "supported": {
+          "$ref": "#/$defs/NonnegativeMass"
+        },
+        "signed_gap": {
+          "$ref": "#/$defs/Quantity"
+        },
+        "shortfall": {
+          "$ref": "#/$defs/NonnegativeMass"
+        },
+        "surplus": {
+          "$ref": "#/$defs/NonnegativeMass"
+        },
+        "pending": {
+          "$ref": "#/$defs/NonnegativeMass"
+        },
+        "portal_reported": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NonnegativeMass"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ledger_supported": {
+          "$ref": "#/$defs/NonnegativeMass"
+        },
+        "delta": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Quantity"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "snapshot_comparison_ref": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Snapshot Comparison Ref"
+        },
+        "allocation_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Allocation Ids",
+          "type": "array"
+        },
+        "qualification_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Qualification Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "bucket_id",
+        "required",
+        "supported",
+        "signed_gap",
+        "shortfall",
+        "surplus",
+        "pending",
+        "portal_reported",
+        "ledger_supported",
+        "delta",
+        "snapshot_comparison_ref",
+        "allocation_ids",
+        "qualification_refs"
+      ],
+      "title": "BucketResult",
+      "type": "object"
+    },
+    "CalculationResult": {
+      "additionalProperties": false,
+      "properties": {
+        "calculation_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Calculation Id",
+          "type": "string"
+        },
+        "case_version_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Case Version Id",
+          "type": "string"
+        },
+        "profile_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Profile Id",
+          "type": "string"
+        },
+        "tool_version": {
+          "title": "Tool Version",
+          "type": "string"
+        },
+        "input_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Input Digest",
+          "type": "string"
+        },
+        "analyzed_input_membership_blob": {
+          "$ref": "#/$defs/BlobRef"
+        },
+        "analyzed_bucket_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Analyzed Bucket Ids",
+          "type": "array"
+        },
+        "bucket_results": {
+          "items": {
+            "$ref": "#/$defs/BucketResult"
+          },
+          "title": "Bucket Results",
+          "type": "array"
+        },
+        "quantity_dispositions_blob": {
+          "$ref": "#/$defs/BlobRef"
+        },
+        "derivation_blob": {
+          "$ref": "#/$defs/BlobRef"
+        },
+        "coverage": {
+          "enum": [
+            "COMPLETE_WITHIN_SCOPE",
+            "QUALIFIED",
+            "BLOCKED"
+          ],
+          "title": "Coverage",
+          "type": "string"
+        },
+        "issues": {
+          "items": {
+            "$ref": "#/$defs/Issue"
+          },
+          "title": "Issues",
+          "type": "array"
+        }
+      },
+      "required": [
+        "calculation_id",
+        "case_version_id",
+        "profile_id",
+        "tool_version",
+        "input_digest",
+        "analyzed_input_membership_blob",
+        "analyzed_bucket_ids",
+        "bucket_results",
+        "quantity_dispositions_blob",
+        "derivation_blob",
+        "coverage",
+        "issues"
+      ],
+      "title": "CalculationResult",
+      "type": "object"
+    },
+    "CalculationValueRef": {
+      "additionalProperties": false,
+      "properties": {
+        "calculation_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Calculation Id",
+          "type": "string"
+        },
+        "bucket_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Bucket Id",
+          "type": "string"
+        },
+        "field": {
+          "enum": [
+            "required",
+            "supported",
+            "signed_gap",
+            "shortfall",
+            "surplus",
+            "pending",
+            "portal_reported",
+            "ledger_supported",
+            "delta"
+          ],
+          "title": "Field",
+          "type": "string"
+        }
+      },
+      "required": [
+        "calculation_id",
+        "bucket_id",
+        "field"
+      ],
+      "title": "CalculationValueRef",
+      "type": "object"
+    },
+    "EvidenceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "ref_kind": {
+          "enum": [
+            "ARTIFACT",
+            "OBSERVATION",
+            "RECORD",
+            "PROVISION",
+            "CALCULATION",
+            "FINDING"
+          ],
+          "title": "Ref Kind",
+          "type": "string"
+        },
+        "ref_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Ref Id",
+          "type": "string"
+        },
+        "artifact_revision_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Artifact Revision Id"
+        },
+        "locator": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Locator"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "ref_kind",
+        "ref_id",
+        "artifact_revision_id",
+        "locator"
+      ],
+      "title": "EvidenceRef",
+      "type": "object"
+    },
+    "Issue": {
+      "additionalProperties": false,
+      "properties": {
+        "issue_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Issue Id",
+          "type": "string"
+        },
+        "code": {
+          "enum": [
+            "INVALID_SCHEMA",
+            "ACCESS_DENIED",
+            "HASH_MISMATCH",
+            "MISSING_ARTIFACT",
+            "INCOMPLETE_COVERAGE",
+            "EXTRACTION_FAILED",
+            "UNCONFIRMED_IDENTIFIER",
+            "AMBIGUOUS_IDENTITY",
+            "AMBIGUOUS_EVENT",
+            "DIMENSION_MISMATCH",
+            "NUMERIC_PRECISION_EXCEEDED",
+            "EARLIER_LIABILITY_UNMET",
+            "LIABILITY_PRIORITY_UNRESOLVED",
+            "UNSUPPORTED_PROFILE",
+            "UNAPPROVED_PROFILE",
+            "APPLICABILITY_UNRESOLVED",
+            "RULE_CONFLICT",
+            "SOURCE_INCOMPLETE",
+            "STALE_SNAPSHOT",
+            "BUDGET_EXHAUSTED",
+            "CYCLE_DETECTED",
+            "PROVIDER_TIMEOUT",
+            "PROVIDER_INVALID_OUTPUT",
+            "AUDIT_UNAVAILABLE",
+            "CONCURRENT_MODIFICATION",
+            "STALE_REVIEW",
+            "EXPORT_RESTRICTED",
+            "PROHIBITED_VERDICT",
+            "CANCELLED",
+            "INTEGRITY_FAILED",
+            "OVER_ALLOCATION",
+            "UNSUPPORTED_FEATURE"
+          ],
+          "title": "Code",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "INFO",
+            "WARNING",
+            "BLOCKING"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "message": {
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        },
+        "field_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Field Path"
+        },
+        "evidence_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "retryable": {
+          "title": "Retryable",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "issue_id",
+        "code",
+        "severity",
+        "message",
+        "field_path",
+        "evidence_refs",
+        "retryable"
+      ],
+      "title": "Issue",
+      "type": "object"
+    },
+    "Locator": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "PDF_PAGE",
+            "PDF_CELL",
+            "CSV_ROW",
+            "JSON_POINTER",
+            "TEXT_SPAN",
+            "DB_RECORD"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "page_index_1based": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Page Index 1Based"
+        },
+        "printed_page_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Printed Page Label"
+        },
+        "row_index_1based": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Row Index 1Based"
+        },
+        "column_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Column Name"
+        },
+        "json_pointer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Json Pointer"
+        },
+        "text_start": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Text Start"
+        },
+        "text_end": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Text End"
+        },
+        "table_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Table Id"
+        },
+        "cell_row": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cell Row"
+        },
+        "cell_column": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cell Column"
+        }
+      },
+      "required": [
+        "kind",
+        "page_index_1based",
+        "printed_page_label",
+        "row_index_1based",
+        "column_name",
+        "json_pointer",
+        "text_start",
+        "text_end",
+        "table_id",
+        "cell_row",
+        "cell_column"
+      ],
+      "title": "Locator",
+      "type": "object"
+    },
+    "NonnegativeMass": {
+      "additionalProperties": false,
+      "properties": {
+        "decimal": {
+          "title": "Decimal",
+          "type": "string"
+        },
+        "unit": {
+          "enum": [
+            "KG",
+            "TONNE",
+            "INR",
+            "UNIT_COUNT"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "dimension": {
+          "enum": [
+            "METAL_MASS",
+            "EQUIPMENT_MASS",
+            "MONEY",
+            "COUNT"
+          ],
+          "title": "Dimension",
+          "type": "string"
+        },
+        "metal": {
+          "anyOf": [
+            {
+              "enum": [
+                "AU",
+                "CU",
+                "AL",
+                "FE"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Metal"
+        }
+      },
+      "required": [
+        "decimal",
+        "unit",
+        "dimension",
+        "metal"
+      ],
+      "title": "NonnegativeMass",
+      "type": "object"
+    },
+    "Quantity": {
+      "additionalProperties": false,
+      "properties": {
+        "decimal": {
+          "title": "Decimal",
+          "type": "string"
+        },
+        "unit": {
+          "enum": [
+            "KG",
+            "TONNE",
+            "INR",
+            "UNIT_COUNT"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "dimension": {
+          "enum": [
+            "METAL_MASS",
+            "EQUIPMENT_MASS",
+            "MONEY",
+            "COUNT"
+          ],
+          "title": "Dimension",
+          "type": "string"
+        },
+        "metal": {
+          "anyOf": [
+            {
+              "enum": [
+                "AU",
+                "CU",
+                "AL",
+                "FE"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Metal"
+        }
+      },
+      "required": [
+        "decimal",
+        "unit",
+        "dimension",
+        "metal"
+      ],
+      "title": "Quantity",
+      "type": "object"
+    },
+    "ReportClaim": {
+      "additionalProperties": false,
+      "properties": {
+        "claim_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Claim Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "FACT",
+            "NUMERIC",
+            "INTERPRETATION",
+            "LIMITATION",
+            "RECOMMENDATION"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "template_or_text": {
+          "title": "Template Or Text",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "calculation_value_ref": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CalculationValueRef"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "support_status": {
+          "enum": [
+            "SUPPORTED",
+            "QUALIFIED",
+            "UNSUPPORTED"
+          ],
+          "title": "Support Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "claim_id",
+        "kind",
+        "template_or_text",
+        "evidence_refs",
+        "calculation_value_ref",
+        "support_status"
+      ],
+      "title": "ReportClaim",
+      "type": "object"
+    },
+    "ReportRevision": {
+      "additionalProperties": false,
+      "properties": {
+        "report_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Report Id",
+          "type": "string"
+        },
+        "report_revision_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Report Revision Id",
+          "type": "string"
+        },
+        "run_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Run Id"
+        },
+        "section_refs": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Section Refs",
+          "type": "array"
+        },
+        "claim_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Claim Ids",
+          "type": "array"
+        },
+        "finding_revision_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Finding Revision Ids",
+          "type": "array"
+        },
+        "calculation_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Calculation Ids",
+          "type": "array"
+        },
+        "coverage_ref": {
+          "$ref": "#/$defs/EvidenceRef"
+        },
+        "review_dependency_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Review Dependency Digest",
+          "type": "string"
+        },
+        "supersedes_report_revision_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Supersedes Report Revision Id"
+        }
+      },
+      "required": [
+        "report_id",
+        "report_revision_id",
+        "run_id",
+        "section_refs",
+        "claim_ids",
+        "finding_revision_ids",
+        "calculation_ids",
+        "coverage_ref",
+        "review_dependency_digest",
+        "supersedes_report_revision_id"
+      ],
+      "title": "ReportRevision",
+      "type": "object"
+    },
+    "ReportSection": {
+      "additionalProperties": false,
+      "properties": {
+        "section_id": {
+          "enum": [
+            "CASE_SCOPE",
+            "EVIDENCE_COVERAGE",
+            "BUCKET_RECONCILIATION",
+            "FINDING_REGISTER",
+            "INVESTIGATION_HISTORY",
+            "NEXT_ACTIONS",
+            "HUMAN_DECISIONS",
+            "LIMITATIONS_AND_REPRODUCIBILITY"
+          ],
+          "title": "Section Id",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "claim_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Claim Ids",
+          "type": "array"
+        },
+        "evidence_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "structured_content_ref": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Structured Content Ref",
+          "type": "string"
+        },
+        "coverage_state": {
+          "enum": [
+            "COMPLETE_WITHIN_SCOPE",
+            "QUALIFIED",
+            "BLOCKED"
+          ],
+          "title": "Coverage State",
+          "type": "string"
+        }
+      },
+      "required": [
+        "section_id",
+        "title",
+        "claim_ids",
+        "evidence_refs",
+        "structured_content_ref",
+        "coverage_state"
+      ],
+      "title": "ReportSection",
+      "type": "object"
+    },
+    "VerificationResult": {
+      "additionalProperties": false,
+      "properties": {
+        "verification_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Verification Id",
+          "type": "string"
+        },
+        "report_revision_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Report Revision Id",
+          "type": "string"
+        },
+        "verdict": {
+          "enum": [
+            "PASS",
+            "QUALIFIED",
+            "BLOCKED"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        },
+        "checks": {
+          "items": {
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            },
+            "type": "object"
+          },
+          "title": "Checks",
+          "type": "array"
+        },
+        "issues": {
+          "items": {
+            "$ref": "#/$defs/Issue"
+          },
+          "title": "Issues",
+          "type": "array"
+        },
+        "verifier_version": {
+          "title": "Verifier Version",
+          "type": "string"
+        },
+        "verified_dependency_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Verified Dependency Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "verification_id",
+        "report_revision_id",
+        "verdict",
+        "checks",
+        "issues",
+        "verifier_version",
+        "verified_dependency_digest"
+      ],
+      "title": "VerificationResult",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "report": {
+      "$ref": "#/$defs/BaselineReport"
+    },
+    "verification": {
+      "$ref": "#/$defs/VerificationResult"
+    }
+  },
+  "required": [
+    "report",
+    "verification"
+  ],
+  "title": "VerifiedReport",
+  "type": "object"
+}

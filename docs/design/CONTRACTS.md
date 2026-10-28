@@ -87,7 +87,7 @@ Issue {
 
 `output_blob` contains the complete canonical output when present; `output` is its decoded bounded object or a typed page. Large results use `Page<T> = {items, total_count, next_cursor, full_result_blob}` with a stable snapshot-bound cursor. Tool/context truncation never truncates the archived full result. Partial success must enumerate every unresolved item and prohibit downstream consumers from treating it as complete.
 
-Errors include `INVALID_SCHEMA`, `ACCESS_DENIED`, `HASH_MISMATCH`, `MISSING_ARTIFACT`, `INCOMPLETE_COVERAGE`, `EXTRACTION_FAILED`, `UNCONFIRMED_IDENTIFIER`, `AMBIGUOUS_IDENTITY`, `AMBIGUOUS_EVENT`, `DIMENSION_MISMATCH`, `NUMERIC_PRECISION_EXCEEDED`, `EARLIER_LIABILITY_UNMET`, `LIABILITY_PRIORITY_UNRESOLVED`, `UNSUPPORTED_PROFILE`, `UNAPPROVED_PROFILE`, `APPLICABILITY_UNRESOLVED`, `RULE_CONFLICT`, `SOURCE_INCOMPLETE`, `STALE_SNAPSHOT`, `BUDGET_EXHAUSTED`, `CYCLE_DETECTED`, `PROVIDER_TIMEOUT`, `PROVIDER_INVALID_OUTPUT`, `AUDIT_UNAVAILABLE`, `CONCURRENT_MODIFICATION`, `STALE_REVIEW`, `EXPORT_RESTRICTED`, `PROHIBITED_VERDICT`, `CANCELLED` and `INTEGRITY_FAILED`.
+Errors include `INVALID_SCHEMA`, `ACCESS_DENIED`, `HASH_MISMATCH`, `MISSING_ARTIFACT`, `INCOMPLETE_COVERAGE`, `EXTRACTION_FAILED`, `UNCONFIRMED_IDENTIFIER`, `AMBIGUOUS_IDENTITY`, `AMBIGUOUS_EVENT`, `DIMENSION_MISMATCH`, `NUMERIC_PRECISION_EXCEEDED`, `EARLIER_LIABILITY_UNMET`, `LIABILITY_PRIORITY_UNRESOLVED`, `UNSUPPORTED_PROFILE`, `UNAPPROVED_PROFILE`, `APPLICABILITY_UNRESOLVED`, `RULE_CONFLICT`, `SOURCE_INCOMPLETE`, `STALE_SNAPSHOT`, `BUDGET_EXHAUSTED`, `CYCLE_DETECTED`, `PROVIDER_TIMEOUT`, `PROVIDER_INVALID_OUTPUT`, `AUDIT_UNAVAILABLE`, `CONCURRENT_MODIFICATION`, `STALE_REVIEW`, `EXPORT_RESTRICTED`, `PROHIBITED_VERDICT`, `CANCELLED`, `INTEGRITY_FAILED`, `OVER_ALLOCATION` and `UNSUPPORTED_FEATURE`.
 
 Domain unknowns are normally `PARTIAL` results with findings; process/integrity failures are `FAILED` or `REJECTED`. A model timeout with unknown provider completion may be `OUTCOME_UNKNOWN`. Do not use generic empty lists as failure fallbacks.
 
@@ -479,6 +479,31 @@ C08, not its caller, computes the full candidate-input universe from the pinned 
 Supported amounts in v1 derive solely from supported allocations. AccountBalanceObservation records are comparison-only; lack of allocation evidence yields QUALIFIED/BLOCKED coverage even when an aggregate account figure is present. No tool invents allocations from that total. Lot-level conservation covers all active allocation revisions across events and years.
 
 `ledger_supported` equals `supported`; it is not another quantity to add. `portal_reported` references a compatible dated AccountBalanceObservation. `delta = portal_reported - ledger_supported` and the comparison reference preserves both views, scope and cut-offs. This differs from `signed_gap = required - ledger_supported`. Absent/incompatible portal evidence yields null portal/delta values, never zero. The priority and purchase-ceiling check results are archived in the calculation derivation with PASS/FAIL/UNKNOWN/NOT_EVALUATED states.
+
+### CP2 implemented baseline boundary
+
+`BaselineRequest = {snapshot: SnapshotRef, calculation: CalculationRequest}` resolves
+an approved CASE and its exact approved profile from server-side frozen membership.
+The audited dispatcher returns `ServiceResult<BaselineOutput>`, where
+`BaselineOutput = {calculation, report, verification}`. Its `output_blob` decodes to
+that complete typed output. The audit operation stores the full result envelope,
+including qualification issues, dependencies and calculation/report event IDs.
+
+`QuantityDisposition = {record_id, record_revision_id, record_type, state, quantity,
+allocated_bucket_id, reason, evidence_refs}` is published as a generated schema.
+The universe digest binds full record payloads; the calculation input digest also
+binds the profile and any explicit allocation-order input. Missing chronology is
+UNKNOWN, not inferred from transfer times or year-end totals.
+
+`RecordSupportReview = {target: SnapshotRef, reviewed_snapshot_id,
+approved_snapshot_id, assertions, reason}` is a trusted human handler. Each assertion
+pins `target_record_revision_id`, exact observation evidence refs and a reason.
+The implemented subset validates structured synthetic original certificate, event
+and allocation records separately. It creates new immutable revisions and retains
+old records. Other document formats require reviewed capability mappings. A payment,
+account total or completed transfer cannot stand in for an allocation assertion.
+The baseline rejects supported records without their committed human support review.
+These schemas and the report/verification shapes are checked in under `schemas/v1/`.
 
 ### 6.3 FindingRecord and structured claims
 
