@@ -405,8 +405,7 @@ class ReportVerifier:
                     _issue("MISSING_ARTIFACT", "claim has no citation", claim_id=claim.claim_id)
                 )
             if available and any(
-                (ref.ref_kind, ref.ref_id) not in available
-                for ref in claim.evidence_refs
+                (ref.ref_kind, ref.ref_id) not in available for ref in claim.evidence_refs
             ):
                 issues.append(
                     _issue(
