@@ -171,7 +171,7 @@ The detailed registers below are the authoritative execution state. The checkpoi
 
 The canonical dependency/task register is §4.6; the graphs in §§4.3–4.5 visualize those exact edges. The checkpoint register in §4.7 controls integration. If a diagram and register disagree, stop the affected task and reconcile both before proceeding. CONTRACTS still governs software interfaces; this register governs team execution. It does not grant regulatory authority or override component permissions.
 
-The day-by-day tables in §§5/12 explain work; they do not authorize extra tasks outside this register. Task IDs **A** belong to Abhishek, **H** to Sampreeth, **S** to Sushanth and **V** to Vedantha. **U01** is the explicitly unplanned real gateway dependency, not an assigned work item. Every scheduled implementation, validation, experiment and release activity must map to an ID below; split an oversized task into reviewed child IDs before adding unrelated work.
+The day-by-day tables in §§5/12 explain work; they do not authorize extra tasks outside this register. Task IDs **A** belong to Abhishek, **H** to Sampreeth, **S** to Sushanth and **V** to Vedantha. **U01** is the separately authorized local gateway workstream assigned to Abhishek on 28 October; compatibility remains unaccepted and work is paused at the lead's request. Every scheduled implementation, validation, experiment and release activity must map to an ID below; split an oversized task into reviewed child IDs before adding unrelated work.
 
 **Initial project state, 23 October:** no implementation task is started or complete, and no checkpoint is approved. A01, H01, S01 and V01 are READY to begin independently; all tasks with unmet predecessors are BLOCKED. U01 is UNPLANNED. READY means eligible to start, not already implemented or tested.
 
@@ -347,7 +347,7 @@ flowchart TD
     H09["H09 · Dev retrieval tuning and freeze"]
     S08["S08 · Dev tool fixes and input freeze"]
     V10["V10 · Evaluator rehearsal and protocol"]
-    U01["U01 · Actual C10 gateway: UNPLANNED"]
+    U01["U01 · Local C10 gateway: PAUSED"]
     MG1{"MG1 · Real-model readiness"}
     CP5{"CP5 · Experiment freeze"}
     V11["V11 · Closed deterministic test trials"]
@@ -428,10 +428,10 @@ flowchart TD
     class S08,S09,S07,S10,S11 ownerS
     class V07,V10,V11,V12,V13,V14,V15 ownerV
     class CP4,MG1,CP5,CP6,CP7,CP8 checkpoint
-    class U01 unscheduled
+    class U01 ownerA
 ```
 
-MG1 does not schedule U01. It records the separate real-gateway compatibility/permissions/budget/isolation evidence if that work becomes available. **CP5 approval must name its scope: NON_MODEL_ONLY or INCLUDES_REAL_MODEL.** INCLUDES_REAL_MODEL also requires MG1 APPROVED and exact model settings frozen at CP5. MG1 becoming available after an offline freeze does not automatically expand it: create a new CP5 experiment version before V12. If U01 remains unplanned, the non-model path continues through CP6–CP8 with the limitation prominently reported.
+MG1 does not schedule U01. It records the separate real-gateway compatibility/permissions/budget/isolation evidence if that work becomes available. **CP5 approval must name its scope: NON_MODEL_ONLY or INCLUDES_REAL_MODEL.** INCLUDES_REAL_MODEL also requires MG1 APPROVED and exact model settings frozen at CP5. MG1 becoming available after an offline freeze does not automatically expand it: create a new CP5 experiment version before V12. If U01 remains unaccepted, the non-model path continues through CP6–CP8 with the limitation prominently reported.
 
 ### 4.6 Canonical task register — owners, predecessors and current state
 
@@ -507,13 +507,13 @@ All references are exact task/checkpoint IDs. Required predecessors are an AND c
 | **V14** | BLOCKED   | V13, H11, S10, A10    | None                    | 5–6 Nov            | **Verify publication package, result recomputation and saved-artifact replay.** Clean reproduction record; filtered package and omissions.             |
 | **V15** | BLOCKED   | A12, H12, S11         | None                    | By 12 Nov           | **Verify final manifests, archive evidence and validate submission set.** Hashes, run instructions, report/slides PDFs and complete permitted archive. |
 
-**Explicitly unplanned dependency**
+**Separately authorized model gateway workstream**
 
 | Task          | State now | Required predecessors | Conditional predecessor | Target    | Work and acceptance evidence                                                                                                       |
 | ------------- | --------- | --------------------- | ----------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| **U01** | UNPLANNED | None                  | None                    | UNPLANNED | **Supply an actual contract-compatible C10 gateway.** External unscheduled prerequisite; no owner/provider/delivery assumed. |
+| **U01** | IN_PROGRESS (paused) | None | None | 28 Oct | **Abhishek: local C10 gateway development authorized by lead.** Weights/runtime installed; native workflow compatibility failed strict contracts. [Progress and retained evidence](docs/checkpoints/model-gateway/README.md). |
 
-V12 begins BLOCKED; if CP5 is approved NON_MODEL_ONLY, record V12 as NOT_RUN with that protocol reference. U01 remains UNPLANNED unless the team explicitly assigns and plans it later. Neither state is hidden by a successful scripted graph demonstration.
+V12 begins BLOCKED; if CP5 is approved NON_MODEL_ONLY, record V12 as NOT_RUN with that protocol reference. U01 was explicitly authorized on 28 October; native local compatibility attempts failed and development is paused, with no MG1 approval implied. Neither state is hidden by a successful scripted graph demonstration.
 
 ### 4.7 Checkpoint approval register and meeting contract
 

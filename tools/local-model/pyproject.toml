@@ -1,0 +1,9 @@
+[project]
+name = "recycleguard-local-model-runtime"
+version = "0.1.0"
+description = "Isolated Apple Silicon inference runtime; not a base application dependency"
+requires-python = ">=3.11,<3.14"
+dependencies = [
+    "mlx-lm==0.32.2; sys_platform == 'darwin' and platform_machine == 'arm64'",
+    "huggingface-hub>=0.34,<2",
+]

@@ -12,6 +12,10 @@ execution register in [implementation plan](../../implementation%20plan.md).
 | CP2: baseline vertical slice | `checkpoint-2` | [Construction and acceptance](checkpoint-2/README.md) | APPROVED on 27 October 2026; qualified baseline, lead acceptance and Windows/Linux verification |
 | CP3: integrated investigation | A06 workstream `codex/a06` | [Construction so far](checkpoint-3/README.md) | WAITING; A06 scripted graph only, integration and acceptance pending |
 
+[U01 local model development](model-gateway/README.md) is a separate, paused
+workstream. Native compatibility attempts failed strict contracts; MG1 and CP3
+remain unapproved by this work.
+
 For every subsequent checkpoint, create `checkpoint-N/` with:
 
 1. A construction/acceptance record: purpose, exact task and PR/commit inputs,

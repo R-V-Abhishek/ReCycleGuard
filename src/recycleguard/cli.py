@@ -39,7 +39,7 @@ def main(
         bool, typer.Option("--version", callback=version, is_eager=True)
     ] = False,
 ):
-    """A01 scaffold. No live filing or model gateway is configured."""
+    """Local evidence workflow with explicitly configured inference backends."""
 
 
 @app.command()
@@ -58,7 +58,9 @@ def doctor():
                 "status": "SCAFFOLD_READY",
                 "protocol_version": PROTOCOL_VERSION,
                 "sqlite_fts5": True,
-                "model_gateway": "UNAVAILABLE",
+                "model_gateway": "LOCAL_CONFIGURED_UNVERIFIED"
+                if settings.local_model_config is not None
+                else "UNAVAILABLE",
                 "mode": settings.mode,
                 "test_adapters": settings.enable_test_adapters,
                 "roots": {
@@ -70,6 +72,30 @@ def doctor():
             sort_keys=True,
         )
     )
+
+
+model_app = typer.Typer(help="Inspect an explicitly configured local model; no automatic fallback.")
+app.add_typer(model_app, name="model")
+
+
+@model_app.command("probe")
+def model_probe(config: Annotated[Path | None, typer.Option()] = None):
+    """Verify local model pins and its loopback endpoint without generating text."""
+    from recycleguard.local_model import LocalModelConfig, LocalModelPort
+    from recycleguard.storage import BlobStore
+
+    settings = Settings.from_environment()
+    selected = config or settings.local_model_config
+    if selected is None:
+        typer.echo("Pass --config or set RECYCLEGUARD_LOCAL_MODEL_CONFIG.", err=True)
+        raise typer.Exit(1)
+    try:
+        configuration = LocalModelConfig.model_validate_json(selected.read_bytes())
+        result = LocalModelPort(configuration, BlobStore(settings.data_root)).probe()
+    except (OSError, ValueError) as exc:
+        typer.echo(f"Local model unavailable: {exc}", err=True)
+        raise typer.Exit(1) from exc
+    typer.echo(json.dumps(result, sort_keys=True))
 
 
 @app.command("validate")

@@ -50,3 +50,19 @@ def test_cli_validate(tmp_path):
     assert runner.invoke(app, ["validate", "quantity", str(p)]).exit_code == 0
     p.write_text('{"decimal":25}')
     assert runner.invoke(app, ["validate", "quantity", str(p)]).exit_code == 1
+
+
+def test_doctor_distinguishes_explicit_config_from_a_verified_backend(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("RECYCLEGUARD_LOCAL_MODEL_CONFIG", str(tmp_path / "local.json"))
+    result = runner.invoke(app, ["doctor"])
+    assert result.exit_code == 0
+    assert json.loads(result.output)["model_gateway"] == "LOCAL_CONFIGURED_UNVERIFIED"
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_model_probe_requires_explicit_backend_selection(monkeypatch):
+    monkeypatch.delenv("RECYCLEGUARD_LOCAL_MODEL_CONFIG", raising=False)
+    result = runner.invoke(app, ["model", "probe"])
+    assert result.exit_code == 1
+    assert "Pass --config" in result.output

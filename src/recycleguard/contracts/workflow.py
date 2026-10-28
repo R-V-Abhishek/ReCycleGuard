@@ -2,7 +2,7 @@
 
 from typing import Annotated, Literal
 
-from pydantic import Field, JsonValue, model_validator
+from pydantic import ConfigDict, Field, JsonValue, model_validator
 
 from .artifacts import ProfileRef, SnapshotRef
 from .core import ID, BlobRef, BoundaryModel, Digest, EvidenceRef, Nonempty, Timestamp
@@ -135,6 +135,19 @@ class ActionDraft(BoundaryModel):
 
 
 class PlanProposal(BoundaryModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "oneOf": [
+                {"properties": {"action": {"type": "object"}, "stop_reason": {"type": "null"}}},
+                {
+                    "properties": {
+                        "action": {"type": "null"},
+                        "stop_reason": {"enum": ["NO_NEW_EVIDENCE", "EXPERT_REVIEW_REQUIRED"]},
+                    }
+                },
+            ]
+        }
+    )
     plan: PlanDraft
     action: ActionDraft | None
     # Review outcomes and technical budget/failure decisions are trusted handlers'
@@ -161,6 +174,24 @@ class ActionProposal(ActionDraft):
 
 
 class AssessmentProposal(BoundaryModel):
+    model_config = ConfigDict(
+        json_schema_extra={
+            "allOf": [
+                {
+                    "if": {"properties": {"disposition": {"const": "RESOLVE"}}},
+                    "then": {"properties": {"verdict": {"const": "SUPPORTS"}}},
+                },
+                {
+                    "if": {"properties": {"revised_plan": {"type": "object"}}},
+                    "then": {
+                        "properties": {
+                            "verdict": {"enum": ["WEAK", "REFUTES", "NO_PROGRESS", "UNKNOWN"]}
+                        }
+                    },
+                },
+            ]
+        }
+    )
     verdict: Literal["SUPPORTS", "REFUTES", "WEAK", "NO_PROGRESS", "UNKNOWN"]
     weak_result_or_mistake: str | None
     next_check_or_stop: Nonempty

@@ -23,9 +23,9 @@ See the [CP2 record](docs/checkpoints/checkpoint-2/README.md) for approval statu
 operating-system verification, member contributions and reproduction details.
 
 Use new, separate paths for each reproduction run. The fixture review identity is
-synthetic test data, not actual team approval. Runtime has no real model gateway
-or hidden oracle. OCR/inference dependencies remain outside the base package while
-local options are evaluated. See [configuration](configs/README.md) for runtime
+synthetic test data, not actual team approval. Hidden oracle data remains outside
+runtime. Local MLX inference dependencies are isolated from the base package;
+OCR selection remains separate. See [configuration](configs/README.md) for runtime
 roots and test-adapter guards, and the [checkpoint construction log](docs/checkpoints/README.md)
 for the preserved CP0/CP1 history.
 
@@ -53,19 +53,25 @@ The initial research notes are dated 16 October 2026; the additional CPCB data/R
 
 - [System design](docs/design/SYSTEM_DESIGN.md): component architecture, online-source storage, synthetic dossier formats, reconciliation, retrieval, complete audit trails, recovery, and evaluation.
 - [Component contracts](docs/design/CONTRACTS.md): versioned input/output types, permissions, component interfaces, data/control flow, and integration acceptance criteria.
-- [Implementation plan](implementation%20plan.md): four-person ownership, seven-day build schedule, source acquisition and synthetic data, integration gates, second-week tuning/evaluation and publication artifacts. **Use its task dependency graphs, state register and checkpoint approvals to control all implementation work.** LLM gateway implementation and provider selection remain unplanned; real agent evaluation depends on that work becoming available.
+- [Implementation plan](implementation%20plan.md): four-person ownership, task dependencies, integration gates, evaluation and publication artifacts. **Use its task dependency graphs, state register and checkpoint approvals to control implementation.** U01 explores an explicitly configured local Qwen backend; native workflow compatibility is incomplete and development is paused. Real agent evaluation still requires the separate MG1 gate.
 
 The specifications were drafted on 18 October and corrected against the research review on 22 October 2026. They qualify tentative research assumptions and describe planned implementation.
 
 The deterministic evidence and reporting pipeline is implemented. A06 adds the
 bounded graph, audit/checkpoint recovery and scripted-port budget tests. See the
 [A06 handoff](docs/checkpoints/checkpoint-3/a06.md). Real-service integration,
-human-review transitions, the real model gateway and wider evaluation remain
+human-review transitions and wider evaluation remain
 subsequent work. Reproduce the explicitly scripted trace with fresh paths:
 
 ```sh
 uv run scripts/verify_a06.py --data-root .recycleguard/a06-reproduction --output tmp/a06-reproduction
 ```
+
+For local model setup, exact weight/runtime pins, native smoke evidence and cleanup
+paths, see the [U01 local-model record](docs/checkpoints/model-gateway/README.md).
+The MLX inference environment is isolated from the application and Windows/Linux
+test dependencies. Model weights are ignored by Git. Local inference is explicitly
+selected; there is no silent replacement of scripted tests or provider fallback.
 
 ## Build the Review 2 design document
 

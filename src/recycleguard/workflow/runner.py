@@ -87,11 +87,13 @@ class WorkflowRunner:
         stages: WorkflowStages,
         checkpoint_path: Path,
         clock: Callable = lambda: datetime.now(UTC),
+        model_run_validator: Callable[[RunSpec], None] | None = None,
     ):
         if not set(tools).issubset(_ALLOWED):
             raise ValueError("tool registry contains a prohibited operation")
         self.cases, self.settings, self.port = cases, settings, model_port
         self.tools, self.stages, self.clock = dict(tools), stages, clock
+        self.model_run_validator = model_run_validator
         self.kernel, self.blobs = cases.kernel, cases.kernel.blob_store
         self.store = GraphStore(self.kernel)
         checkpoint_path = Path(checkpoint_path)
@@ -181,9 +183,11 @@ class WorkflowRunner:
         from recycleguard.contracts.artifacts import SnapshotRef
 
         self._authorize(context, capability)
-        if spec.execution_kind != "SCRIPTED_TEST":
-            raise ValueError("MODEL_BACKED gateway is unavailable; no automatic fallback")
-        if self.settings.mode != "test" or not self.settings.enable_test_adapters:
+        if spec.execution_kind == "MODEL_BACKED":
+            if self.model_run_validator is None:
+                raise ValueError("MODEL_BACKED gateway is unavailable; no automatic fallback")
+            self.model_run_validator(spec)
+        elif self.settings.mode != "test" or not self.settings.enable_test_adapters:
             raise ValueError("scripted workflow requires explicitly enabled test mode")
         case = self.cases.snapshots.get(spec.case_snapshot)
         corpus = self.cases.snapshots.get(spec.corpus_snapshot)
@@ -217,6 +221,12 @@ class WorkflowRunner:
             raise ValueError("paused or terminal run cannot advance")
         spec = self.store.spec(run_id)
         root = self._bound(context, spec)
+        if spec.execution_kind == "MODEL_BACKED":
+            if self.model_run_validator is None:
+                raise ValueError("MODEL_BACKED gateway is unavailable; no automatic fallback")
+            self.model_run_validator(spec)
+        elif self.settings.mode != "test" or not self.settings.enable_test_adapters:
+            raise ValueError("scripted workflow requires explicitly enabled test mode")
         if not self._lock.acquire(blocking=False):
             raise ValueError("concurrent dispatcher invocation")
         try:
@@ -751,6 +761,8 @@ class WorkflowRunner:
                     "application/json",
                 )
                 refs = [record.raw_result_blob]
+                if raw is not None and raw.output_blob is not None:
+                    refs.append(raw.output_blob)
                 if record.model_output is not None:
                     refs.append(record.model_output.exact_response_blob)
                 if record.stage_output is not None and record.stage_output.output_blob is not None:

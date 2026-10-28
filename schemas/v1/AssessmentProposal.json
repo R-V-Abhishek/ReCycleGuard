@@ -54,6 +54,45 @@
     }
   },
   "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "disposition": {
+            "const": "RESOLVE"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "verdict": {
+            "const": "SUPPORTS"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "revised_plan": {
+            "type": "object"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "verdict": {
+            "enum": [
+              "WEAK",
+              "REFUTES",
+              "NO_PROGRESS",
+              "UNKNOWN"
+            ]
+          }
+        }
+      }
+    }
+  ],
   "properties": {
     "verdict": {
       "enum": [

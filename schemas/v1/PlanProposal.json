@@ -308,6 +308,31 @@
     }
   },
   "additionalProperties": false,
+  "oneOf": [
+    {
+      "properties": {
+        "action": {
+          "type": "object"
+        },
+        "stop_reason": {
+          "type": "null"
+        }
+      }
+    },
+    {
+      "properties": {
+        "action": {
+          "type": "null"
+        },
+        "stop_reason": {
+          "enum": [
+            "NO_NEW_EVIDENCE",
+            "EXPERT_REVIEW_REQUIRED"
+          ]
+        }
+      }
+    }
+  ],
   "properties": {
     "plan": {
       "$ref": "#/$defs/PlanDraft"

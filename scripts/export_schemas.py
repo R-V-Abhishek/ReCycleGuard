@@ -112,6 +112,7 @@ from recycleguard.domain.models import (
 )
 from recycleguard.intake.acquisition import AcquisitionOutcome
 from recycleguard.intake.batch import IntakeBatchResult
+from recycleguard.local_model import LocalModelConfig
 from recycleguard.model_port import ModelCallRequest, ModelCallResult
 from recycleguard.normalization.models import (
     EventEquivalence,
@@ -128,6 +129,7 @@ from recycleguard.reporting.baseline import (
 from recycleguard.workflow.runner import CallRecord, ProviderUsage
 
 MODELS = [
+    LocalModelConfig,
     ActionDraft,
     ActionProposal,
     AssessmentProposal,

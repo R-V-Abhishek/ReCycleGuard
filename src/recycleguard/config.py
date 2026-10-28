@@ -14,6 +14,7 @@ class Settings(BaseModel):
     output_root: Path = Path(".recycleguard/output")
     mode: Literal["runtime", "test", "evaluation"] = "runtime"
     enable_test_adapters: bool = False
+    local_model_config: Path | None = None
 
     @model_validator(mode="after")
     def test_only(self):
@@ -24,7 +25,14 @@ class Settings(BaseModel):
     @classmethod
     def from_environment(cls):
         values = {}
-        for field in ("data_root", "intake_root", "output_root", "mode", "enable_test_adapters"):
+        for field in (
+            "data_root",
+            "intake_root",
+            "output_root",
+            "mode",
+            "enable_test_adapters",
+            "local_model_config",
+        ):
             key = f"RECYCLEGUARD_{field.upper()}"
             if key in os.environ:
                 values[field] = os.environ[key]
