@@ -17,8 +17,12 @@ from benchmarks.generator.world import (
     AllocationW,
     Bucket,
     Invoice,
+    Lifecycle,
     Lot,
+    Payment,
     PortalBalance,
+    Product,
+    Sale,
     Transfer,
     World,
     invoice_amounts,
@@ -35,14 +39,24 @@ STEP = Decimal("0.5")
 class Draft:
     """Mutable builder; ``build()`` freezes it into a ``World``."""
 
-    def __init__(self, template_key, seed, timeline_group, producer, recyclers):
+    def __init__(
+        self,
+        template_key,
+        seed,
+        timeline_group,
+        producer,
+        recyclers,
+        dataset_version=DATASET_VERSION,
+    ):
         self.rng = random.Random(seed)
         self.template_key, self.seed, self.timeline_group = template_key, seed, timeline_group
-        self.tag = opaque(f"{DATASET_VERSION}|{template_key}|{seed}")
+        self.dataset_version = dataset_version
+        self.tag = opaque(f"{dataset_version}|{template_key}|{seed}")
         self.producer = producer
         self.recyclers = {r.key: r for r in recyclers}
         self.buckets, self.lots, self.transfers = [], [], []
         self.allocations, self.invoices, self.balances = [], [], []
+        self.ended, self.payments, self.products, self.sales, self.notes = [], [], [], [], []
         self._n = 0
         self._invoice_serial = {r.key: self.rng.randint(40, 380) for r in recyclers}
 
@@ -86,7 +100,15 @@ class Draft:
         self.buckets.append(item)
         return item
 
-    def lot(self, recycler, metal, face: Decimal, generated_on: date) -> Lot:
+    def lot(
+        self,
+        recycler,
+        metal,
+        face: Decimal,
+        generated_on: date,
+        expires_on: date | None = None,
+        status="TRANSFERRED",
+    ) -> Lot:
         n = self._next()
         party = self.recyclers[recycler]
         item = Lot(
@@ -101,6 +123,8 @@ class Draft:
             metal=metal,
             face_kg=kg(face),
             generated_on=generated_on.isoformat(),
+            expires_on=None if expires_on is None else expires_on.isoformat(),
+            status=status,
         )
         self.lots.append(item)
         return item
@@ -120,7 +144,9 @@ class Draft:
         self.transfers.append(item)
         return item
 
-    def allocate(self, transfer, bucket, quantity: Decimal | None = None):
+    def allocate(
+        self, transfer, bucket, quantity: Decimal | None = None, allocated_on: date | None = None
+    ):
         n = self._next()
         item = AllocationW(
             key=f"allocation_{n}",
@@ -129,8 +155,53 @@ class Draft:
             bucket=bucket.key,
             quantity_kg=kg(Decimal(transfer.quantity_kg) if quantity is None else quantity),
             order=len(self.allocations) + 1,
+            allocated_on=None if allocated_on is None else allocated_on.isoformat(),
         )
         self.allocations.append(item)
+        return item
+
+    def end_credit(self, lot, kind, on: date) -> Lifecycle:
+        """The lot's certificate expires or is cancelled on ``on`` (a calendar day)."""
+        n = self._next()
+        item = Lifecycle(
+            key=f"lifecycle_{n}",
+            event_id=f"evt:{self.tag}_{n:03d}",
+            lot=lot.key,
+            kind=kind,
+            when=self.instant(on),
+        )
+        self.ended.append(item)
+        return item
+
+    def pay(self, invoice) -> Payment:
+        """The producer's payment of ``invoice``, on the day the invoice records it was paid."""
+        n = self._next()
+        item = Payment(
+            key=f"payment_{n}",
+            commercial_id=f"comm:{self.tag}_{n:03d}",
+            invoice=invoice.key,
+            paid_on=invoice.paid_on,
+        )
+        self.payments.append(item)
+        return item
+
+    def product(self, sku, eee_code, weight_kg: str, basis="NET_EEE") -> Product:
+        n = self._next()
+        item = Product(
+            key=f"product_{n}",
+            mapping_id=f"map:{self.tag}_{n:03d}",
+            sku=sku,
+            eee_code=eee_code,
+            unit_weight_kg=weight_kg,
+            weight_basis=basis,
+        )
+        self.products.append(item)
+        return item
+
+    def sale(self, sku, units: int) -> Sale:
+        n = self._next()
+        item = Sale(key=f"sale_{n}", sku=sku, units=str(units))
+        self.sales.append(item)
         return item
 
     def invoice(self, transfer, bucket, lead_days=(4, 21)) -> Invoice:
@@ -188,7 +259,7 @@ class Draft:
     def build(self) -> World:
         knowledge = date.fromisoformat(self.capture[:10]) + timedelta(days=self.rng.randint(1, 3))
         return World(
-            dataset_version=DATASET_VERSION,
+            dataset_version=self.dataset_version,
             template_key=self.template_key,
             seed=self.seed,
             timeline_group=self.timeline_group,
@@ -207,6 +278,11 @@ class Draft:
             invoices=tuple(self.invoices),
             balances=tuple(self.balances),
             memo_date=knowledge.isoformat(),
+            notes=tuple(self.notes),
+            lifecycle=tuple(self.ended),
+            payments=tuple(self.payments),
+            products=tuple(self.products),
+            sales=tuple(self.sales),
         )
 
     def begin_portal_capture(self):

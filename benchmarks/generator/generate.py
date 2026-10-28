@@ -15,7 +15,11 @@ from pathlib import Path
 
 from benchmarks.generator.hidden import write_hidden
 from benchmarks.generator.render import render_case
+from benchmarks.generator.s04_cases import build_s04_worlds
 from benchmarks.generator.s05_cases import build_worlds
+
+# Each set has its own dataset version, and therefore its own hidden record directory.
+WORLD_SETS = (build_worlds, build_s04_worlds)
 
 
 def _separate(visible: Path, hidden: Path):
@@ -46,7 +50,8 @@ def main(argv=None) -> int:
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args(argv)
     _separate(args.visible_root, args.hidden_root)
-    worlds = build_worlds()
+    sets = [build() for build in WORLD_SETS]
+    worlds = [world for group in sets for world in group]
 
     if args.check:
         args.hidden_root.mkdir(parents=True, exist_ok=True)
@@ -66,11 +71,12 @@ def main(argv=None) -> int:
         print("visible cases are current" if not problems else f"{len(problems)} differences")
         return 1 if problems else 0
 
-    rendered = [render_case(world, args.visible_root) for world in worlds]
-    root = write_hidden(args.hidden_root, worlds, rendered)
-    for out in rendered:
-        print(f"visible: {out.case_dir}")
-    print(f"hidden:  {root}")
+    for group in sets:
+        rendered = [render_case(world, args.visible_root) for world in group]
+        root = write_hidden(args.hidden_root, group, rendered)
+        for out in rendered:
+            print(f"visible: {out.case_dir}")
+        print(f"hidden:  {root}")
     return 0
 
 

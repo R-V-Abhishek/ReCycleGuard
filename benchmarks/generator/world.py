@@ -68,6 +68,8 @@ class Lot:
     metal: str
     face_kg: str
     generated_on: str
+    expires_on: str | None = None
+    status: str = "TRANSFERRED"
 
 
 @dataclass(frozen=True)
@@ -90,6 +92,45 @@ class AllocationW:
     bucket: str
     quantity_kg: str
     order: int
+    allocated_on: str | None = None
+
+
+@dataclass(frozen=True)
+class Lifecycle:
+    """A credit that ended: an EXPIRED or CANCELLED event on a lot's certificate."""
+
+    key: str
+    event_id: str
+    lot: str
+    kind: Literal["EXPIRED", "CANCELLED"]
+    when: str
+
+
+@dataclass(frozen=True)
+class Payment:
+    """The producer's payment of one invoice; it carries the invoice's credit quantity."""
+
+    key: str
+    commercial_id: str
+    invoice: str
+    paid_on: str
+
+
+@dataclass(frozen=True)
+class Product:
+    key: str
+    mapping_id: str
+    sku: str
+    eee_code: str
+    unit_weight_kg: str
+    weight_basis: Literal["NET_EEE", "GROSS_PACKAGED", "COMPONENT"]
+
+
+@dataclass(frozen=True)
+class Sale:
+    key: str
+    sku: str
+    units: str
 
 
 @dataclass(frozen=True)
@@ -143,6 +184,10 @@ class World:
     balances: tuple[PortalBalance, ...]
     memo_date: str
     notes: tuple[str, ...] = field(default_factory=tuple)
+    lifecycle: tuple[Lifecycle, ...] = ()
+    payments: tuple[Payment, ...] = ()
+    products: tuple[Product, ...] = ()
+    sales: tuple[Sale, ...] = ()
 
     def party(self, key: str) -> Party:
         return next(p for p in (self.producer, *self.recyclers) if p.key == key)
@@ -508,7 +553,11 @@ __all__ = [
     "Transfer",
     "AllocationW",
     "Invoice",
+    "Lifecycle",
+    "Payment",
     "PortalBalance",
+    "Product",
+    "Sale",
     "World",
     "corporate_id",
     "email",

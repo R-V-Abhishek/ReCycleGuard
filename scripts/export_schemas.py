@@ -31,6 +31,7 @@ from recycleguard.contracts.baseline import (
     RecordSupportAssertion,
     RecordSupportReview,
 )
+from recycleguard.contracts.checks import CheckRequest, CheckTarget, StructuredCheckResult
 from recycleguard.contracts.domain import (
     AccountBalanceObservation,
     Allocation,
@@ -42,8 +43,10 @@ from recycleguard.contracts.domain import (
     Entity,
     Identifier,
     ObligationBucket,
+    ProductMapping,
     Registration,
     ReviewedInterval,
+    SalesRecord,
 )
 from recycleguard.contracts.dossier import AssetEntry, CaseManifest, TableDisposition
 from recycleguard.contracts.extraction import CoverageItem, ExtractionResult, Observation
@@ -84,6 +87,7 @@ from recycleguard.contracts.sources import (
     SourceVersion,
 )
 from recycleguard.domain.models import (
+    AllocationCheck,
     BucketDerivation,
     Derivation,
     EligibilityOutcome,
@@ -121,6 +125,7 @@ MODELS = [
     VerificationResult,
     QuantityDisposition,
     Derivation,
+    AllocationCheck,
     BucketDerivation,
     EligibilityOutcome,
     LotCheck,
@@ -182,8 +187,13 @@ MODELS = [
     Entity,
     Identifier,
     ObligationBucket,
+    ProductMapping,
     Registration,
     ReviewedInterval,
+    SalesRecord,
+    CheckRequest,
+    CheckTarget,
+    StructuredCheckResult,
     AssetEntry,
     CaseManifest,
     TableDisposition,

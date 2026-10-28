@@ -66,6 +66,8 @@ RECORD_FILES = {
     "Allocation": "allocations",
     "CommercialRecord": "commercial_records",
     "AccountBalanceObservation": "account_balances",
+    "ProductMapping": "product_mappings",
+    "SalesRecord": "sales",
 }
 LOGICAL_TYPES = {
     **{stem: kind for kind, stem in RECORD_FILES.items()},
@@ -403,8 +405,10 @@ class _Case:
                         ref("OBSERVATION", o) for obs in observations.values() for o in obs
                     ],
                     "generation_time": temporal(lot.generated_on, "DATE"),
-                    "expiry_time": None,
-                    "raw_status": "TRANSFERRED",
+                    "expiry_time": (
+                        None if lot.expires_on is None else temporal(lot.expires_on, "DATE")
+                    ),
+                    "raw_status": lot.status,
                 },
                 lot.key,
             )
@@ -429,27 +433,49 @@ class _Case:
                     t.key,
                 )
 
+    def lifecycle_events(self):
+        """EXPIRED / CANCELLED events of lots whose certificate the producer holds."""
+        held = {t.lot for t in self.w.transfers if t.stage == "COMPLETED"}
+        for ended in self.w.lifecycle:
+            lot = self.w.get("lots", ended.lot)
+            if lot.key not in held:
+                continue
+            self.sourced(
+                ended.event_id,
+                "CertificateEvent",
+                {
+                    "event_id": ended.event_id,
+                    "certificate_id": lot.certificate_id,
+                    "credit_lot_id": lot.lot_id,
+                    "event_kind": ended.kind,
+                    "event_time": temporal(ended.when),
+                    "quantity": mass(lot.face_kg, lot.metal),
+                    "assertion_state": "SUPPORTED",
+                    "supporting_observations": [f"obs:{self.tag}_{self._obs + 1:03d}"],
+                    "from_entity_id": self.ids[lot.recycler],
+                    "to_entity_id": None,
+                },
+                ended.key,
+            )
+
     def allocations(self):
         for a in sorted(self.w.allocations, key=lambda a: a.order):
             t = self.w.get("transfers", a.transfer)
             lot = self.w.get("lots", t.lot)
             bucket = self.w.get("buckets", a.bucket)
-            self.sourced(
-                a.allocation_id,
-                "Allocation",
-                {
-                    "allocation_id": a.allocation_id,
-                    "credit_lot_id": lot.lot_id,
-                    "event_id": t.event_id,
-                    "bucket_id": bucket.bucket_id,
-                    "quantity": mass(a.quantity_kg, lot.metal),
-                    "basis_refs": [ref("RECORD", t.event_id)],
-                    "state": "SUPPORTED",
-                    "profile_id": PROFILE_ID,
-                },
-                a.key,
-                derived=[t.event_id],
-            )
+            body = {
+                "allocation_id": a.allocation_id,
+                "credit_lot_id": lot.lot_id,
+                "event_id": t.event_id,
+                "bucket_id": bucket.bucket_id,
+                "quantity": mass(a.quantity_kg, lot.metal),
+                "basis_refs": [ref("RECORD", t.event_id)],
+                "state": "SUPPORTED",
+                "profile_id": PROFILE_ID,
+            }
+            if a.allocated_on is not None:
+                body["allocation_time"] = temporal(a.allocated_on, "DATE")
+            self.sourced(a.allocation_id, "Allocation", body, a.key, derived=[t.event_id])
 
     def commercial(self):
         for inv in self.w.invoices:
@@ -475,6 +501,78 @@ class _Case:
                     "credit_quantity": mass(inv.quantity_kg, inv.metal),
                 },
                 inv.key,
+            )
+
+    def payments(self):
+        """The producer's payments: linked to their invoice, and to the transfer if completed."""
+        for pay in self.w.payments:
+            inv = self.w.get("invoices", pay.invoice)
+            t = self.w.get("transfers", inv.transfer)
+            completed = t.stage == "COMPLETED"
+            self.sourced(
+                pay.commercial_id,
+                "CommercialRecord",
+                {
+                    "commercial_id": pay.commercial_id,
+                    "record_kind": "PAYMENT",
+                    "issuer_entity_id": self.ids["producer"],
+                    "recipient_entity_id": self.ids[inv.recycler],
+                    "external_ref": inv.utr,
+                    "event_time": temporal(pay.paid_on, "DATE"),
+                    "linked_credit_refs": [inv.commercial_id, *([t.event_id] if completed else [])],
+                    "money": {
+                        "decimal": inv.total_inr,
+                        "unit": "INR",
+                        "dimension": "MONEY",
+                        "metal": None,
+                    },
+                    "credit_quantity": mass(inv.quantity_kg, inv.metal),
+                },
+                pay.key,
+            )
+
+    def products(self):
+        validity = {
+            "start": "2023-04-01",
+            "end": "2028-03-31",
+            "end_open_ended": False,
+            "review_state": "APPROVED",
+            "applicability_scope": "GENERAL",
+            "evidence_refs": [],
+        }
+        for p in self.w.products:
+            self.sourced(
+                p.mapping_id,
+                "ProductMapping",
+                {
+                    "mapping_id": p.mapping_id,
+                    "entity_id": self.ids["producer"],
+                    "sku": p.sku,
+                    "eee_code": p.eee_code,
+                    "unit_weight": {
+                        "decimal": p.unit_weight_kg,
+                        "unit": "KG",
+                        "dimension": "EQUIPMENT_MASS",
+                        "metal": None,
+                    },
+                    "weight_basis": p.weight_basis,
+                    "validity": validity,
+                    "review_ref": f"review:{self.tag}_product_master",
+                },
+                p.key,
+            )
+        for s in self.w.sales:
+            self.sourced(
+                f"sale:{self.tag}_{s.key.split('_')[-1]}",
+                "SalesRecord",
+                {
+                    "entity_id": self.ids["producer"],
+                    "sku": s.sku,
+                    "fiscal_year": self.w.fiscal_year,
+                    "quantity_units": s.units,
+                    "source_record_ref": f"obs:{self.tag}_{self._obs + 1:03d}",
+                },
+                s.key,
             )
 
     def balances(self):
@@ -903,13 +1001,21 @@ class _Case:
             "optional_table_dispositions": [
                 {
                     "table": "product_mappings",
-                    "disposition": "ABSENT",
-                    "reason": "Supplied metal obligation profile v1",
+                    "disposition": "PRESENT" if self.w.products else "ABSENT",
+                    "reason": (
+                        "Reviewed product master supplied with the case"
+                        if self.w.products
+                        else "Supplied metal obligation profile v1"
+                    ),
                 },
                 {
                     "table": "sales",
-                    "disposition": "ABSENT",
-                    "reason": "Target derived from supplied account baseline",
+                    "disposition": "PRESENT" if self.w.sales else "ABSENT",
+                    "reason": (
+                        "Annual unit sales supplied with the case"
+                        if self.w.sales
+                        else "Target derived from supplied account baseline"
+                    ),
                 },
                 {
                     "table": "return_drafts",
@@ -946,6 +1052,9 @@ class _Case:
         self.allocations()
         self.commercial()
         self.balances()
+        self.lifecycle_events()
+        self.payments()
+        self.products()
         self.invoice_pdfs()
         self.memo_pdf()
         self.provenance()

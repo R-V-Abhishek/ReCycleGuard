@@ -7,6 +7,7 @@ S05 adds a reusable pipeline: **clean world → invariants → visible rendering
 | --- | --- |
 | `world.py` | Typed world model, fictional party catalogue, identity and exact-decimal helpers |
 | `s05_cases.py` | The six seeded S05 templates (`Draft` builder is reusable for S07) |
+| `s04_cases.py` | Six S04 variants (own dataset version `s04-dev-0.1`): expired credit, cancelled credit, invoice plus payment, capability mismatch, weight-basis conflict, earlier liability proven by allocation dates |
 | `invariants.py` | Clean-world checks: IDs, conservation, chronology, metals, prices, synthetic identity |
 | `render.py` | Projects a world into a visible dossier validated by the contract models |
 | `documents.py` | Indian inter-office memorandum + Indian number/money/date formatting |
@@ -22,8 +23,8 @@ python -m benchmarks.generator.generate --visible-root tests/fixtures/visible --
 python -m benchmarks.generator.generate --visible-root tests/fixtures/visible --hidden-root benchmarks/hidden --check
 ```
 
-The first command rewrites only the six `case_<tag>` directories (never `case_001`) and writes the
-hidden record. `--check` rebuilds in a scratch folder under the hidden root and fails if any
+The first command rewrites only the twelve `case_<tag>` directories (never `case_001`) and writes one
+hidden record per dataset version (`s05-dev-0.1`, `s04-dev-0.1`). `--check` rebuilds in a scratch folder under the hidden root and fails if any
 committed visible byte differs. `benchmarks/hidden/` is gitignored; every developer regenerates it.
 
 ## Hidden record (proposal, pending V04 agreement)
@@ -34,6 +35,21 @@ committed visible byte differs. `benchmarks/hidden/` is gitignored; every develo
 - `world/<tag>.json`: the full world and the per-document style choices.
 - `visible_map/<tag>.json`: visible file + locator (JSON pointer, CSV row, PDF page) → world object.
 - `reference/<tag>.json`: generator arithmetic per bucket (required, supported, signed gap, shortfall, surplus, pending, portal, delta) and the allocation order. This is **not** an `OracleCase`.
+  Since S04 it also lists `allocation_checks` per allocation (lifecycle, capability and
+  earlier-liability outcome with the excluding code) and, for worlds with a product master,
+  `product_checks` (weight-basis conflict per SKU, sales total). These are computed in `hidden.py`
+  from dates and EEE codes without calling C08, so the integration tests compare two separate
+  implementations of the same stated rules.
+
+## S04 worlds (hand-built effects, not S06 faults)
+
+Each S04 world plants one effect with ordinary, contract-valid, dated evidence: an expiry date or
+a `CANCELLED` event before the credit is used, an `INVOICE` and the `PAYMENT` that references it,
+a recycler registered for another EEE category, one SKU mapped with two weight bases, and
+allocations carrying `allocation_time` with no explicit order. The portal balance still reports
+every allocation, so the delta against the supported quantity is visible. `invariants.py` rejects
+a lifecycle date on the same calendar day as the transfer or allocation (it cannot be ordered at
+day resolution) and an allocation dated before its transfer. S06 will add fault recipes on top.
 
 ## Realism choices (India) and their sources
 

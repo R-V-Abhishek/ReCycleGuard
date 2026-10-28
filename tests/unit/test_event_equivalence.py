@@ -154,5 +154,51 @@ class TestEventEquivalence(unittest.TestCase):
         self.assertEqual(len(res.equivalences), 0)
 
 
+class TestExpiryAndCancellationLifecycle(unittest.TestCase):
+    """G04 expiry/cancellation (S04): ended credits are excluded; undated ones stay open."""
+
+    def run_case(self, **kwargs):
+        import tempfile
+        from pathlib import Path
+
+        from tests.support.c08 import (
+            allocation,
+            bucket,
+            bucket_result,
+            certificate,
+            event,
+            run,
+        )
+
+        extra = kwargs.pop("extra", [])
+        time = kwargs.pop("time", None)
+        records = [bucket(), certificate(**kwargs), event(), *extra, allocation(time=time)]
+        with tempfile.TemporaryDirectory() as tmp:
+            result = run(Path(tmp), records)
+            return result, bucket_result(result).supported.decimal
+
+    def test_expired_credit_is_excluded(self):
+        from tests.support.c08 import day
+
+        result, supported = self.run_case(expiry=day("2024-08-01"))
+        self.assertEqual(supported, "0.0000")
+        self.assertIn("CREDIT_EXPIRED", {i.code for i in result.issues})
+
+    def test_cancelled_credit_is_excluded(self):
+        from tests.support.c08 import day, event
+
+        cancelled = event(
+            "evt:2", kind="CANCELLED", when="2024-10-20T00:00:00Z", quantity="55.0000"
+        )
+        result, supported = self.run_case(extra=[cancelled], time=day("2024-11-01"))
+        self.assertEqual(supported, "0.0000")
+        self.assertIn("CREDIT_CANCELLED", {i.code for i in result.issues})
+
+    def test_missing_lifecycle_dates_are_open_not_excluded(self):
+        result, supported = self.run_case(status="EXPIRED")
+        self.assertEqual(supported, "55.0000")
+        self.assertEqual(result.output.coverage, "QUALIFIED")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -323,3 +323,34 @@ bypassing authentication. See [CP2 construction, contribution and approval evide
 
 CP2 is approved by explicit lead instruction; no other member acknowledgement is
 inferred. A05 is DONE; A06, S04, V05 and V07 are READY. A07 remains dependency-gated.
+
+## 2026-10-28 IST — Sushanth — CP2 — S04
+
+**Task state at start:** READY
+**Predecessors verified:** S03 DONE; CP2 APPROVED (2026-10-27)
+
+### Done
+- Completed the C08 tools under `src/recycleguard/domain/` (see its new `README.md`): `lifecycle.py` (F09), `chronology.py` + `priority.py` (F08 from an explicit order or `Allocation.allocation_time`), `identity.py` (F05 identity, registrations, F10 capability with category-prefix EEE coverage), `products.py` (F13 weight-basis conflicts, sales per basis), `commercial.py` (F07/T09: invoice and its payment are one quantity, money is never credit), `checks.py` (allowlisted dispatcher, nine check kinds, `StructuredCheckResult`). The engine now reports real LIFECYCLE/CAPABILITY/REGISTRATION/ENTITY eligibility outcomes; checks only demote. `TOOL_VERSION` is `c08-s04-0.1`.
+- Contract additions (all proposals, schemas regenerated, 100 schemas): `Allocation.allocation_time` (optional; omitted from serialization when unset so existing digests do not move), `ProductMapping`, `SalesRecord`, `CheckRequest`/`CheckTarget`/`StructuredCheckResult`, `AllocationCheck`, and error codes `CREDIT_EXPIRED`, `CREDIT_CANCELLED`, `CAPABILITY_MISMATCH`, `WEIGHT_BASIS_CONFLICT`.
+- Six more development dossiers (`s04-dev-0.1`, 12 in all): `case_78a9a2a25c` expired credit, `case_79a6d8d2df` cancelled credit, `case_f215179cde` invoice plus payment (one paid-pending transfer), `case_3a4ab67aea` recycler registered for another EEE category, `case_5d96f52258` weight-basis conflict with sales, `case_5a967a4c85` earlier liability proven by allocation dates only. The six S05 cases are byte-identical. Generator extended (`s04_cases.py`, optional world fields, renderer emits product/sales/payment/lifecycle records, invariants for ambiguous dates).
+- Expected values for the new dossiers come from `hidden.allocation_outcomes` / `product_outcomes`, which do not call C08.
+
+### Evidence
+- Tests run: full suite on Windows → 517 passed, 3 skipped. New: seven `tests/unit/test_s04_*.py` and `tests/integration/test_s04_dossiers.py` files (139 tests, including a real intake run per new dossier) plus 3 in `test_event_equivalence.py`.
+- `ruff check` and `ruff format --check` clean; `export_schemas.py --check` → 100 schemas; `generate --check` → "visible cases are current".
+- Gate(s) touched: G04 lifecycle (needs Sampreeth's review), G05 allocation (needs Abhishek's review); Vedantha should check the F08/F09 expectations independently.
+
+### Limitations / open issues
+- Lifecycle: no expiry/cancellation evidence passes (absence is not proof). Undated or unorderable evidence is UNKNOWN and qualifies the result.
+- Capability applies in the engine only when both registrations and product mappings exist; either alone is NOT_EVALUATED. A purely alphabetic registered code covers numbered items; this is my reading, not a reviewed rule.
+- Normalization (C04) has no observation type for product mappings, sales or allocation time, so these reach C08 through reviewed records only, not through extraction.
+- Not built: `read_scope`, `list_evidence`, `inspect_evidence`, `load_obligations`, `compare_versions`, `compare_return_draft`, audit-event prefix, CLI/graph wiring (A07).
+- Fixtures of the new dossiers use the S05 hidden-format proposal, which still awaits V04 agreement.
+
+### Updates required
+- **implementation plan.md:** propose S04 READY → IN_REVIEW; DONE after G04/G05 review.
+- **CONTRACTS.md:** propose recording `Allocation.allocation_time`, `StructuredCheckResult` shape and the four error codes.
+- **Other members' files changed (Abhishek):** `src/recycleguard/contracts/domain.py`, `src/recycleguard/contracts/core.py`, `scripts/export_schemas.py`, `schemas/v1/*`; new `src/recycleguard/contracts/checks.py`.
+
+### Next permitted step
+- Independent review of S04; S06 and A07 are unblocked once it is accepted.

@@ -42,6 +42,9 @@ def check_world(world: World) -> None:
         *(a.allocation_id for a in world.allocations),
         *(i.commercial_id for i in world.invoices),
         *(b.balance_id for b in world.balances),
+        *(e.event_id for e in world.lifecycle),
+        *(p.commercial_id for p in world.payments),
+        *(p.mapping_id for p in world.products),
     ]
     if len(ids) != len(set(ids)):
         _fail("world identifiers must be unique")
@@ -140,6 +143,54 @@ def check_world(world: World) -> None:
             _fail(f"{bal.key}: clean worlds report exactly the supported allocations")
     if {b.bucket for b in world.balances} != set(buckets):
         _fail("every bucket needs exactly one portal balance in a clean world")
+    _check_lifecycle_and_dates(world)
+    _check_payments_and_products(world)
+
+
+def _check_lifecycle_and_dates(world: World) -> None:
+    """Dates that decide an allocation's validity must be unambiguous at day resolution."""
+    lots = {lot.key: lot for lot in world.lots}
+    transfers = {t.key: t for t in world.transfers}
+    ends: dict[str, list[str]] = {}
+    for lot in world.lots:
+        if lot.expires_on is not None:
+            if lot.expires_on <= lot.generated_on:
+                _fail(f"{lot.key}: expires on or before it was generated")
+            ends.setdefault(lot.key, []).append(lot.expires_on)
+    for e in world.lifecycle:
+        if e.lot not in lots or e.when[:10] <= lots[e.lot].generated_on:
+            _fail(f"{e.key}: an unknown lot, or it ends on or before generation")
+        ends.setdefault(e.lot, []).append(e.when[:10])
+    for a in world.allocations:
+        t = transfers[a.transfer]
+        if a.allocated_on is not None:
+            if a.allocated_on < t.when[:10] or a.allocated_on >= world.period_end_exclusive:
+                _fail(f"{a.key}: allocated before its transfer or outside the case period")
+        for day in ends.get(t.lot, []):
+            # A same-day end cannot be ordered against a day-precision time, so it is never used.
+            if day == t.when[:10] or day == a.allocated_on:
+                _fail(f"{a.key}: a lifecycle date coincides with the transfer or allocation day")
+    dated = [a for a in world.allocations if a.allocated_on is not None]
+    for first in dated:
+        for second in dated:
+            if first.order < second.order and first.allocated_on > second.allocated_on:
+                _fail(f"{first.key}: allocation order contradicts allocation dates")
+
+
+def _check_payments_and_products(world: World) -> None:
+    invoices = {i.key: i for i in world.invoices}
+    for pay in world.payments:
+        if pay.invoice not in invoices or pay.paid_on != invoices[pay.invoice].paid_on:
+            _fail(f"{pay.key}: a payment must record the payment day of an existing invoice")
+    skus = {p.sku for p in world.products}
+    for product in world.products:
+        if not DECIMAL.match(product.unit_weight_kg) or Decimal(product.unit_weight_kg) <= 0:
+            _fail(f"{product.key}: unit weight must be a positive 4dp decimal string")
+        if product.eee_code not in world.producer.eee_codes:
+            _fail(f"{product.key}: EEE code is not one of the producer's codes")
+    for sale in world.sales:
+        if sale.sku not in skus or not sale.units.isdigit():
+            _fail(f"{sale.key}: sales need a mapped SKU and whole units")
 
 
 __all__ = ["REAL_CIN", "REAL_GSTIN", "REAL_PAN", "WorldInvariantError", "check_world"]

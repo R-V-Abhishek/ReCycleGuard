@@ -1,15 +1,16 @@
 """Earlier-liability priority, checked at allocation time (SYSTEM_DESIGN §6.2).
 
-Allocations carry no timestamp, so order must come from an explicit ordering input. Without it
-the outcome is UNKNOWN: end-of-year totals are never used to infer what happened at the time.
+Order comes from an explicit ordering input or an allocation's own reviewed allocation_time
+(see `Chronology`). Without either the outcome is UNKNOWN: end-of-year totals and transfer
+times are never used to infer what happened at allocation time.
 """
 
-from collections.abc import Mapping
 from decimal import Decimal
 
 from recycleguard.contracts.domain import ObligationBucket
 from recycleguard.domain.allocation import Decision
 from recycleguard.domain.arith import subtract, total
+from recycleguard.domain.chronology import Chronology
 from recycleguard.domain.models import CheckState, PriorityCheck
 
 
@@ -21,7 +22,7 @@ def evaluate_priority(
     buckets: dict[str, ObligationBucket],
     required: dict[str, Decimal],
     decisions: list[Decision],
-    ordering: Mapping[str, int] | None,
+    chronology: Chronology,
 ) -> list[PriorityCheck]:
     """Process buckets oldest first so a later bucket sees earlier buckets' final decisions."""
     checks: list[PriorityCheck] = []
@@ -43,7 +44,7 @@ def evaluate_priority(
         ):
             if d.state not in {"INCLUDED", "PENDING"}:
                 continue
-            state, reason = _evaluate(d, earlier, required, by_bucket, ordering)
+            state, reason = _evaluate(d, earlier, required, by_bucket, chronology)
             checks.append(
                 PriorityCheck(
                     allocation_id=d.allocation.allocation_id,
@@ -68,7 +69,7 @@ def _evaluate(
     earlier: list[ObligationBucket],
     required: dict[str, Decimal],
     by_bucket: dict[str, list[Decision]],
-    ordering: Mapping[str, int] | None,
+    chronology: Chronology,
 ) -> tuple[CheckState, str]:
     if not earlier:
         return (
@@ -81,8 +82,8 @@ def _evaluate(
     owing = [b for b in earlier if required[b.bucket_id] > 0]
     if not owing:
         return "PASS", "Every earlier compatible liability is zero"
-    mine = None if ordering is None else ordering.get(d.allocation.allocation_id)
-    if mine is None:
+    mine = d.allocation.allocation_id
+    if not chronology.known(mine):
         return (
             "UNKNOWN",
             "An earlier compatible liability exists and allocation order is not recorded",
@@ -90,13 +91,11 @@ def _evaluate(
     outcomes: list[CheckState] = []
     for bucket in owing:
         paid = [x for x in by_bucket.get(bucket.bucket_id, []) if x.state == "INCLUDED"]
-        orders = [
-            None if ordering is None else ordering.get(x.allocation.allocation_id) for x in paid
-        ]
-        if any(o is None or o == mine for o in orders):
+        order = [chronology.before(x.allocation.allocation_id, mine) for x in paid]
+        if any(o is None for o in order):
             outcomes.append("UNKNOWN")
             continue
-        before = total(x.kg for x, o in zip(paid, orders, strict=True) if o < mine)
+        before = total(x.kg for x, o in zip(paid, order, strict=True) if o)
         outstanding = subtract(required[bucket.bucket_id], before)
         outcomes.append("FAIL" if outstanding > 0 else "PASS")
     if "FAIL" in outcomes:
