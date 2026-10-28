@@ -151,6 +151,18 @@ class Memo:
     extra: dict = field(default_factory=dict)
 
 
+@dataclass(frozen=True)
+class PageBreak:
+    """Start the next block on a new page (annexures begin on their own page)."""
+
+
+@dataclass(frozen=True)
+class Heading:
+    """An unnumbered bold line, e.g. an annexure title."""
+
+    text: str
+
+
 BOTTOM = 72.0  # Keep clear of the footer band.
 
 
@@ -296,7 +308,15 @@ def _table(page: _Page, table: MemoTable):
     page.y = bottom - st.body_size - 5
 
 
-def build_memo_pdf(path: Path | str, memo: Memo, style: DocumentStyle) -> None:
+def build_memo_pdf(
+    path: Path | str, memo: Memo, style: DocumentStyle, page_losses: dict[int, str] | None = None
+) -> int:
+    """Write the memo; returns the page count stated in its footers.
+
+    ``page_losses`` maps a 1-based page to ``TEXTLESS`` (the page keeps its graphics but has no
+    text layer, as a flattened scan would) or ``MISSING`` (the page is absent from the file while
+    the other pages still say "Page n of N").
+    """
     page = _Page(style)
     size = style.body_size
     _letterhead(page, memo.letterhead, memo.letterhead_align)
@@ -326,19 +346,32 @@ def build_memo_pdf(path: Path | str, memo: Memo, style: DocumentStyle) -> None:
     page.rule(page.y + size - 2, 0.6)
     page.y -= 10
 
-    number = 0
-    for block in memo.blocks:
-        if isinstance(block, MemoTable):
-            _table(page, block)
-            continue
-        number += 1
-        lines = wrap(block, style.regular_font, size, page.right - page.left - 20)
-        page.need((size + 3) * len(lines))
-        page.text(page.left, page.y, f"{number}.", size)
-        for line in lines:
-            page.text(page.left + 20, page.y, line, size)
-            page.y -= size + 3
-        page.y -= 4
+    def place(blocks, numbered=True):
+        number = 0
+        for block in blocks:
+            if isinstance(block, MemoTable):
+                _table(page, block)
+                continue
+            if isinstance(block, PageBreak):
+                page.new_page()
+                continue
+            if isinstance(block, Heading):
+                page.need((size + 3) * 2)
+                page.text(page.left, page.y, block.text, size + 0.5, bold=True)
+                page.y -= size + 9
+                continue
+            number += 1
+            indent = 20 if numbered else 0
+            lines = wrap(block, style.regular_font, size, page.right - page.left - indent)
+            page.need((size + 3) * len(lines))
+            if numbered:
+                page.text(page.left, page.y, f"{number}.", size)
+            for line in lines:
+                page.text(page.left + indent, page.y, line, size)
+                page.y -= size + 3
+            page.y -= 4
+
+    place(memo.blocks)
 
     page.need(size * 6)
     page.y -= 8
@@ -380,9 +413,21 @@ def build_memo_pdf(path: Path | str, memo: Memo, style: DocumentStyle) -> None:
                 page.text(x + 14, page.y, f"{i}. {item}", size - 0.5)
         page.y = top - (size + 2) * rows
 
+    # Annexures follow the signature and enclosure lists, each from its own page break.
+    place(memo.extra.get("annexures", ()), numbered=False)
+
+    count = len(page.pages)
+    losses = {(n if n > 0 else count + n + 1): k for n, k in (page_losses or {}).items()}
+    if any(n < 2 or n > count or k not in {"TEXTLESS", "MISSING"} for n, k in losses.items()):
+        raise ValueError("a page loss must name a later page of the memo")
     foot, small = 40.0, max(size - 3, 6.5)
     for number, ops in enumerate(page.pages, 1):
         page.ops = ops
+        if losses.get(number) == "TEXTLESS":
+            # Keep paper, rules and table shading; drop every text object (no text layer).
+            ops[:] = [op for op in ops if not op.startswith("BT ")]
+            ops.extend(watermark_ops(style))
+            continue
         page.rule(foot + 12, 0.4)
         page.text(
             page.left,
@@ -396,9 +441,14 @@ def build_memo_pdf(path: Path | str, memo: Memo, style: DocumentStyle) -> None:
             foot, f"Page {number} of {len(page.pages)}", small, colour=style.muted(0.3)
         )
         ops.extend(watermark_ops(style))
+    stated = len(page.pages)
     write_pdf(
         path,
-        ["\n".join(ops) for ops in page.pages],
+        [
+            "\n".join(ops)
+            for number, ops in enumerate(page.pages, 1)
+            if losses.get(number) != "MISSING"
+        ],
         fonts={"F1": style.regular_font, "F2": style.bold_font},
         alpha=style.watermark_alpha,
         info={
@@ -407,13 +457,16 @@ def build_memo_pdf(path: Path | str, memo: Memo, style: DocumentStyle) -> None:
             "Producer": "ReCycleGuard synthetic generator",
         },
     )
+    return stated
 
 
 __all__ = [
     "DATE_STYLES",
+    "Heading",
     "Letterhead",
     "Memo",
     "MemoTable",
+    "PageBreak",
     "build_memo_pdf",
     "indian_date",
     "indian_group",

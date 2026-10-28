@@ -354,3 +354,49 @@ inferred. A05 is DONE; A06, S04, V05 and V07 are READY. A07 remains dependency-g
 
 ### Next permitted step
 - Independent review of S04; S06 and A07 are unblocked once it is accepted.
+
+## 2026-10-29 IST — Sushanth — CP3 prep — S06
+
+**Task state at start:** READY
+**Predecessors verified:** S05 hidden format agreed by Vedantha (V04) 2026-10-28; S04 pushed (36db581)
+
+### Done
+- Fault recipes F01–F16 in `benchmarks/generator/faults/recipes.py`. Each recipe transforms a clean world and returns a `Change`, which records the transformation, before/after refs, visible assets, effect, expected issue codes and abstentions, forbidden actions, permitted alternatives, and the invariant ids it breaks on purpose. `invariants.py` now has stable rule ids. A world may relax only the ids its recipes declare, unknown ids are rejected, and the tests prove each declared break is real.
+- `faults/validate.py` checks that every recorded effect is visible in the rendered bytes (PDFs are read through the runtime extractor). `generate` refuses to write a dossier when an effect is not visible.
+- 21 S06 dossiers (`s06-dev-0.1`, `s06_cases.py`): the 16 families singly (F15 both as a textless page and as a truncated file) plus F02+F06, F08 (undated)+F09, F04+F10 (metal) and F15 (textless)+F16.
+  - F16 hostile text appears in the memo, an invoice remark, a ledger narration, a portal remark and a note for file.
+  - Every S06 dossier has the same surface: ledger `Quantity`/`UOM`/`Narration`, portal `remarks`, a GENERATED event per certificate, a note for file, and memo annexures on their own pages.
+  - S04/S05 and `case_001` bytes are unchanged.
+- Hidden record additions per S06 case: `corruption/`, `expected/` (`ExpectedEffects`, a draft input for the `OracleCase`), `clean_world/` and `clean/case_<tag>/` (the rendered clean counterpart). The manifest gains `corruption_manifest_blob` digests, `expected_effects_blob`, `clean_world_blob`, `clean_counterpart_root` and `fault_families`, and `split_policy` is `DEV_ONLY_S06`.
+- The `hidden.py` reference follows the C08 rules without calling C08:
+  - metal mismatch, wrong recipient and duplicate export each have their own outcome;
+  - an undated CANCELLED/EXPIRED status is UNKNOWN;
+  - the portal reports only completed transfers to the producer up to the statement cut-off.
+- Catalogue extended to 12 producers and 8 recyclers, with dated aliases and "Trading LLP" affiliates (fictional, SYNTH identifiers).
+- Indian lakh/crore digit grouping is accepted exactly by `normalization/units.py` (`12,34,567.5`, `1,00,00,000`). Malformed groupings (`1,2,3`, `12,3456`) still raise. F04 exercises it.
+
+### Evidence
+- Tests run: full suite on Windows → 658 passed, 3 skipped. New: `tests/unit/test_s06_recipes.py` and `tests/unit/test_s06_generator.py` (94 tests), `tests/integration/test_s06_dossiers.py` (45 tests), and two Indian-grouping tests in `test_quantities.py`.
+- In the integration run:
+  - C08 reproduces the independent reference on every bucket of all 21 dossiers and raises each declared C08 code: `AMBIGUOUS_EVENT`, `AMBIGUOUS_IDENTITY`, `STALE_SNAPSHOT`, `EARLIER_LIABILITY_UNMET`, `LIABILITY_PRIORITY_UNRESOLVED`, `CAPABILITY_MISMATCH`, `DIMENSION_MISMATCH`.
+  - F13 is flagged by `COMPARE_WEIGHT_BASIS`.
+  - F16 quantities equal the clean counterpart.
+  - Real intake: all receipts RECEIVED, no `UNCONFIRMED_IDENTIFIER` (Indian-grouped and tonne figures parse), `UNAPPROVED_PROFILE` the only blocking issue, exactly one `INCOMPLETE_COVERAGE` with `page:N` on the textless dossiers.
+- `ruff check` and `ruff format --check` are clean, `export_schemas.py --check` reports 100 schemas, and `generate --check` reports "visible cases are current".
+- Gate(s) touched: G03 numeric safety (Indian grouping) and G12 recipe review (Vedantha).
+
+### Limitations / open issues
+- F11, F12 and F14 have no runtime check yet (H06/H07, A07); S06 supplies the evidence and the expected abstentions only.
+- F15 truncated: resolved the same day. `pdf_extractor.py` now compares consistent "Page X of N" footers with the physical page count and raises one `INCOMPLETE_COVERAGE` warning (`page:<printed number>`) per absent page. Coverage stays one item per physical page. Mixed totals (merged documents) and footers that fit the file prove nothing, and a textless page is not reported twice. A file that is truncated and carries no footers is still undetectable.
+- F13 is raised only by the `COMPARE_WEIGHT_BASIS` check tool, not by reconciliation.
+- Dated aliases render only in the dossiers that have them, so their presence is a weak clue. Every other field is uniform.
+- The expected effects are generator expectations, not an oracle; V04 builds the `OracleCase`.
+
+### Updates required
+- **implementation plan.md:** propose S06 READY → IN_REVIEW; DONE after Vedantha's independent recipe review (G12) and agreement on the hidden additions. Sampreeth to check F15 coverage behaviour.
+- **Other members' files changed:**
+  - `src/recycleguard/normalization/units.py` (Abhishek, shared with me): the Indian-grouping pattern in `parse_strict_decimal` and its error message.
+  - `src/recycleguard/extraction/pdf_extractor.py` (Sampreeth, H03/C03; Abhishek): the footer page-count check (`_missing_printed_pages`), with new tests in `tests/unit/test_pdf_page_count.py`. Sampreeth should review it.
+
+### Next permitted step
+- Review of S06 by Vedantha; S07 (48-dossier pilot) once S06 and V04 are accepted.

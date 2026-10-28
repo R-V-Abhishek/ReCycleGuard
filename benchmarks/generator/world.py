@@ -80,8 +80,11 @@ class Transfer:
     lot: str
     quantity_kg: str
     when: str
-    stage: Literal["COMPLETED", "INITIATED"]
+    stage: Literal["COMPLETED", "INITIATED", "OTP_INITIATED", "PUBLIC_KEY_DISPATCHED"]
     channels: tuple[str, ...]
+    recipient: str = "producer"  # party key; an affiliate is not the producer
+    ledger_unit: Literal["KG", "TONNE"] = "KG"  # unit the ERP row states the quantity in
+    duplicate_of: str | None = None  # a second, unreconciled export of another transfer
 
 
 @dataclass(frozen=True)
@@ -163,6 +166,36 @@ class PortalBalance:
 
 
 @dataclass(frozen=True)
+class Alias:
+    """A dated former name of a party, proven by the evidence named in ``evidence``."""
+
+    party: str
+    name: str
+    start: str
+    end_exclusive: str
+    evidence: str
+
+
+@dataclass(frozen=True)
+class Plant:
+    """Text a document carries as written: a memo paragraph, invoice remark, ledger narration,
+    portal remark or notice-board extract. It is evidence only and never changes a quantity."""
+
+    channel: Literal["memo", "invoice", "ledger", "portal", "notice"]
+    target: str | None  # invoice or transfer key for invoice/ledger/portal channels
+    text: str
+
+
+@dataclass(frozen=True)
+class PageLoss:
+    """A document page whose text did not survive: no text layer, or missing from the file."""
+
+    document: Literal["memo"]
+    kind: Literal["TEXTLESS", "MISSING"]
+    page: int  # 1-based, or negative from the end (-1 = last page, an annexure)
+
+
+@dataclass(frozen=True)
 class World:
     dataset_version: str
     template_key: str
@@ -188,9 +221,16 @@ class World:
     payments: tuple[Payment, ...] = ()
     products: tuple[Product, ...] = ()
     sales: tuple[Sale, ...] = ()
+    # S06 rendering surface and visible-evidence effects (empty and "s05" for earlier sets).
+    surface: Literal["s05", "s06"] = "s05"
+    affiliates: tuple[Party, ...] = ()
+    aliases: tuple[Alias, ...] = ()
+    plants: tuple[Plant, ...] = ()
+    page_losses: tuple[PageLoss, ...] = ()
+    relaxed: tuple[str, ...] = ()  # invariant ids a recorded corruption deliberately breaks
 
     def party(self, key: str) -> Party:
-        return next(p for p in (self.producer, *self.recyclers) if p.key == key)
+        return next(p for p in (self.producer, *self.recyclers, *self.affiliates) if p.key == key)
 
     def get(self, collection: str, key: str):
         return next(item for item in getattr(self, collection) if item.key == key)
@@ -200,14 +240,21 @@ class World:
 
 
 # --- Identity helpers -----------------------------------------------------------------------
-def opaque(material: str, length: int = 10) -> str:
-    """Stable hex token that never spells a label fragment (e.g. 'f0', 'cafe' is fine)."""
+def opaque(material: str, length: int = 10, extra: tuple[str, ...] = ()) -> str:
+    """Stable hex token that never spells a label fragment (e.g. 'f0', 'cafe' is fine).
+
+    ``extra`` adds fragments for a later set (S06 also avoids 'f1', which could read as a fault
+    family) without changing the tokens of earlier sets.
+    """
     salt = 0
     while True:
         token = hashlib.sha256(f"{material}|{salt}".encode()).hexdigest()[:length]
-        if not any(word in token for word in FORBIDDEN_FRAGMENTS):
+        if not any(word in token for word in (*FORBIDDEN_FRAGMENTS, *extra)):
             return token
         salt += 1
+
+
+S06_FRAGMENTS = ("f1",)
 
 
 def entity_id(tag: str, party: Party) -> str:
@@ -408,6 +455,145 @@ PRODUCERS: tuple[Party, ...] = (
         signatory="K. Lakshmi Prasad",
         serial=6,
     ),
+    # S06 adds six producers so later splits can separate fictional entities.
+    Party(
+        key="producer",
+        legal_name="Synthiva Audio Technologies Private Limited",
+        short_name="Synthiva",
+        role="PRODUCER",
+        kind="PTC",
+        state="Gujarat",
+        state_abbr="GJ",
+        gst_state_code="24",
+        address=(
+            "Plot No. 61, GIDC Industrial Estate, Sanand II",
+            "Ahmedabad District, Gujarat - 382110",
+        ),
+        std_code="2717",
+        nic_code="26400",
+        incorporated=2016,
+        domain="synthiva.example",
+        eee_codes=("CEEW2", "CEEW7"),
+        category="CEEW",
+        tagline="Home audio, soundbars and portable speakers",
+        signatory="Nirav Shah",
+        serial=7,
+    ),
+    Party(
+        key="producer",
+        legal_name="SynthPeak Networks Limited",
+        short_name="SynthPeak",
+        role="PRODUCER",
+        kind="PLC",
+        state="Andhra Pradesh",
+        state_abbr="AP",
+        gst_state_code="37",
+        address=(
+            "Plot No. 14, DTZ Area, Sri City",
+            "Tirupati District, Andhra Pradesh - 517646",
+        ),
+        std_code="8623",
+        nic_code="26300",
+        incorporated=2010,
+        domain="synthpeak.example",
+        eee_codes=("ITEW8", "ITEW10"),
+        category="ITEW",
+        tagline="Routers, switches and customer premises equipment",
+        signatory="P. Srinivasa Rao",
+        serial=8,
+    ),
+    Party(
+        key="producer",
+        legal_name="SynthMint Kitchen Appliances Private Limited",
+        short_name="SynthMint",
+        role="PRODUCER",
+        kind="PTC",
+        state="Rajasthan",
+        state_abbr="RJ",
+        gst_state_code="08",
+        address=(
+            "F-218, RIICO Industrial Area, Bhiwadi",
+            "Khairthal-Tijara District, Rajasthan - 301019",
+        ),
+        std_code="1493",
+        nic_code="27500",
+        incorporated=2013,
+        domain="synthmint.example",
+        eee_codes=("CEEW3", "CEEW9"),
+        category="CEEW",
+        tagline="Mixer grinders, induction cooktops and microwave ovens",
+        signatory="Kavita Agarwal",
+        serial=9,
+    ),
+    Party(
+        key="producer",
+        legal_name="SynthLumen Lighting Systems Limited",
+        short_name="SynthLumen",
+        role="PRODUCER",
+        kind="PLC",
+        state="West Bengal",
+        state_abbr="WB",
+        gst_state_code="19",
+        address=(
+            "Plot No. 7, Uluberia Industrial Growth Centre, Birshibpur",
+            "Howrah District, West Bengal - 711316",
+        ),
+        std_code="33",
+        nic_code="27400",
+        incorporated=2008,
+        domain="synthlumen.example",
+        eee_codes=("CEEW10", "CEEW11"),
+        category="CEEW",
+        tagline="LED luminaires, battens and street lighting",
+        signatory="Subhankar Ghosh",
+        serial=10,
+    ),
+    Party(
+        key="producer",
+        legal_name="SynthArc Power Electronics Private Limited",
+        short_name="SynthArc",
+        role="PRODUCER",
+        kind="PTC",
+        state="Madhya Pradesh",
+        state_abbr="MP",
+        gst_state_code="23",
+        address=(
+            "Plot No. 92, Sector 3, Industrial Area Pithampur",
+            "Dhar District, Madhya Pradesh - 454775",
+        ),
+        std_code="7292",
+        nic_code="26200",
+        incorporated=2012,
+        domain="syntharc.example",
+        eee_codes=("ITEW1", "ITEW4"),
+        category="ITEW",
+        tagline="UPS systems, inverters and server power units",
+        signatory="Alok Tiwari",
+        serial=11,
+    ),
+    Party(
+        key="producer",
+        legal_name="SynthKraft Smart Devices Private Limited",
+        short_name="SynthKraft",
+        role="PRODUCER",
+        kind="PTC",
+        state="Kerala",
+        state_abbr="KL",
+        gst_state_code="32",
+        address=(
+            "KINFRA Hi-Tech Park, Kalamassery",
+            "Ernakulam District, Kerala - 683503",
+        ),
+        std_code="484",
+        nic_code="26300",
+        incorporated=2019,
+        domain="synthkraft.example",
+        eee_codes=("ITEW15", "ITEW16"),
+        category="ITEW",
+        tagline="Feature phones, tablets and smart wearables",
+        signatory="Anjali Menon",
+        serial=12,
+    ),
 )
 
 RECYCLERS: tuple[Party, ...] = (
@@ -531,6 +717,78 @@ RECYCLERS: tuple[Party, ...] = (
         serial=5,
         capacity_tonnes_per_year="15000",
     ),
+    Party(
+        key="recycler_f",
+        legal_name="SynthMetallix Recovery Private Limited",
+        short_name="SynthMetallix",
+        role="RECYCLER",
+        kind="PTC",
+        state="Rajasthan",
+        state_abbr="RJ",
+        gst_state_code="08",
+        address=(
+            "SP-3/27, RIICO Industrial Area, Neemrana",
+            "Kotputli-Behror District, Rajasthan - 301705",
+        ),
+        std_code="1494",
+        nic_code="38300",
+        incorporated=2017,
+        domain="synthmetallix.example",
+        eee_codes=("ITEW", "CEEW"),
+        category="ITEW",
+        tagline="E-waste recycling, copper and precious metal recovery",
+        signatory="Manish Yadav",
+        serial=6,
+        capacity_tonnes_per_year="6000",
+    ),
+    Party(
+        key="recycler_g",
+        legal_name="SynthUrban Recyclers LLP",
+        short_name="SynthUrban",
+        role="RECYCLER",
+        kind="LLP",
+        state="Telangana",
+        state_abbr="TG",
+        gst_state_code="36",
+        address=(
+            "Plot No. 19, IDA Patancheru Phase II",
+            "Sangareddy District, Telangana - 502319",
+        ),
+        std_code="8455",
+        nic_code="38300",
+        incorporated=2020,
+        domain="synthurban.example",
+        eee_codes=("ITEW", "CEEW"),
+        category="ITEW",
+        tagline="Authorised dismantler and recycler of e-waste",
+        signatory="G. Ramesh Reddy",
+        serial=7,
+        capacity_tonnes_per_year="8400",
+    ),
+    Party(
+        key="recycler_h",
+        legal_name="SynthAlloy Reclaim Private Limited",
+        short_name="SynthAlloy",
+        role="RECYCLER",
+        kind="PTC",
+        state="Punjab",
+        state_abbr="PB",
+        gst_state_code="03",
+        address=(
+            "B-XXIX-112, Focal Point Phase VIII",
+            "Ludhiana, Punjab - 141010",
+        ),
+        std_code="161",
+        nic_code="38300",
+        incorporated=2014,
+        domain="synthalloy.example",
+        eee_codes=("ITEW", "CEEW"),
+        category="ITEW",
+        tagline="Aluminium and ferrous scrap recovery from e-waste",
+        signatory="Harpreet Singh",
+        serial=8,
+        capacity_tonnes_per_year="10800",
+    ),
 )
 
 # CPCB 2024 price band for e-waste EPR certificates (30% floor to 100% of the environmental
@@ -541,13 +799,60 @@ PRICE_BAND_INR_PER_KG = {
 }
 
 
+def portal_counts(transfer: Transfer, lot: Lot, bucket: Bucket, cutoff: str) -> bool:
+    """Whether the portal's account statement reports an allocation of this transfer.
+
+    The portal records only completed transfers to the producer itself, of the bucket's metal,
+    completed by the statement's business cut-off; a second unreconciled export is not a portal
+    transaction. Validity checks (expiry, capability) are the reconciler's job, not the portal's.
+    """
+    return (
+        transfer.stage == "COMPLETED"
+        and transfer.recipient == "producer"
+        and transfer.duplicate_of is None
+        and lot.metal == bucket.metal
+        and transfer.when <= cutoff
+    )
+
+
+def affiliate_of(producer: Party) -> Party:
+    """A sister trading company: near-identical name, its own identifiers, not the producer."""
+    stem = producer.legal_name.removesuffix(" Limited").removesuffix(" Private")
+    return Party(
+        key="affiliate",
+        legal_name=f"{stem} Trading LLP",
+        short_name=f"{producer.short_name} Trading",
+        role="PRODUCER",
+        kind="LLP",
+        state=producer.state,
+        state_abbr=producer.state_abbr,
+        gst_state_code=producer.gst_state_code,
+        address=producer.address,
+        std_code=producer.std_code,
+        nic_code="46520",
+        incorporated=producer.incorporated + 3,
+        domain=f"trading.{producer.domain}",
+        eee_codes=producer.eee_codes,
+        category=producer.category,
+        tagline=f"Distribution arm of the {producer.short_name} group",
+        signatory=producer.signatory,
+        serial=50 + producer.serial,
+    )
+
+
 __all__ = [
     "DATASET_VERSION",
     "PROFILE_ID",
     "PRODUCERS",
     "RECYCLERS",
     "PRICE_BAND_INR_PER_KG",
+    "Alias",
+    "PageLoss",
+    "S06_FRAGMENTS",
     "Party",
+    "Plant",
+    "affiliate_of",
+    "portal_counts",
     "Bucket",
     "Lot",
     "Transfer",

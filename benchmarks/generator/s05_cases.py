@@ -47,11 +47,12 @@ class Draft:
         producer,
         recyclers,
         dataset_version=DATASET_VERSION,
+        forbid=(),
     ):
         self.rng = random.Random(seed)
         self.template_key, self.seed, self.timeline_group = template_key, seed, timeline_group
         self.dataset_version = dataset_version
-        self.tag = opaque(f"{dataset_version}|{template_key}|{seed}")
+        self.tag = opaque(f"{dataset_version}|{template_key}|{seed}", extra=forbid)
         self.producer = producer
         self.recyclers = {r.key: r for r in recyclers}
         self.buckets, self.lots, self.transfers = [], [], []

@@ -18,9 +18,11 @@ from pathlib import Path
 
 from benchmarks.generator.documents import (
     DATE_STYLES,
+    Heading,
     Letterhead,
     Memo,
     MemoTable,
+    PageBreak,
     build_memo_pdf,
     indian_date,
     indian_group,
@@ -32,6 +34,7 @@ from benchmarks.generator.pdf_style import WATERMARK, choose_style, wrap
 from benchmarks.generator.world import (
     GST_RATE_ASSUMED,
     PROFILE_ID,
+    S06_FRAGMENTS,
     World,
     corporate_id,
     email,
@@ -57,6 +60,26 @@ LEDGER_HEADER = (
     "Quantity_KG",
     "Transfer_Stage",
 )
+# S06 ERP export: quantities as the ERP prints them (Indian digit grouping, stated unit) and a
+# free-text narration column, present in every S06 dossier.
+S06_LEDGER_HEADER = (
+    "Transaction_ID",
+    "Certificate_Ref",
+    "Transfer_Date",
+    "Issuer_GSTIN",
+    "Recipient_GSTIN",
+    "Metal",
+    "Quantity",
+    "UOM",
+    "Transfer_Stage",
+    "Narration",
+)
+STAGE_REMARKS = {
+    "COMPLETED": "Transfer accepted by producer",
+    "INITIATED": "Transfer initiated by recycler; producer acceptance awaited",
+    "OTP_INITIATED": "OTP sent to producer; acceptance awaited",
+    "PUBLIC_KEY_DISPATCHED": "Public key dispatched; transfer not yet completed",
+}
 RECORD_FILES = {
     "Entity": "entities",
     "Registration": "registrations",
@@ -94,6 +117,8 @@ class Rendered:
     case_dir: Path
     visible_map: list[dict] = field(default_factory=list)
     styles: dict[str, dict] = field(default_factory=dict)
+    documents: dict[str, str] = field(default_factory=dict)  # kind -> relative path
+    memo_pages_stated: int | None = None
 
 
 def temporal(value, precision="INSTANT", status="REVIEWED"):
@@ -139,11 +164,20 @@ class _Case:
         self._obs = 0
         self._rev = 0
         self.stamp = world.knowledge_cutoff
-        self.ids = {p.key: entity_id(self.tag, p) for p in (world.producer, *world.recyclers)}
-        self.doc_name = {
-            kind: f"{kind}_{opaque(f'{self.tag}|{kind}', 8)}"
-            for kind in ("ledger", "portal", "memo")
+        self.s06 = world.surface == "s06"
+        self.extra = S06_FRAGMENTS if self.s06 else ()
+        self.ids = {
+            p.key: entity_id(self.tag, p)
+            for p in (world.producer, *world.recyclers, *world.affiliates)
         }
+        self.doc_name = {
+            kind: f"{kind}_{opaque(f'{self.tag}|{kind}', 8, self.extra)}"
+            for kind in ("ledger", "portal", "memo", "notice")
+        }
+        self.memo_pages = None
+
+    def plants(self, channel, target=None) -> list[str]:
+        return [p.text for p in self.w.plants if p.channel == channel and p.target == target]
 
     # -- identities ----------------------------------------------------------------------
     def obs_id(self) -> str:
@@ -187,8 +221,27 @@ class _Case:
         return record
 
     # -- records -------------------------------------------------------------------------
+    def aliases(self, party) -> list[dict]:
+        """Dated former names, each bound to the source row that carries its evidence."""
+        return [
+            {
+                "alias": a.name,
+                "interval": {
+                    "start": a.start,
+                    "end": a.end_exclusive,
+                    "end_open_ended": False,
+                    "review_state": "APPROVED",
+                    "applicability_scope": "GENERAL",
+                    "evidence_refs": [ref("OBSERVATION", f"obs:{self.tag}_{self._obs + 1:03d}")],
+                },
+                "evidence_refs": [ref("OBSERVATION", f"obs:{self.tag}_{self._obs + 1:03d}")],
+            }
+            for a in self.w.aliases
+            if a.party == party.key
+        ]
+
     def entities(self):
-        for party in (self.w.producer, *self.w.recyclers):
+        for party in (self.w.producer, *self.w.recyclers, *self.w.affiliates):
             label, corp = corporate_id(party)
             identifiers = [("GSTIN", gstin(party)), ("PAN", pan(party))]
             identifiers.append(("CIN" if label == "CIN" else "OTHER", corp))
@@ -204,10 +257,12 @@ class _Case:
                         for k, v in identifiers
                     ],
                     "synthetic": True,
-                    "aliases": [],
+                    "aliases": self.aliases(party),
                 },
                 party.key,
             )
+            if party.key in {a.key for a in self.w.affiliates}:
+                continue  # a trading affiliate holds no EPR registration of its own
             capacity = None
             if party.capacity_tonnes_per_year:
                 capacity = {
@@ -266,57 +321,76 @@ class _Case:
         ordered = sorted(self.w.transfers, key=lambda t: (t.when, t.key))
         for t in ordered:
             lot = self.w.get("lots", t.lot)
-            rows.append(
-                {
-                    "Transaction_ID": t.txn_ref,
-                    "Certificate_Ref": lot.external_ref,
-                    "Transfer_Date": t.when[:10],
-                    "Issuer_GSTIN": gstin(self.w.party(lot.recycler)),
-                    "Recipient_GSTIN": gstin(self.w.producer),
-                    "Metal": lot.metal,
-                    "Quantity_KG": t.quantity_kg,
-                    "Transfer_Stage": t.stage,
-                }
-            )
-            self.out.visible_map.append(
-                {
-                    "visible": f"documents/{self.doc_name['ledger']}.csv",
-                    "locator": f"row:{len(rows)}",
-                    "world_key": t.key,
-                }
-            )
-            if "PORTAL" in t.channels:
-                portal.append(
+            if "LEDGER" in t.channels:
+                rows.append((t, self.ledger_row(t, lot)))
+                self.out.visible_map.append(
                     {
-                        "transaction_id": t.txn_ref,
-                        "certificate_ref": lot.external_ref,
-                        "quantity": t.quantity_kg,
-                        "metal": lot.metal,
-                        "status": t.stage,
-                        "event_time": t.when,
+                        "visible": f"documents/{self.doc_name['ledger']}.csv",
+                        "locator": f"row:{len(rows)}",
+                        "world_key": t.key,
                     }
                 )
+            if "PORTAL" in t.channels:
+                row = {
+                    "transaction_id": t.txn_ref,
+                    "certificate_ref": lot.external_ref,
+                    "quantity": t.quantity_kg,
+                    "metal": lot.metal,
+                    "status": t.stage,
+                    "event_time": t.when,
+                }
+                if t.duplicate_of is not None:
+                    # A second export of the same transfer, without the portal transaction id
+                    # and with the date only: nothing ties it to the ledger row.
+                    row |= {"transaction_id": "", "event_time": t.when[:10]}
+                if self.s06:
+                    row["remarks"] = (
+                        " ".join(self.plants("portal", t.key)) or STAGE_REMARKS[t.stage]
+                    )
+                portal.append((t, row))
+        header = S06_LEDGER_HEADER if self.s06 else LEDGER_HEADER
         buffer = io.StringIO(newline="")
-        writer = csv.DictWriter(buffer, fieldnames=LEDGER_HEADER, lineterminator="\n")
+        writer = csv.DictWriter(buffer, fieldnames=header, lineterminator="\n")
         writer.writeheader()
-        writer.writerows(rows)
+        writer.writerows(r for _, r in rows)
         self.files[f"documents/{self.doc_name['ledger']}.csv"] = buffer.getvalue().encode()
-        self.ledger_rows = {r["Transaction_ID"]: (i, r) for i, r in enumerate(rows, 1)}
+        self.ledger_rows = {t.key: (i, r) for i, (t, r) in enumerate(rows, 1)}
         self.portal_rows = {}
         if portal:
             name = f"documents/{self.doc_name['portal']}.json"
-            self.files[name] = _json_bytes({"portal_transactions": portal})
-            for i, row in enumerate(portal):
-                self.portal_rows[row["transaction_id"]] = (i, row)
+            self.files[name] = _json_bytes({"portal_transactions": [r for _, r in portal]})
+            for i, (t, row) in enumerate(portal):
+                self.portal_rows[t.key] = (i, row)
                 self.out.visible_map.append(
-                    {
-                        "visible": name,
-                        "locator": f"/portal_transactions/{i}",
-                        "world_key": next(
-                            t.key for t in self.w.transfers if t.txn_ref == row["transaction_id"]
-                        ),
-                    }
+                    {"visible": name, "locator": f"/portal_transactions/{i}", "world_key": t.key}
                 )
+
+    def ledger_row(self, t, lot) -> dict:
+        row = {
+            "Transaction_ID": t.txn_ref,
+            "Certificate_Ref": lot.external_ref,
+            "Transfer_Date": t.when[:10],
+            "Issuer_GSTIN": gstin(self.w.party(lot.recycler)),
+            "Recipient_GSTIN": gstin(self.w.party(t.recipient)),
+            "Metal": lot.metal,
+        }
+        if not self.s06:
+            return row | {"Quantity_KG": t.quantity_kg, "Transfer_Stage": t.stage}
+        quantity = Decimal(t.quantity_kg)
+        if t.ledger_unit == "TONNE":
+            quantity /= 1000
+        invoice = next((i for i in self.w.invoices if i.transfer == t.key), None)
+        narration = " ".join(self.plants("ledger", t.key)) or (
+            f"EPR credit purchase - {METAL_NAMES[lot.metal]} - "
+            f"{self.w.party(lot.recycler).short_name}"
+            + (f" - Inv {invoice.number}" if invoice else "")
+        )
+        return row | {
+            "Quantity": indian_group(quantity, 4),
+            "UOM": t.ledger_unit,
+            "Transfer_Stage": t.stage,
+            "Narration": narration,
+        }
 
     def certificate_observation(self, t, channel):
         lot = self.w.get("lots", t.lot)
@@ -327,24 +401,30 @@ class _Case:
             "event_kind": "TRANSFERRED",
             "external_event_ref": t.txn_ref,
             "from_entity_id": recycler,
-            "to_entity_id": self.ids["producer"],
+            "to_entity_id": self.ids[t.recipient],
             "metal": lot.metal,
             "quantity": t.quantity_kg,
             "unit": "KG",
             "transfer_stage": t.stage,
         }
         if channel == "LEDGER":
-            index, raw = self.ledger_rows[t.txn_ref]
+            index, raw = self.ledger_rows[t.key]
             loc = locator("CSV_ROW", row_index_1based=index)
             event_time, artifact, method = (
                 temporal(raw["Transfer_Date"], "DATE", "PARSED"),
                 "ledger",
                 "CSV",
             )
+            if self.s06:
+                # The ERP's own figure and unit, as printed; normalization converts it exactly.
+                parsed |= {"quantity": raw["Quantity"], "unit": raw["UOM"]}
         else:
-            index, raw = self.portal_rows[t.txn_ref]
+            index, raw = self.portal_rows[t.key]
             loc = locator("JSON_POINTER", json_pointer=f"/portal_transactions/{index}")
             event_time, artifact, method = temporal(t.when, status="PARSED"), "portal", "JSON"
+            if t.duplicate_of is not None:
+                parsed["external_event_ref"] = None
+                event_time = temporal(t.when[:10], "DATE", "PARSED")
         observation = f"obs:{self.tag}_c{len(self.cert_observations) + 1:02d}"
         self.cert_observations.append(
             {
@@ -412,8 +492,29 @@ class _Case:
                 },
                 lot.key,
             )
+            if self.s06:
+                # Every S06 certificate carries its generation event: one certificate, several
+                # legitimate events (generation, then one or more transfers).
+                self.sourced(
+                    f"evt:{self.tag}_{lot.lot_id.rsplit('_', 1)[1]}g",
+                    "CertificateEvent",
+                    {
+                        "event_id": f"evt:{self.tag}_{lot.lot_id.rsplit('_', 1)[1]}g",
+                        "certificate_id": lot.certificate_id,
+                        "credit_lot_id": lot.lot_id,
+                        "event_kind": "GENERATED",
+                        "event_time": temporal(lot.generated_on, "DATE"),
+                        "quantity": mass(lot.face_kg, lot.metal),
+                        "assertion_state": "SUPPORTED",
+                        "supporting_observations": [f"obs:{self.tag}_{self._obs + 1:03d}"],
+                        "from_entity_id": self.ids[lot.recycler],
+                        "to_entity_id": None,
+                    },
+                    lot.key,
+                )
             for t in mine:
                 obs = observations[t.key]
+                duplicate = t.duplicate_of is not None
                 self.add(
                     self.envelope(t.event_id, "CertificateEvent", obs)
                     | {
@@ -421,13 +522,17 @@ class _Case:
                         "certificate_id": lot.certificate_id,
                         "credit_lot_id": lot.lot_id,
                         "event_kind": "TRANSFERRED",
-                        "event_time": temporal(t.when),
+                        # An unreconciled second export carries only a date and no portal id,
+                        # so the producer's books hold it as an unresolved (pending) event.
+                        "event_time": temporal(t.when[:10], "DATE")
+                        if duplicate
+                        else temporal(t.when),
                         "quantity": mass(t.quantity_kg, lot.metal),
-                        "assertion_state": "SUPPORTED",
+                        "assertion_state": "PENDING" if duplicate else "SUPPORTED",
                         "supporting_observations": obs,
-                        "external_event_ref": t.txn_ref,
+                        "external_event_ref": None if duplicate else t.txn_ref,
                         "from_entity_id": self.ids[lot.recycler],
-                        "to_entity_id": self.ids["producer"],
+                        "to_entity_id": self.ids[t.recipient],
                         "transfer_stage": "COMPLETED",
                     },
                     t.key,
@@ -487,7 +592,7 @@ class _Case:
                     "commercial_id": inv.commercial_id,
                     "record_kind": "INVOICE",
                     "issuer_entity_id": self.ids[inv.recycler],
-                    "recipient_entity_id": self.ids["producer"],
+                    "recipient_entity_id": self.ids[t.recipient],
                     "external_ref": inv.number,
                     "event_time": temporal(inv.issued),
                     # Only a transfer the producer can see can be linked from its books.
@@ -515,7 +620,7 @@ class _Case:
                 {
                     "commercial_id": pay.commercial_id,
                     "record_kind": "PAYMENT",
-                    "issuer_entity_id": self.ids["producer"],
+                    "issuer_entity_id": self.ids[t.recipient],
                     "recipient_entity_id": self.ids[inv.recycler],
                     "external_ref": inv.utr,
                     "event_time": temporal(pay.paid_on, "DATE"),
@@ -598,12 +703,19 @@ class _Case:
     def style_rng(self, name: str) -> random.Random:
         return random.Random(f"{self.w.seed}|{name}")
 
+    def buyer_name(self, party, on: str) -> str:
+        """The name a document dated ``on`` uses: a dated former name while it was in force."""
+        for a in self.w.aliases:
+            if a.party == party.key and a.start <= on[:10] < a.end_exclusive:
+                return a.name
+        return party.legal_name
+
     def invoice_pdfs(self):
-        buyer = self.w.producer
         for inv in self.w.invoices:
             seller = self.w.party(inv.recycler)
             t = self.w.get("transfers", inv.transfer)
             lot = self.w.get("lots", t.lot)
+            buyer = self.w.party(t.recipient)
             rng = self.style_rng(inv.key)
             style = choose_style(rng, body_sizes=(9.0,))
             scale = rng.choice((0.94, 0.97, 1.0, 1.03))
@@ -628,7 +740,7 @@ class _Case:
                 seller_contact=f"Tel: {phone(seller)}  |  E-mail: {email(seller, 'accounts')}",
                 seller_gstin=gstin(seller),
                 seller_reg_no=f"EPR Regn: {epr_registration(seller)}",
-                buyer_name=buyer.legal_name,
+                buyer_name=self.buyer_name(buyer, inv.issued),
                 buyer_gstin=f"{gstin(buyer)}  |  State Code: {buyer.gst_state_code}",
                 buyer_address=buyer.address[0],
                 buyer_contact=buyer.address[1],
@@ -662,9 +774,19 @@ class _Case:
                     f"Bank A/c XXXXXXXX{seller.serial:02d}{rng.randint(10, 99)} | IFSC "
                     f"SYNT000{seller.serial:04d}",
                     "",
-                    "EPR credit is transferred on the EPR portal only after",
-                    "receipt of payment and producer OTP confirmation.",
-                    "",
+                    # Remarks written on the invoice replace the standard transfer note.
+                    *(
+                        [
+                            line
+                            for text in self.plants("invoice", inv.key)
+                            for line in [*wrap(text, "Helvetica", 7.0, 274), ""]
+                        ]
+                        or [
+                            "EPR credit is transferred on the EPR portal only after",
+                            "receipt of payment and producer OTP confirmation.",
+                            "",
+                        ]
+                    ),
                     "Declaration: We declare that this invoice shows the actual",
                     "price of the goods described and that all particulars are",
                     "true and correct.",
@@ -674,7 +796,8 @@ class _Case:
                     "This is a computer-generated invoice and does not require a signature.",
                 ],
             )
-            name = f"documents/invoice_{opaque(f'{self.tag}|{inv.key}', 8)}.pdf"
+            name = f"documents/invoice_{opaque(f'{self.tag}|{inv.key}', 8, self.extra)}.pdf"
+            self.out.documents[f"invoice:{inv.key}"] = name
             target = self.case_dir / name
             theme = build_b2b_invoice_pdf(
                 target, data, seed=rng.randint(0, 10**6), style=style, type_scale=scale
@@ -714,26 +837,52 @@ class _Case:
             numeric=(False, False, True, False),
             caption="Table 1: EPR obligation targets (as supplied)",
         )
-        transfers = sorted(w.transfers, key=lambda t: t.when)
-        txns = MemoTable(
-            columns=("Txn. ref", "Recycler", "Date", "Metal", "Qty (kg)", "Stage"),
-            rows=tuple(
-                (
-                    t.txn_ref,
-                    short(w.get("lots", t.lot).recycler),
-                    indian_date(t.when, ds)
-                    if ds in ("dot", "slash", "dash")
-                    else indian_date(t.when, "dot"),
-                    w.get("lots", t.lot).metal,
-                    indian_group(t.quantity_kg, 4),
-                    t.stage,
-                )
-                for t in transfers
-            ),
-            widths=(0.24, 0.17, 0.15, 0.09, 0.19, 0.16),
-            numeric=(False, False, False, False, True, False),
-            caption="Table 2: EPR certificate transfers recorded in the ERP ledger",
-        )
+        transfers = sorted((t for t in w.transfers if "LEDGER" in t.channels), key=lambda t: t.when)
+
+        def when(t):
+            return (
+                indian_date(t.when, ds)
+                if ds in ("dot", "slash", "dash")
+                else indian_date(t.when, "dot")
+            )
+
+        if self.s06:
+            txns = MemoTable(
+                columns=("Txn. ref", "Recycler", "Date", "Metal", "Qty", "UOM", "Stage"),
+                rows=tuple(
+                    (
+                        t.txn_ref,
+                        short(w.get("lots", t.lot).recycler),
+                        when(t),
+                        w.get("lots", t.lot).metal,
+                        self.ledger_rows[t.key][1]["Quantity"],
+                        t.ledger_unit,
+                        t.stage.replace("_", " "),
+                    )
+                    for t in transfers
+                ),
+                widths=(0.22, 0.15, 0.13, 0.08, 0.15, 0.09, 0.18),
+                numeric=(False, False, False, False, True, False, False),
+                caption="Table 2: EPR certificate transfers recorded in the ERP ledger",
+            )
+        else:
+            txns = MemoTable(
+                columns=("Txn. ref", "Recycler", "Date", "Metal", "Qty (kg)", "Stage"),
+                rows=tuple(
+                    (
+                        t.txn_ref,
+                        short(w.get("lots", t.lot).recycler),
+                        when(t),
+                        w.get("lots", t.lot).metal,
+                        indian_group(t.quantity_kg, 4),
+                        t.stage,
+                    )
+                    for t in transfers
+                ),
+                widths=(0.24, 0.17, 0.15, 0.09, 0.19, 0.16),
+                numeric=(False, False, False, False, True, False),
+                caption="Table 2: EPR certificate transfers recorded in the ERP ledger",
+            )
         invoices = MemoTable(
             columns=("Invoice no.", "Recycler", "Qty (kg)", "Amount (Rs.)", "Paid on"),
             rows=tuple(
@@ -760,6 +909,49 @@ class _Case:
         capture = indian_date(w.balances[0].capture, "dot")
         prev = f"{p.short_name[:3].upper()}/EPR/2024-25/{rng.randint(11, 39):03d}"
         has_portal = any("PORTAL" in t.channels for t in w.transfers)
+        portal_text = (
+            f"The account statement downloaded from the EPR portal on {capture} shows "
+            + "; and ".join(portal_lines)
+            + "."
+        )
+        middle: list = []
+        annexures: list = []
+        if self.s06:
+            cutoff = indian_date(w.balances[0].cutoff, "dot")
+            portal_text = (
+                f"The account statement downloaded from the EPR portal on {capture}, with "
+                f"balances as at {cutoff}, shows " + "; and ".join(portal_lines) + "."
+            )
+            for a in w.aliases:
+                if a.party == "producer":
+                    middle.append(
+                        f"The Company was earlier known as {a.name}; the change of name took "
+                        f"effect on {indian_date(a.end_exclusive, 'dot')} ({a.evidence}). "
+                        "Documents dated before that day carry the former name."
+                    )
+            middle += self.plants("memo")
+            annexures = self.annexures(ds)
+        blocks = (
+            "With reference to the above, the EPR obligation targets supplied for the "
+            "Company's account are given below for record.",
+            buckets,
+            "The certificate transfers recorded in the ERP ledger for the period "
+            "01.04.2024 to 31.03.2025 are listed below."
+            + (
+                " Quantities are as printed in the ledger, in the unit stated."
+                if self.s06
+                else " Quantities are kilograms of metal."
+            ),
+            txns,
+            "The tax invoices received from the recyclers and the payments released "
+            "against them are tabulated below for verification.",
+            invoices,
+            portal_text,
+            *middle,
+            "Finance is requested to reconcile the above with the books of account and "
+            "confirm, so that the annual return can be finalised before the due date.",
+            "This issues with the approval of the competent authority.",
+        )
         memo = Memo(
             letterhead=Letterhead(
                 name=p.legal_name,
@@ -801,23 +993,7 @@ class _Case:
                 "the E-Waste (Management) Rules, 2022"
             ),
             reference=f"Our memo No. {prev} regarding preparation of the annual EPR return",
-            blocks=(
-                "With reference to the above, the EPR obligation targets supplied for the "
-                "Company's account are given below for record.",
-                buckets,
-                "The certificate transfers recorded in the ERP ledger for the period "
-                "01.04.2024 to 31.03.2025 are listed below. Quantities are kilograms of metal.",
-                txns,
-                "The tax invoices received from the recyclers and the payments released "
-                "against them are tabulated below for verification.",
-                invoices,
-                f"The account statement downloaded from the EPR portal on {capture} shows "
-                + "; and ".join(portal_lines)
-                + ".",
-                "Finance is requested to reconcile the above with the books of account and "
-                "confirm, so that the annual return can be finalised before the due date.",
-                "This issues with the approval of the competent authority.",
-            ),
+            blocks=blocks,
             signatory=p.signatory,
             designation="Manager - EPR Compliance",
             department=f"{p.short_name} EPR Compliance Cell",
@@ -827,6 +1003,7 @@ class _Case:
                     "ERP ledger export (CSV)",
                     "EPR portal transaction extract (JSON)" if has_portal else None,
                     f"Tax invoices ({len(w.invoices)} nos.)",
+                    "Note on EPR portal notices" if self.s06 else None,
                 )
                 if x
             ),
@@ -836,13 +1013,116 @@ class _Case:
                 (("To", "From", "Subject", "Reference"), ("To", "From", "Sub", "Ref"))
             ),
             letterhead_align=rng.choice(("centre", "left")),
+            extra={"annexures": tuple(annexures)} if annexures else {},
         )
         name = f"documents/{self.doc_name['memo']}.pdf"
+        target = self.case_dir / name
+        losses = {x.page: x.kind for x in w.page_losses if x.document == "memo"}
+        self.memo_pages = build_memo_pdf(target, memo, style, page_losses=losses)
+        self.files[name] = target.read_bytes()
+        self.out.styles[name] = {"style": asdict(style), "heading": memo.heading}
+        if losses:
+            self.out.styles[name]["page_losses"] = {str(k): v for k, v in losses.items()}
+        self.out.visible_map.append({"visible": name, "locator": "page:1", "world_key": "summary"})
+
+    def annexures(self, ds) -> list:
+        """Annexure A (certificate register) and B (portal statement), each on its own page."""
+        w = self.w
+        held = {t.lot for t in w.transfers if t.stage == "COMPLETED" and t.duplicate_of is None}
+        register = MemoTable(
+            columns=("Certificate ref.", "Recycler", "Metal", "Face (kg)", "Generated", "Status"),
+            rows=tuple(
+                (
+                    lot.external_ref,
+                    w.party(lot.recycler).short_name,
+                    lot.metal,
+                    indian_group(lot.face_kg, 4),
+                    indian_date(lot.generated_on, "dot"),
+                    lot.status.title(),
+                )
+                for lot in sorted((w.get("lots", k) for k in held), key=lambda x: x.generated_on)
+            ),
+            widths=(0.36, 0.15, 0.07, 0.15, 0.13, 0.14),
+            numeric=(False, False, False, True, False, False),
+            caption="Certificates held, as listed in the recycler confirmations",
+        )
+        statement = MemoTable(
+            columns=("Liability year", "Metal", "Reported (kg)", "Downloaded", "Balance as at"),
+            rows=tuple(
+                (
+                    f"{w.get('buckets', bal.bucket).liability_year[:4]}-"
+                    f"{w.get('buckets', bal.bucket).liability_year[-2:]}",
+                    w.get("buckets", bal.bucket).metal,
+                    indian_group(bal.reported_kg, 4),
+                    indian_date(bal.capture, "dot"),
+                    indian_date(bal.cutoff, "dot"),
+                )
+                for bal in sorted(w.balances, key=lambda b: b.balance_id)
+            ),
+            widths=(0.20, 0.12, 0.24, 0.22, 0.22),
+            numeric=(False, False, True, False, False),
+            caption="EPR portal account statement (as downloaded)",
+        )
+        return [
+            PageBreak(),
+            Heading("Annexure A - Register of EPR certificates"),
+            register,
+            "Status is as last shown by the recycler or on the portal; no date is shown where "
+            "the source gives none.",
+            PageBreak(),
+            Heading("Annexure B - EPR portal account position"),
+            statement,
+            "The portal figures are reproduced for comparison with the books only.",
+        ]
+
+    def notice_pdf(self):
+        """A note for file on notices seen on the EPR portal (every S06 dossier carries one)."""
+        w, p = self.w, self.w.producer
+        rng = self.style_rng("notice")
+        style = choose_style(rng, body_sizes=(9.5, 10.0))
+        label, corp = corporate_id(p)
+        seen = indian_date(w.balances[0].capture, "dot")
+        texts = self.plants("notice") or [
+            "Producers are advised to verify each certificate transfer on the portal before "
+            "the annual return is filed, and to keep the recycler invoices on record."
+        ]
+        memo = Memo(
+            letterhead=Letterhead(
+                name=p.legal_name,
+                tagline=p.tagline,
+                registered_office=", ".join(p.address),
+                corporate_label=label,
+                corporate_id=corp,
+                gstin=gstin(p),
+                telephone=phone(p),
+                email=email(p, "epr.cell"),
+                website=f"www.{p.domain}",
+            ),
+            heading="NOTE FOR FILE",
+            ref_no=f"{p.short_name[:3].upper()}/EPR/2024-25/N{rng.randint(10, 60):02d}",
+            date_text=indian_date(w.memo_date, "dot"),
+            to="File",
+            sender="EPR Compliance Cell",
+            subject="Notices displayed on the EPR portal (as viewed by the compliance cell)",
+            reference=None,
+            blocks=(
+                f"The following text was displayed on the EPR portal notice board when the "
+                f"account statement was downloaded on {seen}. It is reproduced as seen; it is "
+                "not an official copy and no order was downloaded with it.",
+                *texts,
+                "Placed on file for information.",
+            ),
+            signatory=p.signatory,
+            designation="Manager - EPR Compliance",
+            department=f"{p.short_name} EPR Compliance Cell",
+            copy_to=("Office copy",),
+        )
+        name = f"documents/{self.doc_name['notice']}.pdf"
         target = self.case_dir / name
         build_memo_pdf(target, memo, style)
         self.files[name] = target.read_bytes()
         self.out.styles[name] = {"style": asdict(style), "heading": memo.heading}
-        self.out.visible_map.append({"visible": name, "locator": "page:1", "world_key": "summary"})
+        self.out.visible_map.append({"visible": name, "locator": "page:1", "world_key": "notice"})
 
     # -- provenance and manifest ----------------------------------------------------------
     def provenance(self):
@@ -907,6 +1187,11 @@ class _Case:
                     ["LIABILITY_ALLOCATION", "TRANSFER_STAGE", "PHYSICAL_MOVEMENT"],
                 ),
                 "memo": (
+                    "OTHER",
+                    ["CONTEXT_ONLY"],
+                    ["LIABILITY_ALLOCATION", "TRANSFER_STAGE", "PAYMENT"],
+                ),
+                "notice": (
                     "OTHER",
                     ["CONTEXT_ONLY"],
                     ["LIABILITY_ALLOCATION", "TRANSFER_STAGE", "PAYMENT"],
@@ -1057,6 +1342,8 @@ class _Case:
         self.products()
         self.invoice_pdfs()
         self.memo_pdf()
+        if self.s06:
+            self.notice_pdf()
         self.provenance()
         manifest = self.manifest()
         for name, body in self.files.items():
@@ -1064,6 +1351,10 @@ class _Case:
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(body)
         (self.case_dir / "case_manifest.json").write_bytes(manifest)
+        suffix = {"ledger": "csv", "portal": "json", "memo": "pdf", "notice": "pdf"}
+        paths = {k: f"documents/{n}.{suffix[k]}" for k, n in self.doc_name.items()}
+        self.out.documents |= {k: p for k, p in paths.items() if p in self.files}
+        self.out.memo_pages_stated = self.memo_pages
         return self.out
 
 

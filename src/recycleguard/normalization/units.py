@@ -30,6 +30,14 @@ MASS_CONVERSION_FACTORS: dict[str, Decimal] = {
 }
 
 
+# Plain digits, Western thousands grouping (1,234,567) or Indian lakh/crore grouping
+# (12,34,567): groups of two above the last three digits. Commas are stripped exactly.
+_DECIMAL_PATTERN = re.compile(
+    r"-?(?:0|[1-9][0-9]*|[1-9][0-9]{0,2}(?:,[0-9]{3})+|[1-9][0-9]?(?:,[0-9]{2})+,[0-9]{3})"
+    r"(?:\.[0-9]+)?"
+)
+
+
 class NumericSafetyError(ValueError):
     """Raised when numeric parsing, unit conversion, or dimension safety fails."""
 
@@ -46,8 +54,8 @@ def parse_strict_decimal(value: str | int | Decimal) -> Decimal:
         raise NumericSafetyError(f"Expected decimal string or int, got {type(value)}")
 
     raw = value.strip()
-    if not re.fullmatch(r"-?(?:0|[1-9][0-9]*|[1-9][0-9]{0,2}(?:,[0-9]{3})+)(?:\.[0-9]+)?", raw):
-        raise NumericSafetyError("invalid decimal representation or thousands grouping")
+    if not _DECIMAL_PATTERN.fullmatch(raw):
+        raise NumericSafetyError("invalid decimal representation or digit grouping")
     val_str = raw.replace(",", "")
     if "e" in val_str.lower():
         raise NumericSafetyError(f"Scientific notation is forbidden in decimal values: {value}")
