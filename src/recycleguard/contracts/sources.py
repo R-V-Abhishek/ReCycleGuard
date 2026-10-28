@@ -105,9 +105,9 @@ class ApplicabilityAssertion(BoundaryModel):
     effective_from: TemporalValue | None = None
     effective_until: TemporalValue | None = None
     # Which temporal basis drives the interval check
-    event_basis: Literal[
-        "TRANSACTION_DATE", "CAPTURE_DATE", "REPORTING_PERIOD", "FILING_DATE"
-    ] = "REPORTING_PERIOD"
+    event_basis: Literal["TRANSACTION_DATE", "CAPTURE_DATE", "REPORTING_PERIOD", "FILING_DATE"] = (
+        "REPORTING_PERIOD"
+    )
     affected_roles: list[Role]
     scope_note: str | None = None
     reviewer: str | None = None

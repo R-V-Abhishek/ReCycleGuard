@@ -249,9 +249,7 @@ class DeadlineRegister:
             }
 
         # Look for filing entry and see if it incorrectly references obligation periods
-        filing_entry = next(
-            (e for e in self._entries if e.deadline_id == filing_deadline_id), None
-        )
+        filing_entry = next((e for e in self._entries if e.deadline_id == filing_deadline_id), None)
         if filing_entry is None:
             return {
                 "verdict": "ABSTAIN",
@@ -261,7 +259,9 @@ class DeadlineRegister:
         if filing_entry.kind != "RETURN_FILING":
             return {
                 "verdict": "ABSTAIN",
-                "reasons": [f"Entry {filing_deadline_id} is kind {filing_entry.kind}, not RETURN_FILING."],
+                "reasons": [
+                    f"Entry {filing_deadline_id} is kind {filing_entry.kind}, not RETURN_FILING."
+                ],
             }
 
         return {
@@ -325,9 +325,7 @@ class AmendmentOverlayService:
         inbound = self._to_index.get(provision_version_id, [])
 
         is_replaced = any(
-            e.relation == "REPLACES"
-            for e in inbound
-            if e.review_state in {"APPROVED", "DRAFT"}
+            e.relation == "REPLACES" for e in inbound if e.review_state in {"APPROVED", "DRAFT"}
         )
         is_amended = any(
             e.relation in {"AMENDS", "INSERTS"}
@@ -364,21 +362,14 @@ class AmendmentOverlayService:
             )
 
         # Collect unaffected clauses from outbound REFERENCES edges
-        unaffected_clauses = [
-            e.to_provision_id
-            for e in outbound
-            if e.relation == "REFERENCES"
-        ]
+        unaffected_clauses = [e.to_provision_id for e in outbound if e.relation == "REFERENCES"]
         if unaffected_clauses:
             reasons.append(
                 f"Provisions referenced but unaffected by this amendment: {unaffected_clauses}"
             )
 
         # Check deadline relaxation validity
-        relaxation_edges = [
-            e for e in outbound
-            if e.relation == "RELAXES_DEADLINE"
-        ]
+        relaxation_edges = [e for e in outbound if e.relation == "RELAXES_DEADLINE"]
         for edge in relaxation_edges:
             if not edge.extension_order_refs:
                 reasons.append(
@@ -405,10 +396,7 @@ class AmendmentOverlayService:
         Provisions that are replaced return their surviving amendment ID.
         The caller must fetch the surviving amendment's text for the final retrieval.
         """
-        return {
-            pid: self.check_amendment_status(pid)
-            for pid in provision_ids
-        }
+        return {pid: self.check_amendment_status(pid) for pid in provision_ids}
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -494,9 +482,9 @@ class TemporalApplicabilityChecker:
         If no specific override exists for the role, the general clause applies.
         """
         specific = [
-            a for aid in specific_assertion_ids
-            if (a := self._assertions.get(aid)) is not None
-            and role in (a.affected_roles or [])
+            a
+            for aid in specific_assertion_ids
+            if (a := self._assertions.get(aid)) is not None and role in (a.affected_roles or [])
         ]
 
         if not specific:

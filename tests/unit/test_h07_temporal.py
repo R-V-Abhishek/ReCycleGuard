@@ -9,8 +9,6 @@ Tests:
 - Temporal applicability half-open intervals and general vs role-specific overrides
 """
 
-import pytest
-
 from recycleguard.contracts.core import EvidenceRef, Locator, TemporalValue
 from recycleguard.contracts.sources import (
     AmendmentEdge,
@@ -198,7 +196,9 @@ def test_deadline_register_cross_kind_independence():
     register.add_entry(filing_entry)
 
     # Cross-kind check for OBLIGATION_ACHIEVEMENT
-    check = register.check_cross_kind_independence("deadline:ret_filing_2024_25", "OBLIGATION_ACHIEVEMENT")
+    check = register.check_cross_kind_independence(
+        "deadline:ret_filing_2024_25", "OBLIGATION_ACHIEVEMENT"
+    )
     assert check["verdict"] == "PASS"
     assert any("does not automatically extend" in r for r in check["reasons"])
 

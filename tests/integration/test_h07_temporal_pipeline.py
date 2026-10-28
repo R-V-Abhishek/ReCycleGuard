@@ -167,7 +167,9 @@ def test_h07_temporal_pipeline_with_retrieval(tmp_path):
         assert filing_res.is_verified_extension is True
         assert filing_res.effective_date == "2025-09-30"
 
-        obl_res = deadline_register.resolve_deadline("PRODUCER", "2024-25", "OBLIGATION_ACHIEVEMENT")
+        obl_res = deadline_register.resolve_deadline(
+            "PRODUCER", "2024-25", "OBLIGATION_ACHIEVEMENT"
+        )
         assert obl_res.verdict == "PASS"
         assert obl_res.is_verified_extension is False
         assert obl_res.effective_date == "2025-03-31"
@@ -208,5 +210,7 @@ def test_h07_temporal_pipeline_with_retrieval(tmp_path):
         fit = temporal_checker.check_temporal_fit("assert:schedule_iii_fy2425", "2024-09-15")
         assert fit == "PASS"
 
-        out_of_bounds = temporal_checker.check_temporal_fit("assert:schedule_iii_fy2425", "2025-06-01")
+        out_of_bounds = temporal_checker.check_temporal_fit(
+            "assert:schedule_iii_fy2425", "2025-06-01"
+        )
         assert out_of_bounds == "FAIL"
