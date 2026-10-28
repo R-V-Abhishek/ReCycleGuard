@@ -354,3 +354,39 @@ inferred. A05 is DONE; A06, S04, V05 and V07 are READY. A07 remains dependency-g
 
 ### Next permitted step
 - Independent review of S04; S06 and A07 are unblocked once it is accepted.
+
+## 2026-10-28 IST — Vedantha — CP2 — V04 & V05
+
+**Task state at start:** V04 BLOCKED, V05 READY
+**Predecessors verified:** CP2 APPROVED; S05 and V01 verified for V04; CP2 verified for V05.
+
+### Done
+- **S05 Hidden-Format Agreement:** Formally accepted the S05 hidden directory format (`benchmarks/hidden/<dataset_version>/...`).
+- **V04 Independent Oracle & Scoring Skeleton:**
+  - Implemented `OracleCase` boundary model and `OracleBuilder` in `benchmarks/evaluation/oracle.py` supporting `case_001`, S05 clean worlds, and S04 fault cases. Accurately distinguishes hidden world balances from justified visible evidence balances.
+  - Generates expected findings using the shared `FaultFamily` taxonomy (F01, F02, F07, F08, F09, F10, F13), required abstentions, permitted alternatives, and forbidden actions.
+  - Implemented `ScoringProtocol` in `benchmarks/evaluation/scoring.py` for exact unrounded balance reconciliation, duplicate-finding match accounting (duplicate findings do not inflate scores), abstention honesty, forbidden action detection, and composite rubric scoring.
+  - Added unit test suite `tests/unit/test_v04_oracle.py`.
+- **V05 Trusted Review Transitions, Report Repair & Forbidden-Claim Checks:**
+  - Added review boundary contracts in `src/recycleguard/contracts/review.py` (`ReviewPacket`, `ReviewDecision`, `ReviewRecord`, `AcknowledgmentRecord`, `ReviewTransitionResult`) and registered with schema exports.
+  - Implemented C13 `ReviewService` in `src/recycleguard/review/service.py` supporting version-bound review packet creation, dependency digest validation, spoof rejection (rejecting mismatched or non-human actors), stale packet protection, and full review state machine transitions: APPROVE -> COMPLETED, REJECT -> BLOCKED_OUTPUT, REQUEST_CHANGES -> BLOCKED_OUTPUT, ESCALATE -> AWAITING_REVIEW, and authorized manual closure -> CLOSED_WITHOUT_DECISION (never APPROVED). Enforced that terminal runs do not resume silently.
+  - Implemented `ReportRepairService` in `src/recycleguard/reporting/repair.py` offering bounded deterministic repair for verification issues (prohibited verdict claims sanitized into limitations, malformed templates normalized, stale calculation refs repaired, out-of-sync markdown re-rendered).
+  - Enhanced forbidden-claim checking in `src/recycleguard/reporting/baseline.py` and exported repair components in `src/recycleguard/reporting/__init__.py`.
+  - Added unit test suite `tests/unit/test_v05_review.py`.
+
+### Evidence
+- Commit/branch: `V04` branch
+- Tests added: `tests/unit/test_v04_oracle.py`, `tests/unit/test_v05_review.py`
+- Gate(s) touched: G10, G11, G12
+
+### Limitations / open issues
+- V06 (export and offline replay) and V07 (runtime isolation) are now unblocked.
+
+### Updates required
+- **implementation plan.md:** marked V04 and V05 DONE; unblocked V06 to READY.
+- **CONTRACTS.md:** records `ReviewPacket`, `ReviewDecision`, `ReviewRecord`, `AcknowledgmentRecord`.
+- **Other docs / fixtures / schemas / tests:** regenerated schema models in `scripts/export_schemas.py`.
+
+### Next permitted step
+- V06 (export and replay) and V07 (runtime isolation).
+
