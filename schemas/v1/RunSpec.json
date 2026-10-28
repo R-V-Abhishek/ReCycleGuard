@@ -1,0 +1,273 @@
+{
+  "$defs": {
+    "BudgetLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_case_actions": {
+          "default": 64,
+          "minimum": 1,
+          "title": "Max Case Actions",
+          "type": "integer"
+        },
+        "max_model_calls": {
+          "default": 24,
+          "minimum": 1,
+          "title": "Max Model Calls",
+          "type": "integer"
+        },
+        "max_total_tokens": {
+          "default": 49152,
+          "minimum": 1,
+          "title": "Max Total Tokens",
+          "type": "integer"
+        },
+        "tokens_per_model_call": {
+          "default": 2048,
+          "minimum": 1,
+          "title": "Tokens Per Model Call",
+          "type": "integer"
+        },
+        "max_wall_seconds": {
+          "default": 300,
+          "minimum": 1,
+          "title": "Max Wall Seconds",
+          "type": "integer"
+        },
+        "tools_per_finding": {
+          "default": 8,
+          "maximum": 8,
+          "minimum": 1,
+          "title": "Tools Per Finding",
+          "type": "integer"
+        },
+        "reformulations_per_finding": {
+          "default": 2,
+          "maximum": 2,
+          "minimum": 0,
+          "title": "Reformulations Per Finding",
+          "type": "integer"
+        },
+        "retries_per_operation": {
+          "default": 1,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Retries Per Operation",
+          "type": "integer"
+        },
+        "report_repairs": {
+          "default": 1,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Report Repairs",
+          "type": "integer"
+        },
+        "preflight_actions": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Preflight Actions",
+          "type": "integer"
+        },
+        "verification_actions": {
+          "default": 2,
+          "minimum": 1,
+          "title": "Verification Actions",
+          "type": "integer"
+        },
+        "cost_ceiling_usd": {
+          "default": null,
+          "title": "Cost Ceiling Usd",
+          "type": "null"
+        }
+      },
+      "title": "BudgetLimits",
+      "type": "object"
+    },
+    "ConfigurationPin": {
+      "additionalProperties": false,
+      "properties": {
+        "configuration_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Configuration Id",
+          "type": "string"
+        },
+        "digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "configuration_id",
+        "digest"
+      ],
+      "title": "ConfigurationPin",
+      "type": "object"
+    },
+    "ProfileRef": {
+      "additionalProperties": false,
+      "properties": {
+        "profile_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Profile Id",
+          "type": "string"
+        },
+        "profile_version": {
+          "minLength": 1,
+          "title": "Profile Version",
+          "type": "string"
+        },
+        "digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "profile_id",
+        "profile_version",
+        "digest"
+      ],
+      "title": "ProfileRef",
+      "type": "object"
+    },
+    "SnapshotRef": {
+      "additionalProperties": false,
+      "description": "Pinned reference; introduced by A02, not an implemented C05 lookup.",
+      "properties": {
+        "snapshot_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "membership_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Membership Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "snapshot_id",
+        "membership_digest"
+      ],
+      "title": "SnapshotRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "run_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "case_snapshot": {
+      "$ref": "#/$defs/SnapshotRef"
+    },
+    "corpus_snapshot": {
+      "$ref": "#/$defs/SnapshotRef"
+    },
+    "profile": {
+      "$ref": "#/$defs/ProfileRef"
+    },
+    "index": {
+      "$ref": "#/$defs/ConfigurationPin"
+    },
+    "code_revision": {
+      "minLength": 1,
+      "title": "Code Revision",
+      "type": "string"
+    },
+    "dependency_lock_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Dependency Lock Digest",
+      "type": "string"
+    },
+    "adapters": {
+      "$ref": "#/$defs/ConfigurationPin"
+    },
+    "tools": {
+      "$ref": "#/$defs/ConfigurationPin"
+    },
+    "prompt": {
+      "$ref": "#/$defs/ConfigurationPin"
+    },
+    "model": {
+      "$ref": "#/$defs/ConfigurationPin"
+    },
+    "retrieval_policy": {
+      "$ref": "#/$defs/ConfigurationPin"
+    },
+    "audit_policy": {
+      "$ref": "#/$defs/ConfigurationPin"
+    },
+    "security_policy": {
+      "$ref": "#/$defs/ConfigurationPin"
+    },
+    "topology": {
+      "const": "SINGLE_INVESTIGATOR",
+      "default": "SINGLE_INVESTIGATOR",
+      "title": "Topology",
+      "type": "string"
+    },
+    "execution_kind": {
+      "default": "SCRIPTED_TEST",
+      "enum": [
+        "SCRIPTED_TEST",
+        "MODEL_BACKED"
+      ],
+      "title": "Execution Kind",
+      "type": "string"
+    },
+    "experiment_variant": {
+      "minLength": 1,
+      "title": "Experiment Variant",
+      "type": "string"
+    },
+    "finding_ids": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Finding Ids",
+      "type": "array"
+    },
+    "budgets": {
+      "$ref": "#/$defs/BudgetLimits"
+    },
+    "parent_run_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Parent Run Id"
+    }
+  },
+  "required": [
+    "run_id",
+    "case_snapshot",
+    "corpus_snapshot",
+    "profile",
+    "index",
+    "code_revision",
+    "dependency_lock_digest",
+    "adapters",
+    "tools",
+    "prompt",
+    "model",
+    "retrieval_policy",
+    "audit_policy",
+    "security_policy",
+    "experiment_variant",
+    "finding_ids",
+    "budgets"
+  ],
+  "title": "RunSpec",
+  "type": "object"
+}

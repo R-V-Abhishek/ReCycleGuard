@@ -1,0 +1,359 @@
+{
+  "$defs": {
+    "BlobRef": {
+      "additionalProperties": false,
+      "properties": {
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_length": {
+          "minimum": 0,
+          "title": "Byte Length",
+          "type": "integer"
+        },
+        "media_type": {
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sha256",
+        "byte_length",
+        "media_type"
+      ],
+      "title": "BlobRef",
+      "type": "object"
+    },
+    "BudgetUsage": {
+      "additionalProperties": false,
+      "properties": {
+        "actions": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Actions",
+          "type": "integer"
+        },
+        "model_calls": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Model Calls",
+          "type": "integer"
+        },
+        "tool_calls": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Tool Calls",
+          "type": "integer"
+        },
+        "retries": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Retries",
+          "type": "integer"
+        },
+        "reserved_tokens": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Reserved Tokens",
+          "type": "integer"
+        },
+        "observed_tokens": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Observed Tokens"
+        },
+        "observed_cost_usd": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Observed Cost Usd"
+        },
+        "usage_known_calls": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Usage Known Calls",
+          "type": "integer"
+        },
+        "cost_known_calls": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Cost Known Calls",
+          "type": "integer"
+        },
+        "preflight_actions": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Preflight Actions",
+          "type": "integer"
+        },
+        "verification_actions": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Verification Actions",
+          "type": "integer"
+        },
+        "report_repairs": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Report Repairs",
+          "type": "integer"
+        },
+        "finding_actions": {
+          "additionalProperties": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "title": "Finding Actions",
+          "type": "object"
+        },
+        "finding_reformulations": {
+          "additionalProperties": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "title": "Finding Reformulations",
+          "type": "object"
+        }
+      },
+      "title": "BudgetUsage",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "run_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "version": {
+      "minimum": 1,
+      "title": "Version",
+      "type": "integer"
+    },
+    "status": {
+      "enum": [
+        "CREATED",
+        "PREFLIGHT",
+        "INVESTIGATING",
+        "DRAFTING",
+        "VERIFYING",
+        "AWAITING_REVIEW",
+        "COMPLETED",
+        "BLOCKED_INPUT",
+        "BLOCKED_OUTPUT",
+        "FAILED",
+        "CANCELLED"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "current_turn": {
+      "title": "Current Turn",
+      "type": "integer"
+    },
+    "pending_finding_ids": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Pending Finding Ids",
+      "type": "array"
+    },
+    "resolved_finding_ids": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Resolved Finding Ids",
+      "type": "array"
+    },
+    "abstained_finding_ids": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Abstained Finding Ids",
+      "type": "array"
+    },
+    "budget": {
+      "$ref": "#/$defs/BudgetUsage"
+    },
+    "created_at": {
+      "title": "Created At",
+      "type": "string"
+    },
+    "updated_at": {
+      "title": "Updated At",
+      "type": "string"
+    },
+    "stop_reason": {
+      "anyOf": [
+        {
+          "enum": [
+            "RESOLVED_WITHIN_SCOPE",
+            "NO_NEW_EVIDENCE",
+            "EXPERT_REVIEW_REQUIRED",
+            "BUDGET_EXHAUSTED",
+            "CYCLE_DETECTED",
+            "PROVIDER_FAILURE",
+            "AUDIT_FAILURE",
+            "REVIEW_REJECTED",
+            "CHANGES_REQUESTED",
+            "MANUAL_CLOSURE"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Stop Reason"
+    },
+    "review_outcome": {
+      "enum": [
+        "NOT_REQUESTED",
+        "PENDING",
+        "APPROVED",
+        "REJECTED",
+        "CHANGES_REQUESTED",
+        "ESCALATED",
+        "CLOSED_WITHOUT_DECISION"
+      ],
+      "title": "Review Outcome",
+      "type": "string"
+    },
+    "plan_refs": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Plan Refs",
+      "type": "array"
+    },
+    "assessment_refs": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Assessment Refs",
+      "type": "array"
+    },
+    "result_refs": {
+      "items": {
+        "$ref": "#/$defs/BlobRef"
+      },
+      "title": "Result Refs",
+      "type": "array"
+    },
+    "action_fingerprints": {
+      "items": {
+        "pattern": "^[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "title": "Action Fingerprints",
+      "type": "array"
+    },
+    "search_queries": {
+      "additionalProperties": {
+        "items": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "title": "Search Queries",
+      "type": "object"
+    },
+    "last_audit_sequence": {
+      "title": "Last Audit Sequence",
+      "type": "integer"
+    },
+    "pending_operation_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Pending Operation Id"
+    },
+    "pending_attempt_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Pending Attempt Id"
+    },
+    "active_turn_input": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BlobRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "last_checkpoint_ref": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BlobRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "run_id",
+    "version",
+    "status",
+    "current_turn",
+    "pending_finding_ids",
+    "resolved_finding_ids",
+    "abstained_finding_ids",
+    "budget",
+    "created_at",
+    "updated_at",
+    "stop_reason",
+    "review_outcome",
+    "plan_refs",
+    "assessment_refs",
+    "result_refs",
+    "action_fingerprints",
+    "last_audit_sequence",
+    "pending_operation_id",
+    "active_turn_input",
+    "last_checkpoint_ref"
+  ],
+  "title": "RunState",
+  "type": "object"
+}

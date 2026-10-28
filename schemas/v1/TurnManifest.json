@@ -1,0 +1,338 @@
+{
+  "$defs": {
+    "BlobRef": {
+      "additionalProperties": false,
+      "properties": {
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_length": {
+          "minimum": 0,
+          "title": "Byte Length",
+          "type": "integer"
+        },
+        "media_type": {
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sha256",
+        "byte_length",
+        "media_type"
+      ],
+      "title": "BlobRef",
+      "type": "object"
+    },
+    "BudgetUsage": {
+      "additionalProperties": false,
+      "properties": {
+        "actions": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Actions",
+          "type": "integer"
+        },
+        "model_calls": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Model Calls",
+          "type": "integer"
+        },
+        "tool_calls": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Tool Calls",
+          "type": "integer"
+        },
+        "retries": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Retries",
+          "type": "integer"
+        },
+        "reserved_tokens": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Reserved Tokens",
+          "type": "integer"
+        },
+        "observed_tokens": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Observed Tokens"
+        },
+        "observed_cost_usd": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Observed Cost Usd"
+        },
+        "usage_known_calls": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Usage Known Calls",
+          "type": "integer"
+        },
+        "cost_known_calls": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Cost Known Calls",
+          "type": "integer"
+        },
+        "preflight_actions": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Preflight Actions",
+          "type": "integer"
+        },
+        "verification_actions": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Verification Actions",
+          "type": "integer"
+        },
+        "report_repairs": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Report Repairs",
+          "type": "integer"
+        },
+        "finding_actions": {
+          "additionalProperties": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "title": "Finding Actions",
+          "type": "object"
+        },
+        "finding_reformulations": {
+          "additionalProperties": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "title": "Finding Reformulations",
+          "type": "object"
+        }
+      },
+      "title": "BudgetUsage",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "turn_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Turn Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "turn_index": {
+      "minimum": 1,
+      "title": "Turn Index",
+      "type": "integer"
+    },
+    "previous_turn_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Previous Turn Id"
+    },
+    "input_state_blob": {
+      "$ref": "#/$defs/BlobRef"
+    },
+    "output_state_blob": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BlobRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "pinned_membership_refs": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Pinned Membership Refs",
+      "type": "array"
+    },
+    "operation_ids_in_order": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Operation Ids In Order",
+      "type": "array"
+    },
+    "context_manifest_ids": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Context Manifest Ids",
+      "type": "array"
+    },
+    "retrieval_attempt_ids": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Retrieval Attempt Ids",
+      "type": "array"
+    },
+    "calculation_ids": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Calculation Ids",
+      "type": "array"
+    },
+    "finding_revision_ids": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Finding Revision Ids",
+      "type": "array"
+    },
+    "plan_refs": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Plan Refs",
+      "type": "array"
+    },
+    "observation_assessment_refs": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Observation Assessment Refs",
+      "type": "array"
+    },
+    "plan_revised": {
+      "title": "Plan Revised",
+      "type": "boolean"
+    },
+    "coverage_summary_blob": {
+      "$ref": "#/$defs/BlobRef"
+    },
+    "budget_before": {
+      "$ref": "#/$defs/BudgetUsage"
+    },
+    "budget_after": {
+      "$ref": "#/$defs/BudgetUsage"
+    },
+    "turn_status": {
+      "enum": [
+        "STARTED",
+        "COMPLETED",
+        "FAILED",
+        "CANCELLED"
+      ],
+      "title": "Turn Status",
+      "type": "string"
+    },
+    "concise_decision": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Concise Decision"
+    },
+    "stop_reason": {
+      "anyOf": [
+        {
+          "enum": [
+            "RESOLVED_WITHIN_SCOPE",
+            "NO_NEW_EVIDENCE",
+            "EXPERT_REVIEW_REQUIRED",
+            "BUDGET_EXHAUSTED",
+            "CYCLE_DETECTED",
+            "PROVIDER_FAILURE",
+            "AUDIT_FAILURE",
+            "REVIEW_REJECTED",
+            "CHANGES_REQUESTED",
+            "MANUAL_CLOSURE"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Stop Reason"
+    },
+    "first_event_sequence": {
+      "title": "First Event Sequence",
+      "type": "integer"
+    },
+    "last_event_sequence": {
+      "title": "Last Event Sequence",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "turn_id",
+    "run_id",
+    "turn_index",
+    "previous_turn_id",
+    "input_state_blob",
+    "output_state_blob",
+    "pinned_membership_refs",
+    "operation_ids_in_order",
+    "context_manifest_ids",
+    "retrieval_attempt_ids",
+    "calculation_ids",
+    "finding_revision_ids",
+    "plan_refs",
+    "observation_assessment_refs",
+    "plan_revised",
+    "coverage_summary_blob",
+    "budget_before",
+    "budget_after",
+    "turn_status",
+    "concise_decision",
+    "stop_reason",
+    "first_event_sequence",
+    "last_event_sequence"
+  ],
+  "title": "TurnManifest",
+  "type": "object"
+}

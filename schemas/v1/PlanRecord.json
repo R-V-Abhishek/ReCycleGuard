@@ -1,0 +1,96 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "objective": {
+      "minLength": 1,
+      "title": "Objective",
+      "type": "string"
+    },
+    "hypotheses": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Hypotheses",
+      "type": "array"
+    },
+    "proposed_checks": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Proposed Checks",
+      "type": "array"
+    },
+    "expected_evidence": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Expected Evidence",
+      "type": "array"
+    },
+    "stopping_criteria": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Stopping Criteria",
+      "type": "array"
+    },
+    "plan_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Plan Id",
+      "type": "string"
+    },
+    "revision": {
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "previous_plan_ref": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Previous Plan Ref"
+    },
+    "triggering_operation_ref": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Triggering Operation Ref"
+    },
+    "finding_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Finding Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "objective",
+    "hypotheses",
+    "proposed_checks",
+    "expected_evidence",
+    "stopping_criteria",
+    "plan_id",
+    "revision",
+    "previous_plan_ref",
+    "triggering_operation_ref",
+    "finding_id"
+  ],
+  "title": "PlanRecord",
+  "type": "object"
+}

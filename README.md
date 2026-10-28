@@ -57,7 +57,15 @@ The initial research notes are dated 16 October 2026; the additional CPCB data/R
 
 The specifications were drafted on 18 October and corrected against the research review on 22 October 2026. They qualify tentative research assumptions and describe planned implementation.
 
-The deterministic evidence and reporting pipeline is implemented. The bounded investigator, real model gateway and wider evaluation remain subsequent work.
+The deterministic evidence and reporting pipeline is implemented. A06 adds the
+bounded graph, audit/checkpoint recovery and scripted-port budget tests. See the
+[A06 handoff](docs/checkpoints/checkpoint-3/a06.md). Real-service integration,
+human-review transitions, the real model gateway and wider evaluation remain
+subsequent work. Reproduce the explicitly scripted trace with fresh paths:
+
+```sh
+uv run scripts/verify_a06.py --data-root .recycleguard/a06-reproduction --output tmp/a06-reproduction
+```
 
 ## Build the Review 2 design document
 

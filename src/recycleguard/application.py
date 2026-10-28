@@ -51,6 +51,7 @@ def local_application(settings, reviewer_password: str | None = None):
                 "normalization.",
                 "calculation.",
                 "report.",
+                "graph.",
             }
         )
     )

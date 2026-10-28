@@ -1,0 +1,26 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "total_tokens": {
+      "title": "Total Tokens",
+      "type": "integer"
+    },
+    "cost_usd": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Cost Usd"
+    }
+  },
+  "required": [
+    "total_tokens"
+  ],
+  "title": "ProviderUsage",
+  "type": "object"
+}

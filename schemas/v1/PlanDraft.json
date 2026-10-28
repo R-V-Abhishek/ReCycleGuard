@@ -1,0 +1,52 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "objective": {
+      "minLength": 1,
+      "title": "Objective",
+      "type": "string"
+    },
+    "hypotheses": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Hypotheses",
+      "type": "array"
+    },
+    "proposed_checks": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Proposed Checks",
+      "type": "array"
+    },
+    "expected_evidence": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Expected Evidence",
+      "type": "array"
+    },
+    "stopping_criteria": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Stopping Criteria",
+      "type": "array"
+    }
+  },
+  "required": [
+    "objective",
+    "hypotheses",
+    "proposed_checks",
+    "expected_evidence",
+    "stopping_criteria"
+  ],
+  "title": "PlanDraft",
+  "type": "object"
+}

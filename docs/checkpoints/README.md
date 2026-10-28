@@ -10,6 +10,7 @@ execution register in [implementation plan](../../implementation%20plan.md).
 
 | CP1: evidence foundation | `checkpoint-1` | [Construction and acceptance](checkpoint-1/README.md) | APPROVED on 26 October 2026; qualified lead acceptance |
 | CP2: baseline vertical slice | `checkpoint-2` | [Construction and acceptance](checkpoint-2/README.md) | APPROVED on 27 October 2026; qualified baseline, lead acceptance and Windows/Linux verification |
+| CP3: integrated investigation | A06 workstream `codex/a06` | [Construction so far](checkpoint-3/README.md) | WAITING; A06 scripted graph only, integration and acceptance pending |
 
 For every subsequent checkpoint, create `checkpoint-N/` with:
 

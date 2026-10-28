@@ -1,0 +1,21 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "configuration_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Configuration Id",
+      "type": "string"
+    },
+    "digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Digest",
+      "type": "string"
+    }
+  },
+  "required": [
+    "configuration_id",
+    "digest"
+  ],
+  "title": "ConfigurationPin",
+  "type": "object"
+}

@@ -83,6 +83,24 @@ from recycleguard.contracts.sources import (
     SourceLead,
     SourceVersion,
 )
+from recycleguard.contracts.workflow import (
+    ActionDraft,
+    ActionProposal,
+    AssessmentProposal,
+    BudgetLimits,
+    BudgetUsage,
+    CancellationRequest,
+    ConfigurationPin,
+    ContextManifest,
+    ObservationAssessment,
+    PlanDraft,
+    PlanProposal,
+    PlanRecord,
+    RunSpec,
+    RunState,
+    StageOutcome,
+    TurnManifest,
+)
 from recycleguard.domain.models import (
     BucketDerivation,
     Derivation,
@@ -107,8 +125,27 @@ from recycleguard.reporting.baseline import (
     ReportSection,
     VerificationResult,
 )
+from recycleguard.workflow.runner import CallRecord, ProviderUsage
 
 MODELS = [
+    ActionDraft,
+    ActionProposal,
+    AssessmentProposal,
+    BudgetLimits,
+    BudgetUsage,
+    CancellationRequest,
+    ConfigurationPin,
+    ContextManifest,
+    ObservationAssessment,
+    PlanDraft,
+    PlanProposal,
+    PlanRecord,
+    RunSpec,
+    RunState,
+    StageOutcome,
+    TurnManifest,
+    CallRecord,
+    ProviderUsage,
     BaselineOutput,
     VerifiedReport,
     BaselineRequest,

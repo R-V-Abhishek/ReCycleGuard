@@ -1,0 +1,108 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "actions": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Actions",
+      "type": "integer"
+    },
+    "model_calls": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Model Calls",
+      "type": "integer"
+    },
+    "tool_calls": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Tool Calls",
+      "type": "integer"
+    },
+    "retries": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Retries",
+      "type": "integer"
+    },
+    "reserved_tokens": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Reserved Tokens",
+      "type": "integer"
+    },
+    "observed_tokens": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Observed Tokens"
+    },
+    "observed_cost_usd": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Observed Cost Usd"
+    },
+    "usage_known_calls": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Usage Known Calls",
+      "type": "integer"
+    },
+    "cost_known_calls": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Cost Known Calls",
+      "type": "integer"
+    },
+    "preflight_actions": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Preflight Actions",
+      "type": "integer"
+    },
+    "verification_actions": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Verification Actions",
+      "type": "integer"
+    },
+    "report_repairs": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Report Repairs",
+      "type": "integer"
+    },
+    "finding_actions": {
+      "additionalProperties": {
+        "minimum": 0,
+        "type": "integer"
+      },
+      "title": "Finding Actions",
+      "type": "object"
+    },
+    "finding_reformulations": {
+      "additionalProperties": {
+        "minimum": 0,
+        "type": "integer"
+      },
+      "title": "Finding Reformulations",
+      "type": "object"
+    }
+  },
+  "title": "BudgetUsage",
+  "type": "object"
+}
