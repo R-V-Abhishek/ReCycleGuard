@@ -148,6 +148,9 @@ def overlapping_export(world: World, rng) -> tuple[World, Change]:
         duplicate_of=original.key,
     )
     source = next(a for a in world.allocations if a.transfer == original.key)
+    # The copy was booked when the export was imported, after every earlier allocation.
+    dates = [a.allocated_on for a in world.allocations]
+    booked_on = max(dates) if all(dates) else source.allocated_on
     booked = AllocationW(
         key=f"allocation_{n + 1}",
         allocation_id=f"alloc:{world.case_tag}_{n + 1:03d}",
@@ -155,7 +158,7 @@ def overlapping_export(world: World, rng) -> tuple[World, Change]:
         bucket=source.bucket,
         quantity_kg=source.quantity_kg,
         order=max(a.order for a in world.allocations) + 1,
-        allocated_on=source.allocated_on,
+        allocated_on=booked_on,
     )
     transfers = tuple(
         replace(t, channels=("LEDGER",)) if t.key == original.key else t for t in world.transfers

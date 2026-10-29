@@ -435,3 +435,58 @@ inferred. A05 is DONE; A06, S04, V05 and V07 are READY. A07 remains dependency-g
 ### Next permitted step
 - V06 (export and replay) and V07 (runtime isolation).
 
+## 2026-10-29 IST — Sushanth — CP4 prep — S07
+
+**Task state at start:** register shows BLOCKED. Its predecessors are both done: S06 is pushed (5d4bd9b), and V04 is DONE and merged via `checkpoint-3` (252ddcc).
+**Predecessors verified:** S06, V04
+
+### Done
+- **Pilot `pilot-0.1`** (`benchmarks/generator/pilot_cases.py`): 48 dossiers, 24 development and 24 held-out.
+  - Each split has F01–F16 once plus eight combinations, and the split is assigned before rendering.
+  - The split is grouped by fictional entity, template (shape plus parameters) and timeline group. The splits share no template and no multi-recipe combination.
+  - F08, F10 and F15 take different variants in each split.
+  - The combination list is in the generator README.
+- **Catalogue:** twelve held-out producers and six held-out recyclers, none used by any development dossier (the earlier 33 included).
+- **Layout:**
+  - Development dossiers are committed under `tests/fixtures/visible/`.
+  - Held-out dossiers render to `benchmarks/heldout/visible/`, which is gitignored.
+  - `benchmarks/pilot/heldout_seal.json` is committed. It holds the opaque held-out case ids and a digest of each visible file tree, and no labels.
+  - The hidden manifest adds `split_policy = GROUPED_DEV_HELDOUT_V1`, `split_assignments`, `split_groups`, and `oracle/` with `oracle_blob` filled.
+- **Checks** (`benchmarks/generator/pilot.py`, run by every `generate` and `--check`):
+  - split independence: no shared entity, template, combination, group or hidden world id;
+  - visible label words;
+  - exact duplicates;
+  - near-duplicates: word 5-shingle Jaccard of 0.85 or more fails, and the current maximum is 0.31.
+  - `--check` verifies the held-out split against the seal.
+- **Oracle extension** (`benchmarks/evaluation/oracle.py`):
+  - It now detects all sixteen families from world facts only.
+  - On the S06 surface it no longer reads two channels as F02.
+  - Its projection follows the stated exclusion and pending rules.
+  - It adds abstentions for F06, F09 (undated), F11, F12, F14 and F15.
+  - Status stays `UNVERIFIED_WORLD_PROJECTION`.
+- **F02 recipe fix:** the copied allocation is now booked on the latest allocation date (the import came last). Before, its order could contradict its date. S06 bytes are unchanged.
+
+### Evidence
+- Tests run, targeted as agreed (no full suite):
+  - `tests/unit/test_s07_pilot.py`, `tests/unit/test_v04_oracle.py`, `tests/integration/test_s07_pilot.py`, plus the S04, S05 and S06 generator and recipe tests: all pass.
+  - The integration run: C08 reproduces the reference and the declared codes on all 24 development dossiers, and real intake passes on each. The held-out C08 check runs locally when the held-out root exists.
+- The extended oracle agrees with the declared families and the generator reference (supported, pending, portal) on all 69 fault dossiers (48 pilot and 21 S06).
+- `generate --check` reports "visible cases are current". The S04/S05/S06 fixtures and `case_001` are byte-identical.
+- Gate(s) touched: G12 evaluation honesty (oracle), and plan §7.3 split and leakage rules.
+
+### Limitations / open issues
+- The separation is internal only (plan §7.3, L746). Held-out templates and seeds are in the repository, so this is disclosed as limited internal separation, not an external test.
+- The oracle extension was written by the generator author, which weakens G12 independence. Vedantha's hand review (§7.4, V09) is still the gate, and nothing is `HAND_REVIEWED`, so generated cases stay unscoreable by design.
+- The oracle reports F07 for any invoiced, incomplete transfer, including the clean counterparts of F07 dossiers. This is V04's rule, kept unchanged.
+- The held-out access log, digest freeze and isolated runs belong to V07/V09. No visible `DatasetManifest` model exists (CONTRACTS L337), so split assignments live only in the hidden manifest. I propose adding a contract for it.
+
+### Updates required
+- **implementation plan.md:** propose S07 BLOCKED → IN_REVIEW (predecessors done); DONE after Vedantha checks every recipe and combination, every development dossier and all held-out numeric answers (L769).
+- **CONTRACTS.md:** propose a `split_policy` value set and a visible `DatasetManifest` with split assignments.
+- **Other members' files changed:**
+  - `benchmarks/evaluation/oracle.py` and `tests/unit/test_v04_oracle.py` (Vedantha): the oracle extension.
+  - `.gitignore` (shared): `benchmarks/heldout/`.
+
+### Next permitted step
+- V09: Vedantha validates the oracle and seals the pilot. Then S08 (dev-only fixes) and CP4.
+
