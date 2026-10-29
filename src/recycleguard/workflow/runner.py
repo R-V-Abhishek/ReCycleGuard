@@ -801,7 +801,6 @@ class WorkflowRunner:
                 )
                 refs = [record.raw_result_blob]
                 if raw is not None and raw.output_blob is not None:
-                if raw is not None and raw.output_blob is not None:
                     self.blobs.get(raw.output_blob)
                     refs.append(raw.output_blob)
                 if record.model_output is not None:
