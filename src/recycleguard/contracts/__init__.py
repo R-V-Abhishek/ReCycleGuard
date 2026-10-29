@@ -27,6 +27,16 @@ from .extraction import (
     Observation,
     ValidationState,
 )
+from .review import (
+    AcknowledgmentRecord,
+    AcknowledgmentValidationState,
+    ReviewDecision,
+    ReviewDecisionKind,
+    ReviewOutcome,
+    ReviewPacket,
+    ReviewRecord,
+    ReviewTransitionResult,
+)
 from .sources import (
     ProvisionVersion,
     RightsMetadata,
@@ -38,6 +48,8 @@ from .sources import (
 )
 
 __all__ = [
+    "AcknowledgmentRecord",
+    "AcknowledgmentValidationState",
     "ArtifactRevision",
     "AssetReceipt",
     "FrozenSnapshot",
@@ -62,6 +74,12 @@ __all__ = [
     "Observation",
     "ProvisionVersion",
     "Quantity",
+    "ReviewDecision",
+    "ReviewDecisionKind",
+    "ReviewOutcome",
+    "ReviewPacket",
+    "ReviewRecord",
+    "ReviewTransitionResult",
     "RightsMetadata",
     "Role",
     "ServiceResult",

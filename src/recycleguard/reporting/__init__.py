@@ -6,10 +6,13 @@ from .baseline import (
     ReportVerifier,
     render_markdown,
 )
+from .repair import ReportRepairResult, ReportRepairService
 
 __all__ = [
     "BaselineReport",
     "BaselineReportBuilder",
+    "ReportRepairResult",
+    "ReportRepairService",
     "ReportVerifier",
     "render_markdown",
 ]
