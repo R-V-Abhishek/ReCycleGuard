@@ -38,6 +38,14 @@ def subtract(left: Decimal, right: Decimal) -> Decimal:
         raise NumericSafetyError("numeric precision exceeded") from exc
 
 
+def multiply(left: Decimal, right: Decimal) -> Decimal:
+    try:
+        with localcontext(NUMERIC_CONTEXT):
+            return left * right
+    except (Inexact, Overflow, InvalidOperation) as exc:
+        raise NumericSafetyError("numeric precision exceeded") from exc
+
+
 def total(values: Iterable[Decimal]) -> Decimal:
     accumulated = ZERO
     for value in values:

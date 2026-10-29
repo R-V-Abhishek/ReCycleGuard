@@ -34,6 +34,32 @@ class TestNumericSafety(unittest.TestCase):
         with self.assertRaises(NumericSafetyError):
             parse_strict_decimal("1e5")
 
+    def test_01b_indian_digit_grouping(self) -> None:
+        """Lakh/crore grouping parses exactly and agrees with Western grouping."""
+        cases = {
+            "1,23,456.50": "123456.50",
+            "12,34,56,789": "123456789",
+            "10,00,000": "1000000",
+            "1,00,000.0001": "100000.0001",
+            "-2,50,000": "-250000",
+            "12,345": "12345",
+        }
+        for raw, expected in cases.items():
+            self.assertEqual(parse_strict_decimal(raw), Decimal(expected), raw)
+        self.assertEqual(parse_strict_decimal("1,23,45,678"), parse_strict_decimal("12,345,678"))
+        for bad in ("1,2,3", "1,23,4567", "12,3456", ",123", "1,23,", "123,45,678", "1,,234"):
+            with self.assertRaises(NumericSafetyError, msg=bad):
+                parse_strict_decimal(bad)
+
+    def test_01c_indian_grouping_through_quantities(self) -> None:
+        """Indian-grouped raw values convert exactly for mass, money and count."""
+        self.assertEqual(
+            normalize_quantity("1,23,456.5", "KG", "METAL_MASS", metal="CU").decimal, "123456.5000"
+        )
+        self.assertEqual(convert_mass_to_kg("1,234.5675", "TONNE"), Decimal("1234567.5"))
+        self.assertEqual(normalize_quantity("4,72,118.40", "INR", "MONEY").decimal, "472118.4000")
+        self.assertEqual(normalize_quantity("1,20,000", "UNIT_COUNT", "COUNT").decimal, "120000")
+
     def test_02_mass_conversion_tonne_to_kg(self) -> None:
         """Exact 1 Tonne = 1000 KG conversion."""
         self.assertEqual(convert_mass_to_kg("1", "TONNE"), Decimal("1000"))

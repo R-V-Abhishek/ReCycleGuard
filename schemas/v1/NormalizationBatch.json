@@ -250,6 +250,17 @@
           ],
           "default": null,
           "title": "Supersedes Allocation Id"
+        },
+        "allocation_time": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TemporalValue"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -1166,7 +1177,11 @@
             "CANCELLED",
             "INTEGRITY_FAILED",
             "OVER_ALLOCATION",
-            "UNSUPPORTED_FEATURE"
+            "UNSUPPORTED_FEATURE",
+            "CREDIT_EXPIRED",
+            "CREDIT_CANCELLED",
+            "CAPABILITY_MISMATCH",
+            "WEIGHT_BASIS_CONFLICT"
           ],
           "title": "Code",
           "type": "string"
@@ -1612,6 +1627,172 @@
       "title": "ObservationDisposition",
       "type": "object"
     },
+    "ProductMapping": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Record Id",
+          "type": "string"
+        },
+        "record_revision_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Record Revision Id",
+          "type": "string"
+        },
+        "case_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Case Id",
+          "type": "string"
+        },
+        "observation_refs": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Observation Refs",
+          "type": "array"
+        },
+        "derived_from_record_refs": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Derived From Record Refs",
+          "type": "array"
+        },
+        "validation_state": {
+          "enum": [
+            "VALID",
+            "REVIEW_REQUIRED",
+            "INVALID"
+          ],
+          "title": "Validation State",
+          "type": "string"
+        },
+        "created_by_operation_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Created By Operation Id",
+          "type": "string"
+        },
+        "supersedes_revision_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Supersedes Revision Id"
+        },
+        "record_type": {
+          "const": "ProductMapping",
+          "title": "Record Type",
+          "type": "string"
+        },
+        "mapping_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Mapping Id",
+          "type": "string"
+        },
+        "entity_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Entity Id",
+          "type": "string"
+        },
+        "sku": {
+          "minLength": 1,
+          "title": "Sku",
+          "type": "string"
+        },
+        "eee_code": {
+          "minLength": 1,
+          "title": "Eee Code",
+          "type": "string"
+        },
+        "unit_weight": {
+          "$ref": "#/$defs/Quantity"
+        },
+        "weight_basis": {
+          "enum": [
+            "NET_EEE",
+            "GROSS_PACKAGED",
+            "COMPONENT"
+          ],
+          "title": "Weight Basis",
+          "type": "string"
+        },
+        "validity": {
+          "$ref": "#/$defs/ReviewedInterval"
+        },
+        "review_ref": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Review Ref",
+          "type": "string"
+        },
+        "hsn": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hsn"
+        },
+        "lifespan_ref": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lifespan Ref"
+        },
+        "composition_ref": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Composition Ref"
+        }
+      },
+      "required": [
+        "record_id",
+        "record_revision_id",
+        "case_id",
+        "observation_refs",
+        "derived_from_record_refs",
+        "validation_state",
+        "created_by_operation_id",
+        "supersedes_revision_id",
+        "record_type",
+        "mapping_id",
+        "entity_id",
+        "sku",
+        "eee_code",
+        "unit_weight",
+        "weight_basis",
+        "validity",
+        "review_ref"
+      ],
+      "title": "ProductMapping",
+      "type": "object"
+    },
     "Quantity": {
       "additionalProperties": false,
       "properties": {
@@ -1878,6 +2059,134 @@
       "title": "ReviewedInterval",
       "type": "object"
     },
+    "SalesRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "record_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Record Id",
+          "type": "string"
+        },
+        "record_revision_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Record Revision Id",
+          "type": "string"
+        },
+        "case_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Case Id",
+          "type": "string"
+        },
+        "observation_refs": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Observation Refs",
+          "type": "array"
+        },
+        "derived_from_record_refs": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Derived From Record Refs",
+          "type": "array"
+        },
+        "validation_state": {
+          "enum": [
+            "VALID",
+            "REVIEW_REQUIRED",
+            "INVALID"
+          ],
+          "title": "Validation State",
+          "type": "string"
+        },
+        "created_by_operation_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Created By Operation Id",
+          "type": "string"
+        },
+        "supersedes_revision_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Supersedes Revision Id"
+        },
+        "record_type": {
+          "const": "SalesRecord",
+          "title": "Record Type",
+          "type": "string"
+        },
+        "entity_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Entity Id",
+          "type": "string"
+        },
+        "sku": {
+          "minLength": 1,
+          "title": "Sku",
+          "type": "string"
+        },
+        "fiscal_year": {
+          "pattern": "^\\d{4}-\\d{4}$",
+          "title": "Fiscal Year",
+          "type": "string"
+        },
+        "quantity_units": {
+          "title": "Quantity Units",
+          "type": "string"
+        },
+        "source_record_ref": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Source Record Ref",
+          "type": "string"
+        },
+        "mass": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Quantity"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "adjustment_refs": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Adjustment Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "record_id",
+        "record_revision_id",
+        "case_id",
+        "observation_refs",
+        "derived_from_record_refs",
+        "validation_state",
+        "created_by_operation_id",
+        "supersedes_revision_id",
+        "record_type",
+        "entity_id",
+        "sku",
+        "fiscal_year",
+        "quantity_units",
+        "source_record_ref"
+      ],
+      "title": "SalesRecord",
+      "type": "object"
+    },
     "SignedAdjustment": {
       "additionalProperties": false,
       "properties": {
@@ -2004,7 +2313,9 @@
             "CommercialRecord": "#/$defs/CommercialRecord",
             "Entity": "#/$defs/Entity",
             "ObligationBucket": "#/$defs/ObligationBucket",
-            "Registration": "#/$defs/Registration"
+            "ProductMapping": "#/$defs/ProductMapping",
+            "Registration": "#/$defs/Registration",
+            "SalesRecord": "#/$defs/SalesRecord"
           },
           "propertyName": "record_type"
         },
@@ -2032,6 +2343,12 @@
           },
           {
             "$ref": "#/$defs/CommercialRecord"
+          },
+          {
+            "$ref": "#/$defs/ProductMapping"
+          },
+          {
+            "$ref": "#/$defs/SalesRecord"
           }
         ]
       },

@@ -2,6 +2,8 @@
 
 from typing import Literal
 
+from pydantic import Field
+
 from recycleguard.contracts.core import (
     ID,
     BoundaryModel,
@@ -46,6 +48,17 @@ class PriorityCheck(BoundaryModel):
     reason: Nonempty
 
 
+class AllocationCheck(BoundaryModel):
+    """One S04 rule (credit lifecycle or recycler capability) applied to one allocation."""
+
+    rule: Literal["LIFECYCLE", "CAPABILITY"]
+    allocation_id: ID
+    state: CheckState
+    code: Nonempty | None
+    reason: Nonempty
+    evidence_refs: list[EvidenceRef]
+
+
 class PortalComparison(BoundaryModel):
     comparison_id: ID
     bucket_id: ID
@@ -87,6 +100,7 @@ class Derivation(BoundaryModel):
     buckets: list[BucketDerivation]
     lots: list[LotCheck]
     priority_checks: list[PriorityCheck]
+    allocation_checks: list[AllocationCheck] = Field(default_factory=list)
     portal_comparisons: list[PortalComparison]
     eligibility: list[EligibilityOutcome]
     purchase_ceiling: CheckState

@@ -8,11 +8,24 @@ Replicates standard corporate B2B invoice layouts:
   "Totals & Balance Due" summary block
 - Dynamic theme palette with reproducible seed pinning
 - Mandatory watermark: "SYNTHETIC - NOT A CPCB RECORD"
+
+Without a ``style`` the output is the frozen S01 layout (top watermark banner), byte for byte,
+so case_001 digests never move. With a ``DocumentStyle`` (S05) the page gets a seeded paper
+colour, ink and type scale, a "TAX INVOICE" title, and a true diagonal vector watermark in
+place of the banner.
 """
 
 import random
 from dataclasses import dataclass, field
 from pathlib import Path
+
+from benchmarks.generator.pdf_style import (
+    DocumentStyle,
+    rgb,
+    text_width,
+    watermark_ops,
+    write_pdf,
+)
 
 
 @dataclass(frozen=True)
@@ -122,6 +135,8 @@ class B2BInvoiceData:
     balance_due: str = "0.00"
     payment_remarks: list[str] = field(default_factory=list)
     watermark: str = "SYNTHETIC - NOT A CPCB RECORD"
+    # Styled (S05) invoices only: footer lines replacing the legacy compliance footer.
+    footer_lines: list[str] = field(default_factory=list)
 
 
 def escape_pdf(text: str) -> str:
@@ -134,10 +149,17 @@ def format_color(color: tuple[float, float, float]) -> str:
     return f"{color[0]:.2f} {color[1]:.2f} {color[2]:.2f}"
 
 
+def _monogram(name: str) -> str:
+    words = [w for w in name.replace("-", " ").split() if w[:1].isalpha()]
+    return "".join(w[0].upper() for w in words[:2]) or "CO"
+
+
 def build_b2b_invoice_pdf(
     output_path: Path | str,
     data: B2BInvoiceData,
     seed: int | None = None,
+    style: DocumentStyle | None = None,
+    type_scale: float = 1.0,
 ) -> InvoiceTheme:
     """Render a B2B invoice PDF according to the corporate layout template.
 
@@ -157,18 +179,49 @@ def build_b2b_invoice_pdf(
     f_rgb = format_color(theme.light_fill)
     b_rgb = format_color(theme.border)
 
+    def fs(size: str) -> str:
+        """Font size literal; unchanged for the legacy layout, scaled for a styled one."""
+        return size if style is None else f"{float(size) * type_scale:.2f}"
+
+    def tf(size: str, text: str, max_w: float, font: str = "Helvetica") -> str:
+        """Like ``fs`` but a styled line shrinks to stay inside its box."""
+        if style is None:
+            return size
+        scaled = float(size) * type_scale
+        width = text_width(text, font, scaled)
+        return f"{scaled * min(1.0, max_w / width) if width else scaled:.2f}"
+
+    def ink(default: str) -> str:
+        """Legacy fixed greys, or the style's ink (strong) / blended ink (secondary)."""
+        if style is None:
+            return default
+        level = float(default.split()[0])
+        if default.split()[:3] != [default.split()[0]] * 3:
+            return default  # Semantic colours (warning red, paid green) stay as they are.
+        return rgb(style.ink if level <= 0.2 else style.muted(min(level, 0.35)))
+
+    bold = "/F1" if style is None else "/F2"
     s: list[str] = []
 
-    # =========================================================================
-    # 1. WATERMARK HEADER BANNER (Top)
-    # =========================================================================
-    s.append("0.75 0.12 0.12 rg")
-    s.append("BT /F1 11 Tf 40 762 Td")
-    s.append(f"({escape_pdf(data.watermark)}) Tj ET")
+    def put(ref: str, size: str, x, y, text: str, max_w: float, font: str = "Helvetica"):
+        s.append(f"BT {ref} {tf(size, text, max_w, font)} Tf {x} {y} Td ({escape_pdf(text)}) Tj ET")
 
-    # Separator rule under watermark
-    s.append(f"{b_rgb} RG 0.5 w")
-    s.append("40 754 m 572 754 l S")
+    if style is None:
+        # =====================================================================
+        # 1. WATERMARK HEADER BANNER (Top) - frozen S01 layout only
+        # =====================================================================
+        s.append("0.75 0.12 0.12 rg")
+        s.append("BT /F1 11 Tf 40 762 Td")
+        s.append(f"({escape_pdf(data.watermark)}) Tj ET")
+
+        # Separator rule under watermark
+        s.append(f"{b_rgb} RG 0.5 w")
+        s.append("40 754 m 572 754 l S")
+    else:
+        # Paper stock, then the triplicate marking an Indian tax invoice carries.
+        s.append(rgb(style.paper) + " 0 0 612 792 re f")
+        s.append(rgb(style.muted(0.3)))
+        s.append(f"BT /F1 {fs('7')} Tf 470 764 Td (ORIGINAL FOR RECIPIENT) Tj ET")
 
     # =========================================================================
     # 2. HEADER: LOGO & SELLER DETAILS (Left) | INVOICE META BOX (Right)
@@ -183,38 +236,49 @@ def build_b2b_invoice_pdf(
     s.append(f"{cx + r} {cy - k} {cx + k} {cy - r} {cx} {cy - r} c")
     s.append(f"{cx - k} {cy - r} {cx - r} {cy - k} {cx - r} {cy} c f")
 
-    # White "LOGO" text inside circle
+    # White monogram inside circle
     s.append("1.0 1.0 1.0 rg")
-    s.append(f"BT /F1 9 Tf {cx - 14:.1f} {cy - 3:.1f} Td (LOGO) Tj ET")
+    if style is None:
+        s.append(f"BT /F1 9 Tf {cx - 14:.1f} {cy - 3:.1f} Td (LOGO) Tj ET")
+    else:
+        mono = _monogram(data.seller_name)
+        half = text_width(mono, "Helvetica-Bold", 14) / 2
+        s.append(f"BT /F2 14 Tf {cx - half:.1f} {cy - 5:.1f} Td ({escape_pdf(mono)}) Tj ET")
 
     # Seller Information
     s.append(f"{p_rgb} rg")
-    s.append(f"BT /F1 13 Tf 100 722 Td ({escape_pdf(data.seller_name)}) Tj ET")
+    put(bold, "13", 100, 722, data.seller_name, 292, "Helvetica-Bold")
 
-    s.append("0.35 0.35 0.35 rg")
-    s.append(f"BT /F1 8 Tf 100 710 Td ({escape_pdf(data.seller_tagline)}) Tj ET")
-    s.append(f"BT /F1 8 Tf 100 699 Td ({escape_pdf(data.seller_address)}) Tj ET")
-    s.append(f"BT /F1 8 Tf 100 688 Td ({escape_pdf(data.seller_contact)}) Tj ET")
+    s.append(ink("0.35 0.35 0.35 rg"))
+    put("/F1", "8", 100, 710, data.seller_tagline, 292)
+    put("/F1", "8", 100, 699, data.seller_address, 292)
+    put("/F1", "8", 100, 688, data.seller_contact, 292)
 
-    s.append("0.15 0.15 0.15 rg")
-    s.append(
-        f"BT /F1 8 Tf 100 677 Td "
-        f"({escape_pdf('GSTIN: ' + data.seller_gstin + '  |  ' + data.seller_reg_no)}) Tj ET"
-    )
+    s.append(ink("0.15 0.15 0.15 rg"))
+    ids = "GSTIN: " + data.seller_gstin + "  |  " + data.seller_reg_no
+    s.append(f"BT /F1 {tf('8', ids, 292)} Tf 100 677 Td ({escape_pdf(ids)}) Tj ET")
 
     # Invoice Meta Box (Right: 400 to 572, y 662 to 742, w=172, h=80)
     s.append(f"{f_rgb} rg {b_rgb} RG 0.75 w")
     s.append("400 662 172 80 re B")
 
     s.append(f"{p_rgb} rg")
-    s.append("BT /F1 16 Tf 412 722 Td (INVOICE) Tj ET")
+    title = "INVOICE" if style is None else "TAX INVOICE"
+    s.append(f"BT {bold} {fs('16')} Tf 412 722 Td ({title}) Tj ET")
 
-    s.append("0.2 0.2 0.2 rg")
+    s.append(ink("0.2 0.2 0.2 rg"))
     s.append(
-        f"BT /F1 8.5 Tf 412 706 Td ({escape_pdf('INVOICE NO:  ' + data.invoice_number)}) Tj ET"
+        f"BT /F1 {fs('8.5')} Tf 412 706 Td "
+        f"({escape_pdf('INVOICE NO:  ' + data.invoice_number)}) Tj ET"
     )
-    s.append(f"BT /F1 8.5 Tf 412 692 Td ({escape_pdf('DATE:        ' + data.invoice_date)}) Tj ET")
-    s.append(f"BT /F1 8.5 Tf 412 678 Td ({escape_pdf('TERMS:       ' + data.payment_terms)}) Tj ET")
+    s.append(
+        f"BT /F1 {fs('8.5')} Tf 412 692 Td "
+        f"({escape_pdf('DATE:        ' + data.invoice_date)}) Tj ET"
+    )
+    s.append(
+        f"BT /F1 {fs('8.5')} Tf 412 678 Td "
+        f"({escape_pdf('TERMS:       ' + data.payment_terms)}) Tj ET"
+    )
 
     # =========================================================================
     # 3. PARTY ADDRESS BLOCKS: BILL TO (Left) | SHIP TO (Right)
@@ -227,17 +291,17 @@ def build_b2b_invoice_pdf(
     s.append(f"{a_rgb} rg")
     s.append("40 630 256 15 re f")
     s.append("1.0 1.0 1.0 rg")
-    s.append("BT /F1 8.5 Tf 48 634 Td (BILL TO) Tj ET")
+    s.append(f"BT {bold} {fs('8.5')} Tf 48 634 Td (BILL TO) Tj ET")
 
     s.append(f"{p_rgb} rg")
-    s.append(f"BT /F1 8.5 Tf 48 616 Td ({escape_pdf(data.buyer_name)}) Tj ET")
-    s.append("0.25 0.25 0.25 rg")
-    s.append(f"BT /F1 7.5 Tf 48 604 Td ({escape_pdf('GSTIN: ' + data.buyer_gstin)}) Tj ET")
-    s.append(f"BT /F1 7.5 Tf 48 593 Td ({escape_pdf(data.buyer_address)}) Tj ET")
-    s.append(
-        f"BT /F1 7.5 Tf 48 582 Td "
-        f"({escape_pdf(data.buyer_contact + ' | ' + data.buyer_state)}) Tj ET"
+    put(bold, "8.5", 48, 616, data.buyer_name, 240, "Helvetica-Bold")
+    s.append(ink("0.25 0.25 0.25 rg"))
+    s.append(f"BT /F1 {fs('7.5')} Tf 48 604 Td ({escape_pdf('GSTIN: ' + data.buyer_gstin)}) Tj ET")
+    put("/F1", "7.5", 48, 593, data.buyer_address, 240)
+    contact = data.buyer_contact + (
+        " | " + data.buyer_state if data.buyer_state or not style else ""
     )
+    s.append(f"BT /F1 {tf('7.5', contact, 240)} Tf 48 582 Td ({escape_pdf(contact)}) Tj ET")
 
     # Box 2: SHIP TO (x=316)
     s.append(f"{f_rgb} rg {b_rgb} RG 0.5 w")
@@ -246,14 +310,14 @@ def build_b2b_invoice_pdf(
     s.append(f"{a_rgb} rg")
     s.append("316 630 256 15 re f")
     s.append("1.0 1.0 1.0 rg")
-    s.append("BT /F1 8.5 Tf 324 634 Td (SHIP TO / RECYCLING FACILITY) Tj ET")
+    s.append(f"BT {bold} {fs('8.5')} Tf 324 634 Td (SHIP TO / RECYCLING FACILITY) Tj ET")
 
     s.append(f"{p_rgb} rg")
-    s.append(f"BT /F1 8.5 Tf 324 616 Td ({escape_pdf(data.ship_to_facility)}) Tj ET")
-    s.append("0.25 0.25 0.25 rg")
-    s.append(f"BT /F1 7.5 Tf 324 604 Td ({escape_pdf(data.ship_to_address)}) Tj ET")
-    s.append(f"BT /F1 7.5 Tf 324 593 Td ({escape_pdf(data.ship_to_eee_code)}) Tj ET")
-    s.append(f"BT /F1 7.5 Tf 324 582 Td ({escape_pdf(data.ship_to_place)}) Tj ET")
+    put(bold, "8.5", 324, 616, data.ship_to_facility, 240, "Helvetica-Bold")
+    s.append(ink("0.25 0.25 0.25 rg"))
+    put("/F1", "7.5", 324, 604, data.ship_to_address, 240)
+    put("/F1", "7.5", 324, 593, data.ship_to_eee_code, 240)
+    put("/F1", "7.5", 324, 582, data.ship_to_place, 240)
 
     # =========================================================================
     # 4. ITEMIZED TRANSACTION TABLE
@@ -269,10 +333,10 @@ def build_b2b_invoice_pdf(
     # Header Columns:
     # Columns: description 40-300; quantity 300-380; unit price 380-475; total 475-572.
     s.append("1.0 1.0 1.0 rg")
-    s.append(f"BT /F1 8.5 Tf 48 {table_top - 13} Td (DESCRIPTION) Tj ET")
-    s.append(f"BT /F1 8.5 Tf 320 {table_top - 13} Td (QTY) Tj ET")
-    s.append(f"BT /F1 8.5 Tf 400 {table_top - 13} Td (UNIT PRICE (INR)) Tj ET")
-    s.append(f"BT /F1 8.5 Tf 505 {table_top - 13} Td (TOTAL (INR)) Tj ET")
+    s.append(f"BT {bold} {fs('8.5')} Tf 48 {table_top - 13} Td (DESCRIPTION) Tj ET")
+    s.append(f"BT {bold} {fs('8.5')} Tf 320 {table_top - 13} Td (QTY) Tj ET")
+    s.append(f"BT {bold} {fs('8.5')} Tf 400 {table_top - 13} Td (UNIT PRICE (INR)) Tj ET")
+    s.append(f"BT {bold} {fs('8.5')} Tf 505 {table_top - 13} Td (TOTAL (INR)) Tj ET")
 
     # Table Grid Outer Border
     table_bottom = 430
@@ -287,23 +351,24 @@ def build_b2b_invoice_pdf(
     row_y = table_top - header_h - 18
     for item in data.items:
         # Description & subtext
-        s.append("0.1 0.1 0.1 rg")
-        s.append(f"BT /F1 8.5 Tf 48 {row_y} Td ({escape_pdf(item.description)}) Tj ET")
+        s.append(ink("0.1 0.1 0.1 rg"))
+        put("/F1", "8.5", 48, row_y, item.description, 245)
         if item.subtext:
-            s.append("0.4 0.4 0.4 rg")
-            s.append(f"BT /F1 7.5 Tf 48 {row_y - 11} Td ({escape_pdf(item.subtext)}) Tj ET")
+            s.append(ink("0.4 0.4 0.4 rg"))
+            put("/F1", "7.5", 48, row_y - 11, item.subtext, 245)
 
         # Quantity
-        s.append("0.1 0.1 0.1 rg")
+        s.append(ink("0.1 0.1 0.1 rg"))
         s.append(
-            f"BT /F1 8.5 Tf 315 {row_y} Td ({escape_pdf(item.quantity + ' ' + item.unit)}) Tj ET"
+            f"BT /F1 {fs('8.5')} Tf 315 {row_y} Td "
+            f"({escape_pdf(item.quantity + ' ' + item.unit)}) Tj ET"
         )
 
         # Unit Price
-        s.append(f"BT /F1 8.5 Tf 410 {row_y} Td ({escape_pdf(item.unit_price)}) Tj ET")
+        s.append(f"BT /F1 {fs('8.5')} Tf 410 {row_y} Td ({escape_pdf(item.unit_price)}) Tj ET")
 
         # Total
-        s.append(f"BT /F1 8.5 Tf 505 {row_y} Td ({escape_pdf(item.total)}) Tj ET")
+        s.append(f"BT /F1 {fs('8.5')} Tf 505 {row_y} Td ({escape_pdf(item.total)}) Tj ET")
 
         # Subtle row separator
         s.append(f"{b_rgb} RG 0.25 w")
@@ -331,7 +396,8 @@ def build_b2b_invoice_pdf(
     s.append(f"40 {bottom_y + bottom_h - 16} 290 16 re f")
     s.append("1.0 1.0 1.0 rg")
     s.append(
-        f"BT /F1 8.5 Tf 48 {bottom_y + bottom_h - 12} Td (Remarks / Payment Instructions:) Tj ET"
+        f"BT {bold} {fs('8.5')} Tf 48 {bottom_y + bottom_h - 12} Td "
+        "(Remarks / Payment Instructions:) Tj ET"
     )
 
     # Remarks Text
@@ -341,14 +407,14 @@ def build_b2b_invoice_pdf(
             rem_y -= 5
             continue
         if "CRITICAL" in rem or "PENDING" in rem or "WARNING" in rem:
-            s.append("0.75 0.15 0.15 rg")  # Warning reddish
-            s.append(f"BT /F1 7.5 Tf 48 {rem_y} Td ({escape_pdf(rem)}) Tj ET")
+            s.append(ink("0.75 0.15 0.15 rg"))  # Warning reddish
+            s.append(f"BT /F1 {fs('7.5')} Tf 48 {rem_y} Td ({escape_pdf(rem)}) Tj ET")
         elif "PAID" in rem or "NEFT" in rem:
-            s.append("0.1 0.45 0.2 rg")  # Greenish
-            s.append(f"BT /F1 7.5 Tf 48 {rem_y} Td ({escape_pdf(rem)}) Tj ET")
+            s.append(ink("0.1 0.45 0.2 rg"))  # Greenish
+            s.append(f"BT /F1 {fs('7.5')} Tf 48 {rem_y} Td ({escape_pdf(rem)}) Tj ET")
         else:
-            s.append("0.25 0.25 0.25 rg")
-            s.append(f"BT /F1 7.0 Tf 48 {rem_y} Td ({escape_pdf(rem)}) Tj ET")
+            s.append(ink("0.25 0.25 0.25 rg"))
+            s.append(f"BT /F1 {fs('7.0')} Tf 48 {rem_y} Td ({escape_pdf(rem)}) Tj ET")
         rem_y -= 11
 
     # Right: Calculations Box (345 to 572, w=227, h=165)
@@ -368,10 +434,11 @@ def build_b2b_invoice_pdf(
 
     cy_pos = bottom_y + bottom_h - 18
     for label, val in calc_rows:
-        s.append("0.3 0.3 0.3 rg")
-        s.append(f"BT /F1 7.5 Tf 355 {cy_pos} Td ({escape_pdf(label)}) Tj ET")
-        s.append("0.1 0.1 0.1 rg")
-        s.append(f"BT /F1 7.5 Tf 505 {cy_pos} Td ({escape_pdf(val)}) Tj ET")
+        s.append(ink("0.3 0.3 0.3 rg"))
+        s.append(f"BT /F1 {fs('7.5')} Tf 355 {cy_pos} Td ({escape_pdf(label)}) Tj ET")
+        s.append(ink("0.1 0.1 0.1 rg"))
+        value_x = 505 if style is None else 562 - text_width(val, "Helvetica", 7.5 * type_scale)
+        s.append(f"BT /F1 {fs('7.5')} Tf {value_x:g} {cy_pos} Td ({escape_pdf(val)}) Tj ET")
         s.append(f"{b_rgb} RG 0.2 w")
         s.append(f"345 {cy_pos - 4} m 572 {cy_pos - 4} l S")
         cy_pos -= 16
@@ -380,21 +447,46 @@ def build_b2b_invoice_pdf(
     s.append(f"{p_rgb} rg")
     s.append(f"345 {bottom_y} 227 28 re f")
     s.append("1.0 1.0 1.0 rg")
-    s.append(f"BT /F1 9 Tf 355 {bottom_y + 10} Td (Balance Due) Tj ET")
-    s.append(f"BT /F1 10 Tf 485 {bottom_y + 10} Td ({escape_pdf(data.balance_due + ' INR')}) Tj ET")
+    s.append(f"BT {bold} {fs('9')} Tf 355 {bottom_y + 10} Td (Balance Due) Tj ET")
+    due = data.balance_due + " INR"
+    due_x = 485 if style is None else 562 - text_width(due, "Helvetica-Bold", 10 * type_scale)
+    s.append(f"BT {bold} {fs('10')} Tf {due_x:g} {bottom_y + 10} Td ({escape_pdf(due)}) Tj ET")
 
     # =========================================================================
     # 6. FOOTER
     # =========================================================================
-    s.append("0.45 0.45 0.45 rg")
-    s.append(
-        "BT /F1 7 Tf 120 220 Td (Registered under E-Waste \\(Management\\) Rules, 2022 "
-        "| Central Pollution Control Board Compliance) Tj ET"
-    )
-    s.append(
-        "BT /F1 6.5 Tf 165 210 Td (This document is synthetic and computer-generated "
-        "for regulatory audit evaluation.) Tj ET"
-    )
+    if style is None:
+        s.append("0.45 0.45 0.45 rg")
+        s.append(
+            "BT /F1 7 Tf 120 220 Td (Registered under E-Waste \\(Management\\) Rules, 2022 "
+            "| Central Pollution Control Board Compliance) Tj ET"
+        )
+        s.append(
+            "BT /F1 6.5 Tf 165 210 Td (This document is synthetic and computer-generated "
+            "for regulatory audit evaluation.) Tj ET"
+        )
+    else:
+        s.append(rgb(style.muted(0.3)))
+        foot_y = 228
+        for line in [*data.footer_lines, data.watermark]:
+            size = 7.0 * type_scale
+            x = 306 - text_width(line, "Helvetica", size) / 2
+            s.append(f"BT /F1 {size:.2f} Tf {x:.1f} {foot_y} Td ({escape_pdf(line)}) Tj ET")
+            foot_y -= 10
+        s.extend(watermark_ops(style, page=(612, 792), text=data.watermark))
+        write_pdf(
+            path,
+            "\n".join(s),
+            fonts={"F1": "Helvetica", "F2": "Helvetica-Bold"},
+            alpha=style.watermark_alpha,
+            media_box=(612, 792),
+            info={
+                "Title": f"Tax Invoice {data.invoice_number}",
+                "Subject": data.watermark,
+                "Producer": "ReCycleGuard synthetic generator",
+            },
+        )
+        return theme
 
     # Build PDF Content
     content = "\n".join(s).encode("utf-8")

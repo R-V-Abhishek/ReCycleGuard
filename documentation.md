@@ -185,6 +185,126 @@ Append-only log of work done per session. Source of truth for execution state re
 ### Next permitted step
 - Repair the empty-findings `NEXT_ACTIONS` construction, run `pytest tests/unit/test_v03_reporting.py`, and obtain independent review before restoring V03 acceptance.
 
+## 2026-10-27 IST — Vedantha — CP1 — V03 lint/runtime repair
+
+**Task state at start:** IN_PROGRESS proposed by the verification review
+**Predecessors verified:** CP1 APPROVED; S03 DONE
+
+### Done
+- Fixed the empty-findings `NEXT_ACTIONS` path in `src/recycleguard/reporting/baseline.py`; findings now contribute recommendation claims and clean reports receive only the explicit limitation claim.
+- Applied the reported Ruff fixes: import ordering, unused `Mapping` and `claims` removal, and line wrapping for E501 violations.
+- Corrected the V03 test import grouping in `tests/unit/test_v03_reporting.py`.
+
+### Evidence
+- Commit/branch: uncommitted
+- Tests run: static diagnostics → no errors; `uv run --no-sync ruff check .` → NOT RUN; `pytest tests/unit/test_v03_reporting.py` → NOT RUN
+- Fixtures/schema versions: existing C08 `CalculationResult`; no schema changes
+- Gate(s) touched: G03, G12
+
+### Limitations / open issues
+- CI commands still need to run in the locked environment. No passing Ruff or pytest result is claimed here.
+- Independent review is still required before V03 can return to DONE.
+
+### Updates required
+- **implementation_plan.md:** retain V03 as unaccepted/in progress until Ruff and focused pytest evidence are attached; then move to IN_REVIEW for independent review.
+- **CONTRACTS.md / SYSTEM_DESIGN.md:** none.
+- **Other docs / fixtures / schemas / tests:** no schema or fixture changes.
+- **Other members affected:** Abhishek/A05 should continue treating V03 as unaccepted until executable evidence is available.
+
+### Next permitted step
+- Run `uv run --no-sync ruff check .` and `pytest tests/unit/test_v03_reporting.py`, then attach the outputs for independent V03 review.
+
+## 2026-10-27 IST — Vedantha — CP1 — V03 final Ruff cleanup
+
+**Task state at start:** IN_PROGRESS proposed by the verification review
+**Predecessors verified:** CP1 APPROVED; S03 DONE
+
+### Done
+- Wrapped the final `calculations` comprehension reported by Ruff as E501.
+- Removed the extra blank separator in the V03 test imports reported as I001.
+
+### Evidence
+- Commit/branch: uncommitted
+- Tests run: static diagnostics → no errors; user-reported Ruff output before repair → 2 findings; post-repair shell Ruff result → not captured in this session
+- Fixtures/schema versions: existing C08 `CalculationResult`; no schema changes
+- Gate(s) touched: G03, G12
+
+### Limitations / open issues
+- Focused pytest and independent V03 review remain pending.
+
+### Updates required
+- **implementation_plan.md:** retain V03 as unaccepted/in progress until focused pytest and independent review evidence are attached.
+- **CONTRACTS.md / SYSTEM_DESIGN.md:** none.
+- **Other docs / fixtures / schemas / tests:** no schema or fixture changes.
+- **Other members affected:** Abhishek/A05 should continue treating V03 as unaccepted until executable evidence is available.
+
+### Next permitted step
+- Re-run `uv run --no-sync ruff check .` and `pytest tests/unit/test_v03_reporting.py`, then attach both outputs for independent V03 review.
+
+## 2026-10-27 IST — Vedantha — CP1 — V03 import formatting cleanup
+
+**Task state at start:** IN_PROGRESS proposed by the verification review
+**Predecessors verified:** CP1 APPROVED; S03 DONE
+
+### Done
+- Removed the extra blank line after the imports in `tests/unit/test_v03_reporting.py`, resolving the remaining Ruff I001 finding.
+
+### Evidence
+- Commit/branch: uncommitted
+- Tests run: static diagnostics for `tests/unit/test_v03_reporting.py` → no errors; shell Ruff rerun → NOT RUN in this session
+- Fixtures/schema versions: existing C08 `CalculationResult`; no schema changes
+- Gate(s) touched: G03, G12
+
+### Limitations / open issues
+- Focused pytest and independent V03 review remain pending.
+
+### Updates required
+- **implementation_plan.md:** retain V03 as unaccepted/in progress until shell Ruff, focused pytest and independent review evidence are attached.
+- **CONTRACTS.md / SYSTEM_DESIGN.md:** none.
+- **Other docs / fixtures / schemas / tests:** no schema or fixture changes.
+- **Other members affected:** Abhishek/A05 should continue treating V03 as unaccepted until executable evidence is available.
+
+### Next permitted step
+- Run `uv run --no-sync ruff check .` and `pytest tests/unit/test_v03_reporting.py`, then attach both outputs for independent V03 review.
+
+## 2026-10-27 IST — Sushanth — CP1 — S05
+
+**Task state at start:** READY
+**Predecessors verified:** CP0 APPROVED; CP1 APPROVED (2026-10-26)
+
+### Done
+- Added the C15 clean-world pipeline under `benchmarks/generator/`: `world.py` (typed world, fictional Indian party catalogue, synthetic identity helpers), `s05_cases.py` (six seeded templates with a reusable `Draft` builder), `invariants.py`, `render.py` (visible projection; every record validated with `RECORD_ADAPTER`, manifest with `CaseManifest`), `documents.py` (Indian inter-office memorandum, lakh/crore money, amount in words, Indian date styles), `pdf_style.py` (seeded paper/ink/font/size, vector diagonal watermark, deterministic multi-page PDF writer), `hidden.py`, `generate.py` (CLI with `--check`), `README.md` (method, hidden format, sources).
+- `invoice_builder.py`: optional `style`/`type_scale`. A styled invoice gets the paper colour, "TAX INVOICE" / "ORIGINAL FOR RECIPIENT", a monogram, fit-to-box text and the vector watermark instead of the top banner. With `style=None` the output is byte-identical to before (`case_001` digests unchanged; tested).
+- Six visible dev cases committed under `tests/fixtures/visible/`: `case_b91622485e` (exact coverage), `case_188162b68d` (CSV+portal overlap and a paid invoice with transfer initiated), `case_6421c2dbfa` (surplus), `case_13f88bd325` (CU + AL), `case_8b2a26e233` (FY 2023-24 + 2024-25 with a lot split across years), `case_0a13c3ddbf` (target supplied in TONNE, two recyclers). The mapping from case to shape lives only in the hidden record; it is stated here for reviewers.
+- `.gitignore`: `benchmarks/hidden/`. Hidden record at `benchmarks/hidden/s05-dev-0.1/` (generation manifest, world, visible map, reference balances).
+- Tests: `tests/unit/test_s05_generator.py` (12) and `tests/integration/test_s05_pipeline.py` (12).
+
+### Evidence
+- Commit/branch: `S_branch` (base `b207462`), uncommitted
+- Tests run: `pytest` (full, Windows) → 329 passed, 3 skipped (305 before plus 24 new). The S05 integration tests run the real `FoundationService` on Windows (the O_NOFOLLOW fix from `b207462` made intake portable).
+- `python -m benchmarks.generator.generate ... --check` → "visible cases are current". `ruff check` / `ruff format --check` clean. `scripts/export_schemas.py --check` → 77 boundary schemas (no contract changes).
+- Real pipeline per case: every asset RECEIVED with a matching digest; the only BLOCKING issue is the CP1 `UNAPPROVED_PROFILE` gate; every observation gets ACCEPTED/QUARANTINED; all visible record IDs are normalized; certificate observations carry complete keys (no `UNCONFIRMED_IDENTIFIER`, unlike `case_001`); C08 on the pipeline snapshot gives supported 0 and QUALIFIED (no promotion).
+- C08 self-consistency on the reviewed JSONL records (with the hidden allocation order): required, supported, signed gap, shortfall, surplus, pending, portal and delta match the world reference for all six cases.
+- Gate(s) touched: none owned; G05 exercised by the self-consistency tests.
+
+### Limitations / open issues
+- **S05 sign-off is on hold:** the hidden format (`benchmarks/hidden/<version>/...`, README "Hidden record") is my proposal and needs Vedantha's agreement for V04. Do not mark S05 DONE before that.
+- Clean worlds only (plus the two fixture-1 behaviours in one case). Fault recipes are S06.
+- Visible PDFs are still page-text only in the pipeline: invoice/memo pages are quarantined (`No approved mapping for PDF_PAGE_TEXT`). Field extraction from invoices is a planned later improvement.
+- GST at 18% on EPR certificates is a labelled generator assumption (no reviewed source). The price bands come from press reports of the CPCB 2024 floor/ceiling, not a reviewed official table.
+- The priority check needs the hidden allocation order (no allocation timestamp in the contract; see S03 limitations). Without it, the historical case is QUALIFIED with `LIABILITY_PRIORITY_UNRESOLVED`.
+- `case_001` keeps realistic-looking GSTINs/PANs (frozen). New cases use `SYNTH-...` identifiers per SYSTEM_DESIGN §5.5.
+- The integration tests add about 90 s to the suite (six full foundation builds).
+
+### Updates required
+- **implementation_plan.md:** propose S05 READY → IN_REVIEW; DONE only after an independent review **and** V04 agreement on the hidden format.
+- **CONTRACTS.md / SYSTEM_DESIGN.md:** none applied. Proposal: record the hidden directory layout under CONTRACTS §5.3 once V04 agrees.
+- **Other docs / fixtures / schemas / tests:** six new visible fixtures; generator README.
+- **Other members affected:** Vedantha (V04 hidden-format agreement; oracle input), Sampreeth (PDF field extraction would turn invoices into observations), Abhishek (more dossiers for CLI/A05 demos).
+
+### Next permitted step
+- Hidden-format agreement with Vedantha (V04), then independent review of S05. S06 stays blocked on S05 + S04.
+
 
 ## 2026-10-27 IST — Abhishek — CP2 / A05 integration acceptance
 
@@ -203,3 +323,80 @@ bypassing authentication. See [CP2 construction, contribution and approval evide
 
 CP2 is approved by explicit lead instruction; no other member acknowledgement is
 inferred. A05 is DONE; A06, S04, V05 and V07 are READY. A07 remains dependency-gated.
+
+## 2026-10-28 IST — Sushanth — CP2 — S04
+
+**Task state at start:** READY
+**Predecessors verified:** S03 DONE; CP2 APPROVED (2026-10-27)
+
+### Done
+- Completed the C08 tools under `src/recycleguard/domain/` (see its new `README.md`): `lifecycle.py` (F09), `chronology.py` + `priority.py` (F08 from an explicit order or `Allocation.allocation_time`), `identity.py` (F05 identity, registrations, F10 capability with category-prefix EEE coverage), `products.py` (F13 weight-basis conflicts, sales per basis), `commercial.py` (F07/T09: invoice and its payment are one quantity, money is never credit), `checks.py` (allowlisted dispatcher, nine check kinds, `StructuredCheckResult`). The engine now reports real LIFECYCLE/CAPABILITY/REGISTRATION/ENTITY eligibility outcomes; checks only demote. `TOOL_VERSION` is `c08-s04-0.1`.
+- Contract additions (all proposals, schemas regenerated, 100 schemas): `Allocation.allocation_time` (optional; omitted from serialization when unset so existing digests do not move), `ProductMapping`, `SalesRecord`, `CheckRequest`/`CheckTarget`/`StructuredCheckResult`, `AllocationCheck`, and error codes `CREDIT_EXPIRED`, `CREDIT_CANCELLED`, `CAPABILITY_MISMATCH`, `WEIGHT_BASIS_CONFLICT`.
+- Six more development dossiers (`s04-dev-0.1`, 12 in all): `case_78a9a2a25c` expired credit, `case_79a6d8d2df` cancelled credit, `case_f215179cde` invoice plus payment (one paid-pending transfer), `case_3a4ab67aea` recycler registered for another EEE category, `case_5d96f52258` weight-basis conflict with sales, `case_5a967a4c85` earlier liability proven by allocation dates only. The six S05 cases are byte-identical. Generator extended (`s04_cases.py`, optional world fields, renderer emits product/sales/payment/lifecycle records, invariants for ambiguous dates).
+- Expected values for the new dossiers come from `hidden.allocation_outcomes` / `product_outcomes`, which do not call C08.
+
+### Evidence
+- Tests run: full suite on Windows → 517 passed, 3 skipped. New: seven `tests/unit/test_s04_*.py` and `tests/integration/test_s04_dossiers.py` files (139 tests, including a real intake run per new dossier) plus 3 in `test_event_equivalence.py`.
+- `ruff check` and `ruff format --check` clean; `export_schemas.py --check` → 100 schemas; `generate --check` → "visible cases are current".
+- Gate(s) touched: G04 lifecycle (needs Sampreeth's review), G05 allocation (needs Abhishek's review); Vedantha should check the F08/F09 expectations independently.
+
+### Limitations / open issues
+- Lifecycle: no expiry/cancellation evidence passes (absence is not proof). Undated or unorderable evidence is UNKNOWN and qualifies the result.
+- Capability applies in the engine only when both registrations and product mappings exist; either alone is NOT_EVALUATED. A purely alphabetic registered code covers numbered items; this is my reading, not a reviewed rule.
+- Normalization (C04) has no observation type for product mappings, sales or allocation time, so these reach C08 through reviewed records only, not through extraction.
+- Not built: `read_scope`, `list_evidence`, `inspect_evidence`, `load_obligations`, `compare_versions`, `compare_return_draft`, audit-event prefix, CLI/graph wiring (A07).
+- Fixtures of the new dossiers use the S05 hidden-format proposal, which still awaits V04 agreement.
+
+### Updates required
+- **implementation plan.md:** propose S04 READY → IN_REVIEW; DONE after G04/G05 review.
+- **CONTRACTS.md:** propose recording `Allocation.allocation_time`, `StructuredCheckResult` shape and the four error codes.
+- **Other members' files changed (Abhishek):** `src/recycleguard/contracts/domain.py`, `src/recycleguard/contracts/core.py`, `scripts/export_schemas.py`, `schemas/v1/*`; new `src/recycleguard/contracts/checks.py`.
+
+### Next permitted step
+- Independent review of S04; S06 and A07 are unblocked once it is accepted.
+
+## 2026-10-29 IST — Sushanth — CP3 prep — S06
+
+**Task state at start:** READY
+**Predecessors verified:** S05 hidden format agreed by Vedantha (V04) 2026-10-28; S04 pushed (36db581)
+
+### Done
+- Fault recipes F01–F16 in `benchmarks/generator/faults/recipes.py`. Each recipe transforms a clean world and returns a `Change`, which records the transformation, before/after refs, visible assets, effect, expected issue codes and abstentions, forbidden actions, permitted alternatives, and the invariant ids it breaks on purpose. `invariants.py` now has stable rule ids. A world may relax only the ids its recipes declare, unknown ids are rejected, and the tests prove each declared break is real.
+- `faults/validate.py` checks that every recorded effect is visible in the rendered bytes (PDFs are read through the runtime extractor). `generate` refuses to write a dossier when an effect is not visible.
+- 21 S06 dossiers (`s06-dev-0.1`, `s06_cases.py`): the 16 families singly (F15 both as a textless page and as a truncated file) plus F02+F06, F08 (undated)+F09, F04+F10 (metal) and F15 (textless)+F16.
+  - F16 hostile text appears in the memo, an invoice remark, a ledger narration, a portal remark and a note for file.
+  - Every S06 dossier has the same surface: ledger `Quantity`/`UOM`/`Narration`, portal `remarks`, a GENERATED event per certificate, a note for file, and memo annexures on their own pages.
+  - S04/S05 and `case_001` bytes are unchanged.
+- Hidden record additions per S06 case: `corruption/`, `expected/` (`ExpectedEffects`, a draft input for the `OracleCase`), `clean_world/` and `clean/case_<tag>/` (the rendered clean counterpart). The manifest gains `corruption_manifest_blob` digests, `expected_effects_blob`, `clean_world_blob`, `clean_counterpart_root` and `fault_families`, and `split_policy` is `DEV_ONLY_S06`.
+- The `hidden.py` reference follows the C08 rules without calling C08:
+  - metal mismatch, wrong recipient and duplicate export each have their own outcome;
+  - an undated CANCELLED/EXPIRED status is UNKNOWN;
+  - the portal reports only completed transfers to the producer up to the statement cut-off.
+- Catalogue extended to 12 producers and 8 recyclers, with dated aliases and "Trading LLP" affiliates (fictional, SYNTH identifiers).
+- Indian lakh/crore digit grouping is accepted exactly by `normalization/units.py` (`12,34,567.5`, `1,00,00,000`). Malformed groupings (`1,2,3`, `12,3456`) still raise. F04 exercises it.
+
+### Evidence
+- Tests run: full suite on Windows → 658 passed, 3 skipped. New: `tests/unit/test_s06_recipes.py` and `tests/unit/test_s06_generator.py` (94 tests), `tests/integration/test_s06_dossiers.py` (45 tests), and two Indian-grouping tests in `test_quantities.py`.
+- In the integration run:
+  - C08 reproduces the independent reference on every bucket of all 21 dossiers and raises each declared C08 code: `AMBIGUOUS_EVENT`, `AMBIGUOUS_IDENTITY`, `STALE_SNAPSHOT`, `EARLIER_LIABILITY_UNMET`, `LIABILITY_PRIORITY_UNRESOLVED`, `CAPABILITY_MISMATCH`, `DIMENSION_MISMATCH`.
+  - F13 is flagged by `COMPARE_WEIGHT_BASIS`.
+  - F16 quantities equal the clean counterpart.
+  - Real intake: all receipts RECEIVED, no `UNCONFIRMED_IDENTIFIER` (Indian-grouped and tonne figures parse), `UNAPPROVED_PROFILE` the only blocking issue, exactly one `INCOMPLETE_COVERAGE` with `page:N` on the textless dossiers.
+- `ruff check` and `ruff format --check` are clean, `export_schemas.py --check` reports 100 schemas, and `generate --check` reports "visible cases are current".
+- Gate(s) touched: G03 numeric safety (Indian grouping) and G12 recipe review (Vedantha).
+
+### Limitations / open issues
+- F11, F12 and F14 have no runtime check yet (H06/H07, A07); S06 supplies the evidence and the expected abstentions only.
+- F15 truncated: resolved the same day. `pdf_extractor.py` now compares consistent "Page X of N" footers with the physical page count and raises one `INCOMPLETE_COVERAGE` warning (`page:<printed number>`) per absent page. Coverage stays one item per physical page. Mixed totals (merged documents) and footers that fit the file prove nothing, and a textless page is not reported twice. A file that is truncated and carries no footers is still undetectable.
+- F13 is raised only by the `COMPARE_WEIGHT_BASIS` check tool, not by reconciliation.
+- Dated aliases render only in the dossiers that have them, so their presence is a weak clue. Every other field is uniform.
+- The expected effects are generator expectations, not an oracle; V04 builds the `OracleCase`.
+
+### Updates required
+- **implementation plan.md:** propose S06 READY → IN_REVIEW; DONE after Vedantha's independent recipe review (G12) and agreement on the hidden additions. Sampreeth to check F15 coverage behaviour.
+- **Other members' files changed:**
+  - `src/recycleguard/normalization/units.py` (Abhishek, shared with me): the Indian-grouping pattern in `parse_strict_decimal` and its error message.
+  - `src/recycleguard/extraction/pdf_extractor.py` (Sampreeth, H03/C03; Abhishek): the footer page-count check (`_missing_printed_pages`), with new tests in `tests/unit/test_pdf_page_count.py`. Sampreeth should review it.
+
+### Next permitted step
+- Review of S06 by Vedantha; S07 (48-dossier pilot) once S06 and V04 are accepted.

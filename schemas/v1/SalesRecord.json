@@ -1,0 +1,184 @@
+{
+  "$defs": {
+    "Quantity": {
+      "additionalProperties": false,
+      "properties": {
+        "decimal": {
+          "title": "Decimal",
+          "type": "string"
+        },
+        "unit": {
+          "enum": [
+            "KG",
+            "TONNE",
+            "INR",
+            "UNIT_COUNT"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "dimension": {
+          "enum": [
+            "METAL_MASS",
+            "EQUIPMENT_MASS",
+            "MONEY",
+            "COUNT"
+          ],
+          "title": "Dimension",
+          "type": "string"
+        },
+        "metal": {
+          "anyOf": [
+            {
+              "enum": [
+                "AU",
+                "CU",
+                "AL",
+                "FE"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Metal"
+        }
+      },
+      "required": [
+        "decimal",
+        "unit",
+        "dimension",
+        "metal"
+      ],
+      "title": "Quantity",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "record_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Record Id",
+      "type": "string"
+    },
+    "record_revision_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Record Revision Id",
+      "type": "string"
+    },
+    "case_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "observation_refs": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Observation Refs",
+      "type": "array"
+    },
+    "derived_from_record_refs": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Derived From Record Refs",
+      "type": "array"
+    },
+    "validation_state": {
+      "enum": [
+        "VALID",
+        "REVIEW_REQUIRED",
+        "INVALID"
+      ],
+      "title": "Validation State",
+      "type": "string"
+    },
+    "created_by_operation_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Created By Operation Id",
+      "type": "string"
+    },
+    "supersedes_revision_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Supersedes Revision Id"
+    },
+    "record_type": {
+      "const": "SalesRecord",
+      "title": "Record Type",
+      "type": "string"
+    },
+    "entity_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Entity Id",
+      "type": "string"
+    },
+    "sku": {
+      "minLength": 1,
+      "title": "Sku",
+      "type": "string"
+    },
+    "fiscal_year": {
+      "pattern": "^\\d{4}-\\d{4}$",
+      "title": "Fiscal Year",
+      "type": "string"
+    },
+    "quantity_units": {
+      "title": "Quantity Units",
+      "type": "string"
+    },
+    "source_record_ref": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Source Record Ref",
+      "type": "string"
+    },
+    "mass": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Quantity"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "adjustment_refs": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Adjustment Refs",
+      "type": "array"
+    }
+  },
+  "required": [
+    "record_id",
+    "record_revision_id",
+    "case_id",
+    "observation_refs",
+    "derived_from_record_refs",
+    "validation_state",
+    "created_by_operation_id",
+    "supersedes_revision_id",
+    "record_type",
+    "entity_id",
+    "sku",
+    "fiscal_year",
+    "quantity_units",
+    "source_record_ref"
+  ],
+  "title": "SalesRecord",
+  "type": "object"
+}
