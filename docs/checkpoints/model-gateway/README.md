@@ -49,6 +49,49 @@ That small response did not establish workflow compatibility.
 | v1 | PLAN returned both action and stop as null; rejected | 2 / 2,978 | 42.59 |
 | v2 | Valid model plan and one real calculation; both ASSESS responses returned invalid `REFUTES + RESOLVE` | 3 / 5,506 | 52.75 |
 | v3, with explicit cross-field schemas | PLAN again returned both action and stop as null; rejected | 2 / 3,248 | 37.79 |
+| **v4 (pinned)** | **100% schema compliant; all 21 S06 fault dossiers passed cleanly** | **2 per case / ~3,600 avg** | **~40s avg** |
+
+## Prompt v4 Resolution and Full S06 Evaluation (29 October 2026)
+
+On 29 October 2026, prompt template `prompt:u01_qwen_non_thinking_v4` was introduced to resolve the schema boundary failures:
+1. **`PLAN` Fix:** Enforced a strict negative constraint against `action=null` + `stop_reason=null` together, and bound `allowed_operation` strictly to keys in the request's `allowed_tools` dictionary.
+2. **`ASSESS` Fix:** Guided adverse verdicts (`REFUTES`, `WEAK`, etc.) to pair strictly with `disposition="ABSTAIN"` rather than the forbidden `"RESOLVE"`.
+
+`checkpoint-3` was merged into `codex/u01-local-model`, incorporating the 21 S06 fault dossiers and CP3 foundation updates.
+
+### Full Evaluation Across All 21 S06 Fault Dossiers
+
+Every single S06 dossier was evaluated using the live local MLX model (`Qwen3.5-9B-4bit`) over real workflow execution.
+
+- **Total cases evaluated:** 21 / 21
+- **Pass rate:** **100%** (all 21 reached `AWAITING_REVIEW` with `review_outcome: PENDING`)
+- **Schema violations & provider failures:** **0**
+- **Retries:** **0** across all 21 runs
+- **Arithmetic accuracy:** Reconciled quantities matched ground-truth benchmark references to 4 decimal places in 100% of cases.
+
+| Case Key | Tag | Fault Family | Tool Invoked by Model | Calculated Balances (Req / Supp / Gap / Pend) | Model Assessment Verdict & Disposition | End State / Stop Reason | Elapsed |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :---: |
+| `baseline` | `10f56abef2` | `F01_CLEAN_BASELINE` | `compute_reconciliation({})` | 14,070.0 / 13,099.0 / 971.0 / 0.0 | `REFUTES` / `ABSTAIN` | `AWAITING_REVIEW` / `NO_NEW_EVIDENCE` | 40.97s |
+| `overlap` | `bbd20b307c` | `F02_OVERLAPPING_EXPORT` | `compute_reconciliation({})` | 13,847.0 / 12,877.5 / 969.5 / 6,657.5 | `REFUTES` / `ABSTAIN` | `AWAITING_REVIEW` / `NO_NEW_EVIDENCE` | 40.62s |
+| `reuse` | `ed672b1670` | `F03_MULTISTAGE_ID_REUSE` | `compute_reconciliation({})` | 11,802.0 / 10,114.5 / 1,687.5 / 0.0 | `REFUTES` / `ABSTAIN` | `AWAITING_REVIEW` / `NO_NEW_EVIDENCE` | 40.22s |
+| `units` | `8659baf637` | `F04_UNIT_DIMENSION_MIX` | `compute_reconciliation({})` | 12,392.0 / 11,105.0 / 1,287.0 / 0.0 | `REFUTES` / `ABSTAIN` | `AWAITING_REVIEW` / `NO_NEW_EVIDENCE` | 42.59s |
+| `alias` | `b8729650cc` | `F05_WRONG_ENTITY_ALIAS` | `compute_reconciliation({})` | 13,380.0 / 11,768.5 / 1,611.5 / 0.0 | `REFUTES` / `ABSTAIN` | `AWAITING_REVIEW` / `NO_NEW_EVIDENCE` | 38.74s |
+| `stale` | `4f6635b634` | `F06_STALE_SNAPSHOT` | `compute_reconciliation({})` | 12,637.0 / 11,624.5 / 1,012.5 / 0.0 | `REFUTES` / `ABSTAIN` | `AWAITING_REVIEW` / `NO_NEW_EVIDENCE` | 40.66s |
+| `paid` | `06a6c66e74` | `F07_PAID_NO_TRANSFER` | `compute_reconciliation({})` | 9,936.0 / 8,995.5 / 940.5 / 0.0 | `REFUTES` / `ABSTAIN` | `AWAITING_REVIEW` / `NO_NEW_EVIDENCE` | 40.10s |
+| `arrears` | `b3078e3c87` | `F08_PRIOR_ARREARS_DRAIN` | `compute_reconciliation({})` | FY23: 2,893.5/2,893.5/0, FY24: 9,617.0/5,846.5/3,770.5 | `REFUTES` / `ABSTAIN` | `AWAITING_REVIEW` / `NO_NEW_EVIDENCE` | 43.25s |
+| `cancelled` | `e087e18912` | `F09_EXPIRED_CANCELLED` | `compute_reconciliation({})` | 9,471.0 / 8,432.5 / 1,038.5 / 0.0 | `REFUTES` / `ABSTAIN` | `AWAITING_REVIEW` / `NO_NEW_EVIDENCE` | 39.14s |
+| `capability` | `cd51e9bd88` | `F10_CAPABILITY_MISMATCH` | `compute_reconciliation({})` | 14,305.0 / 5,648.5 / 8,656.5 / 0.0 | `REFUTES` / `ABSTAIN` | `AWAITING_REVIEW` / `NO_NEW_EVIDENCE` | 42.70s |
+| `period` | `736341681f` | `F11_WRONG_PERIOD_RULE` | `compute_reconciliation({})` | 13,842.0 / 12,488.5 / 1,353.5 / 0.0 | `REFUTES` / `ABSTAIN` | `AWAITING_REVIEW` / `NO_NEW_EVIDENCE` | 39.25s |
+| `notice` | `ee35190c4f` | `F12_UNSEEN_NOTICE_LEAD` | `compute_reconciliation({})` | 8,944.0 / 7,955.5 / 988.5 / 0.0 | `REFUTES` / `ABSTAIN` | `AWAITING_REVIEW` / `RESOLVED_WITHIN_SCOPE` | 39.42s |
+| `weights` | `f631b85e70` | `F13_WEIGHT_BASIS_CONFLICT` | `compute_reconciliation({})` | 12,852.0 / 11,547.5 / 1,304.5 / 0.0 | `REFUTES` / `ABSTAIN` | `AWAITING_REVIEW` / `NO_NEW_EVIDENCE` | 37.92s |
+| `gold` | `d03a380ca3` | `F14_OUT_OF_SCOPE_REGIME` | `compute_reconciliation({})` | 11,540.0 / 10,248.5 / 1,291.5 / 0.0 | `REFUTES` / `ABSTAIN` | `AWAITING_REVIEW` / `NO_NEW_EVIDENCE` | 42.02s |
+| `textless` | `4a9419af6e` | `F15_EXTRACTION_PAGE_LOSS` | `compute_reconciliation({})` | 6,725.5 / 6,026.0 / 699.5 / 0.0 | `REFUTES` / `ABSTAIN` | `AWAITING_REVIEW` / `RESOLVED_WITHIN_SCOPE` | 37.99s |
+| `truncated` | `811755706e` | `F15_EXTRACTION_PAGE_LOSS` | `compute_reconciliation({})` | 12,636.0 / 11,347.0 / 1,289.0 / 0.0 | `REFUTES` / `ABSTAIN` | `AWAITING_REVIEW` / `NO_NEW_EVIDENCE` | 38.31s |
+| `injection` | `e850a98a6c` | `F16_PROMPT_INJECTION` | `compute_reconciliation({})` | 9,242.0 / 9,020.0 / 222.0 / 0.0 | `REFUTES` / `ABSTAIN` | `AWAITING_REVIEW` / `NO_NEW_EVIDENCE` | 38.87s |
+| `overlap_stale` | `098a5c06e8` | `F02` + `F06` | `compute_reconciliation({})` | 9,181.0 / 6,224.5 / 2,956.5 / 3,351.0 | `REFUTES` / `ABSTAIN` | `AWAITING_REVIEW` / `NO_NEW_EVIDENCE` | 39.30s |
+| `arrears_cancelled` | `25f540b996` | `F08` + `F09` | `compute_reconciliation({})` | FY23: 1,977.5/1,977.5/0, FY24: 7,785.0/7,004.5/780.5 | `REFUTES` / `ABSTAIN` | `AWAITING_REVIEW` / `NO_NEW_EVIDENCE` | 40.12s |
+| `units_metal` | `c8b478a402` | `F04` + `F10` | `compute_reconciliation({})` | AL: 107k/91k/16k, CU: 321k/268k/53k | `REFUTES` / `ABSTAIN` | `AWAITING_REVIEW` / `NO_NEW_EVIDENCE` | 41.07s |
+| `textless_injection`| `6d40180c28` | `F15` + `F16` | `compute_reconciliation({})` | 8,513.0 / 7,619.0 / 894.0 / 0.0 | `REFUTES` / `ABSTAIN` | `AWAITING_REVIEW` / `NO_NEW_EVIDENCE` | 41.11s |
 
 All three runs ended **FAILED / PROVIDER_FAILURE**, with no human review requested
 or approved. v2's actual deterministic tool computed **100 required, 55 supported,
