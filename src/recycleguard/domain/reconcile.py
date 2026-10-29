@@ -13,15 +13,23 @@ from recycleguard.contracts.domain import (
     Certificate,
     CertificateEvent,
     CommercialRecord,
+    Entity,
     ObligationBucket,
+    Registration,
 )
 from recycleguard.contracts.profiles import CalculationProfile
 from recycleguard.contracts.results import BucketResult
 from recycleguard.domain.allocation import Decision, decide_allocations, enforce_lot_caps
 from recycleguard.domain.arith import ZERO, add, mass, signed, subtract, to_kg, total
+from recycleguard.domain.chronology import Chronology, span
+from recycleguard.domain.commercial import CommercialOutcome, match_commercial
+from recycleguard.domain.identity import apply_capability, party_findings, registration_finding
+from recycleguard.domain.lifecycle import apply_lifecycle
 from recycleguard.domain.lots import derive_lots
 from recycleguard.domain.models import (
+    AllocationCheck,
     BucketDerivation,
+    CheckState,
     Coverage,
     Derivation,
     EligibilityOutcome,
@@ -29,11 +37,12 @@ from recycleguard.domain.models import (
     QuantityDisposition,
 )
 from recycleguard.domain.priority import evaluate_priority
+from recycleguard.domain.refs import make_issue, record_ref
 from recycleguard.domain.universe import Universe
 from recycleguard.normalization.units import NumericSafetyError
 from recycleguard.storage import canonical_json_bytes
 
-TOOL_VERSION = "c08-s03-0.1"
+TOOL_VERSION = "c08-s04-0.2"
 _RANK = {"COMPLETE_WITHIN_SCOPE": 0, "QUALIFIED": 1, "BLOCKED": 2}
 
 
@@ -55,23 +64,7 @@ class EngineOutput:
     analyzed_bucket_ids: list[str]
 
 
-def record_ref(record) -> EvidenceRef:
-    return EvidenceRef(
-        ref_kind="RECORD", ref_id=record.record_id, artifact_revision_id=None, locator=None
-    )
-
-
-def _issue(code: ErrorCode, severity: str, message: str, refs=None) -> Issue:
-    token = hashlib.sha256(canonical_json_bytes([code, message])).hexdigest()[:12]
-    return Issue(
-        issue_id=f"issue:{code.lower()}_{token}",
-        code=code,
-        severity=severity,
-        message=message,
-        field_path=None,
-        evidence_refs=list(refs or []),
-        retryable=False,
-    )
+_issue = make_issue
 
 
 def _instant(value: TemporalValue | None) -> datetime | None:
@@ -94,49 +87,6 @@ def _required(bucket: ObligationBucket) -> tuple[Decimal, list[Decimal]]:
             raise NumericSafetyError("DIMENSION_MISMATCH: adjustment is not the bucket metal mass")
         adjustments.append(to_kg(adjustment.quantity))
     return add(to_kg(bucket.target), total(adjustments)), adjustments
-
-
-def _assign_commercial(
-    commercials: list[CommercialRecord], buckets: dict[str, ObligationBucket]
-) -> dict[str, tuple[str | None, str]]:
-    """Minimal F07 baseline: map a paid-but-unlinked credit quantity to exactly one bucket."""
-    candidates: dict[str, list[CommercialRecord]] = {}
-    outcome: dict[str, tuple[str | None, str]] = {}
-    for record in commercials:
-        if record.record_kind not in {"INVOICE", "PAYMENT"} or record.credit_quantity is None:
-            outcome[record.record_id] = (
-                None,
-                "Commercial context without a payable credit quantity",
-            )
-        elif record.linked_credit_refs:
-            outcome[record.record_id] = (None, "Linked to credit references; matching is S04")
-        else:
-            compatible = [
-                b.bucket_id
-                for b in buckets.values()
-                if b.producer_entity_id == record.recipient_entity_id
-                and b.metal == record.credit_quantity.metal
-            ]
-            if len(compatible) == 1:
-                candidates.setdefault(compatible[0], []).append(record)
-            else:
-                outcome[record.record_id] = (
-                    None,
-                    "No single compatible bucket; left unassigned rather than guessed",
-                )
-    for bucket_id, records in candidates.items():
-        for record in records:
-            if len(records) == 1:
-                outcome[record.record_id] = (
-                    bucket_id,
-                    "Paid or invoiced credits not yet transferred",
-                )
-            else:
-                outcome[record.record_id] = (
-                    None,
-                    "Several payable records target one bucket; cannot rule out double counting",
-                )
-    return outcome
 
 
 def compute(
@@ -184,27 +134,43 @@ def compute(
             required[bucket.bucket_id] = value
 
     events = {e.event_id: e for e in universe.active(CertificateEvent)}
+    certificates = {c.certificate_id: c for c in universe.active(Certificate)}
     lots = derive_lots(universe)
+    allocation_checks: list[AllocationCheck] = []
+
+    def s04_checks(found: list[Decision]) -> None:
+        allocation_checks.extend(apply_lifecycle(found, certificates, events))
+        allocation_checks.extend(apply_capability(found, universe, events, certificates, scoped))
+
+    allocations = universe.active(Allocation)
     decisions = decide_allocations(
-        universe.active(Allocation), scoped, events, lots, profile.profile_id
+        allocations, scoped, events, lots, profile.profile_id, prechecks=s04_checks
     )
     lot_checks = enforce_lot_caps(decisions, lots)
-    priority_checks = evaluate_priority(scoped, required, decisions, allocation_order)
+    chronology = Chronology(
+        allocation_order, {a.allocation_id: a.allocation_time for a in allocations}
+    )
+    priority_checks = evaluate_priority(scoped, required, decisions, chronology)
 
     commercials = universe.active(CommercialRecord)
-    commercial_map = _assign_commercial(commercials, scoped)
+    commercial_map = match_commercial(universe, scoped)
+    overall: Coverage = "COMPLETE_WITHIN_SCOPE"
+    for outcome in commercial_map.values():
+        if outcome.state == "MISMATCH":
+            issues.append(_issue(outcome.code or "INTEGRITY_FAILED", "WARNING", outcome.reason))
+            overall = _worse(overall, "QUALIFIED")
+        elif outcome.state == "UNRESOLVED_LINK":
+            issues.append(_issue("INCOMPLETE_COVERAGE", "INFO", outcome.reason))
 
     balances_by_bucket: dict[str, list[AccountBalanceObservation]] = {}
     for balance in universe.active(AccountBalanceObservation):
         balances_by_bucket.setdefault(balance.bucket_id, []).append(balance)
 
-    certificates = {c.certificate_id: c for c in universe.active(Certificate)}
     bucket_results: list[BucketResult] = []
     derivations: list[BucketDerivation] = []
     comparisons: list[PortalComparison] = []
     chosen_balances: set[str] = set()
     analyzed: list[str] = []
-    overall: Coverage = "COMPLETE_WITHIN_SCOPE"
 
     for bucket_id in requested:
         bucket = scoped.get(bucket_id)
@@ -228,7 +194,11 @@ def compute(
         supported_d = [d for d in mine if d.state == "INCLUDED"]
         pending_d = [d for d in mine if d.state == "PENDING"]
         pending_c = [
-            c for c in commercials if commercial_map.get(c.record_id, (None, ""))[0] == bucket_id
+            c
+            for c in commercials
+            if (o := commercial_map.get(c.commercial_id)) is not None
+            and o.state == "COUNTED"
+            and o.bucket_id == bucket_id
         ]
         supported = total(d.kg for d in supported_d)
         pending = add(
@@ -247,6 +217,9 @@ def compute(
 
         qualification: list[EvidenceRef] = [record_ref(d.allocation) for d in pending_d]
         qualification += [record_ref(c) for c in pending_c]
+        qualification += [
+            record_ref(d.allocation) for d in mine if d.open_checks and d.state != "EXCLUDED"
+        ]
         related = [d for d in mine if d.state != "EXCLUDED"]
         reviewed = [bucket]
         for d in related:
@@ -334,6 +307,7 @@ def compute(
         lots,
         lot_checks,
         priority_checks,
+        allocation_checks,
         comparisons,
         bucket_results,
         derivations,
@@ -428,6 +402,66 @@ def _portal(universe, bucket, balances, supported, supported_d, events):
     return reported, comparison, issues
 
 
+def _aggregate(states: list[CheckState]) -> CheckState:
+    if not states:
+        return "NOT_EVALUATED"
+    if "FAIL" in states:
+        return "FAIL"
+    if "UNKNOWN" in states:
+        return "UNKNOWN"
+    return "PASS"
+
+
+def _rule_states(
+    universe: Universe,
+    decisions: list[Decision],
+    events: dict[str, CertificateEvent],
+    allocation_checks: list[AllocationCheck],
+    scoped: dict[str, ObligationBucket],
+) -> dict[str, tuple[CheckState, str]]:
+    """Evaluated S04 eligibility conditions; anything without evidence stays NOT_EVALUATED."""
+    out: dict[str, tuple[CheckState, str]] = {}
+    for rule, label in (("LIFECYCLE", "credit lifecycle"), ("CAPABILITY", "recycler capability")):
+        mine = [c for c in allocation_checks if c.rule == rule]
+        reasons = sorted({c.reason for c in mine if c.state != "PASS"})
+        out[rule] = (
+            _aggregate([c.state for c in mine]),
+            "; ".join(reasons)
+            if reasons
+            else (
+                f"{label} checked for {len(mine)} allocation(s)"
+                if mine
+                else f"No evidence to test {label}"
+            ),
+        )
+    live = [d for d in decisions if d.state in {"INCLUDED", "PENDING"}]
+    pairs = []
+    registrations = []
+    for d in live:
+        event = events.get(d.allocation.event_id)
+        bucket = scoped.get(d.allocation.bucket_id)
+        if event is None or bucket is None or event.from_entity_id is None:
+            continue
+        pairs.append((bucket.producer_entity_id, event.from_entity_id))
+        for reg in universe.active(Registration):
+            if reg.entity_id == event.from_entity_id:
+                registrations.append(registration_finding(reg, span(event.event_time)))
+    if universe.active(Entity) and pairs:
+        findings = [f for pair in sorted(set(pairs)) for f in party_findings(universe, *pair)]
+        reasons = sorted({f.reason for f in findings if f.state != "PASS"})
+        out["ENTITY"] = (
+            _aggregate([f.state for f in findings]),
+            "; ".join(reasons) if reasons else "Producer and recycler roles confirmed",
+        )
+    if registrations:
+        reasons = sorted({f.reason for f in registrations if f.state != "PASS"})
+        out["REGISTRATION"] = (
+            _aggregate([f.state for f in registrations]),
+            "; ".join(reasons) if reasons else "Recycler registrations valid at transfer time",
+        )
+    return out
+
+
 def _finish(
     universe,
     profile,
@@ -440,6 +474,7 @@ def _finish(
     lots,
     lot_checks,
     priority_checks,
+    allocation_checks: list[AllocationCheck],
     comparisons,
     bucket_results,
     derivations,
@@ -484,17 +519,33 @@ def _finish(
                 "Only some in-scope buckets were requested; this is not a whole-case result",
             )
         )
-    eligibility = [
-        EligibilityOutcome(
-            condition=rule.condition,
-            testability=rule.testability,
-            state="NOT_EVALUATED",
-            reason="Deadline or condition is unavailable in the approved profile"
-            if rule.testability == "UNAVAILABLE"
-            else "Eligibility evaluation belongs to S04/H05, not the baseline reconciliation",
+    events = {e.event_id: e for e in universe.active(CertificateEvent)}
+    evaluated = _rule_states(universe, decisions, events, allocation_checks, scoped)
+    eligibility = []
+    for rule in profile.eligibility_rules:
+        if rule.testability == "UNAVAILABLE":
+            state, reason = (
+                "NOT_EVALUATED",
+                "Deadline or condition is unavailable in the approved profile",
+            )
+        elif rule.condition in evaluated:
+            state, reason = evaluated[rule.condition]
+        else:
+            state, reason = (
+                "NOT_EVALUATED",
+                "Needs source facts or applicability review (H05/H07) beyond the pinned records",
+            )
+        eligibility.append(
+            EligibilityOutcome(
+                condition=rule.condition,
+                testability=rule.testability,
+                state=state,
+                reason=reason,
+            )
         )
-        for rule in profile.eligibility_rules
-    ]
+        if state == "FAIL" and rule.condition in {"ENTITY", "REGISTRATION"}:
+            overall = _worse(overall, "QUALIFIED")
+            issues.append(_issue("AMBIGUOUS_IDENTITY", "WARNING", f"{rule.condition}: {reason}"))
     if any(rule.testability == "UNAVAILABLE" for rule in profile.eligibility_rules):
         overall = _worse(overall, "QUALIFIED")
         issues.append(
@@ -519,6 +570,7 @@ def _finish(
         buckets=derivations,
         lots=lot_checks,
         priority_checks=priority_checks,
+        allocation_checks=allocation_checks,
         portal_comparisons=comparisons,
         eligibility=eligibility,
         purchase_ceiling="NOT_EVALUATED",
@@ -536,6 +588,13 @@ def _dispositions(
     universe, requested, scoped, all_buckets, decisions, commercial_map, chosen_balances, lots
 ) -> list[QuantityDisposition]:
     by_revision = {d.allocation.record_revision_id: d for d in decisions}
+    events = {e.event_id: e for e in universe.active(CertificateEvent)}
+    parties = {b.producer_entity_id for b in scoped.values()}
+    parties |= {
+        events[d.allocation.event_id].from_entity_id
+        for d in decisions
+        if d.allocation.event_id in events and events[d.allocation.event_id].from_entity_id
+    }
     output: list[QuantityDisposition] = []
     for record in universe.records:
         quantity = None
@@ -575,13 +634,15 @@ def _dispositions(
                 )
         elif record.record_type == "CommercialRecord":
             quantity = record.credit_quantity
-            target, why = commercial_map.get(
-                record.record_id, (None, "Not a payable credit record")
-            )
-            bucket_id = target
-            payable = record.record_kind in {"INVOICE", "PAYMENT"} and quantity is not None
-            state = "PENDING" if payable and not record.linked_credit_refs else "OUT_OF_SCOPE"
-            reason = why
+            outcome: CommercialOutcome | None = commercial_map.get(record.commercial_id)
+            bucket_id = None if outcome is None else outcome.bucket_id
+            reason = "Not a payable credit record" if outcome is None else outcome.reason
+            if outcome is None or outcome.state in {"CONTEXT", "UNRESOLVED_LINK", "LINKED"}:
+                state = "OUT_OF_SCOPE"
+            elif outcome.state == "MISMATCH":
+                state = "EXCLUDED"
+            else:  # COUNTED, UNPLACED, AMBIGUOUS: payable credit not yet transferred
+                state = "PENDING"
         elif record.record_type == "CertificateEvent":
             quantity = record.quantity
             if record.assertion_state == "SUPPORTED":
@@ -606,7 +667,15 @@ def _dispositions(
                 else "No lot is derived from this certificate"
             )
         elif record.record_type in {"Entity", "Registration"}:
-            state, reason = "OUT_OF_SCOPE", "Identity or registration context; checked by S04"
+            party = record.entity_id in parties
+            state = "INCLUDED" if party else "OUT_OF_SCOPE"
+            reason = (
+                "Party to an analyzed allocation; role and registration are checked, not summed"
+                if party
+                else "Not a party to any analyzed allocation"
+            )
+        elif record.record_type in {"ProductMapping", "SalesRecord"}:
+            state, reason = "OUT_OF_SCOPE", "Product reference data; never summed into quantities"
         else:  # pragma: no cover - the Record union is closed
             state, reason = "OUT_OF_SCOPE", "Unclassified record type"
         output.append(

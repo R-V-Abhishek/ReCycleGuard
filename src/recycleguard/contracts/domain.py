@@ -4,9 +4,17 @@ from datetime import date
 from decimal import Decimal
 from typing import Annotated, Literal
 
-from pydantic import Field, TypeAdapter, model_validator
+from pydantic import Field, TypeAdapter, model_serializer, model_validator
 
-from .core import ID, BoundaryModel, EvidenceRef, Nonempty, Quantity, TemporalValue
+from .core import (
+    ID,
+    BoundaryModel,
+    DecimalString,
+    EvidenceRef,
+    Nonempty,
+    Quantity,
+    TemporalValue,
+)
 from .extraction import ValidationState
 from .sources import Role
 
@@ -190,6 +198,55 @@ class Allocation(NormalizedRecord):
     state: Literal["SUPPORTED", "PENDING", "REJECTED"]
     profile_id: ID
     supersedes_allocation_id: ID | None = None
+    allocation_time: TemporalValue | None = None
+
+    @model_serializer(mode="wrap")
+    def omit_unknown_time(self, handler):
+        # Absent chronology serializes exactly as before the field existed, keeping digests stable.
+        data = handler(self)
+        if data.get("allocation_time") is None:
+            data.pop("allocation_time", None)
+        return data
+
+
+class ProductMapping(NormalizedRecord):
+    record_type: Literal["ProductMapping"]
+    mapping_id: ID
+    entity_id: ID
+    sku: Nonempty
+    eee_code: Nonempty
+    unit_weight: Quantity
+    weight_basis: Literal["NET_EEE", "GROSS_PACKAGED", "COMPONENT"]
+    validity: ReviewedInterval
+    review_ref: ID
+    hsn: str | None = None
+    lifespan_ref: ID | None = None
+    composition_ref: ID | None = None
+
+    @model_validator(mode="after")
+    def weight_dimension(self):
+        if self.unit_weight.dimension != "EQUIPMENT_MASS" or Decimal(self.unit_weight.decimal) <= 0:
+            raise ValueError("unit weight requires positive equipment mass")
+        return self
+
+
+class SalesRecord(NormalizedRecord):
+    record_type: Literal["SalesRecord"]
+    entity_id: ID
+    sku: Nonempty
+    fiscal_year: FiscalYear
+    quantity_units: DecimalString
+    source_record_ref: ID
+    mass: Quantity | None = None
+    adjustment_refs: list[ID] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def whole_units(self):
+        if Decimal(self.quantity_units) < 0 or Decimal(self.quantity_units) % 1 != 0:
+            raise ValueError("sales units must be a nonnegative whole number")
+        if self.mass is not None and self.mass.dimension != "EQUIPMENT_MASS":
+            raise ValueError("sales mass requires equipment mass")
+        return self
 
 
 class AccountBalanceObservation(NormalizedRecord):
@@ -239,7 +296,9 @@ Record = Annotated[
     | CertificateEvent
     | Allocation
     | AccountBalanceObservation
-    | CommercialRecord,
+    | CommercialRecord
+    | ProductMapping
+    | SalesRecord,
     Field(discriminator="record_type"),
 ]
 RECORD_ADAPTER = TypeAdapter(Record)

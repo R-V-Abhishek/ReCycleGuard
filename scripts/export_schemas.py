@@ -31,6 +31,7 @@ from recycleguard.contracts.baseline import (
     RecordSupportAssertion,
     RecordSupportReview,
 )
+from recycleguard.contracts.checks import CheckRequest, CheckTarget, StructuredCheckResult
 from recycleguard.contracts.domain import (
     AccountBalanceObservation,
     Allocation,
@@ -42,8 +43,10 @@ from recycleguard.contracts.domain import (
     Entity,
     Identifier,
     ObligationBucket,
+    ProductMapping,
     Registration,
     ReviewedInterval,
+    SalesRecord,
 )
 from recycleguard.contracts.dossier import AssetEntry, CaseManifest, TableDisposition
 from recycleguard.contracts.extraction import CoverageItem, ExtractionResult, Observation
@@ -76,8 +79,30 @@ from recycleguard.contracts.results import (
     Hypothesis,
     Recommendation,
 )
+from recycleguard.contracts.retrieval import (
+    CandidateDisposition,
+    DenseConfiguration,
+    EvidenceBundle,
+    EvidenceGrade,
+    ExpansionPolicy,
+    IndexManifest,
+    LexicalConfiguration,
+    LocatorLookupRequest,
+    RetrievalAttempt,
+    SearchRulesRequest,
+)
+from recycleguard.contracts.review import (
+    AcknowledgmentRecord,
+    ReviewDecision,
+    ReviewPacket,
+    ReviewRecord,
+    ReviewTransitionResult,
+)
 from recycleguard.contracts.snapshots import CaseReopen, SnapshotPublication, SnapshotReview
 from recycleguard.contracts.sources import (
+    AmendmentEdge,
+    ApplicabilityAssertion,
+    DeadlineEntry,
     ProvisionVersion,
     RightsMetadata,
     SourceLead,
@@ -102,6 +127,7 @@ from recycleguard.contracts.workflow import (
     TurnManifest,
 )
 from recycleguard.domain.models import (
+    AllocationCheck,
     BucketDerivation,
     Derivation,
     EligibilityOutcome,
@@ -110,8 +136,21 @@ from recycleguard.domain.models import (
     PriorityCheck,
     QuantityDisposition,
 )
+from recycleguard.indexing.models import IndexedChunk
 from recycleguard.intake.acquisition import AcquisitionOutcome
 from recycleguard.intake.batch import IntakeBatchResult
+from recycleguard.investigation import (
+    Inspection,
+    InspectRequest,
+    InvestigationConfiguration,
+    InvestigationReport,
+    InvestigationRequest,
+    LocatorRequest,
+    ReconcileRequest,
+    ScriptedExchange,
+    SearchRequest,
+    TraceRequest,
+)
 from recycleguard.local_model import LocalModelConfig
 from recycleguard.model_port import ModelCallRequest, ModelCallResult
 from recycleguard.normalization.models import (
@@ -126,10 +165,47 @@ from recycleguard.reporting.baseline import (
     ReportSection,
     VerificationResult,
 )
+from recycleguard.retrieval.claim_checks import (
+    RegulatoryCheckRequest,
+    RegulatoryCheckResult,
+    RegulatoryClaimFinding,
+)
 from recycleguard.workflow.runner import CallRecord, ProviderUsage
 
 MODELS = [
     LocalModelConfig,
+    CandidateDisposition,
+    DenseConfiguration,
+    EvidenceBundle,
+    EvidenceGrade,
+    ExpansionPolicy,
+    IndexManifest,
+    LexicalConfiguration,
+    LocatorLookupRequest,
+    RetrievalAttempt,
+    SearchRulesRequest,
+    AcknowledgmentRecord,
+    ReviewDecision,
+    ReviewPacket,
+    ReviewRecord,
+    ReviewTransitionResult,
+    AmendmentEdge,
+    ApplicabilityAssertion,
+    DeadlineEntry,
+    IndexedChunk,
+    Inspection,
+    InspectRequest,
+    InvestigationConfiguration,
+    InvestigationReport,
+    InvestigationRequest,
+    LocatorRequest,
+    ReconcileRequest,
+    ScriptedExchange,
+    SearchRequest,
+    TraceRequest,
+    RegulatoryCheckRequest,
+    RegulatoryCheckResult,
+    RegulatoryClaimFinding,
     ActionDraft,
     ActionProposal,
     AssessmentProposal,
@@ -160,6 +236,7 @@ MODELS = [
     VerificationResult,
     QuantityDisposition,
     Derivation,
+    AllocationCheck,
     BucketDerivation,
     EligibilityOutcome,
     LotCheck,
@@ -221,8 +298,13 @@ MODELS = [
     Entity,
     Identifier,
     ObligationBucket,
+    ProductMapping,
     Registration,
     ReviewedInterval,
+    SalesRecord,
+    CheckRequest,
+    CheckTarget,
+    StructuredCheckResult,
     AssetEntry,
     CaseManifest,
     TableDisposition,

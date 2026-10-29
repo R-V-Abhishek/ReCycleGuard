@@ -1,0 +1,149 @@
+{
+  "$defs": {
+    "ActorRef": {
+      "additionalProperties": false,
+      "properties": {
+        "actor_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Actor Id",
+          "type": "string"
+        },
+        "actor_kind": {
+          "enum": [
+            "HUMAN",
+            "SERVICE",
+            "MODEL_PROPOSAL",
+            "EVALUATOR"
+          ],
+          "title": "Actor Kind",
+          "type": "string"
+        },
+        "authenticated_session_ref": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Authenticated Session Ref"
+        }
+      },
+      "required": [
+        "actor_id",
+        "actor_kind",
+        "authenticated_session_ref"
+      ],
+      "title": "ActorRef",
+      "type": "object"
+    },
+    "SnapshotRef": {
+      "additionalProperties": false,
+      "description": "Pinned reference; introduced by A02, not an implemented C05 lookup.",
+      "properties": {
+        "snapshot_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "membership_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Membership Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "snapshot_id",
+        "membership_digest"
+      ],
+      "title": "SnapshotRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "review_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Review Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "report_revision_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Report Revision Id",
+      "type": "string"
+    },
+    "input_snapshot_refs": {
+      "items": {
+        "$ref": "#/$defs/SnapshotRef"
+      },
+      "title": "Input Snapshot Refs",
+      "type": "array"
+    },
+    "packet_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Packet Id",
+      "type": "string"
+    },
+    "review_dependency_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Review Dependency Digest",
+      "type": "string"
+    },
+    "decision": {
+      "enum": [
+        "APPROVE",
+        "REJECT",
+        "REQUEST_CHANGES",
+        "ESCALATE"
+      ],
+      "title": "Decision",
+      "type": "string"
+    },
+    "authenticated_reviewer_ref": {
+      "$ref": "#/$defs/ActorRef"
+    },
+    "reason": {
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+    },
+    "recorded_at": {
+      "title": "Recorded At",
+      "type": "string"
+    },
+    "supersedes_review_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Supersedes Review Id"
+    }
+  },
+  "required": [
+    "review_id",
+    "run_id",
+    "report_revision_id",
+    "input_snapshot_refs",
+    "packet_id",
+    "review_dependency_digest",
+    "decision",
+    "authenticated_reviewer_ref",
+    "reason",
+    "recorded_at"
+  ],
+  "title": "ReviewRecord",
+  "type": "object"
+}

@@ -115,3 +115,10 @@ cp tmp/pdfs/PROJECT_CHARTER.pdf output/pdf/PROJECT_CHARTER.pdf
 | Vedantha Vinay Vernekar | 1BM23CD069 |
 
 Agentic AI (26CD7PEAAI), B.E. CSE (Data Science), VII Semester, BMSCE.
+
+### CP3 integrated investigation
+
+Real retrieval, domain tools, verified reports and authenticated review are integrated on
+`checkpoint-3`. C10 remains explicitly scripted for this offline checkpoint. See the
+[CP3 record](docs/checkpoints/checkpoint-3/README.md) for per-member work, limitations
+and reproducible CLI verification (`uv run scripts/verify_a07.py --data-root NEW_ROOT --output NEW_OUTPUT`).

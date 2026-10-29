@@ -1,5 +1,6 @@
 """Allocation validity and conservation. Checks only ever demote; nothing is promoted."""
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Literal
@@ -22,6 +23,8 @@ class Decision:
     codes: list[ErrorCode] = field(default_factory=list)
     # A conservation fault makes the bucket's supported figure untrustworthy, not just lower.
     conservation_fault: bool = False
+    # S04 rules that returned UNKNOWN: the allocation keeps its state but the bucket is qualified.
+    open_checks: list[str] = field(default_factory=list)
 
 
 def _exclude(decision: Decision, reason: str, code: ErrorCode, *, fault: bool = False):
@@ -102,6 +105,7 @@ def decide_allocations(
     events: dict[str, CertificateEvent],
     lots: dict[str, Lot],
     profile_id: str,
+    prechecks: Callable[[list[Decision]], None] | None = None,
 ) -> list[Decision]:
     decisions = [
         _initial(
@@ -113,6 +117,9 @@ def decide_allocations(
         )
         for a in allocations
     ]
+    if prechecks is not None:
+        # Lifecycle/capability demotions run first so ended credits never consume event capacity.
+        prechecks(decisions)
     _enforce_event_caps(decisions, events)
     return decisions
 

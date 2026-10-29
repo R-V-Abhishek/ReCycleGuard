@@ -1,0 +1,16 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "bucket_ids": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "maxItems": 50,
+      "title": "Bucket Ids",
+      "type": "array"
+    }
+  },
+  "title": "ReconcileRequest",
+  "type": "object"
+}

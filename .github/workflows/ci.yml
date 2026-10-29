@@ -27,4 +27,5 @@ jobs:
       - run: uv run --no-sync recycleguard doctor
       - run: uv run --no-sync scripts/verify_cp2.py --data-root .recycleguard/ci-cp2 --output tmp/ci-cp2-output
       - run: uv run --no-sync scripts/verify_a06.py --data-root .recycleguard/ci-a06 --output tmp/ci-a06-output
+      - run: uv run --no-sync scripts/verify_a07.py --data-root .recycleguard/ci-a07 --output tmp/ci-a07-output
       - run: uv build

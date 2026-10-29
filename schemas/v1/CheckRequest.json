@@ -1,0 +1,93 @@
+{
+  "additionalProperties": false,
+  "description": "Selects results only: the checked universe is always the whole pinned snapshot.\n\nSubjects by kind: COMPARE_IDENTITY [left, right entity]; LOOKUP_REGISTRATION_EVIDENCE\n[entity]; CHECK_CAPABILITY [recycler, producer]; LOOKUP_PRODUCT_MAPPING and\nCOMPARE_WEIGHT_BASIS [entity, sku]; AGGREGATE_SALES [entity] with `period`;\nGET_CERTIFICATE_HISTORY certificate or event ids; CHECK_CREDIT_EVENTS allocation or\ncertificate ids; MATCH_TRANSACTIONS commercial ids (empty means every commercial record).",
+  "properties": {
+    "check_kind": {
+      "enum": [
+        "COMPARE_IDENTITY",
+        "LOOKUP_REGISTRATION_EVIDENCE",
+        "CHECK_CAPABILITY",
+        "LOOKUP_PRODUCT_MAPPING",
+        "COMPARE_WEIGHT_BASIS",
+        "AGGREGATE_SALES",
+        "GET_CERTIFICATE_HISTORY",
+        "CHECK_CREDIT_EVENTS",
+        "MATCH_TRANSACTIONS"
+      ],
+      "title": "Check Kind",
+      "type": "string"
+    },
+    "case_version_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Case Version Id",
+      "type": "string"
+    },
+    "subjects": {
+      "items": {
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Subjects",
+      "type": "array"
+    },
+    "period": {
+      "anyOf": [
+        {
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Period"
+    },
+    "reference_event_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reference Event Id"
+    },
+    "profile_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Profile Id"
+    },
+    "expected_input_membership_digest": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Expected Input Membership Digest"
+    }
+  },
+  "required": [
+    "check_kind",
+    "case_version_id",
+    "subjects"
+  ],
+  "title": "CheckRequest",
+  "type": "object"
+}
