@@ -231,6 +231,38 @@
   },
   "additionalProperties": false,
   "properties": {
+    "service_operation_ids": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Service Operation Ids",
+      "type": "array"
+    },
+    "retrieval_attempt_ids": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Retrieval Attempt Ids",
+      "type": "array"
+    },
+    "calculation_ids": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Calculation Ids",
+      "type": "array"
+    },
+    "finding_revision_ids": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Finding Revision Ids",
+      "type": "array"
+    },
     "disposition": {
       "enum": [
         "PASS",

@@ -227,3 +227,31 @@ def test_parties_default_to_the_shared_test_entities():
     record = commercial()
     assert (record.issuer_entity_id, record.recipient_entity_id) == (RECYCLER, PRODUCER)
     assert allocation().allocation_time is None
+
+
+def test_failed_invoice_also_fails_paired_payment_linked_to_unallocated_transfer(tmp_path):
+    records = [
+        *UNALLOCATED,
+        commercial("comm:1", "25.0000", "INVOICE", linked=("evt:1",), recipient="entity:x"),
+        commercial("comm:2", "25.0000", "PAYMENT", linked=("comm:1", "evt:1")),
+    ]
+    result = run(tmp_path, records)
+    assert verdicts(match(tmp_path, records)) == {"comm:1": "FAIL", "comm:2": "FAIL"}
+    assert bucket_result(result).pending.decimal == "0.0000"
+    assert bucket_result(result).supported.decimal == "0.0000"
+
+
+def test_failed_group_does_not_consume_transfer_capacity_for_later_group(tmp_path):
+    records = [
+        *clean_case(),
+        commercial("comm:1", "55.0000", "INVOICE", linked=("evt:1",)),
+        commercial(
+            "comm:2", "55.0000", "PAYMENT", linked=("comm:1", "evt:1"), recipient="entity:x"
+        ),
+        commercial("comm:3", "55.0000", "INVOICE", linked=("evt:1",)),
+    ]
+    assert verdicts(match(tmp_path, records)) == {
+        "comm:1": "FAIL",
+        "comm:2": "FAIL",
+        "comm:3": "PASS",
+    }

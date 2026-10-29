@@ -6,15 +6,11 @@ Traverses parent provisions, table headers, footnotes, and applicable amendments
 subject to max_depth and max_nodes budget constraints.
 """
 
-from __future__ import annotations
-
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from recycleguard.contracts.retrieval import ExpansionPolicy
-
-if TYPE_CHECKING:
-    from recycleguard.contracts.sources import ProvisionVersion
-    from recycleguard.storage.blob_store import BlobStore
+from recycleguard.contracts.sources import ProvisionVersion
+from recycleguard.storage.blob_store import BlobStore
 
 
 class ContextExpander:
@@ -39,23 +35,25 @@ class ContextExpander:
         amendments: list[dict[str, Any]] = []
 
         visited_nodes = 0
+        seen = {provision.provision_version_id}
 
         # 1. Parent traversal
         if policy.include_parent and provision.parent_provision_id:
             curr_parent_id: str | None = provision.parent_provision_id
             depth = 0
             while curr_parent_id and depth < policy.max_depth and visited_nodes < policy.max_nodes:
+                if curr_parent_id in seen:
+                    break
+                seen.add(curr_parent_id)
                 parent_prov = self.provisions_map.get(curr_parent_id)
                 if not parent_prov:
                     break
-                p_text = self.blob_store.get(parent_prov.text_blob).decode(
-                    "utf-8", errors="replace"
-                )
+                p_text = self.blob_store.get(parent_prov.text_blob).decode("utf-8")
                 parents.append(
                     {
                         "provision_version_id": parent_prov.provision_version_id,
                         "legal_path": parent_prov.legal_path,
-                        "text": p_text[:500],
+                        "text": p_text,
                         "depth": depth + 1,
                     }
                 )

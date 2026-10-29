@@ -1,239 +1,102 @@
-"""Unit tests for H06 filtered retrieval, locator resolution, and 5D evidence grading.
-
-Owned by Sampreeth (H06 / C07).
-Verifies:
-- search_rules with BM25 ranking, server-side role/regime filtering, and candidate dispositions.
-- resolve_locator with unambiguous and ambiguous path lookups.
-- get_source_passage with bounded context expansion (ExpansionPolicy).
-- grade_evidence across the 5 mandatory dimensions:
-  authority, temporal_fit, direct_support, completeness, contradiction.
-- Audited retrieval attempt recording with AuditKernel.
-"""
-
-from __future__ import annotations
-
-from pathlib import Path
+"""Approved CP2 originals, index pins, exact locators, and honest evidence grades."""
 
 import pytest
 
-from recycleguard.contracts.core import ActorRef, CommandContext
-from recycleguard.contracts.foundation import SourceBatch
-from recycleguard.contracts.retrieval import (
-    ExpansionPolicy,
-    LocatorLookupRequest,
-    SearchRulesRequest,
-)
-from recycleguard.contracts.snapshots import SnapshotPublication
+from recycleguard.application import command_context
+from recycleguard.contracts.core import ActorRef
+from recycleguard.contracts.retrieval import LocatorLookupRequest, SearchRulesRequest
 from recycleguard.indexing.builder import IndexBuilder
-from recycleguard.knowledge.provisions import (
-    get_reviewed_provisions,
-    register_reviewed_sources,
-)
 from recycleguard.retrieval.service import RetrievalService
-from recycleguard.storage import ArtifactCatalog, AuditKernel, BlobStore
-from recycleguard.storage.authority import LocalAuthority, TrustedPrincipal
-from recycleguard.storage.blob_store import canonical_json_bytes
-
-FIXTURES_DIR = Path(__file__).resolve().parents[1] / "fixtures/visible"
-R02_PDF = FIXTURES_DIR / "h04/acquired_originals/e-waste_rules_2022.pdf"
-R08_PDF = FIXTURES_DIR / "h01/acquired_originals/cpcb_faq_20240123.pdf"
+from recycleguard.storage import AuditKernel
+from recycleguard.storage.authority import AuthorizationError, LocalAuthority, TrustedPrincipal
+from tests.integration.test_a04_foundation import review_environment
 
 
 @pytest.fixture
 def retrieval_env(tmp_path):
-    """Sets up an authentic index and corpus snapshot from CP1 reviewed sources."""
-    data_root = tmp_path / "data"
-    data_root.mkdir()
-    store = BlobStore(data_root / "blobs")
-
+    cases, _, reviewer, approval, ctx, _, review_cap = review_environment(tmp_path)
+    approved = reviewer.approve(ctx, approval, capability=review_cap).output
+    blobs = cases.kernel.blob_store
     actor = ActorRef(
-        actor_id="service:retriever", actor_kind="SERVICE", authenticated_session_ref=None
+        actor_id="service:retrieval", actor_kind="SERVICE", authenticated_session_ref=None
     )
-    authority = LocalAuthority({"retriever": TrustedPrincipal(actor, frozenset({"extraction."}))})
-    cap = authority.issue("retriever")
-
-    db_path = data_root / "app.sqlite"
-    kernel = AuditKernel(db_path, store, authority=authority)
-    catalog = ArtifactCatalog(db_path, store, kernel=kernel)
-
-    # 1. Register sources and reviewed provisions
-    r02_rev, r08_rev = register_reviewed_sources(store, r02_path=R02_PDF, r08_path=R08_PDF)
-    provisions = get_reviewed_provisions(store, r02_revision=r02_rev, r08_revision=r08_rev)
-
-    # 2. Build SourceBatch and CorpusSnapshot
-    source_batch = SourceBatch(
-        artifact_revisions=[r02_rev, r08_rev],
-        receipts=[],
-        leads=[],
-        source_versions=[],
-        provisions=provisions,
-        applicability=[],
-    )
-    batch_json = canonical_json_bytes(source_batch.model_dump(mode="json"))
-    membership_blob = store.put(batch_json, "application/json")
-    coverage_blob = store.put(b'{"coverage": []}', "application/json")
-
-    corpus_snapshot = SnapshotPublication(
-        scope_id="corpus:test_h06",
-        snapshot_id="snapshot:corpus_test_h06",
-        snapshot_kind="CORPUS",
-        expected_head=None,
-        membership_blob=membership_blob,
-        membership_digest=membership_blob.sha256,
-        coverage_blob=coverage_blob,
-        source_receipt_ids=[],
-    )
-
-    # 3. Build FTS5 Index
-    builder = IndexBuilder(data_root, store, catalog=catalog, kernel=kernel)
-    manifest, fts_index = builder.build_index(corpus_snapshot)
-
-    # 4. Instantiate RetrievalService
+    authority = LocalAuthority({"retrieval": TrustedPrincipal(actor, frozenset({"extraction."}))})
+    kernel = AuditKernel(tmp_path / "application.sqlite", blobs, authority=authority)
+    cap = authority.issue("retrieval")
+    builder = IndexBuilder(tmp_path, blobs, kernel=kernel)
+    context = command_context(actor)
+    manifest, index = builder.build_index(approved.corpus_snapshot, context=context, capability=cap)
     service = RetrievalService(
-        fts_index,
-        corpus_snapshot,
-        store,
-        kernel=kernel,
+        index, approved.corpus_snapshot, blobs, manifest=manifest, kernel=kernel
     )
+    yield service, manifest, builder, context, cap
+    index.close()
+    kernel.close()
+    cases.kernel.close()
 
-    return service, manifest, corpus_snapshot, store, kernel, cap, actor
 
-
-def test_search_rules_with_dispositions_and_role_filtering(retrieval_env):
-    """Verify search_rules BM25 ranking, server-side filtering, and candidate dispositions."""
-    service, manifest, snapshot, store, kernel, cap, actor = retrieval_env
-
-    # 1. Broad query without role filter
-    req = SearchRulesRequest(
-        query="Rule 6 annual returns",
-        corpus_snapshot_id=snapshot.snapshot_id,
+def test_real_approved_corpus_retrieval_preserves_uncertainty_and_all_dispositions(retrieval_env):
+    service, manifest, _, build_context, cap = retrieval_env
+    request = SearchRulesRequest(
+        query="producer",
+        corpus_snapshot_id=service.corpus_snapshot.snapshot_id,
         index_id=manifest.index_id,
-        top_k=2,
+        target_reporting_period="2024-2025",
     )
-    attempt = service.search_rules(req)
-
-    assert attempt.attempt_id.startswith("retrieval:")
-    assert len(attempt.engine_candidates) >= 1
-    assert any(
-        c["legal_path"] == "Rule 6(4), full physical-page context"
-        for c in attempt.engine_candidates
+    with pytest.raises(AuthorizationError):
+        service.search_rules(request)
+    ctx = command_context(build_context.actor)
+    attempt = service.search_rules(request, context=ctx, capability=cap)
+    assert attempt.engine_candidates
+    assert len(attempt.candidate_dispositions) == manifest.total_chunks
+    assert any(g.authority == "PASS" for g in attempt.grading_assessments)
+    assert all(g.temporal_fit == "UNRESOLVED" for g in attempt.grading_assessments)
+    assert all(
+        g.direct_support == "UNRESOLVED" and g.contradiction == "UNRESOLVED"
+        for g in attempt.grading_assessments
     )
-
-    # Check candidate dispositions
-    disposition_kinds = {d.disposition for d in attempt.candidate_dispositions}
-    assert "SCORED" in disposition_kinds
-
-    # Check grading assessments
-    assert len(attempt.grading_assessments) >= 1
-    grade = attempt.grading_assessments[0]
-    assert grade.authority == "PASS"
-    assert grade.temporal_fit == "PASS"
-    assert grade.direct_support in {"PASS", "UNRESOLVED"}
-
-    # 2. Query with role filter for RECYCLER (Rule 6 is PRODUCER specific)
-    req_recycler = SearchRulesRequest(
-        query="Rule 6 responsibilities",
-        corpus_snapshot_id=snapshot.snapshot_id,
-        index_id=manifest.index_id,
-        roles=["RECYCLER"],
-        top_k=2,
-    )
-    attempt_recycler = service.search_rules(req_recycler)
-    # Rule 6 only has PRODUCER role, so it must be filtered out
-    for cand in attempt_recycler.engine_candidates:
-        assert cand["legal_path"] != "Rule 6(4), full physical-page context"
-
-
-def test_resolve_locator_exact_and_ambiguous(retrieval_env):
-    """Verify resolve_locator finds exact legal paths and handles ambiguities."""
-    service, manifest, snapshot, store, kernel, cap, actor = retrieval_env
-
-    # 1. Exact lookup of Rule 15
-    req = LocatorLookupRequest(
-        corpus_snapshot_id=snapshot.snapshot_id,
-        source_alias_or_source_version_id="r02",
-        legal_path="Rule 15",
-    )
-    bundle = service.resolve_locator(req)
-    assert bundle.bundle_id.startswith("bundle:")
-    assert "Rule 15" in bundle.legal_path
-    assert bundle.locator.page_index_1based == 27
-    assert len(bundle.primary_passage) > 0
-
-    # 2. Nonexistent path raises KeyError
-    with pytest.raises(KeyError):
-        service.resolve_locator(
-            LocatorLookupRequest(
-                corpus_snapshot_id=snapshot.snapshot_id,
-                source_alias_or_source_version_id="r02",
-                legal_path="Rule 999_nonexistent",
-            )
+    assert all(g.evidence_refs for g in attempt.grading_assessments)
+    assert service.search_rules(request, context=ctx, capability=cap) == attempt
+    events = service.kernel.list_stream_events(f"stream:{service.corpus_snapshot.snapshot_id}")
+    assert [e.event_type for e in events].count("extraction.retrieval.result") == 1
+    with pytest.raises(ValueError, match="pins"):
+        service.search_rules(
+            request.model_copy(update={"index_id": "index:wrong"}),
+            context=command_context(ctx.actor),
+            capability=cap,
         )
 
 
-def test_get_source_passage_and_expansion(retrieval_env):
-    """Verify get_source_passage expands context bounded by ExpansionPolicy."""
-    service, manifest, snapshot, store, kernel, cap, actor = retrieval_env
-
-    # Fetch Rule 6 provision bundle
-    bundle = service.get_source_passage(
-        "provision:r02_rule6_sub4",
-        expansion_policy=ExpansionPolicy(max_depth=2, max_nodes=10),
+def test_exact_locator_rejects_wrong_source_and_does_not_guess(retrieval_env):
+    service, _, _, _, _ = retrieval_env
+    provision = next(
+        p for p in service.provisions_map.values() if p.locator.page_index_1based == 27
     )
-    assert bundle.provision_version_id == "provision:r02_rule6_sub4"
-    assert bundle.locator.page_index_1based == 24
-    assert len(bundle.primary_passage) > 50
-
-
-def test_grade_evidence_five_dimensions(retrieval_env):
-    """Verify grade_evidence assesses the 5 mandatory evidence quality dimensions."""
-    service, manifest, snapshot, store, kernel, cap, actor = retrieval_env
-
-    bundle = service.get_source_passage("provision:r08_sec_c_recycler_capability")
-    grades = service.grade_evidence(
-        bundle.bundle_id,
-        question="What is the recycler capability requirement for electrical equipment?",
-        basis="REPORTING_PERIOD",
+    request = LocatorLookupRequest(
+        corpus_snapshot_id=service.corpus_snapshot.snapshot_id,
+        source_alias_or_source_version_id=provision.source_version_id,
+        legal_path=provision.legal_path,
     )
+    bundle = service.resolve_locator(request)
+    assert bundle.locator == provision.locator
+    assert bundle.primary_passage == service.blob_store.get(provision.text_blob).decode()
+    assert "APPLICABILITY_UNRESOLVED" in bundle.applicability_qualifiers
+    with pytest.raises(KeyError):
+        service.resolve_locator(
+            request.model_copy(update={"source_alias_or_source_version_id": "r99"})
+        )
+    with pytest.raises(KeyError):
+        service.resolve_locator(request.model_copy(update={"legal_path": "Rule 1"}))
 
-    assert len(grades) == 1
-    grade = grades[0]
-    assert grade.authority in {"PASS", "UNRESOLVED"}
-    assert grade.temporal_fit == "PASS"
-    assert grade.direct_support in {"PASS", "UNRESOLVED"}
-    assert grade.completeness in {"PASS", "UNRESOLVED"}
-    assert grade.contradiction == "PASS"
-    assert len(grade.reasons) >= 2
 
-
-def test_audited_search_rules_commits_to_kernel(retrieval_env):
-    """Verify search_rules commits operation intent and result to AuditKernel."""
-    service, manifest, snapshot, store, kernel, cap, actor = retrieval_env
-
-    context = CommandContext(
-        contract_version="1.1",
-        command_id="cmd:test_retrieval",
-        operation_id="op:test_retrieval",
-        attempt_id="att:test_retrieval",
-        idempotency_key="key:test_retrieval",
-        actor=actor,
-        case_version_id=None,
-        run_id=None,
-        turn_id=None,
-        correlation_id="corr:test_retrieval",
-        parent_operation_id=None,
-    )
-
-    req = SearchRulesRequest(
-        query="allocation priority",
-        corpus_snapshot_id=snapshot.snapshot_id,
-        index_id=manifest.index_id,
-        top_k=2,
-    )
-
-    attempt = service.search_rules(req, context=context, capability=cap)
-    assert attempt.full_result_blob is not None
-
-    events = kernel.list_stream_events(f"stream:{attempt.attempt_id}")
-    assert len(events) >= 1
-    assert events[0].event_type == "extraction.retrieval.result"
+def test_immutable_index_recovers_missing_cache_and_rejects_tamper(retrieval_env):
+    service, manifest, builder, ctx, cap = retrieval_env
+    path = service.index.db_path
+    service.index.close()
+    path.unlink()
+    same, index = builder.build_index(service.corpus_snapshot, context=ctx, capability=cap)
+    assert same == manifest and index.search("producer")
+    index.close()
+    path.write_bytes(b"tampered")
+    with pytest.raises(ValueError, match="differ"):
+        builder.build_index(service.corpus_snapshot, context=ctx, capability=cap)

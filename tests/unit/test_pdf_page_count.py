@@ -61,6 +61,12 @@ def test_footer_rules():
     assert _missing_printed_pages(_pages("text", "more text")) == (0, [])
     assert _missing_printed_pages(_pages("Page 1 of 2", "Page 1 of 3")) == (0, [])
     # A number outside its own total is not a usable footer.
-    assert _missing_printed_pages(_pages("Page 5 of 3")) == (3, [])
+    assert _missing_printed_pages(_pages("Page 5 of 3")) == (0, [])
     # A textless page between footers takes the next printed number.
     assert _missing_printed_pages(_pages("Page 1 of 4", "", "Page 3 of 4")) == (4, [4])
+
+
+def test_present_unlabelled_pages_do_not_become_invented_absent_locators():
+    assert _missing_printed_pages(_pages("Page 1 of 4", "Present page without footer")) == (4, [])
+    assert _missing_printed_pages(_pages("Page 1 of 6", "", "", "", "Page 5 of 6")) == (6, [6])
+    assert _missing_printed_pages(_pages("Page 1 of 4", "Page 1 of 4")) == (4, [])

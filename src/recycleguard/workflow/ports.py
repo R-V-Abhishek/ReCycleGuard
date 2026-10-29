@@ -18,3 +18,11 @@ class WorkflowStages:
     preflight: Callable[[CommandContext, RunSpec], ServiceResult[StageOutcome]]
     draft: Callable[[CommandContext, RunSpec], ServiceResult[StageOutcome]]
     verify: Callable[[CommandContext, RunSpec], ServiceResult[StageOutcome]]
+
+
+class OutcomeUnknownError(RuntimeError):
+    """A child operation may have committed; retrying it automatically is unsafe."""
+
+    def __init__(self, code, message):
+        super().__init__(message)
+        self.code = code

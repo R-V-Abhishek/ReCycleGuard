@@ -49,7 +49,7 @@ def test_unknown_check_kind_cannot_be_expressed():
 
 
 def test_tool_version_is_the_s04_version():
-    assert TOOL_VERSION == "c08-s04-0.1"
+    assert TOOL_VERSION == "c08-s04-0.2"
 
 
 def test_wrong_subject_count_is_rejected_not_guessed(tmp_path):

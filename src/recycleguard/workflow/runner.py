@@ -36,7 +36,7 @@ from recycleguard.model_port import ModelCallRequest, ModelCallResult
 from recycleguard.storage import canonical_json_bytes
 from recycleguard.storage.authority import AuthorizationError
 
-from .ports import ToolBinding, WorkflowStages
+from .ports import OutcomeUnknownError, ToolBinding, WorkflowStages
 from .store import GraphStore
 
 _TERMINAL = {"COMPLETED", "FAILED", "CANCELLED", "BLOCKED_INPUT", "BLOCKED_OUTPUT"}
@@ -474,6 +474,12 @@ class WorkflowRunner:
                 ],
             }
         )
+        service_outputs = [
+            self.store.read(event.operation_id, CallRecord).stage_output
+            for event in current_events
+            if event.event_type.startswith(("graph.tool.", "graph.stage."))
+            and event.event_type.endswith(".result")
+        ]
         manifest = TurnManifest(
             turn_id=f"turn:{spec.run_id}:{initial.current_turn + 1}",
             run_id=spec.run_id,
@@ -497,9 +503,30 @@ class WorkflowRunner:
                 for e in current_events
                 if e.event_type == "graph.context.result"
             ],
-            retrieval_attempt_ids=[],
-            calculation_ids=[],
-            finding_revision_ids=[],
+            retrieval_attempt_ids=list(
+                dict.fromkeys(
+                    ref
+                    for output in service_outputs
+                    if output is not None
+                    for ref in output.retrieval_attempt_ids
+                )
+            ),
+            calculation_ids=list(
+                dict.fromkeys(
+                    ref
+                    for output in service_outputs
+                    if output is not None
+                    for ref in output.calculation_ids
+                )
+            ),
+            finding_revision_ids=list(
+                dict.fromkeys(
+                    ref
+                    for output in service_outputs
+                    if output is not None
+                    for ref in output.finding_revision_ids
+                )
+            ),
             plan_refs=state.plan_refs[len(initial.plan_refs) :],
             observation_assessment_refs=state.assessment_refs[len(initial.assessment_refs) :],
             plan_revised=any(
@@ -722,6 +749,18 @@ class WorkflowRunner:
                         stage_output=None if kind == "model" else raw.output,
                         issues=issues,
                     )
+                except OutcomeUnknownError as exc:
+                    blob = self.blobs.put(
+                        canonical_json_bytes({"error": str(exc), "code": exc.code}),
+                        "application/json",
+                    )
+                    record = CallRecord(
+                        status="OUTCOME_UNKNOWN",
+                        raw_result_blob=blob,
+                        model_output=None,
+                        stage_output=None,
+                        issues=[self._issue(exc.code, str(exc))],
+                    )
                 except TimeoutError as exc:
                     blob = self.blobs.put(
                         canonical_json_bytes({"error": str(exc)}),
@@ -751,6 +790,9 @@ class WorkflowRunner:
                     "application/json",
                 )
                 refs = [record.raw_result_blob]
+                if raw is not None and raw.output_blob is not None:
+                    self.blobs.get(raw.output_blob)
+                    refs.append(raw.output_blob)
                 if record.model_output is not None:
                     refs.append(record.model_output.exact_response_blob)
                 if record.stage_output is not None and record.stage_output.output_blob is not None:

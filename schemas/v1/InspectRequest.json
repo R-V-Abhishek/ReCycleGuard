@@ -1,0 +1,16 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "observation_ids": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "maxItems": 50,
+      "title": "Observation Ids",
+      "type": "array"
+    }
+  },
+  "title": "InspectRequest",
+  "type": "object"
+}

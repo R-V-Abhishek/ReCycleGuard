@@ -1,18 +1,15 @@
 # CP3: integrated investigation
 
-Status: **WAITING**. A06 is implemented on its feature branch; this directory records
-construction as components arrive. No CP3 candidate is frozen or approved.
+Integrated on `checkpoint-3`, 29 October 2026. Lead requested technical completion,
+push and closure in this conversation. Closure applies to the qualified offline
+investigation scope with **real tools and scripted C10**, subject to the recorded
+verification results. It does not approve MG1, real-model quality, legal validity
+or held-out evaluation.
 
-See [A06 verification](verification.md) for the checks and scripted demonstration.
+See [A06](a06.md), [A07 and reproduction](a07.md),
+[member contributions](contributions.md), [verification](verification.md) and
+[approval record](approvals.json).
 
-| Member | Contribution recorded so far | Remaining integration boundary |
-| --- | --- | --- |
-| Abhishek | [A06 bounded graph, budgets, audit and recovery](a06.md) | A07 real-service integration and review transitions |
-| Sampreeth | No CP3 submission integrated in this workstream | H06 retrieval, H07 fault/temporal checks |
-| Sushanth | No CP3 submission integrated in this workstream | S04 commercial handling, S06 checks |
-| Vedantha | No CP3 submission integrated in this workstream | V05 report verification |
-
-These entries describe this branch's integration history, not teammates' remote
-work status. Preserve submitted commit/PR attribution when merging their work.
-Before acceptance, add an exact candidate/digest manifest, integration verification
-and actual approval references. CI success alone does not approve CP3.
+Next work: H08 corpus/profile audit, S07 grouped pilot, V06 export/replay and V07
+runtime isolation. V08 additionally needs V06/V07; V09 needs S07/H08; A08 still
+needs H08/V08/V09. `READY` means dependencies permit starting, not completed.

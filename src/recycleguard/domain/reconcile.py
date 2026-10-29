@@ -42,7 +42,7 @@ from recycleguard.domain.universe import Universe
 from recycleguard.normalization.units import NumericSafetyError
 from recycleguard.storage import canonical_json_bytes
 
-TOOL_VERSION = "c08-s04-0.1"
+TOOL_VERSION = "c08-s04-0.2"
 _RANK = {"COMPLETE_WITHIN_SCOPE": 0, "QUALIFIED": 1, "BLOCKED": 2}
 
 

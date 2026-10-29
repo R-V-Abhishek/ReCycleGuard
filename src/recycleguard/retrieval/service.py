@@ -1,293 +1,296 @@
-"""C07 Retrieval, locator resolution, and evidence grading service.
+"""Frozen lexical retrieval with exact source locators and durable audit records."""
 
-Owned by Sampreeth (H06).
-Implements CONTRACTS §6.1:
-- search_rules(SearchRulesRequest) -> RetrievalAttempt
-- get_source_passage(provision_version_id, expansion_policy) -> EvidenceBundle
-- resolve_locator(LocatorLookupRequest) -> EvidenceBundle
-- grade_evidence(bundle_id, question, basis) -> list[EvidenceGrade]
-"""
-
-from __future__ import annotations
-
-import json
-from typing import TYPE_CHECKING
-from uuid import uuid4
+import hashlib
 
 from recycleguard.contracts.audit import OperationIntent, OperationResult
-from recycleguard.contracts.foundation import SourceBatch
+from recycleguard.contracts.core import EvidenceRef
 from recycleguard.contracts.retrieval import (
     CandidateDisposition,
     EvidenceBundle,
-    EvidenceGrade,
     ExpansionPolicy,
-    LocatorLookupRequest,
     RetrievalAttempt,
-    SearchRulesRequest,
 )
-from recycleguard.contracts.snapshots import SnapshotPublication
-from recycleguard.contracts.sources import ProvisionVersion
+from recycleguard.indexing.corpus import load_corpus
+from recycleguard.knowledge.deadline_register import TemporalApplicabilityChecker
 from recycleguard.retrieval.expansion import ContextExpander
 from recycleguard.retrieval.grader import EvidenceGrader
-from recycleguard.storage.blob_store import canonical_json_bytes
-
-if TYPE_CHECKING:
-    from recycleguard.contracts.core import CommandContext
-    from recycleguard.indexing.fts_index import FTS5Index
-    from recycleguard.storage.audit_kernel import AuditKernel
-    from recycleguard.storage.authority import Capability
-    from recycleguard.storage.blob_store import BlobStore
+from recycleguard.storage import canonical_json_bytes
+from recycleguard.storage.authority import AuthorizationError
 
 
 class RetrievalService:
-    """Regulatory retrieval, locator resolution, and evidence grading service."""
-
-    def __init__(
-        self,
-        index: FTS5Index,
-        corpus_snapshot: SnapshotPublication,
-        blob_store: BlobStore,
-        *,
-        kernel: AuditKernel | None = None,
-    ):
-        self.index = index
-        self.corpus_snapshot = corpus_snapshot
-        self.blob_store = blob_store
-        self.kernel = kernel
-
-        # Load provisions map from corpus snapshot membership
-        raw_membership = blob_store.get(corpus_snapshot.membership_blob)
-        membership_dict = json.loads(raw_membership.decode("utf-8"))
-        source_batch = SourceBatch.model_validate(membership_dict)
-
-        self.provisions_map: dict[str, ProvisionVersion] = {
-            p.provision_version_id: p for p in source_batch.provisions
-        }
-        self.sources_map = {s.source_version_id: s for s in source_batch.source_versions}
-        self.leads_map = {lead.source_lead_id: lead for lead in source_batch.leads}
-
-        self.expander = ContextExpander(self.blob_store, self.provisions_map)
+    def __init__(self, index, corpus_snapshot, blob_store, *, manifest=None, kernel=None):
+        self.index, self.corpus_snapshot, self.blob_store = index, corpus_snapshot, blob_store
+        self.manifest, self.kernel = manifest or index.manifest, kernel
+        self.view = load_corpus(corpus_snapshot, blob_store)
+        self.provisions_map = {p.provision_version_id: p for p in self.view.batch.provisions}
+        self.sources_map = {s.source_version_id: s for s in self.view.batch.source_versions}
+        self.leads_map = {s.source_lead_id: s for s in self.view.batch.leads}
+        self.expander = ContextExpander(blob_store, self.provisions_map)
         self.grader = EvidenceGrader()
-        self.bundles_cache: dict[str, EvidenceBundle] = {}
+        self.temporal = TemporalApplicabilityChecker(self.view.assertions)
+        self.bundles_cache = {}
+        if self.manifest is None:
+            raise ValueError("retrieval requires an exact index manifest")
+        if (
+            self.manifest.corpus_snapshot_id != corpus_snapshot.snapshot_id
+            or self.manifest.corpus_membership_digest != corpus_snapshot.membership_digest
+        ):
+            raise ValueError("index is not bound to the supplied frozen corpus")
+        if hashlib.sha256(index.db_path.read_bytes()).hexdigest() != self.manifest.integrity_digest:
+            raise ValueError("index integrity differs from manifest")
 
-    def search_rules(
-        self,
-        request: SearchRulesRequest,
-        *,
-        context: CommandContext | None = None,
-        capability: Capability | None = None,
-    ) -> RetrievalAttempt:
-        """Search regulatory index with server-side filters and candidate dispositions."""
-        attempt_id = f"retrieval:{uuid4().hex[:12]}"
-        candidates = self.index.search(request.query, limit=request.top_k * 3)
-
-        dispositions: list[CandidateDisposition] = []
-        engine_candidates: list[dict[str, object]] = []
-        grading_assessments: list[EvidenceGrade] = []
-        selected_refs: list[str] = []
-        excluded_refs: list[str] = []
-        expansion_edges: list[dict[str, object]] = []
-
-        valid_count = 0
-        for chunk, score in candidates:
-            # 1. Server-side Regime Filter
-            if request.regimes and chunk.regime not in request.regimes:
-                dispositions.append(
-                    CandidateDisposition(
-                        candidate_ref=chunk.chunk_id,
-                        disposition="FILTERED_OUT",
-                        reason=f"Regime {chunk.regime} not in requested {request.regimes}",
-                        score=score,
-                    )
-                )
-                excluded_refs.append(chunk.chunk_id)
-                continue
-
-            # 2. Server-side Role Filter
-            if request.roles and not any(r in chunk.affected_roles for r in request.roles):
-                dispositions.append(
-                    CandidateDisposition(
-                        candidate_ref=chunk.chunk_id,
-                        disposition="FILTERED_OUT",
-                        reason=(
-                            f"Roles {chunk.affected_roles} do not match requested {request.roles}"
-                        ),
-                        score=score,
-                    )
-                )
-                excluded_refs.append(chunk.chunk_id)
-                continue
-
-            # 3. Window & Ranking Check
-            valid_count += 1
-            if valid_count <= request.top_k:
-                dispositions.append(
-                    CandidateDisposition(
-                        candidate_ref=chunk.chunk_id,
-                        disposition="SCORED",
-                        reason="Top-k engine match",
-                        score=score,
-                        rank=valid_count,
-                    )
-                )
-                selected_refs.append(chunk.chunk_id)
-                engine_candidates.append(
-                    {
-                        "chunk_id": chunk.chunk_id,
-                        "provision_version_id": chunk.provision_version_id,
-                        "legal_path": chunk.legal_path,
-                        "text": chunk.text,
-                        "score": score,
-                        "rank": valid_count,
-                    }
-                )
-
-                # Grade candidate
-                grade = self.grader.grade_candidate(
-                    chunk,
-                    request.query,
-                    target_period=request.target_reporting_period,
-                )
-                grading_assessments.append(grade)
-            else:
-                dispositions.append(
-                    CandidateDisposition(
-                        candidate_ref=chunk.chunk_id,
-                        disposition="OUTSIDE_ENGINE_WINDOW",
-                        reason=f"Rank {valid_count} exceeds top_k limit {request.top_k}",
-                        score=score,
-                        rank=valid_count,
-                    )
-                )
-                excluded_refs.append(chunk.chunk_id)
-
-        # Build full result blob in BlobStore
-        attempt = RetrievalAttempt(
-            attempt_id=attempt_id,
-            request=request,
-            eligibility_set_reference=self.corpus_snapshot.snapshot_id,
-            candidate_dispositions=dispositions,
-            engine_candidates=engine_candidates,
-            graph_expansion_edges=expansion_edges,
-            grading_assessments=grading_assessments,
-            selected_refs=selected_refs,
-            excluded_refs=excluded_refs,
-            execution_versions={"retrieval_engine": "1.0", "grader": "1.0"},
+    def _grade(self, chunk, request):
+        source = self.sources_map.get(chunk.source_version_id)
+        lead = self.leads_map.get(source.source_lead_id) if source else None
+        provision = self.provisions_map[chunk.provision_version_id]
+        refs = [
+            EvidenceRef(
+                ref_kind="PROVISION",
+                ref_id=provision.provision_version_id,
+                artifact_revision_id=source.artifact_revision_id if source else None,
+                locator=chunk.locator,
+            )
+        ]
+        return self.grader.grade_candidate(
+            chunk,
+            request.query,
+            target_period=request.target_reporting_period,
+            source_class=lead.source_class if lead else None,
+            source_reviewed=bool(
+                source
+                and source.review_state == "APPROVED"
+                and provision.review_state == "APPROVED"
+                and self.view.approved
+            ),
+            complete=bool(
+                source
+                and source.completeness == "COMPLETE_TEXT"
+                and not provision.parent_provision_id
+            ),
+            temporal_fit=self.temporal.check_temporal_fit(
+                provision.applicability_assertion_id,
+                request.target_reporting_period,
+                question_basis=request.question_basis,
+            ),
+            evidence_refs=refs,
         )
 
-        attempt_blob = self.blob_store.put(
-            canonical_json_bytes(attempt.model_dump(mode="json")), "application/json"
+    def search_rules(self, request, *, context=None, capability=None):
+        if (
+            request.corpus_snapshot_id != self.corpus_snapshot.snapshot_id
+            or request.index_id != self.manifest.index_id
+        ):
+            raise ValueError("request corpus/index pins differ from active frozen inputs")
+        if request.expected_index_digest not in {None, self.manifest.integrity_digest}:
+            raise ValueError("request index digest mismatch")
+        if request.expected_corpus_membership_digest not in {
+            None,
+            self.corpus_snapshot.membership_digest,
+        }:
+            raise ValueError("request corpus membership digest mismatch")
+        intent = None
+        request_blob = self.blob_store.put(
+            canonical_json_bytes(request.model_dump(mode="json")), "application/json"
         )
-        attempt = attempt.model_copy(update={"full_result_blob": attempt_blob})
-
-        # Audited commit if kernel and capability are present
-        if self.kernel is not None and capability is not None and context is not None:
+        if self.kernel is not None:
+            if context is None or capability is None or context.actor.actor_kind != "SERVICE":
+                raise AuthorizationError(
+                    "audited retrieval requires trusted SERVICE context and capability"
+                )
+            self.kernel.authority.check(capability, context.actor, "extraction.retrieval")
             intent = OperationIntent(
                 context=context,
                 idempotency_key=context.idempotency_key,
                 event_type="extraction.retrieval",
-                payload=attempt_blob,
-                stream_id=f"stream:{attempt_id}",
+                payload=request_blob,
+                stream_id=f"stream:{context.run_id or self.corpus_snapshot.snapshot_id}",
             )
             self.kernel.commit_intent(intent, capability=capability)
-            result = OperationResult(
-                operation_id=context.operation_id,
-                attempt_id=context.attempt_id,
-                status="SUCCESS",
-                payload=attempt_blob,
-                issue_codes=[],
+            previous = self.kernel.get_result(context.operation_id)
+            if previous is not None:
+                return RetrievalAttempt.model_validate_json(self.blob_store.get(previous.payload))
+        if (
+            hashlib.sha256(self.index.db_path.read_bytes()).hexdigest()
+            != self.manifest.integrity_digest
+        ):
+            raise ValueError("index integrity differs from manifest")
+        candidates = self.index.search(request.query, limit=max(1, self.manifest.total_chunks))
+        scores = {chunk.chunk_id: (chunk, score) for chunk, score in candidates}
+        dispositions, selected, excluded, engine, grades = [], [], [], [], []
+        eligible_candidates = [
+            chunk
+            for chunk, _ in candidates
+            if (not request.regimes or chunk.regime in request.regimes)
+            and (
+                not request.roles
+                or chunk.role_scope == "GENERAL"
+                or set(request.roles).intersection(chunk.affected_roles)
             )
-            self.kernel.commit_result(intent, result, capability=capability)
-
+        ]
+        ranks = {chunk.chunk_id: rank for rank, chunk in enumerate(eligible_candidates, 1)}
+        for chunk in self.index.all_chunks():
+            rank = None
+            reason, disposition = "No lexical match", "NOT_SCORED"
+            score = scores[chunk.chunk_id][1] if chunk.chunk_id in scores else None
+            if chunk.disposition != "INDEXED":
+                disposition, reason = "FILTERED_OUT", f"Corpus disposition {chunk.disposition}"
+            elif request.regimes and chunk.regime not in request.regimes:
+                disposition, reason = "FILTERED_OUT", "Regime filter"
+            elif (
+                request.roles
+                and not set(request.roles).intersection(chunk.affected_roles)
+                and chunk.role_scope != "GENERAL"
+            ):
+                disposition, reason = "FILTERED_OUT", "Role filter"
+            elif score is not None:
+                rank = ranks[chunk.chunk_id]
+                if rank > request.top_k:
+                    disposition, reason = "OUTSIDE_ENGINE_WINDOW", "Outside requested top-k"
+                else:
+                    grade = self._grade(chunk, request)
+                    grades.append(grade)
+                    rejected = "FAIL" in (grade.authority, grade.temporal_fit)
+                    disposition = "REJECTED_SUPPORT" if rejected else "SCORED"
+                    reason = (
+                        "Rejected authority/applicability"
+                        if rejected
+                        else "Lexical context; support remains explicitly graded"
+                    )
+                    if not rejected:
+                        selected.append(chunk.chunk_id)
+                        engine.append(
+                            {
+                                "chunk_id": chunk.chunk_id,
+                                "provision_version_id": chunk.provision_version_id,
+                                "legal_path": chunk.legal_path,
+                                "text": chunk.text,
+                                "score": score,
+                                "rank": rank,
+                            }
+                        )
+            dispositions.append(
+                CandidateDisposition(
+                    candidate_ref=chunk.chunk_id,
+                    disposition=disposition,
+                    reason=reason,
+                    score=score,
+                    rank=rank if score is not None else None,
+                )
+            )
+            if chunk.chunk_id not in selected:
+                excluded.append(chunk.chunk_id)
+        attempt = RetrievalAttempt(
+            attempt_id=f"retrieval:{request_blob.sha256[:24]}",
+            request=request,
+            eligibility_set_reference=self.corpus_snapshot.snapshot_id,
+            candidate_dispositions=dispositions,
+            engine_candidates=sorted(engine, key=lambda item: item["rank"]),
+            graph_expansion_edges=[],
+            grading_assessments=grades,
+            selected_refs=selected,
+            excluded_refs=excluded,
+            execution_versions={
+                "retrieval_engine": "cp3-frozen-1",
+                "grader": self.grader.assessment_version,
+            },
+        )
+        body = self.blob_store.put(
+            canonical_json_bytes(attempt.model_dump(mode="json")), "application/json"
+        )
+        attempt = attempt.model_copy(update={"full_result_blob": body})
+        if intent is not None:
+            payload = self.blob_store.put(
+                canonical_json_bytes(attempt.model_dump(mode="json")), "application/json"
+            )
+            self.kernel.commit_result(
+                intent,
+                OperationResult(
+                    operation_id=context.operation_id,
+                    attempt_id=context.attempt_id,
+                    status="SUCCESS",
+                    payload=payload,
+                    output_refs=[body],
+                ),
+                capability=capability,
+            )
         return attempt
 
-    def get_source_passage(
-        self,
-        provision_version_id: str,
-        expansion_policy: ExpansionPolicy | None = None,
-    ) -> EvidenceBundle:
-        """Fetch exact passage with bounded context expansion (CONTRACTS §6.1)."""
-        provision = self.provisions_map.get(provision_version_id)
-        if not provision:
-            raise KeyError(f"Provision {provision_version_id} not found in corpus snapshot")
-
+    def get_source_passage(self, provision_version_id, expansion_policy=None):
+        provision = self.provisions_map[provision_version_id]
+        source = self.sources_map.get(provision.source_version_id)
+        lead = self.leads_map.get(source.source_lead_id) if source else None
+        text = self.blob_store.get(provision.text_blob).decode("utf-8")
         policy = expansion_policy or ExpansionPolicy()
-        raw_text = self.blob_store.get(provision.text_blob).decode("utf-8", errors="replace")
-
         parents, headers, footnotes, amendments = self.expander.expand_passage(provision, policy)
-
-        bundle_id = f"bundle:{uuid4().hex[:12]}"
+        bundle_digest = hashlib.sha256(
+            canonical_json_bytes(
+                [
+                    provision_version_id,
+                    policy.model_dump(mode="json"),
+                    self.corpus_snapshot.membership_digest,
+                ]
+            )
+        ).hexdigest()[:24]
         bundle = EvidenceBundle(
-            bundle_id=bundle_id,
-            primary_passage=raw_text,
-            provision_version_id=provision.provision_version_id,
+            bundle_id=f"bundle:{bundle_digest}",
+            primary_passage=text,
+            provision_version_id=provision_version_id,
             source_version_id=provision.source_version_id,
             legal_path=provision.legal_path,
             locator=provision.locator,
             parents=parents,
-            footnotes=footnotes,
             table_headers=headers,
+            footnotes=footnotes,
             applicable_amendments=amendments,
             provenance={
                 "corpus_snapshot_id": self.corpus_snapshot.snapshot_id,
-                "role_scope": provision.role_scope,
-                "affected_roles": provision.affected_roles,
-                "regime": provision.regime,
+                "artifact_revision_id": source.artifact_revision_id if source else None,
+                "authority": "PASS"
+                if self.view.approved
+                and source
+                and source.review_state == "APPROVED"
+                and lead
+                and lead.source_class in {"STATUTE", "GAZETTE_RULE", "ORDER"}
+                else "UNRESOLVED",
+                "complete_source": bool(source and source.completeness == "COMPLETE_TEXT"),
             },
             applicability_qualifiers=[
-                f"regime:{provision.regime}",
-                f"review_state:{provision.review_state}",
+                "APPLICABILITY_UNRESOLVED",
+                "Direct support and amendment completeness require assessment.",
             ],
         )
-        self.bundles_cache[bundle_id] = bundle
+        self.bundles_cache[bundle.bundle_id] = bundle
         return bundle
 
-    def resolve_locator(
-        self,
-        request: LocatorLookupRequest,
-    ) -> EvidenceBundle:
-        """Resolve exact provision version by legal path or alias without blind fallback."""
-        target_path = request.legal_path.strip().lower()
-        alias = request.source_alias_or_source_version_id.strip().lower()
-
-        matches = []
-        for pid, prov in self.provisions_map.items():
-            prov_path = prov.legal_path.lower()
-            if target_path in prov_path or prov_path in target_path:
-                if alias in prov.source_version_id.lower() or alias in pid.lower():
-                    matches.append(prov)
-
-        # Also fallback search by legal_path alone if alias didn't match source_version_id
-        if not matches:
-            for prov in self.provisions_map.values():
-                if target_path in prov.legal_path.lower():
-                    matches.append(prov)
-
-        if not matches:
-            msg = (
-                f"No provision found for legal path '{request.legal_path}' "
-                f"and alias '{request.source_alias_or_source_version_id}'"
+    def resolve_locator(self, request):
+        if request.corpus_snapshot_id != self.corpus_snapshot.snapshot_id:
+            raise ValueError("locator lookup corpus mismatch")
+        alias = request.source_alias_or_source_version_id.casefold()
+        sourceids = {
+            s.source_version_id
+            for s in self.sources_map.values()
+            if s.source_version_id.casefold() == alias
+            or (
+                s.source_lead_id in self.leads_map
+                and alias in {a.casefold() for a in self.leads_map[s.source_lead_id].aliases}
             )
-            raise KeyError(msg)
-
-        if len(matches) > 1:
-            # Ambiguous matches: record explicit qualifier rather than choosing latest silently
-            bundle = self.get_source_passage(
-                matches[0].provision_version_id, request.expansion_policy
+        }
+        path = request.legal_path.strip().casefold()
+        matches = [
+            p
+            for p in self.provisions_map.values()
+            if p.source_version_id in sourceids
+            and (
+                p.legal_path.strip().casefold() == path
+                or p.legal_path.split(",", 1)[0].strip().casefold() == path
             )
-            bundle.applicability_qualifiers.append("APPLICABILITY_UNRESOLVED")
-            return bundle
-
+        ]
+        if len(matches) != 1:
+            raise KeyError(
+                f"Exact source/locator resolution requires one match; found {len(matches)}"
+            )
         return self.get_source_passage(matches[0].provision_version_id, request.expansion_policy)
 
-    def grade_evidence(
-        self,
-        bundle_id: str,
-        question: str,
-        basis: str = "REPORTING_PERIOD",
-    ) -> list[EvidenceGrade]:
-        """Grade evidence bundle against finding question across 5 dimensions."""
-        bundle = self.bundles_cache.get(bundle_id)
-        if not bundle:
-            raise KeyError(f"Evidence bundle {bundle_id} not found in cache")
-        return self.grader.grade_bundle(bundle, question, basis=basis)
+    def grade_evidence(self, bundle_id, question, basis="REPORTING_PERIOD"):
+        return self.grader.grade_bundle(self.bundles_cache[bundle_id], question, basis=basis)

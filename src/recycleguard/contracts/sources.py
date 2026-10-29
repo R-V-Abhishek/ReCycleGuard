@@ -5,6 +5,8 @@ Owned by Sampreeth (H01 / H07). Reviewed by A02 before freeze.
 
 from typing import Any, Literal
 
+from pydantic import Field
+
 from .core import ID, BlobRef, BoundaryModel, EvidenceRef, Locator, TemporalValue
 
 SourceClass = Literal[
@@ -112,8 +114,10 @@ class ApplicabilityAssertion(BoundaryModel):
     scope_note: str | None = None
     reviewer: str | None = None
     review_state: Literal["DRAFT", "APPROVED", "REJECTED"] = "DRAFT"
-    sources: list[EvidenceRef] = []
-    metadata: dict[str, Any] = {}
+    sources: list[EvidenceRef] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    applicability_scope: Literal["GENERAL", "SPECIFIC", "UNKNOWN"] = "GENERAL"
+    end_open_ended: bool = False
 
 
 class AmendmentEdge(BoundaryModel):
@@ -136,7 +140,7 @@ class AmendmentEdge(BoundaryModel):
     relation: Literal["AMENDS", "REPLACES", "INSERTS", "RELAXES_DEADLINE", "REFERENCES"]
     affected_scope: str | None = None
     applicability_assertion_id: ID | None = None
-    extension_order_refs: list[EvidenceRef] = []
+    extension_order_refs: list[EvidenceRef] = Field(default_factory=list)
     review_state: Literal["DRAFT", "APPROVED", "REJECTED"] = "DRAFT"
 
 
@@ -161,10 +165,10 @@ class DeadlineEntry(BoundaryModel):
     quarter: str | None = None
     kind: DeadlineKind
     baseline_due: TemporalValue
-    baseline_basis_refs: list[EvidenceRef] = []
+    baseline_basis_refs: list[EvidenceRef] = Field(default_factory=list)
     extended_due: TemporalValue | None = None
-    extension_order_refs: list[EvidenceRef] = []
-    enabling_provision_refs: list[EvidenceRef] = []
+    extension_order_refs: list[EvidenceRef] = Field(default_factory=list)
+    enabling_provision_refs: list[EvidenceRef] = Field(default_factory=list)
     unverified_notice: bool = False
     review_state: Literal["DRAFT", "APPROVED", "REJECTED"] = "DRAFT"
     supersedes_deadline_id: ID | None = None

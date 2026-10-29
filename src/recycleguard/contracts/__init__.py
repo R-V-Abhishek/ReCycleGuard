@@ -27,16 +27,6 @@ from .extraction import (
     Observation,
     ValidationState,
 )
-from .review import (
-    AcknowledgmentRecord,
-    AcknowledgmentValidationState,
-    ReviewDecision,
-    ReviewDecisionKind,
-    ReviewOutcome,
-    ReviewPacket,
-    ReviewRecord,
-    ReviewTransitionResult,
-)
 from .retrieval import (
     CandidateDisposition,
     CandidateDispositionKind,
@@ -50,6 +40,16 @@ from .retrieval import (
     LocatorLookupRequest,
     RetrievalAttempt,
     SearchRulesRequest,
+)
+from .review import (
+    AcknowledgmentRecord,
+    AcknowledgmentValidationState,
+    ReviewDecision,
+    ReviewDecisionKind,
+    ReviewOutcome,
+    ReviewPacket,
+    ReviewRecord,
+    ReviewTransitionResult,
 )
 from .sources import (
     AmendmentEdge,

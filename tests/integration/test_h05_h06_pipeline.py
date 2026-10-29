@@ -9,8 +9,6 @@ Verifies:
 - Audited pipeline execution under AuditKernel and capability checks.
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 
 from recycleguard.application import local_application
@@ -98,15 +96,25 @@ def test_h05_h06_complete_indexing_and_retrieval_pipeline(tmp_path):
         )
         attempt = retrieval.search_rules(search_req, context=ret_ctx, capability=cap)
 
-        assert len(attempt.engine_candidates) >= 1
-        assert any("Rule 6" in c["legal_path"] for c in attempt.engine_candidates)
-        assert len(attempt.grading_assessments) >= 1
+        # Foundation produces DRAFT source proposals; approval is a separate trusted operation.
+        assert attempt.engine_candidates == []
+        assert attempt.grading_assessments == []
+        assert len(attempt.candidate_dispositions) == manifest.total_chunks
+        assert all(c.disposition == "FILTERED_OUT" for c in attempt.candidate_dispositions)
 
         # 5. Resolve exact legal path via resolve_locator
         lookup_req = LocatorLookupRequest(
             corpus_snapshot_id=corpus_snapshot.snapshot_id,
-            source_alias_or_source_version_id="r02",
-            legal_path="Rule 15",
+            source_alias_or_source_version_id=next(
+                p.source_version_id
+                for p in retrieval.provisions_map.values()
+                if p.legal_path.startswith("Rule 15")
+            ),
+            legal_path=next(
+                p.legal_path
+                for p in retrieval.provisions_map.values()
+                if p.legal_path.startswith("Rule 15")
+            ),
             expansion_policy=ExpansionPolicy(include_parent=True),
         )
         bundle = retrieval.resolve_locator(lookup_req)
@@ -124,10 +132,10 @@ def test_h05_h06_complete_indexing_and_retrieval_pipeline(tmp_path):
 
         assert len(grades) == 1
         grade = grades[0]
-        assert grade.authority == "PASS"
-        assert grade.temporal_fit == "PASS"
+        assert grade.authority == "UNRESOLVED"
+        assert grade.temporal_fit == "UNRESOLVED"
         assert grade.direct_support in {"PASS", "UNRESOLVED"}
         assert grade.completeness in {"PASS", "UNRESOLVED"}
-        assert grade.contradiction == "PASS"
+        assert grade.contradiction == "UNRESOLVED"
 
         fts_index.close()

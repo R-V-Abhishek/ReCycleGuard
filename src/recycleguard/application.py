@@ -78,7 +78,9 @@ def local_review_application(settings, password: str):
     )
     authority = LocalAuthority(
         {
-            "service": TrustedPrincipal(actor, frozenset({"snapshot.", "profile."})),
+            "service": TrustedPrincipal(
+                actor, frozenset({"snapshot.", "profile.", "graph.", "report."})
+            ),
             "human": TrustedPrincipal(human, frozenset({"review."})),
         }
     )

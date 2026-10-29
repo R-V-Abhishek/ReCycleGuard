@@ -109,6 +109,7 @@ class RunSpec(BoundaryModel):
     finding_ids: list[ID] = Field(min_length=1)
     budgets: BudgetLimits
     parent_run_id: ID | None = None
+    runtime_configuration: BlobRef | None = None
 
     @model_validator(mode="after")
     def unique_findings(self):
@@ -211,6 +212,7 @@ class RunState(BoundaryModel):
     result_refs: list[BlobRef]
     action_fingerprints: list[Digest]
     search_queries: dict[str, list[Digest]] = Field(default_factory=dict)
+    review_record_refs: list[ID] = Field(default_factory=list)
     last_audit_sequence: int
     pending_operation_id: ID | None
     pending_attempt_id: ID | None = None
@@ -219,6 +221,10 @@ class RunState(BoundaryModel):
 
 
 class StageOutcome(BoundaryModel):
+    service_operation_ids: list[ID] = Field(default_factory=list)
+    retrieval_attempt_ids: list[ID] = Field(default_factory=list)
+    calculation_ids: list[ID] = Field(default_factory=list)
+    finding_revision_ids: list[ID] = Field(default_factory=list)
     disposition: Literal["PASS", "QUALIFIED", "BLOCKED"]
     evidence_refs: list[EvidenceRef]
     output_blob: BlobRef | None

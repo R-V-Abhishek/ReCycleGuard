@@ -1,0 +1,20 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "certificate_ids": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "maxItems": 50,
+      "minItems": 1,
+      "title": "Certificate Ids",
+      "type": "array"
+    }
+  },
+  "required": [
+    "certificate_ids"
+  ],
+  "title": "TraceRequest",
+  "type": "object"
+}

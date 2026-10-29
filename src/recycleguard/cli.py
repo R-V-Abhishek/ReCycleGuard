@@ -277,3 +277,165 @@ def foundation_review(path: Annotated[Path, typer.Argument(exists=True, dir_okay
 
 if __name__ == "__main__":
     app()
+
+
+investigation_app = typer.Typer(
+    help="Bounded real-service investigation; scripted C10 is test-only."
+)
+app.add_typer(investigation_app, name="investigation")
+
+
+@investigation_app.command("start")
+def investigation_start(path: Annotated[Path, typer.Argument(exists=True, dir_okay=False)]):
+    from recycleguard.investigation import InvestigationRequest, InvestigationService
+
+    try:
+        settings = Settings.from_environment()
+        request = InvestigationRequest.model_validate_json(path.read_bytes())
+        with local_application(settings) as (cases, context, capability):
+            service = InvestigationService(cases, settings, capability=capability)
+            spec = service.prepare(context, request)
+            runner = service.runner(spec)
+            try:
+                state = runner.start_run(context, spec, capability=capability)
+                typer.echo(state.model_dump_json())
+            finally:
+                runner.close()
+    except (ValueError, OSError, sqlite3.Error) as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc
+
+
+def _investigation_action(run_id, action, expected_version=None, reason=None, max_steps=64):
+    from recycleguard.investigation import InvestigationService
+
+    try:
+        settings = Settings.from_environment()
+        with local_application(settings) as (cases, context, capability):
+            service = InvestigationService(cases, settings, capability=capability)
+            state = service.recover_reviews(context, run_id)
+            spec = service.store.spec(run_id)
+            if action == "status":
+                output = state
+            elif action == "report":
+                output = service.latest_report(run_id)
+            elif action == "packet":
+                output = service.packet(context, spec)
+            else:
+                runner = service.runner(spec)
+                try:
+                    if action == "advance":
+                        output = runner.advance(
+                            context, run_id, expected_version, capability=capability
+                        )
+                    elif action == "resume":
+                        output = runner.resume(context, run_id, capability=capability)
+                    elif action == "cancel":
+                        output = runner.cancel(
+                            context, run_id, expected_version, reason, capability=capability
+                        )
+                    else:
+                        for _ in range(max_steps):
+                            if state.status in {
+                                "AWAITING_REVIEW",
+                                "COMPLETED",
+                                "FAILED",
+                                "CANCELLED",
+                                "BLOCKED_INPUT",
+                                "BLOCKED_OUTPUT",
+                            }:
+                                break
+                            state = runner.advance(
+                                context, run_id, state.version, capability=capability
+                            )
+                        output = state
+                finally:
+                    runner.close()
+            typer.echo(output.model_dump_json())
+    except (ValueError, OSError, sqlite3.Error, KeyError) as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc
+
+
+@investigation_app.command("status")
+def investigation_status(run_id: str):
+    _investigation_action(run_id, "status")
+
+
+@investigation_app.command("advance")
+def investigation_advance(run_id: str, expected_version: Annotated[int, typer.Option(min=1)]):
+    _investigation_action(run_id, "advance", expected_version)
+
+
+@investigation_app.command("run")
+def investigation_run(run_id: str, max_steps: Annotated[int, typer.Option(min=1, max=128)] = 64):
+    _investigation_action(run_id, "run", max_steps=max_steps)
+
+
+@investigation_app.command("resume")
+def investigation_resume(run_id: str):
+    _investigation_action(run_id, "resume")
+
+
+@investigation_app.command("cancel")
+def investigation_cancel(
+    run_id: str,
+    expected_version: Annotated[int, typer.Option(min=1)],
+    reason: Annotated[str, typer.Option()],
+):
+    if not reason.strip():
+        raise typer.BadParameter("cancellation requires a reason")
+    _investigation_action(run_id, "cancel", expected_version, reason)
+
+
+@investigation_app.command("report")
+def investigation_report(run_id: str):
+    _investigation_action(run_id, "report")
+
+
+@investigation_app.command("packet")
+def investigation_packet(run_id: str):
+    _investigation_action(run_id, "packet")
+
+
+@investigation_app.command("review")
+def investigation_review(
+    packet_id: str, decision: Annotated[str, typer.Option()], reason: Annotated[str, typer.Option()]
+):
+    from datetime import UTC, datetime
+
+    from recycleguard.application import command_context
+    from recycleguard.contracts.review import ReviewDecision
+    from recycleguard.investigation import InvestigationService
+
+    try:
+        settings = Settings.from_environment()
+        password = typer.prompt("Reviewer password", hide_input=True, err=True)
+        with local_review_application(settings, password) as args:
+            cases, human_context, human_cap, actor, service_cap = args
+            service = InvestigationService(cases, settings, capability=service_cap)
+            reviewer = service.review_service()
+            packet = reviewer.get_packet(packet_id)
+            spec = service.store.spec(packet.run_id)
+            service.recover_reviews(command_context(actor), packet.run_id)
+            review_decision = ReviewDecision(
+                decision=decision,
+                authenticated_reviewer_ref=human_context.actor,
+                reason=reason,
+                recorded_at=datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+            )
+            result = reviewer.submit_review(
+                service.bound(human_context, spec),
+                packet_id,
+                packet.review_dependency_digest,
+                review_decision,
+                capability=human_cap,
+            )
+            if result.status != "SUCCESS":
+                typer.echo(result.model_dump_json())
+                raise typer.Exit(1)
+            state = service.project_review(command_context(actor), packet_id)
+            typer.echo(state.model_dump_json())
+    except (ValueError, OSError, sqlite3.Error) as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc

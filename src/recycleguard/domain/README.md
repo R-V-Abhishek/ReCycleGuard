@@ -36,6 +36,9 @@ only demote; nothing here promotes support.
 - **Commercial:** an invoice and the payment that references it count once. A record linked to an
   allocated transfer adds no quantity; one linked to an unallocated transfer, or unlinked, is
   pending in a single compatible bucket. Contradicting parties, metal or quantity are FAIL.
+  A contradiction fails the whole linked invoice/payment group, including siblings linked to
+  unallocated transfers. Rejected groups consume no commercial transfer capacity.
+  These grouping corrections use tool version `c08-s04-0.2`.
 - **Weight basis:** two bases (or weights) in force together are `WEIGHT_BASIS_CONFLICT`.
   Fiscal years run 1 April to 1 April.
 

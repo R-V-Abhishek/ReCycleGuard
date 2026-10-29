@@ -79,8 +79,30 @@ from recycleguard.contracts.results import (
     Hypothesis,
     Recommendation,
 )
+from recycleguard.contracts.retrieval import (
+    CandidateDisposition,
+    DenseConfiguration,
+    EvidenceBundle,
+    EvidenceGrade,
+    ExpansionPolicy,
+    IndexManifest,
+    LexicalConfiguration,
+    LocatorLookupRequest,
+    RetrievalAttempt,
+    SearchRulesRequest,
+)
+from recycleguard.contracts.review import (
+    AcknowledgmentRecord,
+    ReviewDecision,
+    ReviewPacket,
+    ReviewRecord,
+    ReviewTransitionResult,
+)
 from recycleguard.contracts.snapshots import CaseReopen, SnapshotPublication, SnapshotReview
 from recycleguard.contracts.sources import (
+    AmendmentEdge,
+    ApplicabilityAssertion,
+    DeadlineEntry,
     ProvisionVersion,
     RightsMetadata,
     SourceLead,
@@ -114,8 +136,21 @@ from recycleguard.domain.models import (
     PriorityCheck,
     QuantityDisposition,
 )
+from recycleguard.indexing.models import IndexedChunk
 from recycleguard.intake.acquisition import AcquisitionOutcome
 from recycleguard.intake.batch import IntakeBatchResult
+from recycleguard.investigation import (
+    Inspection,
+    InspectRequest,
+    InvestigationConfiguration,
+    InvestigationReport,
+    InvestigationRequest,
+    LocatorRequest,
+    ReconcileRequest,
+    ScriptedExchange,
+    SearchRequest,
+    TraceRequest,
+)
 from recycleguard.model_port import ModelCallRequest, ModelCallResult
 from recycleguard.normalization.models import (
     EventEquivalence,
@@ -129,9 +164,46 @@ from recycleguard.reporting.baseline import (
     ReportSection,
     VerificationResult,
 )
+from recycleguard.retrieval.claim_checks import (
+    RegulatoryCheckRequest,
+    RegulatoryCheckResult,
+    RegulatoryClaimFinding,
+)
 from recycleguard.workflow.runner import CallRecord, ProviderUsage
 
 MODELS = [
+    CandidateDisposition,
+    DenseConfiguration,
+    EvidenceBundle,
+    EvidenceGrade,
+    ExpansionPolicy,
+    IndexManifest,
+    LexicalConfiguration,
+    LocatorLookupRequest,
+    RetrievalAttempt,
+    SearchRulesRequest,
+    AcknowledgmentRecord,
+    ReviewDecision,
+    ReviewPacket,
+    ReviewRecord,
+    ReviewTransitionResult,
+    AmendmentEdge,
+    ApplicabilityAssertion,
+    DeadlineEntry,
+    IndexedChunk,
+    Inspection,
+    InspectRequest,
+    InvestigationConfiguration,
+    InvestigationReport,
+    InvestigationRequest,
+    LocatorRequest,
+    ReconcileRequest,
+    ScriptedExchange,
+    SearchRequest,
+    TraceRequest,
+    RegulatoryCheckRequest,
+    RegulatoryCheckResult,
+    RegulatoryClaimFinding,
     ActionDraft,
     ActionProposal,
     AssessmentProposal,

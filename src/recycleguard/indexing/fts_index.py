@@ -4,8 +4,6 @@ Owned by Sampreeth (H05).
 Implements C06 BM25 search, ranking, and exact locator lookups.
 """
 
-from __future__ import annotations
-
 import re
 import sqlite3
 from pathlib import Path
@@ -36,13 +34,24 @@ class FTS5Index:
         self,
         db_path: Path | str,
         config: LexicalConfiguration | None = None,
+        *,
+        readonly: bool = False,
     ):
         self.db_path = Path(db_path)
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.config = config or LexicalConfiguration()
-        self.connection = sqlite3.connect(self.db_path)
+        self.readonly = readonly
+        self.manifest = None
+        if self.config.tokenizer != "unicode61":
+            raise ValueError("only the frozen unicode61 lexical tokenizer is supported")
+        self.connection = (
+            sqlite3.connect(self.db_path.resolve().as_uri() + "?mode=ro", uri=True)
+            if readonly
+            else sqlite3.connect(self.db_path)
+        )
         self.connection.row_factory = sqlite3.Row
-        self._init_schema()
+        if not readonly:
+            self._init_schema()
 
     def _init_schema(self) -> None:
         with self.connection:
@@ -80,6 +89,8 @@ class FTS5Index:
 
     def insert_chunks(self, chunks: list[IndexedChunk]) -> None:
         """Insert or replace indexed chunks into FTS5 table and metadata store."""
+        if self.readonly:
+            raise ValueError("a frozen lexical index cannot be mutated")
         with self.connection:
             for chunk in chunks:
                 roles_csv = ",".join(chunk.affected_roles)
@@ -102,7 +113,10 @@ class FTS5Index:
                     ),
                 )
                 # Store in FTS5 table if eligible
-                if chunk.disposition != "UNINDEXABLE":
+                self.connection.execute(
+                    "DELETE FROM chunks_fts WHERE chunk_id=?", (chunk.chunk_id,)
+                )
+                if chunk.disposition == "INDEXED":
                     # Remove prior instance if exists
                     self.connection.execute(
                         "DELETE FROM chunks_fts WHERE chunk_id = ?",
@@ -163,11 +177,7 @@ class FTS5Index:
         sql += " ORDER BY score ASC LIMIT ?"
         params.append(limit)
 
-        try:
-            rows = self.connection.execute(sql, params).fetchall()
-        except sqlite3.OperationalError:
-            # Fallback for empty or special match syntax
-            return []
+        rows = self.connection.execute(sql, params).fetchall()
 
         results: list[tuple[IndexedChunk, float]] = []
         for row in rows:
@@ -203,6 +213,14 @@ class FTS5Index:
         """Total chunks recorded in index."""
         row = self.connection.execute("SELECT COUNT(*) AS c FROM chunks_metadata").fetchone()
         return int(row["c"]) if row else 0
+
+    def all_chunks(self) -> list[IndexedChunk]:
+        return [
+            IndexedChunk.model_validate_json(row["json_data"])
+            for row in self.connection.execute(
+                "SELECT json_data FROM chunks_metadata ORDER BY chunk_id"
+            )
+        ]
 
     def close(self) -> None:
         self.connection.close()

@@ -1,0 +1,41 @@
+{
+  "additionalProperties": false,
+  "description": "Dense vector indexing configuration if external embeddings enabled.",
+  "properties": {
+    "model_name": {
+      "title": "Model Name",
+      "type": "string"
+    },
+    "revision": {
+      "title": "Revision",
+      "type": "string"
+    },
+    "dimension": {
+      "title": "Dimension",
+      "type": "integer"
+    },
+    "normalize": {
+      "default": true,
+      "title": "Normalize",
+      "type": "boolean"
+    },
+    "tokenizer_name": {
+      "title": "Tokenizer Name",
+      "type": "string"
+    },
+    "vector_blob_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Vector Blob Digest",
+      "type": "string"
+    }
+  },
+  "required": [
+    "model_name",
+    "revision",
+    "dimension",
+    "tokenizer_name",
+    "vector_blob_digest"
+  ],
+  "title": "DenseConfiguration",
+  "type": "object"
+}

@@ -1,0 +1,215 @@
+{
+  "$defs": {
+    "TemporalValue": {
+      "additionalProperties": false,
+      "properties": {
+        "raw": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Raw"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        },
+        "precision": {
+          "enum": [
+            "INSTANT",
+            "DATE",
+            "MONTH",
+            "YEAR",
+            "UNKNOWN"
+          ],
+          "title": "Precision",
+          "type": "string"
+        },
+        "timezone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Timezone"
+        },
+        "interpretation_status": {
+          "enum": [
+            "PARSED",
+            "REVIEWED",
+            "AMBIGUOUS",
+            "UNKNOWN"
+          ],
+          "title": "Interpretation Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "raw",
+        "value",
+        "precision",
+        "timezone",
+        "interpretation_status"
+      ],
+      "title": "TemporalValue",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Search request to frozen regulatory index (CONTRACTS §6.1).",
+  "properties": {
+    "query": {
+      "title": "Query",
+      "type": "string"
+    },
+    "corpus_snapshot_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Corpus Snapshot Id",
+      "type": "string"
+    },
+    "index_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Index Id",
+      "type": "string"
+    },
+    "question_basis": {
+      "default": "REPORTING_PERIOD",
+      "enum": [
+        "TRANSACTION_DATE",
+        "CAPTURE_DATE",
+        "REPORTING_PERIOD",
+        "FILING_DATE"
+      ],
+      "title": "Question Basis",
+      "type": "string"
+    },
+    "target_event_time": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TemporalValue"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "target_reporting_period": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Target Reporting Period"
+    },
+    "target_filing_date": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TemporalValue"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "deadline_entry_ids": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Deadline Entry Ids",
+      "type": "array"
+    },
+    "regimes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Regimes",
+      "type": "array"
+    },
+    "roles": {
+      "items": {
+        "enum": [
+          "PRODUCER",
+          "MANUFACTURER",
+          "RECYCLER",
+          "REFURBISHER"
+        ],
+        "type": "string"
+      },
+      "title": "Roles",
+      "type": "array"
+    },
+    "eee_codes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Eee Codes",
+      "type": "array"
+    },
+    "top_k": {
+      "default": 10,
+      "maximum": 50,
+      "minimum": 1,
+      "title": "Top K",
+      "type": "integer"
+    },
+    "diagnostic_mode": {
+      "default": false,
+      "title": "Diagnostic Mode",
+      "type": "boolean"
+    },
+    "expected_index_digest": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Expected Index Digest"
+    },
+    "expected_corpus_membership_digest": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Expected Corpus Membership Digest"
+    }
+  },
+  "required": [
+    "query",
+    "corpus_snapshot_id",
+    "index_id"
+  ],
+  "title": "SearchRulesRequest",
+  "type": "object"
+}

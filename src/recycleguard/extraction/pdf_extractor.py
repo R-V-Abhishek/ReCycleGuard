@@ -43,16 +43,33 @@ def _missing_printed_pages(pages_data: list[tuple[int, str]]) -> tuple[int, list
     if len(totals) != 1:
         return 0, []
     (stated,) = totals
-    if stated <= len(pages_data) or any(n < 1 or n > stated for n in printed):
+    if any(n < 1 or n > stated for n in printed):
+        return 0, []
+    if stated <= len(pages_data):
         return stated, []
-    # A page without text is present (and quarantined above); infer its printed number
-    # from a neighbouring footer so it is not reported a second time as absent.
-    for page_idx, text in pages_data:
-        if not text.strip():
+    # Present pages without extractable footers are not absent pages. Only assign
+    # blank-page labels when adjacent printed evidence agrees; ambiguous numbering
+    # permits a document-level count warning, never an invented missing locator.
+    for _ in pages_data:
+        changed = False
+        for page_idx, text in pages_data:
+            if text.strip() or page_idx in by_page:
+                continue
+            candidates = set()
             if page_idx - 1 in by_page:
-                printed.add(by_page[page_idx - 1] + 1)
-            elif page_idx + 1 in by_page:
-                printed.add(by_page[page_idx + 1] - 1)
+                candidates.add(by_page[page_idx - 1] + 1)
+            if page_idx + 1 in by_page:
+                candidates.add(by_page[page_idx + 1] - 1)
+            if len(candidates) == 1:
+                (number,) = candidates
+                if 1 <= number <= stated and number not in printed:
+                    by_page[page_idx] = number
+                    printed.add(number)
+                    changed = True
+        if not changed:
+            break
+    if len(by_page) != len(pages_data) or len(printed) != len(pages_data):
+        return stated, []
     return stated, [n for n in range(1, stated + 1) if n not in printed]
 
 
@@ -140,9 +157,11 @@ def extract_pdf_pages(
                     page_idx,
                     metadata={"input_format": "application/pdf", "page_index_1based": page_idx},
                 )
+                if vlm_page.page_number != page_idx:
+                    raise ValueError("Optional parser returned a different page number")
                 if vlm_page.raw_markdown.strip():
                     stripped = vlm_page.raw_markdown.strip()
-                    extraction_method = "VLM_ASSISTED"
+                    extraction_method = "OCR"
                     vlm_tables = [
                         {
                             "table_id": t.table_id,
@@ -179,9 +198,13 @@ def extract_pdf_pages(
                 observation_type="PDF_PAGE_TEXT",
                 raw_fields={"page_number": page_idx, "character_count": len(stripped)},
                 parsed_fields=parsed_fields,
-                validation_state="VALID",
+                validation_state="VALID" if extraction_method == "PDF_TEXT" else "REVIEW_REQUIRED",
                 extraction_method=extraction_method,
-                field_quality={"quality": "PARSED_PDF_PAGE"},
+                field_quality={
+                    "quality": "PARSED_PDF_PAGE"
+                    if extraction_method == "PDF_TEXT"
+                    else "VLM_ASSISTED_UNREVIEWED"
+                },
                 event_time=cap_time,
                 source_capture_time=cap_time,
                 ingestion_time=ingestion_time,
@@ -228,6 +251,21 @@ def extract_pdf_pages(
     # Coverage stays one item per physical page; an absent page has no locator of its own,
     # so the gap is reported against the printed page number.
     stated, missing = _missing_printed_pages(pages_data)
+    if stated > len(pages_data) and not missing:
+        issues.append(
+            Issue(
+                issue_id=f"issue:{uuid4().hex[:8]}",
+                code="INCOMPLETE_COVERAGE",
+                severity="WARNING",
+                message=(
+                    f"Pagination states {stated} pages but the file holds {len(pages_data)}; "
+                    "the absent printed page numbers cannot be established"
+                ),
+                field_path="document:page_count",
+                evidence_refs=[],
+                retryable=False,
+            )
+        )
     for number in missing:
         issues.append(
             Issue(

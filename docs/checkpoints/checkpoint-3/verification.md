@@ -1,24 +1,19 @@
-# A06 verification
+# CP3 verification
 
-Local verification on 28 October 2026:
+The incoming submissions and integration repairs were reviewed against actual
+stored evidence, source schemas and runtime behavior. Targeted tests cover real
+C07/C08/C12 calls, all four authenticated C13 decisions, exact report/input pins,
+requested-changes redrafting, recovery between decision commit and projection,
+manual closure, stale-content rejection, original S06 F11/F12/F14 PDF findings,
+F15 pagination, optional parser failures and commercial grouping regressions.
 
-- Complete suite: **430 passed, 6 skipped**. The skipped tests require Windows.
-- A06 contributes **82 tests**, covering graph control, storage and crash recovery.
-- Ruff lint and formatting passed. All **112** exported boundary schemas matched.
-- CLI diagnostics reported SQLite FTS5 available and the real model gateway
-  unavailable. Source distribution and wheel builds passed.
-- The [fresh-root scripted demo summary](evidence/a06-summary.json) records four
-  scripted model calls, two tool actions, one reformulation and six committed
-  turns. Final state: `AWAITING_REVIEW`; review: `PENDING`. Measured usage and cost
-  remain unavailable. Its source and dependency-lock digests identify the run.
+Fresh-root `scripts/verify_a07.py` exercises the CLI from intake/support review
+through adaptive scripted investigation and qualified report to authenticated
+fixture completion. The actual summary, turns, report and audit are retained in
+`evidence/`. The run has three real tool actions, six scripted C10 calls, a visible
+query revision and an explicit abstention; observed model tokens/cost are unknown.
 
-The CI workflow runs the full suite, schema checks, diagnostics, CP2/A06 fresh-root
-demonstrations and packaging on Windows/Linux with Python 3.11/3.12. See
-[A06 branch CI](https://github.com/R-V-Abhishek/ReCycleGuard/actions/workflows/ci.yml?query=branch%3Acodex%2Fa06)
-for the published matrix result. Local checks alone do not establish native Windows
-execution; use the Windows jobs as that evidence.
-
-These are correctness and recovery checks over synthetic fixtures and scripted
-ports. They measure neither model quality nor production service performance.
-They do not approve CP3. Reproduction commands and remaining boundaries are in
-the [A06 handoff](a06.md).
+Full-suite, schema, lint, package and cross-platform CI results are recorded in
+`approvals.json`. The CI matrix uses native Windows/Linux and Python 3.11/3.12,
+and reproduces CP2, A06 and A07 from fresh roots. Synthetic fixture reviews in
+these tests are not evidence of actual team acknowledgement.

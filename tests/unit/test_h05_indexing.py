@@ -130,6 +130,17 @@ def test_provision_chunking_hierarchy_and_locators(tmp_path):
     assert first_chunk.char_end > first_chunk.char_start
     assert sample_rule[first_chunk.char_start : first_chunk.char_end] == first_chunk.text
 
+    long_text = "Clause text " * 400
+    long_provision = prov.model_copy(
+        update={"text_blob": store.put(long_text.encode(), "text/plain")}
+    )
+    bounded = chunker.chunk_provision(long_provision, store)
+    assert len(bounded) > 1
+    assert all(len(chunk.text) <= 1500 for chunk in bounded)
+    assert all(long_text[chunk.char_start : chunk.char_end] == chunk.text for chunk in bounded)
+    assert all(chunk.locator.table_id is None for chunk in bounded)
+    assert bounded == chunker.chunk_provision(long_provision, store)
+
 
 def test_fts5_lexical_indexing_bm25_search_and_filtering(tmp_path):
     """Verify SQLite FTS5 table indexing, BM25 scoring, and role filtering."""
@@ -285,11 +296,11 @@ def test_index_builder_manifest_and_audited_commit(tmp_path):
 
     # Check search over built index
     hits = fts_index.search("Rule 6")
-    assert len(hits) >= 1
-    assert any("Rule 6" in h[0].legal_path for h in hits)
+    assert hits == []  # The incoming source proposals have not been approved.
+    assert all(c.disposition == "EXCLUDED" for c in fts_index.all_chunks())
 
     # Verify audit event recorded in stream
-    events = kernel.list_stream_events(f"stream:{manifest.index_id}")
+    events = kernel.list_stream_events(f"stream:{corpus_snapshot.snapshot_id}")
     assert len(events) >= 1
     assert events[0].event_type == "extraction.index.result"
 

@@ -236,11 +236,17 @@ def match_commercial(
                 out[record.commercial_id] = outcome
         decided = [out[r.commercial_id] for r in group if r.commercial_id in out]
         if any(o.state == "MISMATCH" for o in decided):
-            for r in paired_only:
-                out[r.commercial_id] = _mismatch(
-                    r, "INTEGRITY_FAILED", "A paired record failed its transfer checks"
-                )
+            # A rejected group contributes no quantity against a transfer. Retaining its
+            # provisional claim would falsely invalidate an unrelated later group.
+            for claims in taken.values():
+                claims.pop(key, None)
+            for r in group:
+                if r.commercial_id not in out or out[r.commercial_id].state != "MISMATCH":
+                    out[r.commercial_id] = _mismatch(
+                        r, "INTEGRITY_FAILED", "A paired record failed its transfer checks"
+                    )
             paired_only = []
+            unallocated = []
         elif any(o.state == "LINKED" for o in decided) and not unallocated:
             for r in paired_only:
                 out[r.commercial_id] = CommercialOutcome(

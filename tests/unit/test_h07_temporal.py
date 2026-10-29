@@ -68,13 +68,14 @@ def _make_ref(name: str) -> EvidenceRef:
 
 def test_deadline_register_verified_extension():
     """A verified extension order updates the effective deadline."""
-    register = DeadlineRegister()
+    register = DeadlineRegister(verified_order_refs={"prov:cpcb_order_20250620", "prov:order_v2"})
     entry = DeadlineEntry(
         deadline_id="deadline:ret_filing_2024_25",
         producer_or_role_scope="PRODUCER",
         fiscal_year="2024-25",
         quarter=None,
         kind="RETURN_FILING",
+        baseline_basis_refs=[_make_ref("baseline")],
         baseline_due=_make_temporal("2025-06-30"),
         extended_due=_make_temporal("2025-09-30"),
         extension_order_refs=[_make_ref("cpcb_order_20250620")],
@@ -93,24 +94,25 @@ def test_deadline_register_verified_extension():
 
 def test_deadline_register_unverified_notice_lead():
     """A notice lead (unverified_notice=True) never creates a verified extension."""
-    register = DeadlineRegister()
+    register = DeadlineRegister(verified_order_refs={"prov:cpcb_order_20250620", "prov:order_v2"})
     entry = DeadlineEntry(
         deadline_id="deadline:ret_filing_2024_25_notice",
         producer_or_role_scope="PRODUCER",
         fiscal_year="2024-25",
         quarter=None,
         kind="RETURN_FILING",
+        baseline_basis_refs=[_make_ref("baseline")],
         baseline_due=_make_temporal("2025-06-30"),
         extended_due=_make_temporal("2025-10-31"),
         extension_order_refs=[_make_ref("news_report_extension")],
         enabling_provision_refs=[_make_ref("e_waste_rule_9a")],
         unverified_notice=True,  # Press report / unverified portal notice
-        review_state="DRAFT",
+        review_state="APPROVED",
     )
     register.add_entry(entry)
 
     result = register.resolve_deadline("PRODUCER", "2024-25", "RETURN_FILING")
-    assert result.verdict == "PASS"
+    assert result.verdict == "ABSTAIN"
     assert result.is_verified_extension is False
     # Must fall back to baseline date because notice lead is not verified
     assert result.effective_date == "2025-06-30"
@@ -122,13 +124,14 @@ def test_deadline_register_enabling_provision_alone_fails_extension():
 
     extended_due without extension_order_refs must not apply the extension.
     """
-    register = DeadlineRegister()
+    register = DeadlineRegister(verified_order_refs={"prov:cpcb_order_20250620", "prov:order_v2"})
     entry = DeadlineEntry(
         deadline_id="deadline:ret_filing_2024_25_enabling_only",
         producer_or_role_scope="PRODUCER",
         fiscal_year="2024-25",
         quarter=None,
         kind="RETURN_FILING",
+        baseline_basis_refs=[_make_ref("baseline")],
         baseline_due=_make_temporal("2025-06-30"),
         extended_due=_make_temporal("2025-12-31"),
         extension_order_refs=[],  # Missing order ref!
@@ -139,7 +142,7 @@ def test_deadline_register_enabling_provision_alone_fails_extension():
     register.add_entry(entry)
 
     result = register.resolve_deadline("PRODUCER", "2024-25", "RETURN_FILING")
-    assert result.verdict == "PASS"
+    assert result.verdict == "ABSTAIN"
     assert result.is_verified_extension is False
     assert result.effective_date == "2025-06-30"
     assert any("enabling provision alone" in r for r in result.reasons)
@@ -147,13 +150,14 @@ def test_deadline_register_enabling_provision_alone_fails_extension():
 
 def test_deadline_register_missing_baseline_abstains():
     """Missing baseline_due date stays unknown and returns ABSTAIN; never invent a default."""
-    register = DeadlineRegister()
+    register = DeadlineRegister(verified_order_refs={"prov:cpcb_order_20250620", "prov:order_v2"})
     entry = DeadlineEntry(
         deadline_id="deadline:credit_event_unknown_baseline",
         producer_or_role_scope="PRODUCER",
         fiscal_year="2024-25",
         quarter=None,
         kind="CREDIT_EVENT",
+        baseline_basis_refs=[_make_ref("baseline")],
         baseline_due=_make_temporal(None),  # Unknown baseline date
         extended_due=None,
         extension_order_refs=[],
@@ -171,7 +175,7 @@ def test_deadline_register_missing_baseline_abstains():
 
 def test_deadline_register_missing_entry_abstains():
     """Querying an unregistered FY/kind returns ABSTAIN."""
-    register = DeadlineRegister()
+    register = DeadlineRegister(verified_order_refs={"prov:cpcb_order_20250620", "prov:order_v2"})
     result = register.resolve_deadline("RECYCLER", "2022-23", "OBLIGATION_ACHIEVEMENT")
     assert result.verdict == "ABSTAIN"
     assert result.effective_date is None
@@ -179,13 +183,14 @@ def test_deadline_register_missing_entry_abstains():
 
 def test_deadline_register_cross_kind_independence():
     """A RETURN_FILING extension cannot extend OBLIGATION_ACHIEVEMENT or CREDIT_EVENT."""
-    register = DeadlineRegister()
+    register = DeadlineRegister(verified_order_refs={"prov:cpcb_order_20250620", "prov:order_v2"})
     filing_entry = DeadlineEntry(
         deadline_id="deadline:ret_filing_2024_25",
         producer_or_role_scope="PRODUCER",
         fiscal_year="2024-25",
         quarter=None,
         kind="RETURN_FILING",
+        baseline_basis_refs=[_make_ref("baseline")],
         baseline_due=_make_temporal("2025-06-30"),
         extended_due=_make_temporal("2025-09-30"),
         extension_order_refs=[_make_ref("cpcb_order")],
@@ -209,13 +214,14 @@ def test_deadline_register_cross_kind_independence():
 
 def test_deadline_register_supersedes_chain():
     """A superseding entry takes precedence over the earlier one."""
-    register = DeadlineRegister()
+    register = DeadlineRegister(verified_order_refs={"prov:cpcb_order_20250620", "prov:order_v2"})
     entry1 = DeadlineEntry(
         deadline_id="deadline:ret_filing_v1",
         producer_or_role_scope="PRODUCER",
         fiscal_year="2024-25",
         quarter=None,
         kind="RETURN_FILING",
+        baseline_basis_refs=[_make_ref("baseline")],
         baseline_due=_make_temporal("2025-06-30"),
         extended_due=None,
         review_state="APPROVED",
@@ -226,6 +232,7 @@ def test_deadline_register_supersedes_chain():
         fiscal_year="2024-25",
         quarter=None,
         kind="RETURN_FILING",
+        baseline_basis_refs=[_make_ref("baseline")],
         baseline_due=_make_temporal("2025-06-30"),
         extended_due=_make_temporal("2025-08-31"),
         extension_order_refs=[_make_ref("order_v2")],
@@ -337,6 +344,8 @@ def test_temporal_applicability_intervals():
     assertion = ApplicabilityAssertion(
         assertion_id="assert:fy2024_25",
         provision_version_id="prov:rules_2022_schedule_iii",
+        sources=[_make_ref("effective_interval")],
+        event_basis="TRANSACTION_DATE",
         effective_from=_make_temporal("2024-04-01"),
         effective_until=_make_temporal("2025-04-01"),  # exclusive
         affected_roles=["PRODUCER"],
@@ -345,15 +354,30 @@ def test_temporal_applicability_intervals():
     checker.add_assertion(assertion)
 
     # Within interval -> PASS
-    assert checker.check_temporal_fit("assert:fy2024_25", "2024-06-15") == "PASS"
-    assert checker.check_temporal_fit("assert:fy2024_25", "2024-04-01") == "PASS"
+    assert (
+        checker.check_temporal_fit("assert:fy2024_25", None, "2024-06-15", "TRANSACTION_DATE")
+        == "PASS"
+    )
+    assert (
+        checker.check_temporal_fit("assert:fy2024_25", None, "2024-04-01", "TRANSACTION_DATE")
+        == "PASS"
+    )
 
     # Prior to effective_from -> FAIL
-    assert checker.check_temporal_fit("assert:fy2024_25", "2024-03-31") == "FAIL"
+    assert (
+        checker.check_temporal_fit("assert:fy2024_25", None, "2024-03-31", "TRANSACTION_DATE")
+        == "FAIL"
+    )
 
     # At or after effective_until (exclusive) -> FAIL
-    assert checker.check_temporal_fit("assert:fy2024_25", "2025-04-01") == "FAIL"
-    assert checker.check_temporal_fit("assert:fy2024_25", "2025-05-01") == "FAIL"
+    assert (
+        checker.check_temporal_fit("assert:fy2024_25", None, "2025-04-01", "TRANSACTION_DATE")
+        == "FAIL"
+    )
+    assert (
+        checker.check_temporal_fit("assert:fy2024_25", None, "2025-05-01", "TRANSACTION_DATE")
+        == "FAIL"
+    )
 
     # Missing target period -> UNRESOLVED
     assert checker.check_temporal_fit("assert:fy2024_25", None) == "UNRESOLVED"
@@ -368,6 +392,8 @@ def test_temporal_applicability_rejected_assertion_fails():
     assertion = ApplicabilityAssertion(
         assertion_id="assert:rejected_rule",
         provision_version_id="prov:bad",
+        sources=[_make_ref("effective_interval")],
+        event_basis="TRANSACTION_DATE",
         effective_from=_make_temporal("2024-04-01"),
         affected_roles=["PRODUCER"],
         review_state="REJECTED",
@@ -409,3 +435,30 @@ def test_temporal_applicability_role_override():
         specific_assertion_ids=["assert:producer_specific"],
     )
     assert verdict_recycler == "PASS"
+
+
+def test_reporting_year_requires_reviewed_full_interval_and_explicit_open_end():
+    assertion = ApplicabilityAssertion(
+        assertion_id="assert:whole_year",
+        provision_version_id="prov:whole_year",
+        effective_from=_make_temporal("2024-04-01"),
+        effective_until=_make_temporal("2025-04-01"),
+        affected_roles=["PRODUCER"],
+        sources=[_make_ref("interval")],
+        review_state="APPROVED",
+    )
+    checker = TemporalApplicabilityChecker([assertion])
+    assert checker.check_temporal_fit(assertion.assertion_id, "2024-2025") == "PASS"
+    assert checker.check_temporal_fit(assertion.assertion_id, "FY2023-24") == "FAIL"
+    checker.add_assertion(
+        assertion.model_copy(update={"effective_from": _make_temporal("2024-06-01")})
+    )
+    assert checker.check_temporal_fit(assertion.assertion_id, "2024-2025") == "UNRESOLVED"
+    checker.add_assertion(assertion.model_copy(update={"effective_until": None}))
+    assert checker.check_temporal_fit(assertion.assertion_id, "2024-2025") == "UNRESOLVED"
+    checker.add_assertion(
+        assertion.model_copy(update={"effective_until": None, "end_open_ended": True})
+    )
+    assert checker.check_temporal_fit(assertion.assertion_id, "2024-2025") == "PASS"
+    checker.add_assertion(assertion.model_copy(update={"applicability_scope": "UNKNOWN"}))
+    assert checker.check_temporal_fit(assertion.assertion_id, "2024-2025") == "UNRESOLVED"

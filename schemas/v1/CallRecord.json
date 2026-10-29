@@ -120,7 +120,11 @@
             "CANCELLED",
             "INTEGRITY_FAILED",
             "OVER_ALLOCATION",
-            "UNSUPPORTED_FEATURE"
+            "UNSUPPORTED_FEATURE",
+            "CREDIT_EXPIRED",
+            "CREDIT_CANCELLED",
+            "CAPABILITY_MISMATCH",
+            "WEIGHT_BASIS_CONFLICT"
           ],
           "title": "Code",
           "type": "string"
@@ -407,6 +411,38 @@
     "StageOutcome": {
       "additionalProperties": false,
       "properties": {
+        "service_operation_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Service Operation Ids",
+          "type": "array"
+        },
+        "retrieval_attempt_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Retrieval Attempt Ids",
+          "type": "array"
+        },
+        "calculation_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Calculation Ids",
+          "type": "array"
+        },
+        "finding_revision_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Finding Revision Ids",
+          "type": "array"
+        },
         "disposition": {
           "enum": [
             "PASS",

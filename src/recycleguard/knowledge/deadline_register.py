@@ -15,9 +15,9 @@ Key invariants:
 - General-role clauses apply unless a role-specific clause overrides.
 """
 
-from __future__ import annotations
-
-from typing import TYPE_CHECKING, Literal
+import re
+from datetime import date
+from typing import Literal
 
 from recycleguard.contracts.sources import (
     AmendmentEdge,
@@ -25,9 +25,6 @@ from recycleguard.contracts.sources import (
     DeadlineEntry,
     DeadlineKind,
 )
-
-if TYPE_CHECKING:
-    pass
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Temporal check result types
@@ -108,7 +105,13 @@ class DeadlineRegister:
     and returns ABSTAIN when authority is unverified or baseline is unknown.
     """
 
-    def __init__(self, entries: list[DeadlineEntry] | None = None):
+    def __init__(
+        self,
+        entries: list[DeadlineEntry] | None = None,
+        *,
+        verified_order_refs: set[str] | None = None,
+    ):
+        self.verified_order_refs = verified_order_refs or set()
         self._entries: list[DeadlineEntry] = entries or []
         # Build index by (producer_or_role_scope, fiscal_year, quarter, kind)
         self._index: dict[tuple[str, str, str | None, str], list[DeadlineEntry]] = {}
@@ -171,13 +174,29 @@ class DeadlineRegister:
                 ],
             )
 
-        # Sort by supersedes chain — latest active entry wins
-        active_entry = self._resolve_chain(entries)
+        superseded = {e.supersedes_deadline_id for e in entries if e.supersedes_deadline_id}
+        active = [
+            e for e in entries if e.deadline_id not in superseded and e.review_state == "APPROVED"
+        ]
+        if len(active) != 1:
+            return DeadlineCheckResult(
+                "deadline:unresolved",
+                kind,
+                "ABSTAIN",
+                None,
+                False,
+                ["No unique approved active deadline entry."],
+            )
+        active_entry = active[0]
 
         reasons: list[str] = []
 
         # Check if baseline_due is available
-        if active_entry.baseline_due.value is None:
+        if (
+            active_entry.baseline_due.value is None
+            or not active_entry.baseline_basis_refs
+            or active_entry.baseline_due.interpretation_status != "REVIEWED"
+        ):
             reasons.append(
                 f"Baseline {kind} deadline for FY {fiscal_year} has unknown value; "
                 "date-only or missing cut-off prevents automated eligibility check."
@@ -206,7 +225,15 @@ class DeadlineRegister:
                     "notice lead does not constitute a signed extension order. "
                     "Extension NOT applied — using baseline date."
                 )
-            elif not active_entry.extension_order_refs:
+            elif (
+                not active_entry.extension_order_refs
+                or not all(
+                    ref.ref_id in self.verified_order_refs
+                    for ref in active_entry.extension_order_refs
+                )
+                or active_entry.extended_due.value is None
+                or active_entry.extended_due.interpretation_status != "REVIEWED"
+            ):
                 # Extension exists but no order ref supplied
                 reasons.append(
                     "extended_due is set but extension_order_refs is empty; "
@@ -225,7 +252,9 @@ class DeadlineRegister:
         return DeadlineCheckResult(
             deadline_id=active_entry.deadline_id,
             kind=kind,
-            verdict="PASS",
+            verdict="ABSTAIN"
+            if active_entry.extended_due is not None and not is_verified_extension
+            else "PASS",
             effective_date=effective_date,
             is_verified_extension=is_verified_extension,
             reasons=reasons,
@@ -273,16 +302,6 @@ class DeadlineRegister:
             ],
         }
 
-    def _resolve_chain(self, entries: list[DeadlineEntry]) -> DeadlineEntry:
-        """Resolve the active entry by following supersedes_deadline_id chain."""
-        superseded_ids = {e.supersedes_deadline_id for e in entries if e.supersedes_deadline_id}
-        active = [e for e in entries if e.deadline_id not in superseded_ids]
-        # Prefer APPROVED entries; fall back to DRAFT
-        approved = [e for e in active if e.review_state == "APPROVED"]
-        if approved:
-            return approved[-1]
-        return active[-1] if active else entries[-1]
-
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Amendment Overlay Service
@@ -324,13 +343,9 @@ class AmendmentOverlayService:
         outbound = self._from_index.get(provision_version_id, [])
         inbound = self._to_index.get(provision_version_id, [])
 
-        is_replaced = any(
-            e.relation == "REPLACES" for e in inbound if e.review_state in {"APPROVED", "DRAFT"}
-        )
+        is_replaced = any(e.relation == "REPLACES" for e in inbound if e.review_state == "APPROVED")
         is_amended = any(
-            e.relation in {"AMENDS", "INSERTS"}
-            for e in inbound
-            if e.review_state in {"APPROVED", "DRAFT"}
+            e.relation in {"AMENDS", "INSERTS"} for e in inbound if e.review_state == "APPROVED"
         )
         surviving_amendment: str | None = None
 
@@ -338,9 +353,11 @@ class AmendmentOverlayService:
             replacers = [
                 e.from_provision_id
                 for e in inbound
-                if e.relation == "REPLACES" and e.review_state in {"APPROVED", "DRAFT"}
+                if e.relation == "REPLACES" and e.review_state == "APPROVED"
             ]
-            surviving_amendment = replacers[0] if replacers else None
+            surviving_amendment = replacers[0] if len(replacers) == 1 else None
+            if len(replacers) != 1:
+                reasons.append("Multiple approved replacement edges: surviving text is unresolved.")
             reasons.append(
                 f"Provision {provision_version_id} is replaced by {surviving_amendment}. "
                 "Prior text is superseded for the scope covered by the replacement."
@@ -349,7 +366,7 @@ class AmendmentOverlayService:
             amenders = [
                 e.from_provision_id
                 for e in inbound
-                if e.relation in {"AMENDS", "INSERTS"} and e.review_state in {"APPROVED", "DRAFT"}
+                if e.relation in {"AMENDS", "INSERTS"} and e.review_state == "APPROVED"
             ]
             surviving_amendment = amenders[0] if amenders else None
             reasons.append(
@@ -362,7 +379,11 @@ class AmendmentOverlayService:
             )
 
         # Collect unaffected clauses from outbound REFERENCES edges
-        unaffected_clauses = [e.to_provision_id for e in outbound if e.relation == "REFERENCES"]
+        unaffected_clauses = [
+            e.to_provision_id
+            for e in outbound
+            if e.relation == "REFERENCES" and e.review_state == "APPROVED"
+        ]
         if unaffected_clauses:
             reasons.append(
                 f"Provisions referenced but unaffected by this amendment: {unaffected_clauses}"
@@ -448,26 +469,41 @@ class TemporalApplicabilityChecker:
         if assertion.review_state == "REJECTED":
             return "FAIL"
 
-        # If no temporal bounds are set, the provision is assumed open-ended (PASS)
-        if assertion.effective_from is None and assertion.effective_until is None:
-            return "PASS"
-
-        # If target period is not supplied, we cannot determine fit
-        if target_period is None and target_event_time is None:
+        if (
+            assertion.review_state != "APPROVED"
+            or assertion.applicability_scope == "UNKNOWN"
+            or assertion.event_basis != question_basis
+            or not assertion.sources
+        ):
             return "UNRESOLVED"
-
-        target = target_period or target_event_time
-
-        # Check effective_from
-        if assertion.effective_from is not None and assertion.effective_from.value is not None:
-            if target is not None and str(target) < str(assertion.effective_from.value):
-                return "FAIL"
-
-        # Check effective_until (exclusive upper bound)
-        if assertion.effective_until is not None and assertion.effective_until.value is not None:
-            if target is not None and str(target) >= str(assertion.effective_until.value):
-                return "FAIL"
-
+        lower, upper = assertion.effective_from, assertion.effective_until
+        if lower is None or lower.value is None or lower.interpretation_status != "REVIEWED":
+            return "UNRESOLVED"
+        if upper is None and not assertion.end_open_ended:
+            return "UNRESOLVED"
+        if upper is not None and (upper.value is None or upper.interpretation_status != "REVIEWED"):
+            return "UNRESOLVED"
+        if question_basis == "REPORTING_PERIOD":
+            match = re.fullmatch(r"(?:FY)?(20\d{2})-(?:20)?(\d{2})", target_period or "")
+            if not match or int(match[2]) != (int(match[1]) + 1) % 100:
+                return "UNRESOLVED"
+            start, end = date(int(match[1]), 4, 1), date(int(match[1]) + 1, 4, 1)
+        else:
+            if target_event_time is None or len(target_event_time) != 10:
+                return "UNRESOLVED"
+            try:
+                start = end = date.fromisoformat(target_event_time)
+            except ValueError:
+                return "UNRESOLVED"
+        if lower.precision != "DATE" or (upper and upper.precision != "DATE"):
+            return "UNRESOLVED"
+        lo = date.fromisoformat(str(lower.value))
+        hi = date.fromisoformat(str(upper.value)) if upper else None
+        before = end <= lo if question_basis == "REPORTING_PERIOD" else end < lo
+        if (hi is not None and start >= hi) or before:
+            return "FAIL"
+        if start < lo or (hi is not None and end > hi):
+            return "UNRESOLVED"
         return "PASS"
 
     def check_role_override(
@@ -490,7 +526,11 @@ class TemporalApplicabilityChecker:
         if not specific:
             # No specific override — general clause applies
             general = self._assertions.get(general_assertion_id)
-            if general and general.review_state != "REJECTED":
+            if (
+                general
+                and general.review_state == "APPROVED"
+                and general.applicability_scope != "UNKNOWN"
+            ):
                 return "PASS"
             return "UNRESOLVED"
 

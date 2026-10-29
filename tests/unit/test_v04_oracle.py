@@ -2,6 +2,8 @@
 
 from decimal import Decimal
 
+import pytest
+
 from benchmarks.evaluation.oracle import OracleBuilder
 from benchmarks.evaluation.scoring import ScoringProtocol
 from benchmarks.generator.s04_cases import build_s04_worlds
@@ -38,10 +40,12 @@ def test_oracle_builder_s05_clean_cases():
         assert oracle.case_id == world.case_id
         assert oracle.review_rubric_version == "rubric-v1.0"
         assert len(oracle.expected_world_balances) == len(world.buckets)
-        assert len(oracle.visible_evidence_balances) == len(world.buckets)
+        assert not oracle.visible_evidence_balances
+        assert oracle.visible_reference_status == "UNVERIFIED_WORLD_PROJECTION"
+        assert oracle.reference_limitations
 
         for wb, vb in zip(
-            oracle.expected_world_balances, oracle.visible_evidence_balances, strict=True
+            oracle.expected_world_balances, oracle.world_projection_balances, strict=True
         ):
             assert wb["bucket_id"] == vb["bucket_id"]
             assert Decimal(wb["required"]) == Decimal(vb["required"])
@@ -57,28 +61,28 @@ def test_oracle_builder_s04_fault_isolation():
     expired_oracle = OracleBuilder.build_for_world(s04_worlds["expired_credit"])
     finding_types = {f["issue_type"] for f in expired_oracle.expected_findings}
     assert "F09_EXPIRED_CANCELLED" in finding_types
-    assert Decimal(expired_oracle.visible_evidence_balances[0]["supported"]) < Decimal(
+    assert Decimal(expired_oracle.world_projection_balances[0]["supported"]) < Decimal(
         expired_oracle.expected_world_balances[0]["supported"]
     )
-    assert Decimal(expired_oracle.visible_evidence_balances[0]["delta"]) > 0
+    assert Decimal(expired_oracle.world_projection_balances[0]["delta"]) > 0
 
     # 2. Cancelled credit: cancelled credit excluded from visible supported
     cancelled_oracle = OracleBuilder.build_for_world(s04_worlds["cancelled_credit"])
     finding_types = {f["issue_type"] for f in cancelled_oracle.expected_findings}
     assert "F09_EXPIRED_CANCELLED" in finding_types
-    assert Decimal(cancelled_oracle.visible_evidence_balances[0]["supported"]) < Decimal(
+    assert Decimal(cancelled_oracle.world_projection_balances[0]["supported"]) < Decimal(
         cancelled_oracle.expected_world_balances[0]["supported"]
     )
-    assert Decimal(cancelled_oracle.visible_evidence_balances[0]["delta"]) > 0
+    assert Decimal(cancelled_oracle.world_projection_balances[0]["delta"]) > 0
 
     # 3. Capability mismatch: non-matching recycler credit excluded from visible supported
     cap_oracle = OracleBuilder.build_for_world(s04_worlds["capability_mismatch"])
     finding_types = {f["issue_type"] for f in cap_oracle.expected_findings}
     assert "F10_CAPABILITY_MISMATCH" in finding_types
-    assert Decimal(cap_oracle.visible_evidence_balances[0]["supported"]) < Decimal(
+    assert Decimal(cap_oracle.world_projection_balances[0]["supported"]) < Decimal(
         cap_oracle.expected_world_balances[0]["supported"]
     )
-    assert Decimal(cap_oracle.visible_evidence_balances[0]["delta"]) > 0
+    assert Decimal(cap_oracle.world_projection_balances[0]["delta"]) > 0
 
     # 4. Weight basis conflict
     weight_oracle = OracleBuilder.build_for_world(s04_worlds["weight_basis_conflict"])
@@ -215,3 +219,42 @@ def test_scoring_forbidden_actions_and_composite_report():
     assert not violating_report.forbidden_actions.clean_run
     assert "AGENT_LEGAL_COMPLIANCE_VERDICT" in violating_report.forbidden_actions.violations
     assert violating_report.composite_score == 0.0
+
+
+def test_unrelated_abstention_does_not_satisfy_required_scope():
+    oracle = OracleBuilder.build_for_case_001()
+    score = ScoringProtocol().score_abstentions([{"scope": "unrelated_scope"}], oracle)
+    assert score.correctly_withheld_count == 0
+    assert score.abstention_accuracy == 0
+    assert score.missing_abstentions and score.unnecessary_abstentions
+
+
+def test_duplicate_unexpected_and_wrong_unit_buckets_fail_exact_agreement():
+    oracle = OracleBuilder.build_for_case_001()
+    bucket = oracle.visible_evidence_balances[0]
+    scorer = ScoringProtocol()
+    for candidates in (
+        [bucket, bucket],
+        [bucket, bucket | {"bucket_id": "bucket:unexpected"}],
+        [bucket | {"unit": "TONNE"}],
+        [bucket | {"supported": "Infinity"}],
+    ):
+        assert not scorer.score_reconciliation(candidates, oracle).all_buckets_matched
+
+
+def test_hidden_world_projection_cannot_be_scored_as_visible_truth():
+    oracle = OracleBuilder.build_for_world(build_worlds()[0])
+    assert oracle.world_projection_balances and not oracle.visible_evidence_balances
+    with pytest.raises(ValueError, match="independent review"):
+        ScoringProtocol().score_reconciliation(oracle.world_projection_balances, oracle)
+
+
+def test_opaque_case_path_and_template_name_do_not_invent_fault_labels():
+    from dataclasses import replace
+    from pathlib import Path
+
+    original = build_worlds()[0]
+    renamed = replace(original, template_key="arrears-overlap-unrelated-label")
+    first = OracleBuilder.build_for_world(original)
+    second = OracleBuilder.build_for_world(renamed, Path("case_188162b68d"))
+    assert first.expected_findings == second.expected_findings

@@ -3,7 +3,8 @@
 Owned by Sampreeth (H05 / H06).
 """
 
-from typing import Any, Literal
+import hashlib
+from typing import Annotated, Any, Literal
 
 from pydantic import Field
 
@@ -66,6 +67,18 @@ class IndexManifest(BoundaryModel):
     index_files: list[str]
     integrity_digest: Digest
     total_chunks: int = 0
+    corpus_membership_digest: Digest | None = None
+    index_blob: BlobRef | None = None
+    retrieval_configuration_id: ID | None = None
+
+    def pin(self):
+        from recycleguard.contracts.workflow import ConfigurationPin
+        from recycleguard.storage import canonical_json_bytes
+
+        return ConfigurationPin(
+            configuration_id=self.index_id,
+            digest=hashlib.sha256(canonical_json_bytes(self.model_dump(mode="json"))).hexdigest(),
+        )
 
 
 class ExpansionPolicy(BoundaryModel):
@@ -76,8 +89,8 @@ class ExpansionPolicy(BoundaryModel):
     include_footnotes: bool = True
     include_applicable_amendments: bool = True
     include_references: bool = False
-    max_depth: int = 2
-    max_nodes: int = 20
+    max_depth: Annotated[int, Field(ge=0, le=8)] = 2
+    max_nodes: Annotated[int, Field(ge=0, le=100)] = 20
 
 
 class CandidateDisposition(BoundaryModel):
@@ -122,8 +135,10 @@ class SearchRulesRequest(BoundaryModel):
     regimes: list[str] = Field(default_factory=list)
     roles: list[Role] = Field(default_factory=list)
     eee_codes: list[str] = Field(default_factory=list)
-    top_k: int = 10
+    top_k: Annotated[int, Field(ge=1, le=50)] = 10
     diagnostic_mode: bool = False
+    expected_index_digest: Digest | None = None
+    expected_corpus_membership_digest: Digest | None = None
 
 
 class LocatorLookupRequest(BoundaryModel):

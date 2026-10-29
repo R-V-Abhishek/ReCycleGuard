@@ -1,0 +1,30 @@
+{
+  "additionalProperties": false,
+  "description": "Configuration parameters for SQLite FTS5 lexical index.",
+  "properties": {
+    "tokenizer": {
+      "default": "unicode61",
+      "title": "Tokenizer",
+      "type": "string"
+    },
+    "bm25_k1": {
+      "default": 1.2,
+      "title": "Bm25 K1",
+      "type": "number"
+    },
+    "bm25_b": {
+      "default": 0.75,
+      "title": "Bm25 B",
+      "type": "number"
+    },
+    "indexed_columns": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Indexed Columns",
+      "type": "array"
+    }
+  },
+  "title": "LexicalConfiguration",
+  "type": "object"
+}

@@ -7,12 +7,19 @@ Distinguishes hidden world truth from what is justified from visible evidence.
 
 import hashlib
 import json
-from decimal import Decimal
+from decimal import ROUND_HALF_EVEN, Decimal
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
-from benchmarks.generator.world import World, kg
+from pydantic import Field
+
+from benchmarks.generator.world import World
 from recycleguard.contracts.core import ID, BoundaryModel
+
+
+def kg(value) -> str:
+    """Independent fixed-scale reference formatting; never call production arithmetic."""
+    return format(Decimal(value).quantize(Decimal("0.0001"), rounding=ROUND_HALF_EVEN), "f")
 
 
 class OracleCase(BoundaryModel):
@@ -25,6 +32,11 @@ class OracleCase(BoundaryModel):
     forbidden_actions: list[str]
     reference_calculation_refs: list[str]
     review_rubric_version: str = "rubric-v1.0"
+    visible_reference_status: Literal["HAND_REVIEWED", "UNVERIFIED_WORLD_PROJECTION"] = (
+        "UNVERIFIED_WORLD_PROJECTION"
+    )
+    world_projection_balances: list[dict[str, Any]] = Field(default_factory=list)
+    reference_limitations: list[str] = Field(default_factory=list)
 
 
 def _bytes(payload: Any) -> bytes:
@@ -126,18 +138,23 @@ class OracleBuilder:
 
         # Check duplicate export observations (F02)
         # Look for multi-observation corroboration
-        if getattr(world, "template_key", "") == "overlap" or "case_188162b68d" in str(
-            visible_case_dir or ""
-        ):
+        if any(t.duplicate_of is not None or len(t.channels) > 1 for t in world.transfers):
             finding_families.add("F02_OVERLAPPING_EXPORT")
 
-        # Check earlier liability drain (F08)
-        if any(
-            "prior" in str(getattr(world, "template_key", ""))
-            or "arrears" in str(getattr(world, "template_key", ""))
-            for _ in [1]
-        ):
-            finding_families.add("F08_PRIOR_ARREARS_DRAIN")
+        # Compare actual liability periods; opaque filenames and template labels
+        # are never evidence of a fault.
+        bucket_by_key = {bucket.key: bucket for bucket in world.buckets}
+        used = {}
+        for allocation in sorted(world.allocations, key=lambda item: item.order):
+            current = bucket_by_key[allocation.bucket]
+            if any(
+                older.metal == current.metal
+                and older.liability_year < current.liability_year
+                and used.get(older.key, Decimal(0)) < Decimal(older.target_kg)
+                for older in world.buckets
+            ):
+                finding_families.add("F08_PRIOR_ARREARS_DRAIN")
+            used[current.key] = used.get(current.key, Decimal(0)) + Decimal(allocation.quantity_kg)
 
         if not finding_families:
             finding_families.add("F01_CLEAN_BASELINE")
@@ -264,7 +281,16 @@ class OracleBuilder:
         return OracleCase(
             case_id=world.case_id,
             expected_world_balances=world_buckets,
-            visible_evidence_balances=visible_buckets,
+            # A hidden world cannot establish what survives in visible evidence.
+            # These independently computed projections remain diagnostics until
+            # visible originals/extraction/support have been independently reviewed.
+            visible_evidence_balances=[],
+            world_projection_balances=visible_buckets,
+            visible_reference_status="UNVERIFIED_WORLD_PROJECTION",
+            reference_limitations=[
+                "Visible-evidence reference not independently reviewed; "
+                "hidden world projection is not operational evidence."
+            ],
             expected_findings=expected_findings,
             required_abstentions=required_abstentions,
             permitted_alternatives=permitted_alternatives,
@@ -333,6 +359,12 @@ class OracleBuilder:
             case_id="case:001",
             expected_world_balances=world_balances,
             visible_evidence_balances=visible_balances,
+            visible_reference_status="HAND_REVIEWED",
+            reference_limitations=[
+                "Case001 reference assumes exact structured support has been reviewed; "
+                "unreviewed normalization must not be scored as supported55. "
+                "Temporal/legal applicability is not certified."
+            ],
             expected_findings=expected_findings,
             required_abstentions=required_abstentions,
             permitted_alternatives=[],
@@ -356,7 +388,7 @@ def write_oracle_records(
     oracle_blobs: dict[str, str] = {}
 
     for world, out in zip(worlds, rendered, strict=True):
-        case_dir = getattr(out, "case_dir", None)
+        case_dir = out.case_dir
         oracle = OracleBuilder.build_for_world(world, visible_case_dir=case_dir)
         payload = _bytes(oracle.model_dump(mode="json"))
         target = root / f"{world.case_tag}.json"
@@ -368,7 +400,9 @@ def write_oracle_records(
     if manifest_path.exists():
         manifest = json.loads(manifest_path.read_text("utf-8"))
         manifest["oracle_blob"] = oracle_blobs
-        manifest["oracle_reason"] = "OracleCases independently built and agreed by V04"
+        manifest["oracle_reason"] = (
+            "Reference candidates generated; independent human agreement is not asserted"
+        )
         manifest_path.write_bytes(_bytes(manifest))
 
     return oracle_blobs

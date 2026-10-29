@@ -1,13 +1,10 @@
 """Vision-Language Model (VLM) PDF parser interface and adapter for RAG.
 
 Owned by Sampreeth (H03 / H05).
-Provides VLM-based multimodal extraction for scanned pages, complex tables,
-and multi-column regulatory gazettes where traditional text extraction degrades.
+Defines an optional injected parser boundary for scanned pages and tables.
+No OCR/VLM engine, model gateway, or inference fallback is implemented here.
 """
 
-from __future__ import annotations
-
-import json
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
@@ -33,7 +30,7 @@ class VLMPageExtraction:
     tables: list[VLMTable] = field(default_factory=list)
     visual_notes: list[str] = field(default_factory=list)
     model_name: str = "vlm-parser"
-    confidence_score: float = 1.0
+    confidence_score: float | None = None
 
 
 class VLMPdfParser(Protocol):
@@ -46,15 +43,20 @@ class VLMPdfParser(Protocol):
         *,
         metadata: dict[str, Any] | None = None,
     ) -> VLMPageExtraction:
-        """Extract structured clauses and tables from page rendering or text."""
+        """Extract one page from the original PDF bytes or supplied page text.
+
+        PDF callers supply the entire immutable file and the requested 1-based page
+        in metadata. An implementation must explicitly support that input or raise
+        ValueError. No model gateway, OCR engine, or automatic fallback is selected.
+        """
         ...
 
 
 class DeterministicVLMPdfParser:
-    """Offline test double implementing the VLM PDF parser contract.
+    """Text-only test double implementing the optional parser contract.
 
-    Allows genuine testing of multimodal RAG extraction, table preservation,
-    and hierarchical clause structuring without requiring paid cloud API access.
+    Exercises table and clause preservation from supplied text. It does not perform
+    OCR, image interpretation, or inference and cannot handle PDF/image bytes.
     """
 
     def __init__(self, model_name: str = "vlm-offline-test-double"):
@@ -67,11 +69,9 @@ class DeterministicVLMPdfParser:
         *,
         metadata: dict[str, Any] | None = None,
     ) -> VLMPageExtraction:
-        text = (
-            page_bytes_or_text.decode("utf-8", errors="replace")
-            if isinstance(page_bytes_or_text, bytes)
-            else page_bytes_or_text
-        )
+        if type(page_bytes_or_text) is not str:
+            raise ValueError("Text-only test parser cannot extract a PDF or scanned image")
+        text = page_bytes_or_text
 
         lines = [line.strip() for line in text.splitlines() if line.strip()]
         clauses: list[dict[str, Any]] = []
@@ -118,48 +118,5 @@ class DeterministicVLMPdfParser:
             raw_markdown=text,
             clauses=clauses,
             tables=tables,
-            visual_notes=["Preserved column layout and table cell alignment"],
             model_name=self.model_name,
-            confidence_score=0.98,
         )
-
-
-class C10ModelGatewayVLMAdapter:
-    """Adapts an external C10 model gateway into the VLMPdfParser interface."""
-
-    def __init__(self, model_gateway: Any, prompt_template: str | None = None):
-        self.gateway = model_gateway
-        self.prompt_template = prompt_template or (
-            "You are a legal document vision model. Extract all legal rules, "
-            "sub-rules, and exact table data from this page in structured JSON format."
-        )
-
-    def parse_page(
-        self,
-        page_bytes_or_text: bytes | str,
-        page_number: int,
-        *,
-        metadata: dict[str, Any] | None = None,
-    ) -> VLMPageExtraction:
-        if not hasattr(self.gateway, "invoke"):
-            fallback = DeterministicVLMPdfParser(model_name="gateway-fallback")
-            return fallback.parse_page(page_bytes_or_text, page_number, metadata=metadata)
-
-        # Call C10 gateway with multimodal payload
-        response = self.gateway.invoke(
-            prompt=self.prompt_template,
-            context={"page_number": page_number, "metadata": metadata or {}},
-        )
-        if isinstance(response, dict) and "raw_markdown" in response:
-            return VLMPageExtraction(**response)
-
-        raw_text = str(response)
-        try:
-            parsed_json = json.loads(raw_text)
-            return VLMPageExtraction(**parsed_json)
-        except Exception:
-            return VLMPageExtraction(
-                page_number=page_number,
-                raw_markdown=raw_text,
-                model_name="c10-vlm",
-            )

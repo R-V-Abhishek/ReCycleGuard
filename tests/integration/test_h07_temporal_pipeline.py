@@ -9,8 +9,6 @@ Verifies:
 - TemporalApplicabilityChecker validating FY 2024-25 active intervals.
 """
 
-from __future__ import annotations
-
 from pathlib import Path
 
 from recycleguard.application import local_application
@@ -107,8 +105,21 @@ def test_h07_temporal_pipeline_with_retrieval(tmp_path):
             roles=["PRODUCER"],
             top_k=2,
         )
-        attempt = retrieval.search_rules(search_req)
-        assert len(attempt.selected_refs) > 0
+        retrieval_context = context.model_copy(
+            update={
+                "command_id": "cmd:h07_search",
+                "operation_id": "op:h07_search",
+                "attempt_id": "att:h07_search",
+                "idempotency_key": "key:h07_search",
+            }
+        )
+        attempt = retrieval.search_rules(search_req, context=retrieval_context, capability=cap)
+        # Foundation emits draft source proposals. Search accounts for every chunk,
+        # without elevating those proposals to reviewed authoritative evidence.
+        assert attempt.selected_refs == []
+        assert attempt.engine_candidates == []
+        assert len(attempt.candidate_dispositions) == manifest.total_chunks
+        assert all(d.disposition == "FILTERED_OUT" for d in attempt.candidate_dispositions)
 
         # 4. Initialize H07 DeadlineRegister with kind separation
         deadline_register = DeadlineRegister()
@@ -127,7 +138,7 @@ def test_h07_temporal_pipeline_with_retrieval(tmp_path):
             )
         )
 
-        # Add return filing deadline with a verified extension order
+        # Add a claimed return filing extension; no reviewed issued order is supplied
         order_ref = EvidenceRef(
             ref_kind="PROVISION",
             ref_id="prov:cpcb_ext_order_20250620",
@@ -163,16 +174,16 @@ def test_h07_temporal_pipeline_with_retrieval(tmp_path):
 
         # 5. Check deadline resolutions
         filing_res = deadline_register.resolve_deadline("PRODUCER", "2024-25", "RETURN_FILING")
-        assert filing_res.verdict == "PASS"
-        assert filing_res.is_verified_extension is True
-        assert filing_res.effective_date == "2025-09-30"
+        assert filing_res.verdict == "ABSTAIN"
+        assert filing_res.is_verified_extension is False
+        assert filing_res.effective_date is None  # Baseline basis and issued order are absent.
 
         obl_res = deadline_register.resolve_deadline(
             "PRODUCER", "2024-25", "OBLIGATION_ACHIEVEMENT"
         )
-        assert obl_res.verdict == "PASS"
+        assert obl_res.verdict == "ABSTAIN"
         assert obl_res.is_verified_extension is False
-        assert obl_res.effective_date == "2025-03-31"
+        assert obl_res.effective_date is None  # A date assertion alone has no baseline evidence.
 
         # 6. Verify cross-kind independence: Return filing extension does NOT extend obligation
         independence = deadline_register.check_cross_kind_independence(
@@ -207,10 +218,11 @@ def test_h07_temporal_pipeline_with_retrieval(tmp_path):
                 review_state="APPROVED",
             )
         )
-        fit = temporal_checker.check_temporal_fit("assert:schedule_iii_fy2425", "2024-09-15")
-        assert fit == "PASS"
+        fit = temporal_checker.check_temporal_fit("assert:schedule_iii_fy2425", "2024-2025")
+        assert fit == "UNRESOLVED"  # No reviewed interval evidence references.
 
         out_of_bounds = temporal_checker.check_temporal_fit(
-            "assert:schedule_iii_fy2425", "2025-06-01"
+            "assert:schedule_iii_fy2425", "2025-2026"
         )
-        assert out_of_bounds == "FAIL"
+        assert out_of_bounds == "UNRESOLVED"
+        fts_index.close()
