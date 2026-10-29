@@ -17,6 +17,7 @@ from uuid import uuid4
 
 from recycleguard.contracts.core import Issue, Locator, TemporalValue
 from recycleguard.contracts.extraction import CoverageItem, Observation
+from recycleguard.extraction.vlm_parser import VLMPdfParser
 
 _PAGE_FOOTER = re.compile(r"\bPage\s+(\d+)\s+of\s+(\d+)\b", re.IGNORECASE)
 
@@ -61,6 +62,7 @@ def extract_pdf_pages(
     extraction_id: str,
     *,
     capture_time: TemporalValue | None = None,
+    vlm_parser: VLMPdfParser | None = None,
 ) -> tuple[list[Observation], list[CoverageItem], str, list[Issue]]:
     """Extract page text and coverage items from PDF bytes."""
     observations: list[Observation] = []
@@ -128,9 +130,47 @@ def extract_pdf_pages(
 
         stripped = page_text.strip()
         cov_id = f"cov:{uuid4().hex[:12]}"
+        extraction_method = "PDF_TEXT"
+        vlm_tables = []
+
+        if not stripped and vlm_parser is not None:
+            try:
+                vlm_page = vlm_parser.parse_page(
+                    pdf_bytes,
+                    page_idx,
+                    metadata={"input_format": "application/pdf", "page_index_1based": page_idx},
+                )
+                if vlm_page.raw_markdown.strip():
+                    stripped = vlm_page.raw_markdown.strip()
+                    extraction_method = "VLM_ASSISTED"
+                    vlm_tables = [
+                        {
+                            "table_id": t.table_id,
+                            "caption": t.caption,
+                            "headers": t.headers,
+                            "rows": t.rows,
+                            "footnotes": t.footnotes,
+                        }
+                        for t in vlm_page.tables
+                    ]
+            except (ValueError, RuntimeError, OSError, TimeoutError) as exc:
+                issues.append(
+                    Issue(
+                        issue_id=f"issue:{uuid4().hex[:8]}",
+                        code="EXTRACTION_FAILED",
+                        severity="WARNING",
+                        message=f"Optional page parser failed for page {page_idx}: {exc}",
+                        field_path=f"page:{page_idx}",
+                        evidence_refs=[],
+                        retryable=False,
+                    )
+                )
 
         if stripped:
             obs_id = f"obs:{uuid4().hex[:12]}"
+            parsed_fields: dict[str, object] = {"text": stripped}
+            if vlm_tables:
+                parsed_fields["vlm_tables"] = vlm_tables
             obs = Observation(
                 observation_id=obs_id,
                 extraction_id=extraction_id,
@@ -138,9 +178,9 @@ def extract_pdf_pages(
                 locator=locator,
                 observation_type="PDF_PAGE_TEXT",
                 raw_fields={"page_number": page_idx, "character_count": len(stripped)},
-                parsed_fields={"text": stripped},
+                parsed_fields=parsed_fields,
                 validation_state="VALID",
-                extraction_method="PDF_TEXT",
+                extraction_method=extraction_method,
                 field_quality={"quality": "PARSED_PDF_PAGE"},
                 event_time=cap_time,
                 source_capture_time=cap_time,
