@@ -298,10 +298,17 @@ def fault_records(case, out: Rendered) -> tuple[list[dict], dict]:
 
 
 def write_hidden(
-    hidden_root: Path, worlds: list[World], rendered: list[Rendered], cases=None
+    hidden_root: Path,
+    worlds: list[World],
+    rendered: list[Rendered],
+    cases=None,
+    *,
+    split_policy: str | None = None,
+    splits: dict[str, dict[str, str]] | None = None,
 ) -> Path:
     """Write the hidden record; ``cases`` (S06 ``Corrupted``) adds corruption, expected effects
-    and a rendered clean counterpart per case."""
+    and a rendered clean counterpart per case. ``splits`` (S07) maps case id to its split and
+    grouping keys; split membership is hidden truth and never reaches a visible root."""
     if not worlds:
         raise ValueError("nothing to record")
     version = worlds[0].dataset_version
@@ -367,7 +374,7 @@ def write_hidden(
         "oracle_reason": "OracleCase is built independently by V04 from these records",
         "reference_blob": blobs["reference"],
         "visible_map_blob": blobs["visible_map"],
-        "split_policy": f"DEV_ONLY_{version.split('-')[0].upper()}",
+        "split_policy": split_policy or f"DEV_ONLY_{version.split('-')[0].upper()}",
         "rights_manifest_ref": "rights:synthetic_fixture",
         "timeline_groups": {w.case_id: w.timeline_group for w in worlds},
         "templates": {w.case_id: w.template_key for w in worlds},
@@ -378,6 +385,13 @@ def write_hidden(
             "clean_world_blob": blobs["clean_world"],
             "clean_counterpart_root": "clean/",
             "fault_families": {c.world.case_id: c.families for c in cases},
+        }
+    if splits is not None:
+        manifest |= {
+            "split_assignments": {k: v["split"] for k, v in splits.items()},
+            "split_groups": {
+                k: {g: x for g, x in v.items() if g != "split"} for k, v in splits.items()
+            },
         }
     (root / "generation_manifest.json").write_bytes(_bytes(manifest))
     return root

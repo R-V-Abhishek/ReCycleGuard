@@ -10,6 +10,8 @@ S05 adds a reusable pipeline: **clean world → invariants → visible rendering
 | `s04_cases.py` | Six S04 variants (own dataset version `s04-dev-0.1`): expired credit, cancelled credit, invoice plus payment, capability mismatch, weight-basis conflict, earlier liability proven by allocation dates |
 | `s06_cases.py` | 21 S06 fault dossiers (`s06-dev-0.1`): F01–F16 singly (F15 in two forms) plus four combinations |
 | `faults/` | S06 fault recipes (`recipes.py`), hidden record models (`records.py`), visible-effect validation (`validate.py`) |
+| `pilot_cases.py` | S07 pilot (`pilot-0.1`): 48 dossiers split 24 development / 24 held-out before rendering |
+| `pilot.py` | S07 split independence, leakage and near-duplicate checks; the held-out digest seal |
 | `invariants.py` | World checks with stable rule ids: IDs, conservation, chronology, metals, prices, synthetic identity; a recipe may relax only the ids it declares |
 | `render.py` | Projects a world into a visible dossier validated by the contract models |
 | `documents.py` | Indian inter-office memorandum + Indian number/money/date formatting |
@@ -96,6 +98,57 @@ producer is excluded (`AMBIGUOUS_IDENTITY`), a duplicate export is pending (`AMB
 undated raw status CANCELLED/EXPIRED is UNKNOWN, and the portal reports only completed transfers
 to the producer up to the statement cut-off. F11, F12 and F14 have no runtime check yet
 (H06/H07, A07); S06 supplies the evidence and the expected abstentions only.
+
+## S07 pilot (`pilot-0.1`): 24 development + 24 held-out
+
+`pilot_cases.py` builds 48 dossiers and assigns each to a split **before rendering**. Each split
+has one dossier per family F01–F16 and eight combinations. The split is grouped by entity,
+template and timeline group. It is never a row-level random split.
+
+- **Entities:** development uses the S05/S06 catalogue. Held-out uses twelve producers (serials
+  13–24) and six recyclers (`recycler_i`–`n`) that no development dossier uses, including the 33
+  earlier dossiers.
+- **Templates:** a template is a shape plus its parameters (`tranches.CU.2.mid.portal`). The
+  splits share no template and no multi-recipe combination. Single fault definitions are shared
+  on purpose.
+- **Variants:** F08 is dated in dev and undated in held-out. F10 is capability in dev and metal in
+  held-out. F15 is textless in dev and truncated in held-out. The combinations use the other
+  form.
+
+| # | Development combination | Held-out combination |
+| --- | --- | --- |
+| 1 | F02+F06 | F02+F07 |
+| 2 | F08 (undated)+F09 | F08 (dated)+F10 (capability) |
+| 3 | F04+F10 (metal) | F04+F06 |
+| 4 | F15 (textless)+F16 | F15 (truncated)+F11 |
+| 5 | F03+F13 | F03+F09 |
+| 6 | F05+F12 | F05+F16 |
+| 7 | F11+F14 | F12+F13 |
+| 8 | F06+F07 | F10 (metal)+F13 |
+
+**Layout.**
+- Development dossiers go to `tests/fixtures/visible/case_<tag>/` (committed).
+- Held-out dossiers go to `benchmarks/heldout/visible/case_<tag>/` (gitignored, `--heldout-root`).
+- Git keeps only `benchmarks/pilot/heldout_seal.json`: opaque held-out case ids and a SHA-256 of
+  each visible file tree. It carries no labels, families, seeds or templates.
+- `generate --check` compares development bytes with the fixtures and held-out digests with the
+  seal.
+- The hidden record `benchmarks/hidden/pilot-0.1/` adds `split_policy = GROUPED_DEV_HELDOUT_V1`,
+  `split_assignments` and `split_groups`. It also adds `oracle/` (V04's `write_oracle_records`)
+  with `oracle_blob` filled.
+
+**Checks** (`pilot.py`). Generation fails if any of these is true:
+- the splits share an entity, template, combination, timeline group or hidden world id;
+- a visible file or name carries a family, recipe, template, group, seed or split word;
+- two dossiers are exact duplicates;
+- a development dossier and a held-out dossier reach a word 5-shingle Jaccard of 0.85 or more.
+  The current maximum is about 0.31.
+
+**Limits.**
+- The separation is internal only. Templates and seeds are in this code, so anyone with the
+  repository can regenerate the held-out dossiers. This is disclosed as limited internal
+  separation (plan §7.3), not as an external or double-blind test.
+- The held-out access log and the digest freeze belong to V09.
 
 ## Indian digit grouping
 

@@ -249,6 +249,50 @@ def test_hidden_world_projection_cannot_be_scored_as_visible_truth():
         ScoringProtocol().score_reconciliation(oracle.world_projection_balances, oracle)
 
 
+def test_oracle_agrees_with_declared_families_and_reference_on_fault_dossiers():
+    """Two implementations of the same rules: the oracle reads world facts only; the generator
+    declares what each recipe did and computes its own reference arithmetic."""
+    from benchmarks.generator.hidden import reference_balances
+    from benchmarks.generator.pilot_cases import build_pilot_cases
+    from benchmarks.generator.s06_cases import build_s06_cases
+
+    cases = [c.corrupted for c in build_pilot_cases()] + list(build_s06_cases())
+    assert len(cases) == 48 + 21
+    for case in cases:
+        oracle = OracleBuilder.build_for_world(case.world)
+        families = sorted(f["issue_type"] for f in oracle.expected_findings)
+        assert families == case.families, case.world.case_tag
+        reference = {b["bucket_id"]: b for b in reference_balances(case.world)["buckets"]}
+        for row in oracle.world_projection_balances:
+            want = reference[row["bucket_id"]]
+            for key in ("required", "supported", "signed_gap", "pending", "portal_reported"):
+                assert row[key] == want[key], (case.world.case_tag, key)
+        reasons = {a["reason"] for a in oracle.required_abstentions}
+        for family, reason in (
+            ("F06_STALE_SNAPSHOT", "TEMPORAL_UNCERTAINTY"),
+            ("F11_WRONG_PERIOD_RULE", "RULE_CONFLICT"),
+            ("F12_UNSEEN_NOTICE_LEAD", "MISSING_AUTHORITY"),
+            ("F14_OUT_OF_SCOPE_REGIME", "UNSUPPORTED_FEATURE"),
+            ("F15_EXTRACTION_PAGE_LOSS", "MISSING_EVIDENCE"),
+        ):
+            if family in case.families:
+                assert reason in reasons, (case.world.case_tag, family)
+
+
+def test_clean_controls_raise_no_finding_on_the_uniform_surface():
+    from benchmarks.generator.pilot_cases import build_pilot_cases
+
+    clean = [c.corrupted.clean for c in build_pilot_cases()]
+    for world in clean:
+        oracle = OracleBuilder.build_for_world(world)
+        transfers = {t.key: t for t in world.transfers}
+        # An invoiced purchase whose transfer has not completed is itself pending credit (F07),
+        # even before a payment is recorded against it.
+        pending = any(transfers[i.transfer].stage != "COMPLETED" for i in world.invoices)
+        want = ["F07_PAID_NO_TRANSFER"] if pending else ["F01_CLEAN_BASELINE"]
+        assert [f["issue_type"] for f in oracle.expected_findings] == want, world.case_tag
+
+
 def test_opaque_case_path_and_template_name_do_not_invent_fault_labels():
     from dataclasses import replace
     from pathlib import Path

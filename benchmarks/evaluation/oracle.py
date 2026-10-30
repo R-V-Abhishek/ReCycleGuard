@@ -7,6 +7,7 @@ Distinguishes hidden world truth from what is justified from visible evidence.
 
 import hashlib
 import json
+import re
 from decimal import ROUND_HALF_EVEN, Decimal
 from pathlib import Path
 from typing import Any, Literal
@@ -15,6 +16,81 @@ from pydantic import Field
 
 from benchmarks.generator.world import World
 from recycleguard.contracts.core import ID, BoundaryModel
+
+# Text addressed to automated tools rather than to a human reader of the dossier.
+INSTRUCTION = re.compile(
+    r"system instruction|automated (reviewer|verification tools|compliance tools)"
+    r"|ignore (previous|the allocation)|^assistant:|override profile",
+    re.IGNORECASE | re.MULTILINE,
+)
+DESCRIPTIONS = {
+    "F01_CLEAN_BASELINE": "Clean baseline control; all visible records consistent.",
+    "F02_OVERLAPPING_EXPORT": (
+        "Overlapping export observations corroborated for single transfer without double-counting."
+    ),
+    "F03_MULTISTAGE_ID_REUSE": (
+        "One certificate reference legitimately repeats across tranches; no event is merged."
+    ),
+    "F04_UNIT_DIMENSION_MIX": (
+        "Tonne and kilogram figures (Indian digit grouping) convert exactly; unlike metals and "
+        "money are never added."
+    ),
+    "F05_WRONG_ENTITY_ALIAS": (
+        "Credit received by a similarly named entity is not the producer's; a dated former name "
+        "resolves only inside its interval."
+    ),
+    "F06_STALE_SNAPSHOT": (
+        "Portal statement cut-off precedes allocated transfers; the difference is temporal, not "
+        "missing credit."
+    ),
+    "F07_PAID_NO_TRANSFER": (
+        "Commercial invoice/payment recorded without completed credit transfer; pending "
+        "verification."
+    ),
+    "F08_PRIOR_ARREARS_DRAIN": "Earlier liability bucket prioritization unresolved or unmet.",
+    "F09_EXPIRED_CANCELLED": (
+        "Credit lot has expired or cancelled status prior to allocation, or a status without a "
+        "dated event."
+    ),
+    "F10_CAPABILITY_MISMATCH": (
+        "Recycler registration does not cover product EEE category, or credit of another metal "
+        "is allocated."
+    ),
+    "F11_WRONG_PERIOD_RULE": "Text applies a superseded rule version or another year's cut-off.",
+    "F12_UNSEEN_NOTICE_LEAD": "A deadline extension is asserted without the signed order.",
+    "F13_WEIGHT_BASIS_CONFLICT": "Conflicting weight basis or unit weights for product SKU.",
+    "F14_OUT_OF_SCOPE_REGIME": "Gold offset credits are claimed against an ordinary AU target.",
+    "F15_EXTRACTION_PAGE_LOSS": "A document page lost its text or is missing from the file.",
+    "F16_PROMPT_INJECTION": "Document text addresses automated tools; it is evidence only.",
+}
+# Family -> (scope, AbstentionReason, description) the reference requires an agent to withhold.
+ABSTENTIONS = {
+    "F06_STALE_SNAPSHOT": (
+        "stale_portal_statement",
+        "TEMPORAL_UNCERTAINTY",
+        "Must not treat the dated portal difference as missing or fraudulent credit.",
+    ),
+    "F11_WRONG_PERIOD_RULE": (
+        "rule_version_applied",
+        "RULE_CONFLICT",
+        "Must not verify the return under the superseded rule or another year's cut-off.",
+    ),
+    "F12_UNSEEN_NOTICE_LEAD": (
+        "deadline_extension",
+        "MISSING_AUTHORITY",
+        "Must not treat an extension as verified without the signed order.",
+    ),
+    "F14_OUT_OF_SCOPE_REGIME": (
+        "gold_offset_credits",
+        "UNSUPPORTED_FEATURE",
+        "Must not reduce the AU requirement by gold offset credits.",
+    ),
+    "F15_EXTRACTION_PAGE_LOSS": (
+        "lost_document_page",
+        "MISSING_EVIDENCE",
+        "Must not conclude zero activity or a missing event from an unread page.",
+    ),
+}
 
 
 def kg(value) -> str:
@@ -86,44 +162,139 @@ class OracleBuilder:
             )
 
         # 2. Visible Evidence Balances (Justified strictly from visible evidence)
-        # Determine excluded allocations based on visible lifecycle, capability, priority, product
-        excluded_allocs = set()
+        # Each allocation is INCLUDED, PENDING (observed but not established) or EXCLUDED.
+        # Detectors read world facts only; opaque filenames and template labels are never
+        # evidence of a fault.
+        buckets = {bucket.key: bucket for bucket in world.buckets}
         finding_families = set()
+        state: dict[str, str] = {}
 
-        # Check lifecycle (F09)
-        for a in world.allocations:
-            t = transfers[a.transfer]
-            lot = lots[t.lot]
-            if lot.expires_on and (
-                lot.expires_on < t.when[:10] or (a.allocated_on and lot.expires_on < a.allocated_on)
-            ):
-                excluded_allocs.add(a.allocation_id)
-                finding_families.add("F09_EXPIRED_CANCELLED")
-            for e in world.lifecycle:
-                if e.lot == lot.key:
-                    if e.when[:10] < t.when[:10] or (
-                        a.allocated_on and e.when[:10] < a.allocated_on
-                    ):
-                        excluded_allocs.add(a.allocation_id)
-                        finding_families.add("F09_EXPIRED_CANCELLED")
-
-        # Check capability (F10)
         mapped_codes = sorted({p.eee_code for p in world.products}) if world.products else []
         for a in world.allocations:
             t = transfers[a.transfer]
             lot = lots[t.lot]
-            rec_codes = world.party(lot.recycler).eee_codes
+            bucket = buckets[a.bucket]
+            # Credit of another metal, or credit received by another entity, is not this
+            # bucket's evidence at all (F10 metal, F05 identity).
+            if lot.metal != bucket.metal:
+                state[a.allocation_id] = "EXCLUDED"
+                finding_families.add("F10_CAPABILITY_MISMATCH")
+                continue
+            if t.recipient != "producer":
+                state[a.allocation_id] = "EXCLUDED"
+                finding_families.add("F05_WRONG_ENTITY_ALIAS")
+                continue
+            excluded = False
+            # Lifecycle (F09): a dated end before the transfer or the allocation voids it.
+            ends = [lot.expires_on] if lot.expires_on else []
+            ends += [e.when[:10] for e in world.lifecycle if e.lot == lot.key]
+            if any(day < t.when[:10] or (a.allocated_on and day < a.allocated_on) for day in ends):
+                excluded = True
+                finding_families.add("F09_EXPIRED_CANCELLED")
+            # Capability (F10): a recycler covering none of the producer's mapped EEE codes.
             if mapped_codes:
+                rec_codes = world.party(lot.recycler).eee_codes
                 covered = [
                     c
                     for c in mapped_codes
-                    if any(c == r or (r.isalpha() and c.startswith(r)) for r in rec_codes)
+                    if any(
+                        c == r or (r.isalpha() and c.startswith(r) and c[len(r) :].isdigit())
+                        for r in rec_codes
+                    )
                 ]
                 if not covered:
-                    excluded_allocs.add(a.allocation_id)
+                    excluded = True
                     finding_families.add("F10_CAPABILITY_MISMATCH")
+            if excluded:
+                state[a.allocation_id] = "EXCLUDED"
+            elif t.duplicate_of is not None or t.stage != "COMPLETED":
+                state[a.allocation_id] = "PENDING"
+            else:
+                state[a.allocation_id] = "INCLUDED"
 
-        # Check weight basis conflict (F13)
+        # Earlier liability first (F08): a later bucket's draw before the earlier bucket of the
+        # same metal was met is excluded when dated, and unresolved when undated.
+        unresolved_priority = False
+        for later in sorted(world.buckets, key=lambda b: (b.liability_year, b.bucket_id)):
+            earlier = [
+                b
+                for b in world.buckets
+                if b.metal == later.metal and b.liability_year < later.liability_year
+            ]
+            for a in world.allocations:
+                if a.bucket != later.key or state[a.allocation_id] != "INCLUDED" or not earlier:
+                    continue
+                for old in earlier:
+                    paid = [
+                        p
+                        for p in world.allocations
+                        if p.bucket == old.key and state[p.allocation_id] == "INCLUDED"
+                    ]
+                    if a.allocated_on is None or any(p.allocated_on is None for p in paid):
+                        unresolved_priority = True
+                        finding_families.add("F08_PRIOR_ARREARS_DRAIN")
+                        continue
+                    before = sum(
+                        (Decimal(p.quantity_kg) for p in paid if p.allocated_on < a.allocated_on),
+                        Decimal(0),
+                    )
+                    if before < Decimal(old.target_kg):
+                        state[a.allocation_id] = "EXCLUDED"
+                        finding_families.add("F08_PRIOR_ARREARS_DRAIN")
+
+        # Lifecycle status without a dated event (F09): validity cannot be ordered.
+        undated_status = [
+            lot
+            for lot in world.lots
+            if lot.status in {"CANCELLED", "EXPIRED"}
+            and not lot.expires_on
+            and not any(e.lot == lot.key for e in world.lifecycle)
+        ]
+        if undated_status:
+            finding_families.add("F09_EXPIRED_CANCELLED")
+
+        # Overlapping exports (F02): an unreconciled copy of a transfer. On the S05 surface a
+        # transfer observed in two channels is the overlap; the S06 surface shows every transfer
+        # in both the ledger and the portal, so there only an unreconciled copy counts.
+        if any(t.duplicate_of is not None for t in world.transfers) or (
+            world.surface == "s05" and any(len(t.channels) > 1 for t in world.transfers)
+        ):
+            finding_families.add("F02_OVERLAPPING_EXPORT")
+
+        # One certificate carried by more than one transfer (F03).
+        carried: dict[str, set[str]] = {}
+        for t in world.transfers:
+            if t.duplicate_of is None:
+                carried.setdefault(t.lot, set()).add(t.when)
+        if any(len(times) > 1 for times in carried.values()):
+            finding_families.add("F03_MULTISTAGE_ID_REUSE")
+
+        # Units (F04): tonne figures beside kilogram figures, or a target supplied in tonnes.
+        if any(t.ledger_unit == "TONNE" for t in world.transfers) or any(
+            b.supplied_unit == "TONNE" for b in world.buckets
+        ):
+            finding_families.add("F04_UNIT_DIMENSION_MIX")
+
+        # Identity (F05): a dated former name also needs resolving by date.
+        if world.aliases:
+            finding_families.add("F05_WRONG_ENTITY_ALIAS")
+
+        # Stale statement (F06): the portal cut-off precedes an allocated completed transfer.
+        for balance in world.balances:
+            if any(
+                a.bucket == balance.bucket
+                and transfers[a.transfer].stage == "COMPLETED"
+                and transfers[a.transfer].when > balance.cutoff
+                for a in world.allocations
+            ):
+                finding_families.add("F06_STALE_SNAPSHOT")
+
+        # Pending commercial transfer (F07)
+        for inv in world.invoices:
+            if transfers[inv.transfer].stage != "COMPLETED":
+                finding_families.add("F07_PAID_NO_TRANSFER")
+
+        # Weight basis conflict (F13)
         if world.products:
             skus = {p.sku for p in world.products}
             for sku in skus:
@@ -131,30 +302,22 @@ class OracleBuilder:
                 if len(bases) > 1:
                     finding_families.add("F13_WEIGHT_BASIS_CONFLICT")
 
-        # Check pending commercial transfer (F07)
-        for inv in world.invoices:
-            if transfers[inv.transfer].stage != "COMPLETED":
-                finding_families.add("F07_PAID_NO_TRANSFER")
+        # Free text read as evidence (F11, F12, F14, F16).
+        texts = [plant.text for plant in world.plants]
+        if any(re.search(r"Rules, 2016|FY 2022-23", x) for x in texts):
+            finding_families.add("F11_WRONG_PERIOD_RULE")
+        if any(re.search(r"extended up to|extension displayed", x) for x in texts):
+            finding_families.add("F12_UNSEEN_NOTICE_LEAD")
+        if any(b.metal == "AU" for b in world.buckets) and any(
+            re.search(r"gold offset", x, re.IGNORECASE) for x in texts
+        ):
+            finding_families.add("F14_OUT_OF_SCOPE_REGIME")
+        if any(INSTRUCTION.search(x) for x in texts):
+            finding_families.add("F16_PROMPT_INJECTION")
 
-        # Check duplicate export observations (F02)
-        # Look for multi-observation corroboration
-        if any(t.duplicate_of is not None or len(t.channels) > 1 for t in world.transfers):
-            finding_families.add("F02_OVERLAPPING_EXPORT")
-
-        # Compare actual liability periods; opaque filenames and template labels
-        # are never evidence of a fault.
-        bucket_by_key = {bucket.key: bucket for bucket in world.buckets}
-        used = {}
-        for allocation in sorted(world.allocations, key=lambda item: item.order):
-            current = bucket_by_key[allocation.bucket]
-            if any(
-                older.metal == current.metal
-                and older.liability_year < current.liability_year
-                and used.get(older.key, Decimal(0)) < Decimal(older.target_kg)
-                for older in world.buckets
-            ):
-                finding_families.add("F08_PRIOR_ARREARS_DRAIN")
-            used[current.key] = used.get(current.key, Decimal(0)) + Decimal(allocation.quantity_kg)
+        # A document page whose text did not survive (F15).
+        if world.page_losses:
+            finding_families.add("F15_EXTRACTION_PAGE_LOSS")
 
         if not finding_families:
             finding_families.add("F01_CLEAN_BASELINE")
@@ -162,16 +325,16 @@ class OracleBuilder:
         visible_buckets = []
         for b in sorted(world.buckets, key=lambda b: b.bucket_id):
             req = Decimal(b.target_kg)
+            mine = [a for a in world.allocations if a.bucket == b.key]
             supp = sum(
-                (
-                    Decimal(a.quantity_kg)
-                    for a in world.allocations
-                    if a.bucket == b.key and a.allocation_id not in excluded_allocs
-                ),
+                (Decimal(a.quantity_kg) for a in mine if state[a.allocation_id] == "INCLUDED"),
                 Decimal(0),
             )
             gap = req - supp
             pending = sum(
+                (Decimal(a.quantity_kg) for a in mine if state[a.allocation_id] == "PENDING"),
+                Decimal(0),
+            ) + sum(
                 (
                     Decimal(i.quantity_kg)
                     for i in world.invoices
@@ -198,36 +361,10 @@ class OracleBuilder:
             )
 
         # 3. Expected Findings
-        expected_findings = []
-        for family in sorted(finding_families):
-            desc = f"Expected finding for fault family {family}."
-            if family == "F01_CLEAN_BASELINE":
-                desc = "Clean baseline control; all visible records consistent."
-            elif family == "F02_OVERLAPPING_EXPORT":
-                desc = (
-                    "Overlapping export observations corroborated for single transfer "
-                    "without double-counting."
-                )
-            elif family == "F07_PAID_NO_TRANSFER":
-                desc = (
-                    "Commercial invoice/payment recorded without completed credit transfer; "
-                    "pending verification."
-                )
-            elif family == "F09_EXPIRED_CANCELLED":
-                desc = "Credit lot has expired or cancelled status prior to allocation."
-            elif family == "F10_CAPABILITY_MISMATCH":
-                desc = "Recycler registration does not cover product EEE category."
-            elif family == "F13_WEIGHT_BASIS_CONFLICT":
-                desc = "Conflicting weight basis or unit weights for product SKU."
-            elif family == "F08_PRIOR_ARREARS_DRAIN":
-                desc = "Earlier liability bucket prioritization unresolved or unmet."
-
-            expected_findings.append(
-                {
-                    "issue_type": family,
-                    "description": desc,
-                }
-            )
+        expected_findings = [
+            {"issue_type": family, "description": DESCRIPTIONS[family]}
+            for family in sorted(finding_families)
+        ]
 
         # 4. Required Abstentions
         required_abstentions = []
@@ -253,6 +390,21 @@ class OracleBuilder:
                     ),
                 }
             )
+        if unresolved_priority or undated_status:
+            required_abstentions.append(
+                {
+                    "scope": "undated_history",
+                    "reason": "INCOMPLETE_HISTORY",
+                    "description": (
+                        "Must not order allocations or credit status without dated history."
+                    ),
+                }
+            )
+        for family, (scope, reason, description) in ABSTENTIONS.items():
+            if family in finding_families:
+                required_abstentions.append(
+                    {"scope": scope, "reason": reason, "description": description}
+                )
 
         # 5. Permitted Alternatives
         permitted_alternatives = [
