@@ -465,7 +465,7 @@ All references are exact task/checkpoint IDs. Required predecessors are an AND c
 | **H05** | DONE | CP1                   | None                    | 25 Oct        | **Build provision/table chunks and frozen lexical index.** FTS5 index manifest, membership digest and exact locators.                               |
 | **H06** | DONE | H05                   | None                    | 26 Oct        | **Implement filtered retrieval, locator resolution and evidence grades.** Full candidate dispositions; five grades; bounded context expansion.      |
 | **H07** | DONE | H06, H04              | None                    | 27 Oct        | **Complete temporal overlays, deadline register and missing-order tests.** Amendment/role/time tests; separate deadline types; explicit abstention. |
-| **H08** | BLOCKED   | H07, CP3              | None                    | 28 Oct        | **Audit final corpus/profile and development retrieval regressions.** Reviewed exact source/index/profile versions; limitations and rights.         |
+| **H08** | DONE | H07, CP3              | None                    | 28 Oct        | **Audit final corpus/profile and development retrieval regressions.** Reviewed exact source/index/profile versions; limitations and rights.         |
 | **H09** | BLOCKED   | CP4                   | None                    | 30 Oct–1 Nov | **Tune development retrieval and freeze corpus/index/policy.** Dev error analysis; frozen applicability and retrieval inputs.                       |
 | **H10** | BLOCKED   | V11                   | V12                     | 3 Nov         | **Blind-score citation, temporal support and next-action quality.** Written rubric; overlap/double-scoring; retained judgments.                     |
 | **H11** | BLOCKED   | H09, H10              | None                    | 4–5 Nov      | **Finalize source rights, attribution, references and limitations.** Asset-level release decisions and reproducibility restrictions.                |
@@ -481,7 +481,7 @@ All references are exact task/checkpoint IDs. Required predecessors are an AND c
 | **S05** | DONE | CP0                   | None                    | 25 Oct        | **Implement clean-world renderer and first six visible cases.** Linked CSV/JSONL/text-PDF fixtures; hidden world kept separate.                      |
 | **S04** | DONE | S03                   | None                    | 26 Oct        | **Complete lifecycle, priority, entity/capability/product/commercial tools.** Full-server-input checks; F08/F09; PASS/FAIL/UNKNOWN results.          |
 | **S06** | DONE | S05, S04, H04         | None                    | 27 Oct        | **Implement all F01–F16 fault recipes and generation invariants.** Each recipe has a visible effect, clean reference and validation.                |
-| **S07** | BLOCKED   | S06, V04              | None                    | 28 Oct        | **Generate grouped 24-dev/24-held-out pilot and validate manifests.** 48 opaque dossiers; split/leakage checks; versioned regeneration.              |
+| **S07** | DONE | S06, V04              | None                    | 28 Oct        | **Generate grouped 24-dev/24-held-out pilot and validate manifests.** 48 opaque dossiers; split/leakage checks; versioned regeneration.              |
 | **S08** | BLOCKED   | CP4                   | None                    | 30 Oct–1 Nov | **Fix development tool/generator defects and freeze deterministic inputs.** Regression-tested tools/templates/profile; preserved split and versions. |
 | **S09** | BLOCKED   | V11                   | V12                     | 3 Nov         | **Independently score exact balances and finding matches.** Bucket/finding counts and classified tool/parser/oracle errors.                          |
 | **S10** | BLOCKED   | S08, S07              | None                    | 4–5 Nov      | **Finalize dataset/generator method, card and release manifest.** Synthetic limits, split/recipe documentation and permitted regeneration.           |
@@ -1017,3 +1017,5 @@ Evaluation/release completion checklist:
 **Sushanth:** build the starter fictional dossier and normalization/calculation fixtures; implement exact allocation support and F02/F03 distinctions. Keep generator truth out of visible inputs and hand the expected-answer review to Vedantha.
 
 **Vedantha:** build blob/SQLite/audit primitives, independent expected answers and evaluator separation. Deliver the storage contract early; use deterministic report fixtures for review/export/scoring while upstream modules are still being integrated.
+
+Backend API integration is tracked in [the API handoff](docs/checkpoints/checkpoint-4/API_HANDOFF.md). This does not close A08/CP4 or MG1; their independent acceptance dependencies remain.

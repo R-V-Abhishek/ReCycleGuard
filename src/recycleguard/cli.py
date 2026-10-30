@@ -301,10 +301,6 @@ def foundation_review(path: Annotated[Path, typer.Argument(exists=True, dir_okay
         raise typer.Exit(1) from exc
 
 
-if __name__ == "__main__":
-    app()
-
-
 investigation_app = typer.Typer(
     help="Bounded real-service investigation; scripted C10 is test-only."
 )
@@ -465,3 +461,39 @@ def investigation_review(
     except (ValueError, OSError, sqlite3.Error) as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(1) from exc
+
+
+@app.command("serve")
+def serve_api(
+    host: str = "0.0.0.0",
+    port: Annotated[int, typer.Option(min=1, max=65535)] = 8000,
+    model_config: Annotated[Path | None, typer.Option(exists=True, dir_okay=False)] = None,
+    token_file: Annotated[Path | None, typer.Option(exists=True, dir_okay=False)] = None,
+    cors_origin: Annotated[list[str] | None, typer.Option()] = None,
+):
+    """Start one API worker. No frontend is installed or served."""
+    import os
+
+    import uvicorn
+
+    from recycleguard.api import ApiOptions, create_app
+
+    token = os.environ.get("RECYCLEGUARD_API_TOKEN")
+    if token_file is not None:
+        token = token_file.read_text(encoding="utf-8").strip()
+    if not token:
+        raise typer.BadParameter("Set RECYCLEGUARD_API_TOKEN or provide --token-file")
+    settings = Settings.from_environment()
+    application = create_app(
+        ApiOptions(
+            settings=settings,
+            token=token,
+            model_config_path=model_config,
+            cors_origins=tuple(cors_origin or ()),
+        )
+    )
+    uvicorn.run(application, host=host, port=port, workers=1)
+
+
+if __name__ == "__main__":
+    app()

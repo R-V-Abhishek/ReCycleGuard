@@ -122,3 +122,13 @@ Real retrieval, domain tools, verified reports and authenticated review are inte
 `checkpoint-3`. C10 remains explicitly scripted for this offline checkpoint. See the
 [CP3 record](docs/checkpoints/checkpoint-3/README.md) for per-member work, limitations
 and reproducible CLI verification (`uv run scripts/verify_a07.py --data-root NEW_ROOT --output NEW_OUTPUT`).
+
+### Backend API (no frontend)
+
+The local-model branch and S07/H08 submissions are integrated on
+`codex/backend-api`. The HTTP API supports manifest-based dossier upload/selection,
+explicit evidence review, background investigation, exact prompt/tool traces,
+SSE, reports, integrity auditing and authenticated report decisions.
+See [API setup and endpoints](docs/api/README.md),
+[OpenAPI contract](docs/api/openapi.json) and the
+[future UI implementation plan](docs/api/UI_IMPLEMENTATION_PLAN.md).

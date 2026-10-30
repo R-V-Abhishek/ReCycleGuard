@@ -447,9 +447,11 @@ def test_r09_corpus_audit_manifest_digests_and_structure():
     assert len(manifest.limitations) >= 7
 
     # Rights metadata
+    assert manifest.verification_status == "UNVERIFIED_METADATA"
+    assert manifest.verified_checks == []
     for src in manifest.sources:
-        assert src.redistribution_allowed is False
-        assert "Crown" in src.copyright_owner or "CPCB" in src.copyright_owner
+        assert src.redistribution_allowed is None
+        assert src.review_state is None
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -595,9 +597,9 @@ def test_r14_audit_corpus_sources_static_structure():
     assert "provision:r08_sec_c_recycler_capability" in r08.active_provision_ids
 
     # Both must be review_state=DRAFT
-    assert r02.review_state == "DRAFT"
-    assert r08.review_state == "DRAFT"
+    assert r02.review_state is None
+    assert r08.review_state is None
 
     # Both must carry redistribution_allowed=False
-    assert r02.redistribution_allowed is False
-    assert r08.redistribution_allowed is False
+    assert r02.redistribution_allowed is None
+    assert r08.redistribution_allowed is None

@@ -1,220 +1,86 @@
-# Source Data Card — ReCycleGuard Retrieval Corpus (H08)
+# Source data card: frozen retrieval corpus
 
-**Task:** H08 — Audit final corpus/profile and development retrieval regressions  
-**Owner:** Sampreeth (H08)  
-**Predecessor checkpoints:** CP3 (`252ddcc`)  
-**Date:** 2026-10-29  
-**Handoff target:** CP4 integration (A08, V09)
+Owner: Sampreeth, H08. Integrity verification repairs: Abhishek integration.
 
----
+This card describes the checked fixture sources and the audit boundary. It does not
+certify a live deployment, legal interpretation, redistribution permission, model
+quality or full-page legal review. A runtime audit result must bind its exact
+corpus, profile and index pins; the source constants alone cannot establish that.
 
-## 1. Active Corpus Overview
+## Known fixture originals
 
-The retrieval engine operates on two primary regulatory sources. No other sources
-are active in the lexical index for `producer_snapshot_v1`.
+| Alias | Original artifact revision | SHA-256 | Physical pages |
+| --- | --- | --- | --- |
+| R02 | `artifact_rev:r02_rules_2022_official_pdf` | `d03f8744bc79d67a94b06e1020537e93d15572b0cf1d575cb32b76c89f30a5fb` | 38 |
+| R08 | `artifact_rev:cpcb_faq_20240123_pdf` | `30f56238fb7db53dd82f69d198be9a92e31d98ea5b21d2724eb7397641a80d16` | 13 |
 
-| Alias | Artifact Revision ID | Document Title |
-|-------|---------------------|----------------|
-| R02 | `artifact_rev:r02_rules_2022_official_pdf` | E-Waste (Management) Rules 2022 |
-| R08 | `artifact_rev:cpcb_faq_20240123_pdf` | CPCB FAQ on E-Waste Rules 2022, Jan 2024 |
+The fixture corpus retains R02 physical pages 24 and 27 for Rule 6(4) and Rule
+15(1)-(3), and R08 page 9 for recycler capability guidance. Originals remain
+retained independently of the selected provision text. The Gazette and FAQ are
+distinct source classes; retrieval does not make guidance equivalent to statute.
 
----
+Exact runtime source titles, URLs, rights metadata, review states, provision IDs
+and locators come from the frozen corpus membership. Do not copy a fixed DRAFT or
+APPROVED label from this card into an audit result.
 
-## 2. Source R02 — E-Waste (Management) Rules 2022
+## Two different outputs
 
-| Field | Value |
-|-------|-------|
-| **Artifact Revision ID** | `artifact_rev:r02_rules_2022_official_pdf` |
-| **Source alias** | `R02`, `domain:R02`, `cpcb:R02` |
-| **Issuer** | Ministry of Environment, Forest and Climate Change, Government of India |
-| **Instrument type** | Statutory Instrument / Gazette Rule |
-| **Regime** | `E_WASTE_2022` |
-| **Source URL** | https://eprewaste.cpcb.gov.in/assets/PDF/e-waste_rules_2022.pdf |
-| **SHA-256 digest** | `d03f8744bc79d67a94b06e1020537e93d15572b0cf1d575cb32b76c89f30a5fb` |
-| **Total pages** | 38 |
-| **Access policy** | `policy:local_source_review` |
-| **Rights decision** | `decision:review_required` |
-| **Copyright owner** | Government of India (Crown/India copyright) |
-| **Statutory exception** | Section 52(1)(q), Copyright Act 1957 — reproduction for compliance review |
-| **Redistribution** | **Not permitted**; local compliance-review use only |
-| **Review state** | `DRAFT` |
+`build_corpus_profile_audit_manifest(...)` remains a compatibility metadata helper.
+Its status is **UNVERIFIED_METADATA**, with no verified checks or audit streams.
+Source review state and redistribution authorization are unknown in this output.
+Its expected source constants and supplied profile/index summaries do not prove
+that files exist, that their bytes match, or that a review was committed.
 
-### 2.1 Active provisions (reviewed pages only)
+`audit_frozen_corpus_profile(...)` returns **VERIFIED_INTEGRITY** only after checking:
 
-| Provision ID | Physical Page | Legal Path | Roles | Regime |
-|---|---|---|---|---|
-| `provision:r02_rule6_sub4` | **24** | Rule 6(4), full physical-page context | PRODUCER | E_WASTE_2022 |
-| `provision:r02_rule15_sub1_sub3` | **27** | Rule 15(1)-(3), full physical-page context | PRODUCER, RECYCLER | E_WASTE_2022 |
+- Exact expected corpus, profile and index pins and their persisted catalog revisions.
+- Immutable corpus membership and coverage bytes, original source revisions and
+  original file bytes, provision text blobs and valid physical page locators.
+- Canonical profile digest, exact source dependencies and source-bound policy evidence.
+- Index membership digest and exact immutable SQLite bytes against the local index.
+- Hash links, event sequence, payload/input/output blobs and indexed heads for all
+  streams in the supplied application audit ledger, including child-service streams.
 
-### 2.2 Unreviewed pages
+Missing or changed pins, files, blobs, dependencies or audit hashes fail clearly;
+the audit does not silently repair evidence or downgrade a failed check to a
+metadata success. Use the application ledger that published the inputs and built
+the index. A separate empty audit database cannot demonstrate their provenance.
 
-Pages 1–23, 25–26, 28–38 are captured but **not individually reviewed**.
-No conclusions are drawn from unreviewed page ranges. Any retrieval candidate
-from these pages carries `review_state=DRAFT` and `authority=UNRESOLVED`.
+The result records `verified_checks`, `verified_audit_streams` and caller-supplied
+`runtime_metadata`. Runtime metadata is labelled evidence about configuration,
+not a measurement or proof that a model executed successfully. No model provider,
+scripted adapter or TEST_DOUBLE mode is assumed by the audit.
 
----
+## Remaining qualifications
 
-## 3. Source R08 — CPCB FAQ on E-Waste Rules 2022
+Integrity verification and review are separate. Actual source/provision review
+states and temporal assertion intervals are retained. Unapproved or insufficiently
+dated applicability remains qualified; checking hashes does not resolve it.
 
-| Field | Value |
-|-------|-------|
-| **Artifact Revision ID** | `artifact_rev:cpcb_faq_20240123_pdf` |
-| **Source alias** | `R08`, `cpcb:FAQ` |
-| **Issuer** | Central Pollution Control Board (CPCB), Government of India |
-| **Instrument type** | Official Guidance / FAQ |
-| **Regime** | `E_WASTE_2022` |
-| **Source URL** | https://eprewaste.cpcb.gov.in/assets/PDF/faqewaste.pdf |
-| **SHA-256 digest** | `30f56238fb7db53dd82f69d198be9a92e31d98ea5b21d2724eb7397641a80d16` |
-| **Total pages** | 13 |
-| **Access policy** | `policy:local_source_review` |
-| **Rights decision** | `decision:review_required` |
-| **Copyright owner** | Government of India / CPCB (Crown/India copyright) |
-| **Statutory exception** | Section 52(1)(q), Copyright Act 1957 — reproduction for compliance review |
-| **Redistribution** | **Not permitted**; local compliance-review use only |
-| **Review state** | `DRAFT` |
+The calculation profile declares allowed metals, target basis, unsupported
+features and purchase-ceiling state. A disabled ceiling remains disabled. An
+ordinary supplied AU target remains available even when a refurbishment offset
+is unsupported; the audit does not reduce that target or calculate compensation.
 
-> **Important:** FAQ status is official guidance, not a statute. The FAQ cannot override
-> Rule text. Conclusions drawn from R08 must be corroborated against R02 Rule text.
+Rights fields reproduce the recorded source metadata and policy/decision IDs.
+They do not provide a fresh legal conclusion about copyright or statutory
+exceptions. REVIEW_REQUIRED/DENY or restricted redistribution remains explicit;
+matching hashes grants no additional publication permission.
 
-### 3.1 Active provisions (reviewed pages only)
+The audit performs no semantic inference, legal sufficiency evaluation, retrieval
+query, latency benchmark or held-out model assessment. Runtime evaluation remains
+a separately measured task. Development retrieval regressions are not a completed
+48-dossier held-out evaluation.
 
-| Provision ID | Physical Page | Legal Path | Roles | Regime |
-|---|---|---|---|---|
-| `provision:r08_sec_c_recycler_capability` | **9** | Section C, EEE capability, full page context | PRODUCER, RECYCLER | E_WASTE_2022 |
+## Verification
 
-### 3.2 Unreviewed pages
-
-Pages 1–8, 10–13 are captured but not individually reviewed.
-
----
-
-## 4. Active Calculation Profile
-
-| Field | Value |
-|-------|-------|
-| **Profile ID** | `profile:producer_snapshot_v1` |
-| **Profile version** | `1.0` |
-| **Review state** | `DRAFT` |
-| **Supported regime** | `EWASTE_EPR_SUPPLIED_TARGETS` |
-| **Target basis** | `SUPPLIED_METAL_WISE_OBLIGATIONS` |
-| **Allowed metals** | AU, CU, AL, FE |
-| **Category scope** | ITEW4, CEEW1 |
-| **Priority check** | `EARLIER_COMPATIBLE_AT_ALLOCATION_TIME` |
-| **Purchase ceiling** | `DISABLED_REVIEW_REQUIRED` |
-| **Source R02 dependency digest** | `d03f8744bc79d67a94b06e1020537e93d15572b0cf1d575cb32b76c89f30a5fb` |
-| **Source R08 dependency digest** | `30f56238fb7db53dd82f69d198be9a92e31d98ea5b21d2724eb7397641a80d16` |
-
-### 4.1 Unsupported features (explicit exclusions)
-
-All six features below are explicitly excluded from `producer_snapshot_v1`:
-
-| Feature | Reason |
-|---------|--------|
-| `GOLD_OFFSETS` | Out-of-scope regime; F14 fault family |
-| `REFURBISHING_DEFERRALS` | Out-of-scope regime; F14 fault family |
-| `SALES_DERIVED_TARGETS` | Not applicable to supplied-weight basis |
-| `TAX_PRICING` | Excluded from active calculation |
-| `SOLAR` | Excluded from active calculation |
-| `ENVIRONMENTAL_COMPENSATION` | Out-of-scope regime |
-
----
-
-## 5. Lexical Index Summary
-
-| Field | Value |
-|-------|-------|
-| **Index type** | SQLite FTS5 BM25 |
-| **Tokenizer** | `unicode61` |
-| **BM25 k1** | 1.2 |
-| **BM25 b** | 0.75 |
-| **Indexed columns** | legal_path, title, text, regime, role_scope, affected_roles |
-| **Index binding** | Frozen to `corpus_snapshot_id`; `integrity_digest` verified on every request |
-| **Semantic embedding** | Not enabled; `dense_configuration_or_null = null` |
-
----
-
-## 6. Recorded Retrieval Limitations
-
-### L01 — Unreviewed provisions
-- **Scope:** R02 pages 1–23, 25–26, 28–38; R08 pages 1–8, 10–13
-- **Effect:** Candidates from unreviewed pages have `review_state=DRAFT`; `authority=UNRESOLVED`
-- **Mitigation:** Expand reviewed page set in a future H09 corpus update
-
-### L02 — Missing extension order (F12 family)
-- **Scope:** Rule 9A enabling provision; FY 2024-25 RETURN_FILING deadline
-- **Effect:** `DeadlineRegister` returns `ABSTAIN` (fallback to `baseline_due`) when
-  `unverified_notice=True` or `extension_order_refs` is empty
-- **Mitigation:** Capture the signed CPCB extension order when it becomes accessible
-
-### L03 — Disabled purchase ceiling (Rule 15)
-- **Scope:** `PurchaseCeilingPolicy.state = DISABLED_REVIEW_REQUIRED`
-- **Effect:** No purchase ceiling is enforced; calculations proceed without ceiling cap
-- **Mitigation:** Requires a separate `ProfileReview` decision with signed authority
-
-### L04 — Redistribution restricted
-- **Scope:** All derived corpus chunks from R02 and R08
-- **Effect:** Publication bundles must omit original PDF bytes and full page text
-- **Mitigation:** Apply rights filter at export; provide attribution only
-
-### L05 — Temporal applicability unresolved
-- **Scope:** All three active provisions (assertion `review_state=DRAFT`)
-- **Effect:** `temporal_fit=UNRESOLVED` for all grading assessments
-- **Mitigation:** Review and approve applicability assertions with explicit intervals
-
-### L06 — Semantic grades unresolved (C10 TEST_DOUBLE)
-- **Scope:** `direct_support`, `contradiction` grades for all candidates
-- **Effect:** `direct_support=UNRESOLVED` and `contradiction=UNRESOLVED` always
-- **Mitigation:** Wire a real C10 gateway; verify compatibility separately per §8.3
-
-### L07 — Unsupported features (gold offset, refurbishing, etc.)
-- **Scope:** GOLD_OFFSETS, REFURBISHING_DEFERRALS, SALES_DERIVED_TARGETS, TAX_PRICING, SOLAR, ENVIRONMENTAL_COMPENSATION
-- **Effect:** F14 explicit abstention; no calculation output for these regimes
-- **Mitigation:** These are explicit design constraints of v1; document for callers
-
----
-
-## 7. Retrieval Behavior Summary
-
-```
-request pins: corpus_snapshot_id + index_id (+ optional digest assertions)
-engine: FTS5 BM25 lexical ranking (k1=1.2, b=0.75, tokenizer=unicode61)
-grading: 5D (authority, temporal_fit, direct_support, completeness, contradiction)
-  - authority: deterministic (source_class + review_state)
-  - temporal_fit: UNRESOLVED (assertion intervals not reviewed)
-  - direct_support: UNRESOLVED (C10 TEST_DOUBLE)
-  - completeness: PASS if COMPLETE_TEXT + top-level provision
-  - contradiction: UNRESOLVED (C10 TEST_DOUBLE)
-expansion: max_depth=2, max_nodes=20 (hard boundary; no unbounded traversal)
-disposition kinds: FILTERED_OUT | NOT_SCORED | OUTSIDE_ENGINE_WINDOW |
-                   SCORED | REJECTED_SUPPORT | OMITTED_CONTEXT_BUDGET
+```sh
+uv run pytest -q tests/integration/test_h08_frozen_audit.py
+uv run pytest -q tests/integration/test_h08_reproducibility.py tests/unit/test_h08_retrieval_regressions.py
 ```
 
----
-
-## 8. Fault Coverage (Development Regression Labels)
-
-| Fault | Kind | Test Label | Expected outcome |
-|-------|------|------------|-----------------|
-| F11 | Wrong period rule | R03 | `temporal_fit` never `PASS`; UNRESOLVED |
-| F12 | Unseen notice lead | R04 | No `authority=PASS` for NOTICE_LEAD; `direct_support=UNRESOLVED` |
-| F14 | Out-of-scope regime | R02 | No `authority=PASS + direct_support=PASS` for gold offset |
-
----
-
-## 9. Handoff Checklist for CP4 (A08, V09)
-
-- [x] Corpus digest pinned for R02 and R08 (`corpus_audit.py`)
-- [x] Active physical pages documented: R02→{24,27}, R08→{9}
-- [x] Rights and access policy IDs recorded for both sources
-- [x] Profile digest and purchase ceiling state audited
-- [x] Seven limitation kinds documented with `effect_on_retrieval`
-- [x] 14 labelled development retrieval regressions (`test_h08_retrieval_regressions.py`)
-- [x] Fresh-root reproducibility integration test (`test_h08_reproducibility.py`)
-- [x] Source data card present at `docs/data/source_data_card.md`
-
----
-
-*This card was generated as part of H08 task execution. It is not a legal opinion
-and does not represent a complete rights review. Redistribution decisions require
-independent legal review before publication.*
-
+The real-input tests clone approved foundation evidence without reviewer
+credentials, build an actual index and verify exact pins and recorded states.
+Negative cases change expected pins, index bytes, original/provision blobs,
+profile content and audit hashes. Legacy helper tests require an explicitly
+unverified result instead of fabricated source review/rights assertions.

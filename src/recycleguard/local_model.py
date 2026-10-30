@@ -38,18 +38,23 @@ _PHASE_RULES = {
         "NO_NEW_EVIDENCE or EXPERT_REVIEW_REQUIRED. "
         "Example valid check structure: "
         '{"plan":{"objective":"...","hypotheses":["..."],"proposed_checks":["compute_reconciliation"],"expected_evidence":["..."],"stopping_criteria":["..."]},'
-        '"action":{"action_kind":"CHECK","allowed_operation":"compute_reconciliation","finding_id":"finding:...","typed_arguments":{},"concise_reason":"...","evidence_refs":[]},'
+        '"action":{"action_kind":"CHECK","allowed_operation":"compute_reconciliation",'
+        '"finding_id":"finding:...","typed_arguments":{},"concise_reason":"...","evidence_refs":[]},'
         '"stop_reason":null}. '
     ),
     "ASSESS": (
-        "ASSESS rules: Your verdict concerns evidence for the discrepancy finding being investigated. "
+        "ASSESS rules: Your verdict concerns evidence for the discrepancy "
+        "finding being investigated. "
         "CRITICAL: disposition=RESOLVE strictly requires verdict=SUPPORTS. "
-        "If verdict is REFUTES, WEAK, NO_PROGRESS, or UNKNOWN, disposition CANNOT be RESOLVE; "
+        "If verdict is REFUTES, WEAK, NO_PROGRESS, or UNKNOWN, "
+        "disposition CANNOT be RESOLVE; "
         "disposition MUST be CONTINUE or ABSTAIN. "
         "When stopping an investigation because the finding is refuted or cannot be supported, "
-        "set verdict=REFUTES, disposition=ABSTAIN, next_check_or_stop=\"stop\", and revised_plan=null. "
+        "set verdict=REFUTES, disposition=ABSTAIN, "
+        'next_check_or_stop="stop", and revised_plan=null. '
         "Example valid refutation stopping structure: "
-        '{"verdict":"REFUTES","weak_result_or_mistake":null,"next_check_or_stop":"stop","disposition":"ABSTAIN","revised_plan":null}. '
+        '{"verdict":"REFUTES","weak_result_or_mistake":null,"next_check_or_stop":"stop",'
+        '"disposition":"ABSTAIN","revised_plan":null}. '
     ),
 }
 _SCHEMAS = {"PLAN": PlanProposal, "ASSESS": AssessmentProposal}

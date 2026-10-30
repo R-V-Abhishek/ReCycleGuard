@@ -149,9 +149,10 @@ def test_h08_fresh_root_corpus_audit_reproducibility(tmp_path):
 
     # Two sources with correct digests and redistribution restriction
     assert len(audit_manifest.sources) == 2
+    assert audit_manifest.verification_status == "UNVERIFIED_METADATA"
     for src in audit_manifest.sources:
-        assert src.redistribution_allowed is False
-        assert src.review_state in ("DRAFT", "APPROVED")
+        assert src.redistribution_allowed is None
+        assert src.review_state is None
 
     # Index record tied to the live manifest
     assert audit_manifest.index is not None

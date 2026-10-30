@@ -8,12 +8,14 @@ version = "0.1.0"
 description = "Auditable e-waste EPR reconciliation prototype"
 requires-python = ">=3.11"
 dependencies = [
+    "fastapi>=0.115,<1",
     "langgraph>=1,<2",
     "langgraph-checkpoint-sqlite>=3.0.1,<4",
     "pdfplumber>=0.11.10",
     "pydantic>=2.10,<3",
     "typer>=0.15,<1",
     "tzdata>=2024.1",
+    "uvicorn>=0.30,<1",
 ]
 
 [project.scripts]
@@ -21,6 +23,7 @@ recycleguard = "recycleguard.cli:app"
 
 [dependency-groups]
 dev = [
+    "httpx>=0.27,<1",
     "pytest>=8,<9",
     "ruff>=0.11,<1",
 ]

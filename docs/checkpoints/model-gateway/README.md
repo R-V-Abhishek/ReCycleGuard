@@ -1,6 +1,14 @@
 # U01 local model development log
 
-Status: **IN PROGRESS; paused at the lead's request on 28 October 2026**.
+Status: **Experimental native compatibility demonstrated; real-model acceptance remains gated**.
+
+Integration review, 30 October: the 21 saved S06 runs reached AWAITING_REVIEW
+with zero retries, two model calls and one tool action each. These are diagnostic
+compatibility observations. They do not independently establish full fault
+precision/recall, general injection immunity, complete ingestion checks or MG1
+acceptance. The integrated API now uses the actual A07 services rather than the
+separate compatibility harness; see [API verification](../../api/README.md).
+Earlier pause/failure descriptions below are historical records.
 Owner: Abhishek. Branch: `codex/u01-local-model`, based on A06 `fb25809`.
 This work does not approve U01 compatibility, MG1, CP3 or a real-model evaluation.
 
@@ -67,7 +75,7 @@ Every single S06 dossier was evaluated using the live local MLX model (`Qwen3.5-
 - **Pass rate:** **100%** (all 21 reached `AWAITING_REVIEW` with `review_outcome: PENDING`)
 - **Schema violations & provider failures:** **0**
 - **Retries:** **0** across all 21 runs
-- **Arithmetic accuracy:** Reconciled quantities matched ground-truth benchmark references to 4 decimal places in 100% of cases.
+- **Arithmetic scope:** The table records deterministic balance diagnostics. A sealed independent visible-evidence scoring record has not been validated here; do not interpret workflow completion as 100% investigation quality.
 
 | Case Key | Tag | Fault Family | Tool Invoked by Model | Calculated Balances (Req / Supp / Gap / Pend) | Model Assessment Verdict & Disposition | End State / Stop Reason | Elapsed |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :---: |

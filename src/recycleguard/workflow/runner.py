@@ -1001,6 +1001,18 @@ class WorkflowRunner:
             "PLAN",
             {
                 "pending_findings": initial.pending_finding_ids,
+                "investigation_scope": (
+                    "Assess supported allocation gaps and evidence qualifications in the "
+                    "frozen dossier. Finding IDs identify investigation questions, not evidence "
+                    "observations. Use actual prior results; never invent observation identifiers."
+                ),
+                "prior_stage_observations": [
+                    CallRecord.model_validate_json(self.blobs.get(ref)).stage_output.model_dump(
+                        mode="json"
+                    )
+                    for ref in initial.result_refs[-2:]
+                    if CallRecord.model_validate_json(self.blobs.get(ref)).stage_output is not None
+                ],
                 "prior_stage_result_refs": [
                     ref.model_dump(mode="json") for ref in initial.result_refs
                 ],

@@ -1,29 +1,29 @@
-"""H08: Final corpus/profile audit and retrieval regression scaffolding.
+"""Frozen corpus/profile integrity verification and explicitly unverified metadata helpers.
 
-Owned by Sampreeth (H08).
-
-Produces a machine-readable manifest of:
-- Active corpus sources and their exact SHA-256 digests, physical page locators,
-  index manifest digests and rights metadata.
-- Active calculation profile (producer_snapshot_v1) metal-bucket mapping,
-  purchase-ceiling policy state, and dependency hashes.
-- Explicit recorded limitations including unreviewed provisions, missing extension
-  orders, disabled purchase ceilings, notice leads without signed orders, and
-  external redistribution disclaimers.
-
-No invented legal opinions, no semantic LLM grades (C10 is TEST_DOUBLE only).
-Temporal applicability for individual provisions remains UNRESOLVED at this stage.
+Integrity verification establishes exact persisted inputs and audit lineage, not legal
+correctness, redistribution permission, temporal applicability, or model quality.
 """
 
-from __future__ import annotations
-
 import hashlib
+import io
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Literal
 
 from pydantic import Field
 
+from recycleguard.contracts.artifacts import (
+    ArtifactRevision,
+    FrozenSnapshot,
+    ProfileRef,
+    SnapshotRef,
+)
 from recycleguard.contracts.core import BoundaryModel, Digest
+from recycleguard.contracts.profiles import CalculationProfile
+from recycleguard.contracts.retrieval import IndexManifest
+from recycleguard.contracts.workflow import ConfigurationPin
+from recycleguard.indexing.corpus import load_corpus
+from recycleguard.storage import AuditKernel, BlobStore, canonical_json_bytes
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Audit record models
@@ -36,7 +36,7 @@ class SourceAuditRecord(BoundaryModel):
     artifact_revision_id: str
     source_alias: str
     document_title: str
-    source_kind: Literal["GAZETTE", "OFFICIAL_GUIDANCE"]
+    source_kind: str
     source_url: str
     sha256_digest: Digest
     total_pages: int
@@ -46,8 +46,8 @@ class SourceAuditRecord(BoundaryModel):
     rights_decision_id: str
     copyright_owner: str
     statutory_exception: str
-    redistribution_allowed: bool
-    review_state: Literal["DRAFT", "APPROVED", "REJECTED"]
+    redistribution_allowed: bool | None
+    review_state: Literal["DRAFT", "APPROVED", "REJECTED"] | None
     review_note: str
 
 
@@ -103,13 +103,14 @@ class AuditLimitation(BoundaryModel):
 
 
 class CorpusProfileAuditManifest(BoundaryModel):
-    """Complete H08 handoff manifest for CP4 integration.
+    """Typed audit outcome; only VERIFIED_INTEGRITY has inspected frozen bytes."""
 
-    Summarises the exact state of the corpus, index and profile as entered into
-    CP3. All fields are derived from pinned source constants; none are inferred
-    from live network calls or LLM outputs.
-    """
-
+    verification_status: Literal["UNVERIFIED_METADATA", "VERIFIED_INTEGRITY"] = (
+        "UNVERIFIED_METADATA"
+    )
+    runtime_metadata: dict[str, str] = Field(default_factory=dict)
+    verified_checks: list[str] = Field(default_factory=list)
+    verified_audit_streams: list[str] = Field(default_factory=list)
     manifest_id: str = "manifest:h08_corpus_profile_audit_v1"
     generated_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
     owner: str = "Sampreeth (H08)"
@@ -120,8 +121,7 @@ class CorpusProfileAuditManifest(BoundaryModel):
     profile: ProfileAuditRecord
     limitations: list[AuditLimitation]
     retrieval_engine_note: str = (
-        "FTS5 SQLite BM25 lexical index. Semantic grades remain UNRESOLVED "
-        "(C10 is TEST_DOUBLE; no live model provider selected)."
+        "Metadata helper only; no runtime, model, retrieval grades or review decisions verified."
     )
 
 
@@ -180,17 +180,11 @@ def audit_corpus_sources() -> list[SourceAuditRecord]:
             active_provision_ids=_ACTIVE_PROVISIONS[_R02_REV_ID],
             access_policy_id="policy:local_source_review",
             rights_decision_id="decision:review_required",
-            copyright_owner="Government of India (Crown/India copyright)",
-            statutory_exception=(
-                "Section 52(1)(q) Copyright Act 1957 — reproduction for compliance review"
-            ),
-            redistribution_allowed=False,
-            review_state="DRAFT",
-            review_note=(
-                "Physical page context reviewed for pages 24 and 27 only. "
-                "Remaining 36 pages are not individually reviewed. "
-                "External redistribution restricted; local compliance use only."
-            ),
+            copyright_owner="Unverified expected metadata",
+            statutory_exception="No rights determination performed",
+            redistribution_allowed=None,
+            review_state=None,
+            review_note="UNVERIFIED_METADATA: no frozen bytes or review decisions inspected",
         ),
         SourceAuditRecord(
             artifact_revision_id=_R08_REV_ID,
@@ -206,18 +200,11 @@ def audit_corpus_sources() -> list[SourceAuditRecord]:
             active_provision_ids=_ACTIVE_PROVISIONS[_R08_REV_ID],
             access_policy_id="policy:local_source_review",
             rights_decision_id="decision:review_required",
-            copyright_owner="Government of India / CPCB (Crown/India copyright)",
-            statutory_exception=(
-                "Section 52(1)(q) Copyright Act 1957 — reproduction for compliance review"
-            ),
-            redistribution_allowed=False,
-            review_state="DRAFT",
-            review_note=(
-                "Physical page 9 reviewed for Section C (EEE capability). "
-                "FAQ status is official guidance, not a statute; "
-                "it cannot override Rule text. "
-                "External redistribution restricted; local compliance use only."
-            ),
+            copyright_owner="Unverified expected metadata",
+            statutory_exception="No rights determination performed",
+            redistribution_allowed=None,
+            review_state=None,
+            review_note="UNVERIFIED_METADATA: no frozen bytes or review decisions inspected",
         ),
     ]
 
@@ -250,9 +237,9 @@ def audit_profile(profile_payload: dict) -> ProfileAuditRecord:
         priority_check=profile_payload["allocation_policy"]["priority_check"],
         purchase_ceiling_state=profile_payload["purchase_ceiling_policy"]["state"],
         purchase_ceiling_note=(
-            "DISABLED_REVIEW_REQUIRED: Rule 15 purchase ceiling is not "
-            "yet applied. A separate reviewed ProfileReview decision "
-            "with signed authority is required before it can be enabled."
+            "Recorded profile policy state: "
+            + profile_payload["purchase_ceiling_policy"]["state"]
+            + "; this summary does not independently approve policy authority."
         ),
         unsupported_features=profile_payload["unsupported_features"],
         source_dependency_digests=dep_digests,
@@ -260,119 +247,46 @@ def audit_profile(profile_payload: dict) -> ProfileAuditRecord:
 
 
 def build_audit_limitations() -> list[AuditLimitation]:
-    """Return the explicit recorded limitation set for H08 handoff."""
+    """Questions for a future real audit, not claims about an inspected runtime."""
+    questions = [
+        ("UNREVIEWED_PROVISION", "Source/provision review", "Review states require frozen inputs."),
+        ("MISSING_EXTENSION_ORDER", "Deadline authority", "Issued order coverage is unverified."),
+        (
+            "DISABLED_PURCHASE_CEILING",
+            "Profile policy",
+            "Use the supplied profile's actual ceiling state.",
+        ),
+        ("NOTICE_LEAD_NO_ORDER", "Notice leads", "A lead is not an issued extension order."),
+        (
+            "REDISTRIBUTION_RESTRICTED",
+            "Source rights",
+            "Rights require recorded decisions; no legal permission is inferred.",
+        ),
+        (
+            "TEMPORAL_APPLICABILITY_UNRESOLVED",
+            "Applicability",
+            "No temporal grades were executed by this metadata helper.",
+        ),
+        (
+            "SEMANTIC_GRADE_UNRESOLVED",
+            "Model/retrieval",
+            "Runtime model and semantic grades are not supplied or verified.",
+        ),
+        (
+            "UNSUPPORTED_FEATURE",
+            "Calculation scope",
+            "Read unsupported features from the supplied profile.",
+        ),
+    ]
     return [
         AuditLimitation(
-            limitation_id="limit:h08_01_provision_review",
-            kind="UNREVIEWED_PROVISION",
-            scope="R02 pages 1-23, 25-26, 28-38; R08 pages 1-8, 10-13",
-            description=(
-                "Only R02 pages 24, 27 and R08 page 9 were individually reviewed. "
-                "Remaining pages are captured but not individually reviewed. "
-                "No conclusions are drawn from unreviewed pages."
-            ),
-            effect_on_retrieval=(
-                "Retrieval candidates from unreviewed page ranges carry "
-                "review_state=DRAFT; authority grade remains UNRESOLVED unless "
-                "the source_class qualifies under the deterministic rule."
-            ),
-        ),
-        AuditLimitation(
-            limitation_id="limit:h08_02_extension_order",
-            kind="MISSING_EXTENSION_ORDER",
-            scope="Rule 9A enabling provision; FY 2024-25 RETURN_FILING deadline",
-            description=(
-                "Rule 9A is an enabling provision permitting deadline extensions. "
-                "No signed, reviewed extension order has been captured. "
-                "A notice lead or press report cannot substitute for the issued order."
-            ),
-            effect_on_retrieval=(
-                "DeadlineRegister returns ABSTAIN (fallback to baseline_due) "
-                "when unverified_notice=True or extension_order_refs is empty. "
-                "F12 (UNSEEN_NOTICE_LEAD) fault family is covered by tests."
-            ),
-        ),
-        AuditLimitation(
-            limitation_id="limit:h08_03_purchase_ceiling",
-            kind="DISABLED_PURCHASE_CEILING",
-            scope="producer_snapshot_v1 PurchaseCeilingPolicy",
-            description=(
-                "The purchase ceiling (Rule 15) policy state is "
-                "DISABLED_REVIEW_REQUIRED. No approved ceiling parameters "
-                "(current_liability_basis, prior_liability_basis, buffer_rate) "
-                "are present. A separate ProfileReview decision with signed "
-                "authority is required to enable it."
-            ),
-            effect_on_retrieval=(
-                "Calculation profiles built from producer_snapshot_v1 cannot "
-                "enforce purchase ceilings. This is an explicit gap, not a silent omission."
-            ),
-        ),
-        AuditLimitation(
-            limitation_id="limit:h08_04_redistribution",
-            kind="REDISTRIBUTION_RESTRICTED",
-            scope="R02, R08 — all derived corpus chunks",
-            description=(
-                "Both sources carry Crown/India copyright. "
-                "Redistribution is restricted. Only local compliance-review "
-                "use is permitted under Section 52(1)(q) Copyright Act 1957. "
-                "Publication bundles must omit original PDF bytes and full page text."
-            ),
-            effect_on_retrieval=(
-                "Export bundles must apply rights filters before distribution. "
-                "Corpus chunks are stored as BlobRefs; original bytes are "
-                "never embedded directly in exported JSON."
-            ),
-        ),
-        AuditLimitation(
-            limitation_id="limit:h08_05_temporal_applicability",
-            kind="TEMPORAL_APPLICABILITY_UNRESOLVED",
-            scope="All three active provisions",
-            description=(
-                "ApplicabilityAssertions remain in DRAFT review_state for all "
-                "three provisions. Effective intervals (effective_from, "
-                "effective_until) are not populated with reviewed dates. "
-                "Temporal applicability checks therefore return UNRESOLVED."
-            ),
-            effect_on_retrieval=(
-                "All grading_assessments will show temporal_fit=UNRESOLVED "
-                "until assertions are reviewed and approved. "
-                "F11 (WRONG_PERIOD_RULE) tests verify the UNRESOLVED path."
-            ),
-        ),
-        AuditLimitation(
-            limitation_id="limit:h08_06_semantic_grade",
-            kind="SEMANTIC_GRADE_UNRESOLVED",
-            scope="direct_support, contradiction grades for all candidates",
-            description=(
-                "Semantic support and contradiction grades require a live "
-                "C10 gateway. The current integration uses a TEST_DOUBLE "
-                "that stores model_backend=TEST_DOUBLE and returns "
-                "predetermined proposals. No actual model provider has been "
-                "selected or activated."
-            ),
-            effect_on_retrieval=(
-                "direct_support=UNRESOLVED and contradiction=UNRESOLVED for "
-                "all candidates. Retrieval results are suitable for lexical "
-                "regression testing but not for production claim grading."
-            ),
-        ),
-        AuditLimitation(
-            limitation_id="limit:h08_07_gold_offset",
-            kind="UNSUPPORTED_FEATURE",
-            scope="GOLD_OFFSETS, REFURBISHING_DEFERRALS, SALES_DERIVED_TARGETS",
-            description=(
-                "Gold-offset refurbishing, sales-derived targets, environmental "
-                "compensation, tax/pricing and solar features are explicitly "
-                "unsupported in producer_snapshot_v1. "
-                "F14 (OUT_OF_SCOPE_REGIME) test verifies explicit abstention."
-            ),
-            effect_on_retrieval=(
-                "Queries about gold offsets, refurbishing deferrals or solar "
-                "regimes must be withheld or marked F14_DISPOSITION. "
-                "No calculation output is produced for these regimes."
-            ),
-        ),
+            limitation_id=f"limit:h08_metadata_{number}",
+            kind=kind,
+            scope=scope,
+            description=description,
+            effect_on_retrieval="UNVERIFIED_METADATA; not a runtime verification result.",
+        )
+        for number, (kind, scope, description) in enumerate(questions, 1)
     ]
 
 
@@ -428,3 +342,294 @@ def verify_source_digest(artifact_revision_id: str, pdf_bytes: bytes) -> bool:
     expected = _SOURCE_DIGESTS[artifact_revision_id]
     actual = hashlib.sha256(pdf_bytes).hexdigest()
     return actual == expected
+
+
+def _verify_kernel_chains(kernel, blobs) -> list[str]:
+    """Verify every stream in the supplied application ledger, including child services."""
+    streams = [
+        row[0]
+        for row in kernel.connection.execute(
+            "SELECT DISTINCT stream_id FROM audit_events ORDER BY stream_id"
+        )
+    ]
+    if not streams:
+        raise ValueError("corpus audit requires persisted application audit events")
+    for stream in streams:
+        previous = None
+        events = kernel.list_stream_events(stream)
+        for sequence, event in enumerate(events, 1):
+            actual = hashlib.sha256(
+                canonical_json_bytes(event.model_dump(mode="json", exclude={"event_hash"}))
+            ).hexdigest()
+            if (
+                event.stream_id != stream
+                or event.sequence != sequence
+                or event.previous_event_hash != previous
+                or event.event_hash != actual
+            ):
+                raise ValueError("application audit hash chain mismatch")
+            for reference in [event.payload_blob, *event.input_refs, *event.output_refs]:
+                blobs.get(reference)
+            previous = actual
+        if kernel.stream_head(stream) != (len(events), previous):
+            raise ValueError("application audit indexed head mismatch")
+    return streams
+
+
+def audit_frozen_corpus_profile(
+    *,
+    corpus_snapshot: FrozenSnapshot,
+    profile: CalculationProfile,
+    index_manifest: IndexManifest,
+    blobs: BlobStore,
+    index_path: Path,
+    expected_corpus: SnapshotRef,
+    expected_profile: ProfileRef,
+    expected_index: ConfigurationPin,
+    kernel: AuditKernel,
+    runtime_metadata: dict[str, str],
+) -> CorpusProfileAuditManifest:
+    """Verify exact frozen inputs. Fail closed on missing bytes, pins or audit corruption.
+
+    The supplied kernel must be the same application ledger that published the
+    snapshot/profile and index. Runtime metadata is caller supplied and retained as
+    such; this function performs no C10 inference or legal/semantic evaluation.
+    """
+    corpus_snapshot = FrozenSnapshot.model_validate_json(corpus_snapshot.model_dump_json())
+    profile = CalculationProfile.model_validate_json(profile.model_dump_json())
+    index_manifest = IndexManifest.model_validate_json(index_manifest.model_dump_json())
+    if (
+        SnapshotRef(
+            snapshot_id=corpus_snapshot.snapshot_id,
+            membership_digest=corpus_snapshot.membership_digest,
+        )
+        != expected_corpus
+    ):
+        raise ValueError("corpus snapshot differs from expected pin")
+    if (
+        ProfileRef(
+            profile_id=profile.profile_id,
+            profile_version=profile.profile_version,
+            digest=profile.digest,
+        )
+        != expected_profile
+    ):
+        raise ValueError("profile differs from expected pin")
+    if index_manifest.pin() != expected_index:
+        raise ValueError("index manifest differs from expected pin")
+    if (
+        index_manifest.corpus_snapshot_id != corpus_snapshot.snapshot_id
+        or index_manifest.corpus_membership_digest != corpus_snapshot.membership_digest
+    ):
+        raise ValueError("index is not bound to exact corpus membership")
+    snapshot_row = kernel.connection.execute(
+        "SELECT snapshot_json FROM frozen_snapshots WHERE snapshot_id=?",
+        (corpus_snapshot.snapshot_id,),
+    ).fetchone()
+    profile_row = kernel.connection.execute(
+        "SELECT profile_json FROM profile_revisions WHERE profile_id=? AND profile_version=?",
+        (profile.profile_id, profile.profile_version),
+    ).fetchone()
+    if (
+        snapshot_row is None
+        or FrozenSnapshot.model_validate_json(snapshot_row[0]) != corpus_snapshot
+    ):
+        raise ValueError("frozen corpus differs from persisted catalog revision")
+    if profile_row is None or CalculationProfile.model_validate_json(profile_row[0]) != profile:
+        raise ValueError("profile differs from persisted catalog revision")
+    streams = _verify_kernel_chains(kernel, blobs)
+    index_events = [
+        event
+        for stream in streams
+        for event in kernel.list_stream_events(stream)
+        if event.event_type == "extraction.index.result"
+        and event.payload_blob.sha256 == expected_index.digest
+    ]
+    if not index_events or not any(
+        kernel.get_result(event.operation_id) is not None
+        and kernel.get_result(event.operation_id).status == "SUCCESS"
+        and kernel.get_result(event.operation_id).payload == event.payload_blob
+        for event in index_events
+    ):
+        raise ValueError("index manifest has no successful publication in application ledger")
+    view = load_corpus(corpus_snapshot, blobs)
+    blobs.get(corpus_snapshot.coverage_blob)
+    artifacts = {a.artifact_revision_id: a for a in view.batch.artifact_revisions}
+    source_versions = {s.source_version_id: s for s in view.batch.source_versions}
+    leads = {s.source_lead_id: s for s in view.batch.leads}
+    for artifact in artifacts.values():
+        row = kernel.connection.execute(
+            "SELECT revision_json FROM artifact_revisions WHERE artifact_revision_id=?",
+            (artifact.artifact_revision_id,),
+        ).fetchone()
+        if row is None or ArtifactRevision.model_validate_json(row[0]) != artifact:
+            raise ValueError("corpus original differs from persisted artifact revision")
+        blobs.get(artifact.blob)
+    for provision in view.batch.provisions:
+        if provision.source_version_id not in source_versions:
+            raise ValueError("provision references a source absent from corpus")
+        blobs.get(provision.text_blob)
+    for dependency in profile.source_dependencies:
+        artifact = artifacts.get(dependency.artifact_revision_id)
+        if artifact is None or artifact.blob.sha256 != dependency.blob_digest:
+            raise ValueError("profile source dependency differs from frozen corpus")
+        blobs.get(artifact.blob)
+    pinned = {dependency.artifact_revision_id for dependency in profile.source_dependencies}
+    policy_refs = list(profile.applicability_assertion_refs)
+    policy_refs += [ref for rule in profile.eligibility_rules for ref in rule.source_refs]
+    ceiling = profile.purchase_ceiling_policy
+    policy_refs += ceiling.source_refs + ceiling.applicability_refs
+    if any(ref.artifact_revision_id not in pinned for ref in policy_refs):
+        raise ValueError("profile policy evidence is not bound to a source dependency")
+    members = [
+        p.model_dump(mode="json")
+        for p in sorted(view.batch.provisions, key=lambda p: p.provision_version_id)
+    ]
+    if (
+        hashlib.sha256(canonical_json_bytes(members)).hexdigest()
+        != index_manifest.eligible_members_digest
+    ):
+        raise ValueError("index provision membership differs from frozen corpus")
+    if index_manifest.index_blob is None:
+        raise ValueError("index manifest has no immutable index bytes")
+    original_index = blobs.get(index_manifest.index_blob)
+    if (
+        hashlib.sha256(original_index).hexdigest() != index_manifest.integrity_digest
+        or Path(index_path).read_bytes() != original_index
+    ):
+        raise ValueError("index bytes differ from immutable manifest")
+
+    import pdfplumber
+
+    sources = []
+    limitations = []
+    for source in view.batch.source_versions:
+        artifact = artifacts[source.artifact_revision_id]
+        lead = leads[source.source_lead_id]
+        provisions = [
+            p for p in view.batch.provisions if p.source_version_id == source.source_version_id
+        ]
+        with pdfplumber.open(io.BytesIO(blobs.get(artifact.blob))) as pdf:
+            page_count = len(pdf.pages)
+        pages = sorted(
+            {
+                p.locator.page_index_1based
+                for p in provisions
+                if p.locator.page_index_1based is not None
+            }
+        )
+        if any(page < 1 or page > page_count for page in pages):
+            raise ValueError("provision locator is outside original PDF")
+        rights = lead.rights_and_license
+        sources.append(
+            SourceAuditRecord(
+                artifact_revision_id=artifact.artifact_revision_id,
+                source_alias=", ".join(lead.aliases),
+                document_title=source.title,
+                source_kind=artifact.source_kind,
+                source_url=artifact.source_url or lead.official_url,
+                sha256_digest=artifact.blob.sha256,
+                total_pages=page_count,
+                active_physical_pages=pages,
+                active_provision_ids=[p.provision_version_id for p in provisions],
+                access_policy_id=artifact.access_policy_id,
+                rights_decision_id=artifact.rights_decision_id,
+                copyright_owner=rights.copyright_owner,
+                statutory_exception=rights.statutory_exception_sec52 or "Not recorded",
+                redistribution_allowed=rights.redistribution_allowed,
+                review_state=source.review_state,
+                review_note="Recorded source state; no legal certification.",
+            )
+        )
+        if not rights.redistribution_allowed or rights.asset_rights_seed != "ALLOW":
+            limitations.append(
+                AuditLimitation(
+                    limitation_id=f"limit:rights_{source.source_version_id}",
+                    kind="REDISTRIBUTION_RESTRICTED",
+                    scope=source.source_version_id,
+                    description=f"Recorded rights state: {rights.asset_rights_seed}.",
+                    effect_on_retrieval="Integrity grants no additional use/export permission.",
+                )
+            )
+        for provision in provisions:
+            if provision.review_state != "APPROVED":
+                limitations.append(
+                    AuditLimitation(
+                        limitation_id=f"limit:review_{provision.provision_version_id}",
+                        kind="UNREVIEWED_PROVISION",
+                        scope=provision.provision_version_id,
+                        description=f"Recorded review state: {provision.review_state}.",
+                        effect_on_retrieval="Review uncertainty is retained.",
+                    )
+                )
+    for assertion in view.assertions:
+        if assertion.review_state != "APPROVED" or assertion.effective_from is None:
+            limitations.append(
+                AuditLimitation(
+                    limitation_id=f"limit:temporal_{assertion.assertion_id}",
+                    kind="TEMPORAL_APPLICABILITY_UNRESOLVED",
+                    scope=assertion.assertion_id,
+                    description="Temporal authority/interval is not fully reviewed.",
+                    effect_on_retrieval="Integrity does not establish temporal applicability.",
+                )
+            )
+    if ceiling.state != "APPROVED":
+        limitations.append(
+            AuditLimitation(
+                limitation_id="limit:ceiling",
+                kind="DISABLED_PURCHASE_CEILING",
+                scope=profile.profile_id,
+                description=f"Recorded policy state: {ceiling.state}.",
+                effect_on_retrieval="Purchase ceiling is not enabled by this audit.",
+            )
+        )
+    for deadline in view.deadlines:
+        if deadline.extended_due is not None and (
+            deadline.unverified_notice or not deadline.extension_order_refs
+        ):
+            limitations.append(
+                AuditLimitation(
+                    limitation_id=f"limit:deadline_{deadline.deadline_id}",
+                    kind="MISSING_EXTENSION_ORDER",
+                    scope=deadline.deadline_id,
+                    description="Extension order evidence is missing or the notice is unverified.",
+                    effect_on_retrieval="The extension is not verified by this integrity audit.",
+                )
+            )
+    if profile.unsupported_features:
+        limitations.append(
+            AuditLimitation(
+                limitation_id="limit:unsupported",
+                kind="UNSUPPORTED_FEATURE",
+                scope=profile.profile_id,
+                description=", ".join(profile.unsupported_features),
+                effect_on_retrieval="Unsupported profile features remain outside calculations.",
+            )
+        )
+    limitations.append(
+        AuditLimitation(
+            limitation_id="limit:semantic",
+            kind="SEMANTIC_GRADE_UNRESOLVED",
+            scope="runtime metadata",
+            description="Caller-supplied runtime metadata; no model/semantic evaluation executed.",
+            effect_on_retrieval="No model quality or semantic support is established.",
+        )
+    )
+    return CorpusProfileAuditManifest(
+        verification_status="VERIFIED_INTEGRITY",
+        runtime_metadata=runtime_metadata,
+        sources=sources,
+        profile=audit_profile(profile.model_dump(mode="json")),
+        index=build_index_audit_record(index_manifest.model_dump(mode="json")),
+        limitations=limitations,
+        verified_checks=[
+            "exact_pins",
+            "persisted_catalog",
+            "corpus_source_provision_bytes",
+            "profile_canonical_digest_dependencies",
+            "immutable_index_bytes",
+            "application_hash_chains",
+        ],
+        verified_audit_streams=streams,
+        retrieval_engine_note="Index integrity verified; retrieval/semantic grades not executed.",
+    )
