@@ -490,3 +490,40 @@ inferred. A05 is DONE; A06, S04, V05 and V07 are READY. A07 remains dependency-g
 ### Next permitted step
 - V09: Vedantha validates the oracle and seals the pilot. Then S08 (dev-only fixes) and CP4.
 
+## 2026-10-30 11:30 IST — Sushanth — post-CP3 (CP4 not approved) — unregistered: investigation UI
+
+**Task state at start:** no task ID. Requested directly by Sushanth; see the first limitation below.
+**Predecessors verified:** `codex/backend-api` at 5e5e6da provides the API. It is not reviewed or merged, and CP4 is not approved.
+
+### Done
+- Added `ui/` (React, Vite, TypeScript) on branch `S_ui`, binding every route in `docs/api/openapi.json`: connect, dossier selection and ZIP upload, readiness and evidence viewers, reviewer enrollment, foundation and support review, agent setup, run start, live SSE timeline, per-call prompt inspector, budgets, cancel and resume, report, integrity audit, and version-bound human review.
+- No backend, contract or schema files changed. Calculation and review rules stay in the backend.
+
+### Evidence
+- Commit/branch: `S_ui`.
+- Tests run, from `ui/`: `npm run typecheck` passes; `npm test` 32 of 32 pass; `npm run build` passes.
+- Fixtures/schema versions: test fixtures are hand-written from `api/trace.py`, so they prove UI logic only.
+- Gate(s) touched: none. The UI must not show hidden data (G11); it only reads API responses.
+
+### Limitations / open issues
+- **Unregistered task:** `implementation plan.md` L186 keeps optional UI out until expressly added, and new tasks need an owner, independent reviewer, contract and acceptance evidence. The lead needs to register this.
+- **Not verified:** real API responses, browser rendering, CORS, live SSE and all model behaviour. Sushanth chose build and unit tests only on Windows; the first real run is on the Mac, using the checklist in `ui/README.md`. Hand-written response types may need fixes then.
+- Budget ceilings show as "not exposed" except for overrides set in the current page session.
+- The API gives no event timestamps, so tool durations show as unavailable.
+
+### Updates required
+- **implementation plan.md:** propose registering the investigation UI as a task (owner Sushanth, reviewer to be named).
+- **CONTRACTS.md / SYSTEM_DESIGN.md:** none.
+- **API gaps for Abhishek (backend unchanged):**
+  - OpenAPI response schemas are empty.
+  - No route reports whether a reviewer is enrolled.
+  - No run-list route.
+  - A run's budget ceilings aren't returned.
+  - A run's mode is available only through `/audit` `runtime_metadata`.
+  - Page-level coverage (`coverage_blob`) isn't exposed.
+  - `/health` hard-codes `ui_implemented: false`.
+  - `docs/api/README.md` says no frontend exists.
+
+### Next permitted step
+- Run the `ui/README.md` checklist on the Mac and fix what it finds.
+
