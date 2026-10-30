@@ -122,6 +122,7 @@ export interface OriginalFile {
   original_filename: string | null;
   source_kind: string;
   doc_type: string;
+  synthetic?: boolean;
 }
 
 export interface EvidenceObservation {
@@ -138,6 +139,7 @@ export interface EvidenceObservation {
 export interface EvidenceRecord {
   record_id: string;
   record_revision_id: string;
+  record_type?: string;
   observation_refs: string[];
   validation_state: string;
   [key: string]: unknown;

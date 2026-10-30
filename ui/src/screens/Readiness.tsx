@@ -83,9 +83,26 @@ function SupportReview({ dossierId, onDone }: { dossierId: string; onDone(next: 
   const [password, setPassword] = useState("");
   const { busy, error, run } = useAction();
   const record = evidence?.records.find((item) => item.record_revision_id === recordId);
-  // Evidence references come only from observations the API returned for this record.
+  const supportableRecords = useMemo(
+    () => (evidence ? evidence.records.filter((r) => ["Allocation", "CertificateEvent", "Certificate"].includes(r.record_type as string)) : []),
+    [evidence],
+  );
   const candidates = useMemo(
-    () => (evidence && record ? evidence.observations.filter((o) => record.observation_refs.includes(o.observation_id)) : []),
+    () => {
+      if (!evidence || !record) return [];
+      const origMap = new Map(evidence.originals.map((o) => [o.artifact_revision_id, o]));
+      const recordType = (record.record_type as string) || "";
+      return evidence.observations.filter((o) => {
+        if (!record.observation_refs.includes(o.observation_id)) return false;
+        const orig = origMap.get(o.artifact_revision_id);
+        if (!orig || !orig.synthetic || orig.doc_type !== "OTHER") return false;
+        const pf = o.parsed_fields || {};
+        if (pf.record_type && pf.record_type !== recordType) return false;
+        if (recordType === "Allocation" && pf.state && pf.state !== "SUPPORTED") return false;
+        if (recordType === "CertificateEvent" && (pf.assertion_state !== "SUPPORTED" || pf.transfer_stage !== "COMPLETED")) return false;
+        return true;
+      });
+    },
     [evidence, record],
   );
   const add = () => {
@@ -101,6 +118,43 @@ function SupportReview({ dossierId, onDone }: { dossierId: string; onDone(next: 
     setRecordId("");
     setPicked([]);
     setAssertionReason("");
+  };
+  const addAllRecords = () => {
+    if (!evidence) return;
+    const origMap = new Map(evidence.originals.map((o) => [o.artifact_revision_id, o]));
+    const obsMap = new Map(evidence.observations.map((o) => [o.observation_id, o]));
+    const all: SupportAssertion[] = [];
+    for (const item of supportableRecords) {
+      const recordType = item.record_type as string;
+      const validRefs: EvidenceRef[] = [];
+      for (const oid of item.observation_refs) {
+        const o = obsMap.get(oid);
+        if (!o) continue;
+        const orig = origMap.get(o.artifact_revision_id);
+        if (!orig || !orig.synthetic || orig.doc_type !== "OTHER") continue;
+        const pf = o.parsed_fields || {};
+        if (pf.record_type && pf.record_type !== recordType) continue;
+        if (recordType === "Allocation" && pf.state && pf.state !== "SUPPORTED") continue;
+        if (recordType === "CertificateEvent" && (pf.assertion_state !== "SUPPORTED" || pf.transfer_stage !== "COMPLETED")) continue;
+        validRefs.push({
+          ref_kind: "OBSERVATION",
+          ref_id: o.observation_id,
+          artifact_revision_id: o.artifact_revision_id,
+          locator: o.locator,
+        });
+      }
+      if (validRefs.length > 0) {
+        all.push({
+          target_record_revision_id: item.record_revision_id,
+          evidence_refs: validRefs,
+          reason: assertionReason.trim() || `Verified support for ${item.record_id}`,
+        });
+      }
+    }
+    setAssertions(all);
+    if (!reason.trim()) {
+      setReason("Approved supported allocations and completed transfer events");
+    }
   };
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -131,21 +185,64 @@ function SupportReview({ dossierId, onDone }: { dossierId: string; onDone(next: 
         <form onSubmit={submit}>
           <p className="small">Binds to snapshot <Mono>{evidence.snapshot.membership_digest}</Mono></p>
           <label className="field">
-            <span>Record</span>
+            <span>Supportable Record ({supportableRecords.length} eligible)</span>
             <select value={recordId} onChange={(e) => { setRecordId(e.target.value); setPicked([]); }}>
               <option value="">Choose a record…</option>
-              {evidence.records.map((item) => (
+              {supportableRecords.map((item) => (
                 <option key={item.record_revision_id} value={item.record_revision_id}>
-                  {item.record_id} · {item.validation_state}
+                  {item.record_id} ({item.record_type}) · {item.validation_state}
                 </option>
               ))}
             </select>
           </label>
+          <div className="row" style={{ marginTop: "-0.2rem", marginBottom: "0.6rem" }}>
+            <button type="button" className="link small" onClick={addAllRecords}>
+              Select all supportable records with valid observations
+            </button>
+          </div>
           {record && (
             <>
               <fieldset>
-                <legend>Observations for this record</legend>
+                <legend>
+                  Observations for this record
+                  {candidates.length > 0 && (
+                    <span style={{ marginLeft: "0.5rem" }}>
+                      <button
+                        type="button"
+                        className="link"
+                        onClick={() => setPicked(candidates.map((o) => o.observation_id))}
+                      >
+                        Select all
+                      </button>
+                      {" · "}
+                      <button
+                        type="button"
+                        className="link"
+                        onClick={() => setPicked([])}
+                      >
+                        Clear
+                      </button>
+                    </span>
+                  )}
+                </legend>
                 {candidates.length === 0 && <Unavailable label="None returned for this record." />}
+                {candidates.length > 0 && (
+                  <label className="check">
+                    <input
+                      type="checkbox"
+                      checked={picked.length === candidates.length}
+                      ref={(el) => {
+                        if (el) {
+                          el.indeterminate = picked.length > 0 && picked.length < candidates.length;
+                        }
+                      }}
+                      onChange={(e) =>
+                        setPicked(e.target.checked ? candidates.map((o) => o.observation_id) : [])
+                      }
+                    />
+                    <strong>Select all ({candidates.length})</strong>
+                  </label>
+                )}
                 {candidates.map((o) => (
                   <label key={o.observation_id} className="check">
                     <input
