@@ -15,9 +15,11 @@ from recycleguard.baseline import BaselineService
 from recycleguard.config import Settings
 from recycleguard.contracts import PROTOCOL_VERSION, CommandContext, Quantity
 from recycleguard.contracts.baseline import BaselineRequest, RecordSupportReview
+from recycleguard.contracts.bundles import ReplayRequest
 from recycleguard.contracts.foundation import FoundationApproval, FoundationRequest
 from recycleguard.contracts.profiles import ProfilePublication, ProfileReview
 from recycleguard.contracts.snapshots import CaseReopen, SnapshotPublication, SnapshotReview
+from recycleguard.exports.service import ExportService
 from recycleguard.foundation import FoundationService
 from recycleguard.foundation_review import FoundationReviewer
 from recycleguard.local_session import initialize_reviewer
@@ -271,6 +273,75 @@ def foundation_review(path: Annotated[Path, typer.Argument(exists=True, dir_okay
             ).approve(context, request, capability=human_cap)
             typer.echo(result.model_dump_json())
     except (ValueError, KeyError, OSError, sqlite3.Error) as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc
+
+
+audit_app = typer.Typer(help="Audit export and bundle verification.")
+app.add_typer(audit_app, name="audit")
+
+
+@audit_app.command("export")
+def audit_export(
+    run_id: Annotated[str, typer.Option("--run-id", help="Run ID to export")],
+    kind: Annotated[
+        str, typer.Option("--kind", help="COMPLETE_LOCAL or QUALIFIED_PUBLIC")
+    ] = "COMPLETE_LOCAL",
+):
+    """Export an auditable bundle (COMPLETE_LOCAL or QUALIFIED_PUBLIC)."""
+    try:
+        bundle_kind = "QUALIFIED_PUBLIC" if kind == "QUALIFIED_PUBLIC" else "COMPLETE_LOCAL"
+        with local_application(Settings.from_environment()) as (cases, context, capability):
+            service = ExportService(cases)
+            result = service.export_bundle(
+                context, run_id, bundle_kind=bundle_kind, capability=capability
+            )
+            typer.echo(result.model_dump_json())
+            if result.status != "SUCCESS":
+                raise typer.Exit(1)
+    except (ValueError, OSError, sqlite3.Error) as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc
+
+
+@audit_app.command("verify")
+def audit_verify(
+    bundle_id: Annotated[str, typer.Option("--bundle-id", help="Bundle ID to verify")],
+):
+    """Verify bundle object integrity and audit hash-chain continuity."""
+    try:
+        with local_application(Settings.from_environment()) as (cases, _, _):
+            service = ExportService(cases)
+            result = service.verify_bundle(bundle_id)
+            typer.echo(result.model_dump_json())
+            if result.verdict != "PASS":
+                raise typer.Exit(1)
+    except (ValueError, OSError, sqlite3.Error) as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc
+
+
+@app.command("replay")
+def replay(
+    bundle_id: Annotated[str, typer.Option("--bundle-id", help="Bundle ID to replay")],
+    mode: Annotated[str, typer.Option("--mode", help="ARTIFACT or RECOMPUTE")] = "ARTIFACT",
+):
+    """Execute offline replay or recomputation with zero external model calls."""
+    try:
+        replay_mode = "RECOMPUTE" if mode == "RECOMPUTE" else "ARTIFACT"
+        request = ReplayRequest(
+            bundle_id=bundle_id,
+            mode=replay_mode,
+            dependency_environment_ref="env:offline_v1",
+            access_scope_id="scope:offline",
+        )
+        with local_application(Settings.from_environment()) as (cases, context, capability):
+            service = ExportService(cases)
+            result = service.replay_bundle(context, request, capability=capability)
+            typer.echo(result.model_dump_json())
+            if result.status != "SUCCESS":
+                raise typer.Exit(1)
+    except (ValueError, OSError, sqlite3.Error) as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(1) from exc
 

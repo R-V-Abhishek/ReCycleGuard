@@ -48,7 +48,10 @@ class BlobStore:
             temporary.write(data)
             temporary_path = Path(temporary.name)
         try:
-            os.link(temporary_path, destination)
+            try:
+                os.link(temporary_path, destination)
+            except (PermissionError, OSError):
+                os.replace(temporary_path, destination)
         except FileExistsError as exc:
             temporary_path.unlink(missing_ok=True)
             if self._read_verified(destination, reference) != data:

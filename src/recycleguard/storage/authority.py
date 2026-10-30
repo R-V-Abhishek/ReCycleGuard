@@ -20,6 +20,7 @@ EVENT_ROLES = {
     "graph.": {"SERVICE", "MODEL_PROPOSAL"},
     "report.": {"SERVICE"},
     "export.": {"SERVICE", "HUMAN"},
+    "replay.": {"SERVICE"},
     "evaluation.": {"EVALUATOR"},
 }
 
