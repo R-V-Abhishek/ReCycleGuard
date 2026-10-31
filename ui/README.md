@@ -2,9 +2,9 @@
 
 A local browser UI for the API in `src/recycleguard/api/`. It takes a synthetic dossier through readiness, investigation, the verified report and human review. All decisions and calculations stay in the backend.
 
-**Status:** typecheck, unit tests and the production build pass on Windows. It has not yet been run against a real API or opened in a browser, so the checklist below is its first real test, and some fixes are likely.
+**Status:** 78 tests, type checking and the production build pass in the review environment. A synthetic browser/API flow exercised dossier preparation, foundation/support review, streaming investigation, report verification and approval. This does not establish real-model quality. Windows/Linux CI jobs cover the frontend; local verification does not substitute for their results.
 
-Response types in `src/api/types.ts` are hand-written from the backend contracts, because `docs/api/openapi.json` declares empty response schemas. If the UI shows a wrong or missing field on the first run, check there first.
+Response types in `src/api/types.ts` mirror the explicit response schemas in `docs/api/openapi.json`. Run mode and budgets come from the frozen backend configuration. Lost start responses remain locked against duplicate submission; recent runs provide read-only recovery. Credentials remain in memory.
 
 ## Run
 
@@ -54,7 +54,7 @@ npm run build
 
 **Failure cases**
 
-- [ ] Wrong token: shows a 401 and offers to re-enter it.
+- [ ] Wrong token: shows an access-denied response and offers to re-enter it.
 - [ ] Malformed ZIP: shows the backend's error, and no dossier opens.
 - [ ] Second run while one is active: shows the `409`.
 - [ ] Wrong reviewer password: shows an error, and the password field is cleared.

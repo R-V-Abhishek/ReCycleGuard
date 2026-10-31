@@ -16,12 +16,14 @@ export function useClient(): ApiClient {
 }
 
 export function useRoute(): string[] {
-  const read = () =>
-    window.location.hash
-      .replace(/^#\/?/, "")
-      .split("/")
-      .filter(Boolean)
-      .map(decodeURIComponent);
+  const read = () => {
+    try {
+      return window.location.hash.replace(/^#\/?/, "").split("/").filter(Boolean).map(decodeURIComponent);
+    } catch {
+      // A malformed percent escape in an external/bookmarked hash must not crash the app.
+      return [];
+    }
+  };
   const [route, setRoute] = useState(read);
   useEffect(() => {
     const onChange = () => setRoute(read());
@@ -38,7 +40,3 @@ export function navigate(...parts: string[]) {
 export function href(...parts: string[]) {
   return "#/" + parts.map(encodeURIComponent).join("/");
 }
-
-// Budgets chosen at start. The API does not return a run's ceilings, so these exist only for
-// runs started in this page session.
-export const startedBudgets = new Map<string, Record<string, number>>();

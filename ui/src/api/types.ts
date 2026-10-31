@@ -1,6 +1,6 @@
-// Hand-written from the backend contracts because docs/api/openapi.json declares empty
-// response schemas. Sources: api/app.py, api/trace.py, contracts/{core,workflow,review,results,
-// extraction,artifacts,foundation}.py, reporting/baseline.py, knowledge/corpus_audit.py.
+// HTTP shapes mirror the explicit backend response contracts in api/responses.py
+// and the checked-in docs/api/openapi.json. Trace event payloads are versioned JSON.
+
 
 export type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
 
@@ -55,6 +55,7 @@ export interface Health {
   status: string;
   model_configured: boolean;
   model_probed: boolean;
+  available_modes: RunMode[];
   concurrency: number;
   ui_implemented?: boolean;
 }
@@ -231,7 +232,19 @@ export interface Job {
   cancel_requested: number;
 }
 
+export interface RunConfiguration {
+  execution_kind: RunMode;
+  budgets: BudgetLimits;
+  model_configuration_id: string;
+  prompt_configuration_id: string;
+  case_snapshot: { snapshot_id: string; membership_digest: string };
+  corpus_snapshot: { snapshot_id: string; membership_digest: string };
+  profile: { profile_id: string; profile_version: string; digest: string };
+  index: { configuration_id: string; digest: string };
+}
+
 export interface RunView {
+  configuration: RunConfiguration;
   state: RunState;
   job: Job;
 }

@@ -53,7 +53,10 @@ def trace_events(service, run_id, *, after=0):
         elif event.event_type.startswith(
             ("graph.model.", "graph.tool.", "graph.stage.")
         ) and event.event_type.endswith(".result"):
-            record = service.store.read(event.operation_id, CallRecord)
+            # A logical operation can have multiple attempts. Each event's immutable
+            # payload is authoritative for that attempt; terminal lookup can point
+            # at a later attempt or be absent while retry is still in progress.
+            record = CallRecord.model_validate_json(blobs.get(event.payload_blob))
             raw = json.loads(blobs.get(record.raw_result_blob))
             item.update(
                 kind="MODEL_RESULT"

@@ -22,7 +22,6 @@ from recycleguard.contracts.core import BlobRef, BoundaryModel, Issue, ServiceRe
 from recycleguard.contracts.workflow import (
     ActionProposal,
     AssessmentProposal,
-    CancellationRequest,
     ContextManifest,
     ObservationAssessment,
     PlanProposal,
@@ -331,33 +330,13 @@ class WorkflowRunner:
             self._lock.release()
 
     def _cancel(self, context, run_id, expected_version, reason, capability):
-        if not reason.strip():
-            raise ValueError("cancellation requires a reason")
-        state, spec = self.store.load(run_id), self.store.spec(run_id)
-        if state.version != expected_version or state.status in _TERMINAL:
-            raise ValueError("stale or terminal cancellation")
-        root = self._bound(context, spec)
-        self.store.archive(
-            root.model_copy(
-                update={
-                    "command_id": f"{root.command_id}:reason",
-                    "operation_id": f"{root.operation_id}:reason",
-                    "attempt_id": f"{root.attempt_id}:reason",
-                    "idempotency_key": f"{root.idempotency_key}:reason",
-                }
-            ),
-            "graph.cancellation_request",
-            CancellationRequest(
-                run_id=run_id, expected_version=expected_version, reason=reason.strip()
-            ),
-            capability=capability,
-        )
-        updated = state.model_copy(update={"status": "CANCELLED", "updated_at": self._now()})
-        return self.store.save(
+        spec = self.store.spec(run_id)
+        return self.store.cancel(
             self._bound(context, spec),
-            updated,
+            run_id,
             expected_version,
-            event_type="graph.cancel",
+            reason,
+            now=self._now(),
             capability=capability,
         )
 

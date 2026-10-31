@@ -5,7 +5,7 @@ import { Badge, IssueList, JsonView, Mono, Unavailable } from "./common";
 import { EvidenceChips } from "./evidence";
 import { PromptInspector } from "./PromptInspector";
 
-export function rowSummary(event: TraceEvent): { kind: string; title: string; detail?: string; status?: string } {
+export function rowSummary(event: TraceEvent, events: TraceEvent[] = []): { kind: string; title: string; detail?: string; status?: string } {
   switch (event.kind) {
     case "PROMPT_PREPARED":
       return { kind: "Context", title: `Prompt prepared · ${event.phase}` };
@@ -27,9 +27,12 @@ export function rowSummary(event: TraceEvent): { kind: string; title: string; de
       };
     case "TOOL_OR_STAGE_RESULT": {
       const { family, name } = eventParts(event);
+      const proposal = family === "tool" ? events.find((candidate) =>
+        candidate.kind === "TOOL_PROPOSED" && resultForProposal(events, candidate)?.event_id === event.event_id
+      ) : undefined;
       return {
         kind: family === "tool" ? "Tool result" : "Stage",
-        title: name,
+        title: proposal?.kind === "TOOL_PROPOSED" ? proposal.data.allowed_operation : name,
         detail: event.data?.concise_decision,
         status: event.status,
       };
@@ -254,7 +257,7 @@ export function Timeline({
   return (
     <ol className="timeline">
       {visible.map((event) => {
-        const row = rowSummary(event);
+        const row = rowSummary(event, events);
         return (
           <li key={event.event_id}>
             <button className={`tl-row kind-${event.kind} ${selectedId === event.event_id ? "on" : ""}`} onClick={() => onSelect(event.event_id)}>

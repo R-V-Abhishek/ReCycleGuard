@@ -4,46 +4,71 @@ import type { Issue, Quantity } from "../api/types";
 import { SessionContext } from "../state/session";
 
 export function useLoad<T>(load: () => Promise<T>, deps: unknown[]) {
-  const [data, setData] = useState<T | undefined>();
-  const [error, setError] = useState<unknown>();
-  const [loading, setLoading] = useState(true);
+  const loader = useCallback(load, deps);
+  const current = useRef(loader);
+  current.current = loader;
+  const mounted = useRef(false);
   const latest = useRef(0);
+  const [snapshot, setSnapshot] = useState<{
+    loader: typeof loader; data?: T; error?: unknown; loading: boolean;
+  }>({ loader, loading: true });
   const reload = useCallback(async () => {
+    if (!mounted.current || current.current !== loader) return;
     const ticket = ++latest.current;
-    setLoading(true);
+    setSnapshot((old) => ({ loader, data: old.loader === loader ? old.data : undefined, loading: true }));
     try {
-      const value = await load();
-      if (ticket === latest.current) {
-        setData(value);
-        setError(undefined);
-      }
-    } catch (cause) {
-      if (ticket === latest.current) setError(cause);
-    } finally {
-      if (ticket === latest.current) setLoading(false);
+      const data = await loader();
+      if (mounted.current && current.current === loader && ticket === latest.current)
+        setSnapshot({ loader, data, loading: false });
+    } catch (error) {
+      if (mounted.current && current.current === loader && ticket === latest.current)
+        setSnapshot((old) => ({ ...old, error, loading: false }));
     }
-  }, deps);
+  }, [loader]);
   useEffect(() => {
+    mounted.current = true;
     void reload();
+    return () => { mounted.current = false; ++latest.current; };
   }, [reload]);
-  return { data, error, loading, reload, setData };
+  const setData = useCallback((value: T | undefined | ((old: T | undefined) => T | undefined)) => {
+    if (!mounted.current || current.current !== loader) return;
+    ++latest.current;
+    setSnapshot((old) => ({ loader, loading: false,
+      data: typeof value === "function" ? (value as (old: T | undefined) => T | undefined)(old.data) : value,
+    }));
+  }, [loader]);
+  const visible = snapshot.loader === loader ? snapshot : { data: undefined, error: undefined, loading: true };
+  return { data: visible.data, error: visible.error, loading: visible.loading, reload, setData };
 }
 
-// Runs one mutation at a time and never retries it.
+// Synchronous lock prevents two clicks before React commits the busy state. The
+// signal guards caller side effects; it does not repeat or cancel server mutations.
 export function useAction() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<unknown>();
-  const run = async <T,>(action: () => Promise<T>): Promise<T | undefined> => {
-    if (busy) return undefined;
+  const mounted = useRef(false);
+  const active = useRef<AbortController | null>(null);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; active.current?.abort(); active.current = null; };
+  }, []);
+  const run = async <T,>(action: (signal: AbortSignal) => Promise<T>): Promise<T | undefined> => {
+    if (!mounted.current || active.current) return undefined;
+    const controller = new AbortController();
+    active.current = controller;
     setBusy(true);
     setError(undefined);
     try {
-      return await action();
+      const result = await action(controller.signal);
+      return controller.signal.aborted ? undefined : result;
     } catch (cause) {
-      setError(cause);
+      if (!controller.signal.aborted && mounted.current) setError(cause);
       return undefined;
     } finally {
-      setBusy(false);
+      if (active.current === controller) {
+        active.current = null;
+        if (mounted.current) setBusy(false);
+      }
     }
   };
   return { busy, error, run, clearError: () => setError(undefined) };

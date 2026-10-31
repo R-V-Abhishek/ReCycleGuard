@@ -11,11 +11,14 @@ export function Connect({ onConnected }: { onConnected(client: ApiClient): void 
   const { busy, error, run } = useAction();
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
-    void run(async () => {
-      const client = new ApiClient(base.trim(), token);
+    const address = base.trim();
+    const secret = token;
+    setToken("");
+    void run(async (signal) => {
+      const client = new ApiClient(address, secret);
       await client.health();
-      localStorage.setItem(BASE_KEY, base.trim());
-      setToken("");
+      if (signal.aborted) return;
+      localStorage.setItem(BASE_KEY, address);
       onConnected(client);
     });
   };

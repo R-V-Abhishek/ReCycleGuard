@@ -28,6 +28,8 @@ function PdfView({ blob, startPage }: { blob: Blob; startPage: number }) {
   const [error, setError] = useState<unknown>();
   useEffect(() => {
     let cancelled = false;
+    setError(undefined);
+    setPages(null);
     let cancelRender: (() => void) | undefined;
     let closeDocument: (() => void) | undefined;
     (async () => {
@@ -41,7 +43,10 @@ function PdfView({ blob, startPage }: { blob: Blob; startPage: number }) {
         const document = await loading.promise;
         if (cancelled) return;
         setPages(document.numPages);
-        const pdfPage = await document.getPage(Math.min(Math.max(page, 1), document.numPages));
+        if (!Number.isInteger(page) || page < 1 || page > document.numPages) {
+          throw new Error(`Requested page ${page} is outside this ${document.numPages}-page original. The citation cannot be displayed; no page has been substituted.`);
+        }
+        const pdfPage = await document.getPage(page);
         const viewport = pdfPage.getViewport({ scale: 1.4 });
         const target = canvas.current;
         if (!target || cancelled) return;
@@ -64,13 +69,13 @@ function PdfView({ blob, startPage }: { blob: Blob; startPage: number }) {
     <div>
       <ErrorBanner error={error} />
       <div className="row">
-        <button disabled={page <= 1} onClick={() => setPage(page - 1)}>
+        <button disabled={Boolean(error) || pages === null || page <= 1} onClick={() => setPage(page - 1)}>
           Previous
         </button>
         <span>
           Page {page} of {pages ?? "…"}
         </span>
-        <button disabled={pages !== null && page >= pages} onClick={() => setPage(page + 1)}>
+        <button disabled={Boolean(error) || pages === null || page >= pages} onClick={() => setPage(page + 1)}>
           Next
         </button>
       </div>
@@ -79,25 +84,43 @@ function PdfView({ blob, startPage }: { blob: Blob; startPage: number }) {
   );
 }
 
+function csvRecords(text: string): string[] {
+  const rows: string[] = [];
+  let quoted = false;
+  let start = 0;
+  for (let i = 0; i < text.length; i++) {
+    if (text[i] === '"') {
+      if (quoted && text[i + 1] === '"') i++;
+      else quoted = !quoted;
+    } else if (text[i] === "\n" && !quoted) {
+      rows.push(text.slice(start, i + 1));
+      start = i + 1;
+    }
+  }
+  if (start < text.length) rows.push(text.slice(start));
+  return rows;
+}
+
 function TextView({ text, locator }: { text: string; locator: Locator | null | undefined }) {
   if (locator?.kind === "TEXT_SPAN" && locator.text_start !== null && locator.text_end !== null) {
+    const characters = Array.from(text);
     return (
       <pre className="block">
-        {text.slice(0, locator.text_start)}
-        <mark>{text.slice(locator.text_start, locator.text_end)}</mark>
-        {text.slice(locator.text_end)}
+        {characters.slice(0, locator.text_start).join("")}
+        <mark>{characters.slice(locator.text_start, locator.text_end).join("")}</mark>
+        {characters.slice(locator.text_end).join("")}
       </pre>
     );
   }
   if (locator?.kind === "CSV_ROW" && locator.row_index_1based !== null) {
-    // Line 0 is the header, so data row N is line N.
+    // Locator counts logical data records, including quoted multiline CSV fields.
     return (
       <pre className="block">
-        {text.split(/\r?\n/).map((line, index) =>
+        {csvRecords(text).map((line, index) =>
           index === locator.row_index_1based ? (
-            <mark key={index}>{line + "\n"}</mark>
+            <mark key={index}>{line}</mark>
           ) : (
-            <span key={index}>{line + "\n"}</span>
+            <span key={index}>{line}</span>
           ),
         )}
       </pre>
@@ -130,10 +153,19 @@ function DownloadOnly({ blob, name }: { blob: Blob; name: string }) {
 
 function ArtifactBody({ blob, name, locator }: { blob: Blob; name: string; locator?: Locator | null }) {
   const [text, setText] = useState<string>();
+  const [error, setError] = useState<unknown>();
   const type = blob.type.toLowerCase();
   useEffect(() => {
-    if (isText(type)) void blob.text().then(setText);
+    let active = true;
+    setText(undefined);
+    setError(undefined);
+    if (isText(type)) void blob.text().then(
+      (value) => { if (active) setText(value); },
+      (cause) => { if (active) setError(cause); },
+    );
+    return () => { active = false; };
   }, [blob, type]);
+  if (error) return <ErrorBanner error={error} />;
   if (type.includes("pdf")) return <PdfView blob={blob} startPage={locator?.page_index_1based ?? 1} />;
   if (isText(type)) return text === undefined ? <p>Loading…</p> : <TextView text={text} locator={locator} />;
   return <DownloadOnly blob={blob} name={name} />;
@@ -171,7 +203,7 @@ export function ArtifactViewer({
         </header>
         <ErrorBanner error={error} />
         {loading && <p>Loading…</p>}
-        {data && <ArtifactBody blob={data} name={name ?? "artifact"} locator={locator} />}
+        {data && <ArtifactBody key={`${dossierId}:${revisionId}:${JSON.stringify(locator)}`} blob={data} name={name ?? "artifact"} locator={locator} />}
       </div>
     </div>
   );
@@ -191,8 +223,16 @@ export function EvidenceChips({
   const client = useClient();
   const [open, setOpen] = useState<{ revisionId: string; locator: Locator | null } | null>(null);
   const [error, setError] = useState<unknown>();
+  const generation = useRef(0);
+  useEffect(() => {
+    generation.current++;
+    setOpen(null);
+    setError(undefined);
+    return () => { generation.current++; };
+  }, [client, dossierId, refs]);
   if (!refs.length) return <Unavailable label="none recorded" />;
   const activate = async (ref: EvidenceRef) => {
+    const ticket = ++generation.current;
     setError(undefined);
     if (ref.ref_kind === "CALCULATION") return onCalculation?.(ref.ref_id);
     if (ref.artifact_revision_id) {
@@ -201,11 +241,15 @@ export function EvidenceChips({
     if (ref.ref_kind === "OBSERVATION" && dossierId) {
       try {
         const evidence = await client.evidence(dossierId);
+        if (ticket !== generation.current) return;
         const found = evidence.observations.find((o) => o.observation_id === ref.ref_id);
-        if (found) setOpen({ revisionId: found.artifact_revision_id, locator: found.locator });
+        if (found && ref.locator && Object.entries(ref.locator).some(([key, value]) =>
+          found.locator[key as keyof Locator] !== value)) {
+          setError(new Error(`${ref.ref_id} has a different locator; this reference cannot be substituted.`));
+        } else if (found) setOpen({ revisionId: found.artifact_revision_id, locator: found.locator });
         else setError(new Error(`${ref.ref_id} is not in this dossier's current evidence.`));
       } catch (cause) {
-        setError(cause);
+        if (ticket === generation.current) setError(cause);
       }
     }
   };
@@ -232,7 +276,7 @@ export function EvidenceChips({
           dossierId={dossierId}
           revisionId={open.revisionId}
           locator={open.locator}
-          onClose={() => setOpen(null)}
+          onClose={() => { generation.current++; setOpen(null); }}
         />
       )}
     </div>

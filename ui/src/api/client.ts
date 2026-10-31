@@ -32,6 +32,7 @@ export const ROUTES = {
   evidence: ["GET", "/dossiers/{dossier_id}/evidence"],
   artifact: ["GET", "/dossiers/{dossier_id}/artifacts/{artifact_revision_id}"],
   supportReview: ["POST", "/dossiers/{dossier_id}/support-review"],
+  runs: ["GET", "/runs"],
   startRun: ["POST", "/runs"],
   run: ["GET", "/runs/{run_id}"],
   resume: ["POST", "/runs/{run_id}/resume"],
@@ -44,7 +45,7 @@ export const ROUTES = {
   review: ["POST", "/runs/{run_id}/review"],
 } as const;
 
-export type ErrorKind = "HTTP" | "NETWORK" | "UNKNOWN_OUTCOME";
+export type ErrorKind = "HTTP" | "NETWORK" | "UNKNOWN_OUTCOME" | "PROTOCOL";
 
 export class ApiError extends Error {
   constructor(
@@ -60,7 +61,14 @@ export class ApiError extends Error {
 }
 
 function text(value: unknown): string {
-  return typeof value === "string" ? value : JSON.stringify(value);
+  return typeof value === "string" ? value : (JSON.stringify(value) ?? "Unknown error");
+}
+
+function interrupted(route: Route, status: number | null = null): ApiError {
+  return route[0] === "POST"
+    ? new ApiError("UNKNOWN_OUTCOME", status, null,
+        "The request may already have been applied, but its outcome could not be confirmed. Check the current state before trying again.")
+    : new ApiError("NETWORK", status, null, "The connection ended before the response was received.");
 }
 
 // The API has three error envelopes: `detail` (string or object), `code` + `errors`,
@@ -70,11 +78,11 @@ export function normalizeError(status: number, body: unknown): ApiError {
     const value = body as Record<string, unknown>;
     if (Array.isArray(value.errors)) {
       const fieldErrors = value.errors.map((raw) => {
-        const error = raw as { loc?: unknown[]; msg?: unknown };
-        return { loc: (error.loc ?? []).join("."), msg: text(error.msg) };
+        const error = raw && typeof raw === "object" ? raw as Record<string, unknown> : {};
+        return { loc: Array.isArray(error.loc) ? error.loc.join(".") : "request", msg: text(error.msg ?? raw) };
       });
       const message = fieldErrors.map((e) => `${e.loc}: ${e.msg}`).join("; ");
-      return new ApiError("HTTP", status, text(value.code), message, fieldErrors);
+      return new ApiError("HTTP", status, value.code === undefined ? null : text(value.code), message, fieldErrors);
     }
     if (value.detail !== undefined) {
       if (value.detail && typeof value.detail === "object") {
@@ -137,38 +145,56 @@ export class ApiClient {
       signal?: AbortSignal;
     } = {},
   ): Promise<Response> {
-    const headers: Record<string, string> = {
-      Authorization: `Bearer ${this.token}`,
-      ...options.headers,
-    };
+    // Encoding errors happen before dispatch and must not be described as applied mutations.
+    const body = options.json !== undefined ? JSON.stringify(options.json) : options.body;
+    if (options.signal?.aborted) throw new DOMException("Request aborted before dispatch", "AbortError");
+    const headers: Record<string, string> = { ...options.headers };
+    for (const key of Object.keys(headers)) {
+      if (key.toLowerCase() === "authorization") delete headers[key];
+    }
+    headers.Authorization = `Bearer ${this.token}`;
     if (options.json !== undefined) headers["Content-Type"] = "application/json";
     if (options.contentType) headers["Content-Type"] = options.contentType;
     let response: Response;
     try {
       response = await this.fetchImpl(this.url(route, options.params, options.query), {
-        method: route[0],
-        headers,
-        body: options.json !== undefined ? JSON.stringify(options.json) : options.body,
-        signal: options.signal,
+        method: route[0], headers, body, signal: options.signal,
+        redirect: "error", credentials: "omit", cache: "no-store",
       });
     } catch (cause) {
-      if (cause instanceof DOMException && cause.name === "AbortError") throw cause;
-      if (route[0] === "POST") {
-        throw new ApiError(
-          "UNKNOWN_OUTCOME",
-          null,
-          null,
-          "The connection failed before a response arrived, so this request may or may not have been applied. Check the current state before trying again.",
-        );
+      if (route[0] === "GET" && (options.signal?.aborted ||
+          (cause && typeof cause === "object" && "name" in cause && cause.name === "AbortError"))) {
+        throw cause;
       }
-      throw new ApiError("NETWORK", null, null, "Could not reach the API.");
+      throw interrupted(route);
     }
-    if (!response.ok) throw normalizeError(response.status, await bodyOf(response));
+    if (!response.ok) {
+      let error: ApiError;
+      try { error = normalizeError(response.status, await bodyOf(response)); }
+      catch { error = normalizeError(response.status, null); }
+      if (route[0] === "POST" && response.status >= 500) {
+        const uncertain = interrupted(route, response.status);
+        throw new ApiError("UNKNOWN_OUTCOME", response.status, error.code,
+          `${error.message} ${uncertain.message}`, error.fieldErrors);
+      }
+      throw error;
+    }
     return response;
   }
 
   private async json<T>(route: Route, options: Parameters<ApiClient["send"]>[1] = {}): Promise<T> {
-    return (await (await this.send(route, options)).json()) as T;
+    const response = await this.send(route, options);
+    let raw: string;
+    try { raw = await response.text(); }
+    catch (cause) {
+      if (route[0] === "GET" && options.signal?.aborted) throw cause;
+      throw interrupted(route, response.status);
+    }
+    try { return JSON.parse(raw) as T; }
+    catch {
+      if (route[0] === "POST") throw interrupted(route, response.status);
+      throw new ApiError("PROTOCOL", response.status, null, "The API returned invalid JSON.");
+    }
   }
 
   health = () => this.json<Health>(ROUTES.health);
@@ -204,13 +230,17 @@ export class ApiClient {
     const response = await this.send(ROUTES.artifact, {
       params: { dossier_id, artifact_revision_id },
     });
-    return response.blob();
+    try { return await response.blob(); }
+    catch { throw interrupted(ROUTES.artifact, response.status); }
   }
 
   startRun = (dossier_id: string, mode: RunMode, budgets?: BudgetLimits) =>
     this.json<{ run_id: string; status: string; mode: RunMode }>(ROUTES.startRun, {
       json: budgets ? { dossier_id, mode, budgets } : { dossier_id, mode },
     });
+  runs = (dossierId?: string) => this.json<{ runs: RunView[] }>(ROUTES.runs, {
+    query: dossierId === undefined ? "" : `?dossier_id=${encodeURIComponent(dossierId)}`,
+  });
   run = (run_id: string) => this.json<RunView>(ROUTES.run, { params: { run_id } });
   resume = (run_id: string) =>
     this.json<{ run_id: string; status: string }>(ROUTES.resume, { params: { run_id } });

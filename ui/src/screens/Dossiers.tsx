@@ -1,21 +1,31 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Badge, ErrorBanner, Mono, Section, TextField, Unavailable, useAction, useLoad } from "../components/common";
-import { navigate, useClient } from "../state/session";
+import { useHeader } from "../components/Shell";
+import { href, navigate, useClient } from "../state/session";
 
 const MAX_UPLOAD = 25 * 1024 * 1024;
 
 export function Dossiers() {
   const client = useClient();
+  const { setHeader } = useHeader();
+  useEffect(() => setHeader({}), [setHeader]);
   const { data, error, loading } = useLoad(() => client.catalogue(), [client]);
   const action = useAction();
+  const recent = useLoad(() => client.runs(), [client]);
   const [zip, setZip] = useState<File | null>(null);
   const [runId, setRunId] = useState("");
   const tooLarge = zip !== null && zip.size > MAX_UPLOAD;
 
   const select = (fixtureId: string) =>
-    action.run(async () => navigate("dossiers", (await client.select(fixtureId)).dossier_id));
+    action.run(async (signal) => {
+      const selected = await client.select(fixtureId);
+      if (!signal.aborted) navigate("dossiers", selected.dossier_id);
+    });
   const upload = () =>
-    zip && action.run(async () => navigate("dossiers", (await client.upload(zip)).dossier_id));
+    zip && action.run(async (signal) => {
+      const selected = await client.upload(zip);
+      if (!signal.aborted) navigate("dossiers", selected.dossier_id);
+    });
 
   return (
     <>
@@ -57,6 +67,17 @@ export function Dossiers() {
         )}
       </Section>
 
+      <Section title="Recent investigations" aside={<button onClick={() => void recent.reload()} disabled={recent.loading}>Refresh runs</button>}>
+        <ErrorBanner error={recent.error} />
+        {recent.loading && <p className="muted">Loading run records…</p>}
+        {recent.data?.runs.map((run) => <p key={run.state.run_id}>
+          <a href={href("runs", run.state.run_id)}><Mono>{run.state.run_id}</Mono></a>{" "}
+          <Badge value={run.state.status} /> <Badge value={run.job.status} />
+          <Badge value={run.configuration.execution_kind} />
+        </p>)}
+        {!recent.loading && recent.data?.runs.length === 0 && <p className="muted">No registered runs yet.</p>}
+      </Section>
+
       <div className="two">
         <Section title="Upload a dossier package">
           <p className="muted small">
@@ -73,7 +94,7 @@ export function Dossiers() {
           <p className="muted small">A successful upload only means the bytes were accepted. Preparation and review come next.</p>
         </Section>
         <Section title="Open an existing run">
-          <p className="muted small">The API can't list runs, so open one by its ID.</p>
+          <p className="muted small">Open a known run ID directly, or choose a recent investigation above.</p>
           <TextField label="Run ID" value={runId} onChange={setRunId} placeholder="run:…" />
           <button disabled={!runId.trim()} onClick={() => navigate("runs", runId.trim())}>Open run</button>
         </Section>

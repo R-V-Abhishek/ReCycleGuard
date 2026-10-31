@@ -65,6 +65,16 @@ class ApiStore:
             raise KeyError("run is not registered with this API")
         return dict(row)
 
+    def jobs(self, dossier_id=None):
+        with self.connection() as db:
+            if dossier_id is None:
+                rows = db.execute("SELECT * FROM jobs ORDER BY rowid DESC")
+            else:
+                rows = db.execute(
+                    "SELECT * FROM jobs WHERE dossier_id=? ORDER BY rowid DESC", (dossier_id,)
+                )
+            return [dict(row) for row in rows]
+
     def add_job(self, run_id, dossier_id):
         with self.connection() as db:
             db.execute("INSERT INTO jobs VALUES (?,?,'QUEUED',NULL,0)", (run_id, dossier_id))

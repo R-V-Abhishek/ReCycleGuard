@@ -20,15 +20,16 @@ function Screen({ route }: { route: string[] }) {
 
 export function App() {
   const [client, setClient] = useState<ApiClient | null>(null);
+  const [sessionId, setSessionId] = useState(0);
   const route = useRoute();
   const session = useMemo(
     () => (client ? { client, disconnect: () => setClient(null) } : null),
     [client],
   );
   // The route stays in the URL hash, so reconnecting returns to the same dossier or run.
-  if (!session) return <Connect onConnected={setClient} />;
+  if (!session) return <Connect onConnected={(next) => { setSessionId((old) => old + 1); setClient(next); }} />;
   return (
-    <SessionContext.Provider value={session}>
+    <SessionContext.Provider key={sessionId} value={session}>
       <Shell route={route} onDisconnect={session.disconnect}>
         <Screen route={route} />
       </Shell>

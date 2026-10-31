@@ -1,7 +1,19 @@
 import { useState } from "react";
 import type { AgentConfig, ModelResultEvent, PromptPreparedEvent, TraceEvent } from "../api/types";
-import { preparedFor, sentPrompt } from "../state/promptLayers";
+import { sentPrompt } from "../state/promptLayers";
 import { JsonView, Mono, Unavailable } from "./common";
+
+// Context and response operations have different attempt IDs. Link only the
+// unique prepared context in the same recorded turn and model phase.
+export function preparedContext(events: TraceEvent[], model: ModelResultEvent): PromptPreparedEvent | undefined {
+  if (!model.turn_id) return undefined;
+  const name = model.event_type.split(".")[2]?.toUpperCase();
+  if (name !== "PLAN" && name !== "ASSESS") return undefined;
+  const matches = events.filter((event): event is PromptPreparedEvent =>
+    event.kind === "PROMPT_PREPARED" && event.turn_id === model.turn_id &&
+    event.phase === name && event.sequence < model.sequence);
+  return matches.length === 1 ? matches[0] : undefined;
+}
 
 type Layer = "sent" | "prepared" | "template" | "response";
 
@@ -30,7 +42,7 @@ function SentLayer({ model }: { model?: ModelResultEvent }) {
   return (
     <div>
       <p className="note">
-        Recorded wire request for this call. This is what the adapter sent, including transport markers.
+        Recorded wire request for this attempt, including transport markers. Recording a body does not prove the provider received it; see the outcome below.
       </p>
       <dl className="pairs">
         <dt>Endpoint</dt>
@@ -105,10 +117,14 @@ function TemplateLayer({ agent, phase }: { agent?: AgentConfig; phase?: string }
 
 function ResponseLayer({ model }: { model?: ModelResultEvent }) {
   if (!model) return <p className="muted">Select a model call to see its response.</p>;
+  const envelope = model.response;
+  const validated = envelope && typeof envelope === "object" && !Array.isArray(envelope)
+    ? envelope.validated_output_or_null : undefined;
   return (
     <div>
       <h4>Validated structured response</h4>
-      <JsonView value={model.response} />
+      <JsonView value={validated} />
+      <details><summary>Response envelope</summary><JsonView value={envelope} /></details>
       <h4>Exact response text</h4>
       {model.exact_response === undefined ? <Unavailable /> : <pre className="block">{model.exact_response}</pre>}
       <h4>Raw provider response body</h4>
@@ -132,7 +148,7 @@ export function PromptInspector({
 }) {
   const [layer, setLayer] = useState<Layer>(event.kind === "MODEL_RESULT" ? "sent" : "prepared");
   const model = event.kind === "MODEL_RESULT" ? event : undefined;
-  const prepared = event.kind === "PROMPT_PREPARED" ? event : model && preparedFor(events, model);
+  const prepared = event.kind === "PROMPT_PREPARED" ? event : model && preparedContext(events, model);
   const tabs: [Layer, string][] = [
     ["sent", "Sent"],
     ["prepared", "Prepared"],
@@ -141,6 +157,11 @@ export function PromptInspector({
   ];
   return (
     <div>
+      <dl className="pairs">
+        <dt>Operation</dt><dd>{event.operation_id ? <Mono>{event.operation_id}</Mono> : <Unavailable />}</dd>
+        <dt>Turn</dt><dd>{event.turn_id ? <Mono>{event.turn_id}</Mono> : <Unavailable />}</dd>
+        <dt>Attempt</dt><dd>{event.attempt_id ? <Mono>{event.attempt_id}</Mono> : <Unavailable />}</dd>
+      </dl>
       <div className="subtabs" role="tablist">
         {tabs.map(([key, label]) => (
           <button key={key} role="tab" aria-selected={layer === key} className={layer === key ? "on" : ""} onClick={() => setLayer(key)}>

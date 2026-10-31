@@ -4,7 +4,13 @@ import hashlib
 
 from recycleguard.contracts.audit import OperationIntent, OperationResult
 from recycleguard.contracts.core import BlobRef, BoundaryModel
-from recycleguard.contracts.workflow import BudgetUsage, RunSpec, RunState, TurnManifest
+from recycleguard.contracts.workflow import (
+    BudgetUsage,
+    CancellationRequest,
+    RunSpec,
+    RunState,
+    TurnManifest,
+)
 from recycleguard.storage import AuditKernel, canonical_json_bytes
 from recycleguard.storage.authority import AuthorizationError
 
@@ -312,6 +318,37 @@ class GraphStore:
             mutation=lambda: self._update(output, expected_version, ref, sequence),
         )
         return output
+
+    def cancel(self, context, run_id, expected_version, reason, *, now, capability):
+        """Control-plane cancellation requires no model, index cache or current code pin."""
+        self._authorize(context, "graph.cancel", capability, run_id)
+        if not reason.strip():
+            raise ValueError("cancellation requires a reason")
+        state = self.load(run_id)
+        if state.version != expected_version or state.status in _TERMINAL:
+            raise ValueError("stale or terminal cancellation")
+        self.archive(
+            context.model_copy(
+                update={
+                    "command_id": f"{context.command_id}:reason",
+                    "operation_id": f"{context.operation_id}:reason",
+                    "attempt_id": f"{context.attempt_id}:reason",
+                    "idempotency_key": f"{context.idempotency_key}:reason",
+                }
+            ),
+            "graph.cancellation_request",
+            CancellationRequest(
+                run_id=run_id, expected_version=expected_version, reason=reason.strip()
+            ),
+            capability=capability,
+        )
+        return self.save(
+            context,
+            state.model_copy(update={"status": "CANCELLED", "updated_at": now}),
+            expected_version,
+            event_type="graph.cancel",
+            capability=capability,
+        )
 
     def archive(self, context, event_type, payload: BoundaryModel, *, capability) -> BlobRef:
         intent = self._intent(context, event_type, payload.model_dump(mode="json"), capability)

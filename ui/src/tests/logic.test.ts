@@ -63,11 +63,11 @@ describe("trace store", () => {
     expect(applyEvents(state, [base(1)])).toBe(state);
   });
 
-  it("links a proposal to its tool result but not across a later proposal", () => {
+  it("does not guess tool results for a proposal without causal metadata", () => {
     const proposal = base(1, { kind: "TOOL_PROPOSED" });
     const stage = base(2, { kind: "TOOL_OR_STAGE_RESULT", event_type: "graph.stage.draft.result" });
     const tool = base(3, { kind: "TOOL_OR_STAGE_RESULT", event_type: "graph.tool.search.result" });
-    expect(resultForProposal([proposal, stage, tool], proposal)).toBe(tool);
+    expect(resultForProposal([proposal, stage, tool], proposal)).toBeUndefined();
     const next = base(2, { kind: "TOOL_PROPOSED" });
     expect(resultForProposal([proposal, next, tool], proposal)).toBeUndefined();
   });

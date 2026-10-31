@@ -32,21 +32,38 @@ from recycleguard.contracts.foundation import (
     FoundationRequest,
     FoundationResult,
 )
-from recycleguard.contracts.review import ReviewDecision
-from recycleguard.contracts.workflow import BudgetLimits, PlanProposal
+from recycleguard.contracts.review import ReviewDecision, ReviewPacket
+from recycleguard.contracts.workflow import BudgetLimits, PlanProposal, RunState
 from recycleguard.foundation import FoundationService
 from recycleguard.foundation_review import FoundationReviewer
 from recycleguard.investigation import (
     InvestigationConfiguration,
+    InvestigationReport,
     InvestigationRequest,
     InvestigationService,
     ScriptedExchange,
 )
+from recycleguard.knowledge.corpus_audit import CorpusProfileAuditManifest
 from recycleguard.local_model import LocalModelConfig
 from recycleguard.local_session import initialize_reviewer
 from recycleguard.storage import canonical_json_bytes
+from recycleguard.storage.authority import AuthorizationError
 from recycleguard.support_review import SupportReviewer
 
+from .responses import (
+    AgentResponse,
+    CancellationResponse,
+    CatalogueResponse,
+    DossierResponse,
+    EnrollmentResponse,
+    EvidenceResponse,
+    HealthResponse,
+    QueuedRunResponse,
+    RunListResponse,
+    RunResponse,
+    StartedRunResponse,
+    TraceResponse,
+)
 from .store import ApiStore
 from .trace import trace_events
 
@@ -165,6 +182,29 @@ def create_app(options: ApiOptions):
             },
         )
 
+    @app.exception_handler(HTTPException)
+    async def http_error(_request, exc):
+        if type(exc.detail) is dict:
+            code = exc.detail.get("code", f"HTTP_{exc.status_code}")
+            message = exc.detail.get("message", str(exc.detail))
+        else:
+            code, message = f"HTTP_{exc.status_code}", str(exc.detail)
+        return JSONResponse(status_code=exc.status_code, content={"code": code, "message": message})
+
+    @app.exception_handler(AuthorizationError)
+    async def denied(_request, exc):
+        return JSONResponse(status_code=403, content={"code": "ACCESS_DENIED", "message": str(exc)})
+
+    @app.exception_handler(FileNotFoundError)
+    async def missing_local_artifact(_request, _exc):
+        return JSONResponse(
+            status_code=409,
+            content={
+                "code": "MISSING_ARTIFACT",
+                "message": "A required local artifact or reviewer enrollment is unavailable",
+            },
+        )
+
     @app.exception_handler(ValueError)
     async def invalid_value(_request, exc):
         return JSONResponse(
@@ -198,7 +238,12 @@ def create_app(options: ApiOptions):
         return ref, value
 
     def dossier_view(row):
+        manifest = CaseManifest.model_validate_json(
+            (Path(row["path"]) / "case_manifest.json").read_bytes()
+        )
         view = {
+            "synthetic": manifest.synthetic,
+            "case_id": manifest.case_id,
             "dossier_id": row["dossier_id"],
             "name": row["name"],
             "status": "APPROVED"
@@ -230,10 +275,42 @@ def create_app(options: ApiOptions):
 
     def run_view(run_id):
         job = store.job(run_id)
-        with local_application(settings) as (cases, _, cap):
+        with local_application(settings) as (cases, context, cap):
             service = InvestigationService(cases, settings, capability=cap)
             state = service.store.load(run_id)
-        return {"state": state.model_dump(mode="json"), "job": job}
+            # Finish a committed human decision after a server/response failure.
+            # This is idempotent projection of an existing decision, never new approval.
+            if job["status"] not in {"QUEUED", "RUNNING"} and mutation_lock.acquire(blocking=False):
+                try:
+                    recovered = service.recover_reviews(context, run_id)
+                    if recovered.version != state.version:
+                        if recovered.status == "DRAFTING":
+                            store.job_status(
+                                run_id,
+                                "INTERRUPTED",
+                                "Review projected; resume redrafting explicitly",
+                            )
+                        else:
+                            store.job_status(run_id, "STOPPED", recovered.status)
+                        job = store.job(run_id)
+                    state = recovered
+                finally:
+                    mutation_lock.release()
+            spec = service.store.spec(run_id)
+        return {
+            "state": state.model_dump(mode="json"),
+            "job": job,
+            "configuration": {
+                "execution_kind": spec.execution_kind,
+                "budgets": spec.budgets.model_dump(mode="json"),
+                "model_configuration_id": spec.model.configuration_id,
+                "prompt_configuration_id": spec.prompt.configuration_id,
+                "case_snapshot": spec.case_snapshot.model_dump(mode="json"),
+                "corpus_snapshot": spec.corpus_snapshot.model_dump(mode="json"),
+                "profile": spec.profile.model_dump(mode="json"),
+                "index": spec.index.model_dump(mode="json"),
+            },
+        }
 
     def drive(run_id, resume):
         store.job_status(run_id, "RUNNING")
@@ -279,21 +356,25 @@ def create_app(options: ApiOptions):
             if runner is not None:
                 runner.close()
 
+    def require_idle():
+        if any(not future.done() for future in active.values()):
+            raise HTTPException(
+                409,
+                detail={"code": "BUSY", "message": "Only one active investigation is supported"},
+            )
+
+    def queue_idle(run_id, *, resume=False):
+        # Caller holds scheduling_lock and checked availability before any mutation.
+        store.clear_cancel(run_id)
+        store.job_status(run_id, "QUEUED")
+        active[run_id] = executor.submit(drive, run_id, resume)
+
     def schedule(run_id, *, resume=False):
         with scheduling_lock:
-            if any(not future.done() for future in active.values()):
-                raise HTTPException(
-                    409,
-                    detail={
-                        "code": "BUSY",
-                        "message": "Only one active investigation is supported",
-                    },
-                )
-            store.clear_cancel(run_id)
-            store.job_status(run_id, "QUEUED")
-            active[run_id] = executor.submit(drive, run_id, resume)
+            require_idle()
+            queue_idle(run_id, resume=resume)
 
-    @app.get("/api/v1/health")
+    @app.get("/api/v1/health", response_model=HealthResponse)
     def health():
         return {
             "status": "OK",
@@ -301,9 +382,17 @@ def create_app(options: ApiOptions):
             "model_probed": False,
             "concurrency": 1,
             "ui_implemented": False,
+            "available_modes": (["MODEL_BACKED"] if options.model_config_path is not None else [])
+            + (
+                ["SCRIPTED_TEST"]
+                if settings.mode == "test"
+                and settings.enable_test_adapters
+                and options.test_exchanges
+                else []
+            ),
         }
 
-    @app.get("/api/v1/agent")
+    @app.get("/api/v1/agent", response_model=AgentResponse)
     def agent():
         from recycleguard.contracts.workflow import AssessmentProposal, PlanProposal
         from recycleguard.local_model import _PHASE_RULES, _SYSTEM
@@ -329,13 +418,15 @@ def create_app(options: ApiOptions):
             ),
         }
 
-    @app.post("/api/v1/reviewer", status_code=201)
+    @app.post("/api/v1/reviewer", status_code=201, response_model=EnrollmentResponse)
     def enroll(body: Enrollment):
         with mutation():
             initialize_reviewer(settings.data_root, body.actor_id, body.password.get_secret_value())
         return {"status": "ENROLLED"}
 
-    @app.get("/api/v1/dossiers")
+    @app.get(
+        "/api/v1/dossiers", response_model=CatalogueResponse, response_model_exclude_unset=True
+    )
     def dossiers():
         fixtures = []
         if options.fixture_root.exists():
@@ -354,7 +445,7 @@ def create_app(options: ApiOptions):
                     )
         return {"fixtures": fixtures, "dossiers": [dossier_view(row) for row in store.dossiers()]}
 
-    @app.post("/api/v1/dossiers/select", status_code=201)
+    @app.post("/api/v1/dossiers/select", status_code=201, response_model=DossierResponse)
     def select(body: Selection):
         # IDs are directory names from an explicit DEV catalogue, never caller-supplied paths.
         allowed = {item["fixture_id"] for item in dossiers()["fixtures"]}
@@ -365,7 +456,7 @@ def create_app(options: ApiOptions):
         shutil.copytree(options.fixture_root / body.fixture_id, target, symlinks=False)
         return register(target, body.fixture_id, dossier_id)
 
-    @app.post("/api/v1/dossiers", status_code=201)
+    @app.post("/api/v1/dossiers", status_code=201, response_model=DossierResponse)
     async def upload(request: Request):
         if request.headers.get("content-type", "").split(";")[0] != "application/zip":
             raise HTTPException(415, detail="Upload a manifest-based dossier as application/zip")
@@ -416,11 +507,15 @@ def create_app(options: ApiOptions):
                 shutil.rmtree(target)
             raise HTTPException(422, detail=str(exc)) from exc
 
-    @app.get("/api/v1/dossiers/{dossier_id}")
+    @app.get(
+        "/api/v1/dossiers/{dossier_id}",
+        response_model=DossierResponse,
+        response_model_exclude_unset=True,
+    )
     def get_dossier(dossier_id: str):
         return dossier_view(store.dossier(dossier_id))
 
-    @app.post("/api/v1/dossiers/{dossier_id}/prepare")
+    @app.post("/api/v1/dossiers/{dossier_id}/prepare", response_model=DossierResponse)
     def prepare(dossier_id: str):
         with mutation():
             row = store.dossier(dossier_id)
@@ -455,7 +550,7 @@ def create_app(options: ApiOptions):
                 store.foundation(dossier_id, result.output_blob)
             return dossier_view(store.dossier(dossier_id))
 
-    @app.post("/api/v1/dossiers/{dossier_id}/review-foundation")
+    @app.post("/api/v1/dossiers/{dossier_id}/review-foundation", response_model=DossierResponse)
     def approve_foundation(dossier_id: str, body: FoundationReviewRequest):
         with mutation():
             row = store.dossier(dossier_id)
@@ -493,7 +588,7 @@ def create_app(options: ApiOptions):
                 store.foundation(dossier_id, result.output_blob, approved=True)
             return dossier_view(store.dossier(dossier_id))
 
-    @app.get("/api/v1/dossiers/{dossier_id}/evidence")
+    @app.get("/api/v1/dossiers/{dossier_id}/evidence", response_model=EvidenceResponse)
     def evidence(dossier_id: str):
         row = store.dossier(dossier_id)
         _, foundation = foundation_value(row, approved=bool(row["approved"]))
@@ -517,7 +612,17 @@ def create_app(options: ApiOptions):
             "originals": membership["originals"],
         }
 
-    @app.get("/api/v1/dossiers/{dossier_id}/artifacts/{artifact_revision_id}")
+    @app.get(
+        "/api/v1/dossiers/{dossier_id}/artifacts/{artifact_revision_id}",
+        response_class=Response,
+        responses={
+            200: {
+                "content": {
+                    "application/octet-stream": {"schema": {"type": "string", "format": "binary"}}
+                }
+            }
+        },
+    )
     def artifact(dossier_id: str, artifact_revision_id: str):
         row = store.dossier(dossier_id)
         _, foundation = foundation_value(row, approved=bool(row["approved"]))
@@ -544,7 +649,7 @@ def create_app(options: ApiOptions):
                 },
             )
 
-    @app.post("/api/v1/dossiers/{dossier_id}/support-review")
+    @app.post("/api/v1/dossiers/{dossier_id}/support-review", response_model=DossierResponse)
     def support_review(dossier_id: str, body: SupportReviewRequest):
         with mutation():
             _, foundation = foundation_value(store.dossier(dossier_id), approved=True)
@@ -578,7 +683,7 @@ def create_app(options: ApiOptions):
                 store.foundation(dossier_id, blob, approved=True)
             return dossier_view(store.dossier(dossier_id))
 
-    @app.post("/api/v1/runs", status_code=202)
+    @app.post("/api/v1/runs", status_code=202, response_model=StartedRunResponse)
     def start_run(body: RunRequest):
         with scheduling_lock:
             if any(not future.done() for future in active.values()):
@@ -658,11 +763,17 @@ def create_app(options: ApiOptions):
                 active[run_id] = executor.submit(drive, run_id, False)
         return {"run_id": run_id, "status": "QUEUED", "mode": body.mode}
 
-    @app.get("/api/v1/runs/{run_id}")
+    @app.get("/api/v1/runs", response_model=RunListResponse)
+    def list_runs(dossier_id: str | None = None):
+        if dossier_id is not None:
+            store.dossier(dossier_id)
+        return {"runs": [run_view(job["run_id"]) for job in store.jobs(dossier_id)]}
+
+    @app.get("/api/v1/runs/{run_id}", response_model=RunResponse)
     def get_run(run_id: str):
         return run_view(run_id)
 
-    @app.post("/api/v1/runs/{run_id}/resume", status_code=202)
+    @app.post("/api/v1/runs/{run_id}/resume", status_code=202, response_model=QueuedRunResponse)
     def resume_run(run_id: str):
         state = run_view(run_id)["state"]
         if state["status"] in _STOPPED:
@@ -670,7 +781,7 @@ def create_app(options: ApiOptions):
         schedule(run_id, resume=True)
         return {"run_id": run_id, "status": "QUEUED"}
 
-    @app.post("/api/v1/runs/{run_id}/cancel", status_code=202)
+    @app.post("/api/v1/runs/{run_id}/cancel", status_code=202, response_model=CancellationResponse)
     def cancel(run_id: str):
         state = run_view(run_id)["state"]
         if state["status"] in {
@@ -685,13 +796,16 @@ def create_app(options: ApiOptions):
         if run_id not in active or active[run_id].done():
             with mutation(), local_application(settings) as (cases, context, cap):
                 service = InvestigationService(cases, settings, capability=cap)
-                runner = service.runner(service.store.spec(run_id))
-                try:
-                    runner.cancel(
-                        context, run_id, state["version"], "API cancellation", capability=cap
-                    )
-                finally:
-                    runner.close()
+                spec = service.store.spec(run_id)
+                service.store.cancel(
+                    service.bound(context, spec),
+                    run_id,
+                    state["version"],
+                    "API cancellation",
+                    now=datetime.now(UTC).isoformat().replace("+00:00", "Z"),
+                    capability=cap,
+                )
+                store.job_status(run_id, "STOPPED", "CANCELLED")
         return {
             "run_id": run_id,
             "cancellation_requested": True,
@@ -700,7 +814,7 @@ def create_app(options: ApiOptions):
             ),
         }
 
-    @app.get("/api/v1/runs/{run_id}/trace")
+    @app.get("/api/v1/runs/{run_id}/trace", response_model=TraceResponse)
     def trace(run_id: str, after: Annotated[int, Field(ge=0)] = 0):
         store.job(run_id)
         with local_application(settings) as (cases, _, cap):
@@ -712,7 +826,11 @@ def create_app(options: ApiOptions):
             "last_sequence": after if not rows else rows[-1]["sequence"],
         }
 
-    @app.get("/api/v1/runs/{run_id}/events")
+    @app.get(
+        "/api/v1/runs/{run_id}/events",
+        response_class=StreamingResponse,
+        responses={200: {"content": {"text/event-stream": {"schema": {"type": "string"}}}}},
+    )
     async def events(
         run_id: str,
         request: Request,
@@ -747,7 +865,7 @@ def create_app(options: ApiOptions):
             headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
         )
 
-    @app.get("/api/v1/runs/{run_id}/audit")
+    @app.get("/api/v1/runs/{run_id}/audit", response_model=CorpusProfileAuditManifest)
     def audit(run_id: str):
         from recycleguard.knowledge.corpus_audit import audit_frozen_corpus_profile
 
@@ -778,13 +896,13 @@ def create_app(options: ApiOptions):
                 },
             )
 
-    @app.get("/api/v1/runs/{run_id}/report")
+    @app.get("/api/v1/runs/{run_id}/report", response_model=InvestigationReport)
     def report(run_id: str):
         store.job(run_id)
         with local_application(settings) as (cases, _, cap):
             return InvestigationService(cases, settings, capability=cap).latest_report(run_id)
 
-    @app.post("/api/v1/runs/{run_id}/packet")
+    @app.post("/api/v1/runs/{run_id}/packet", response_model=ReviewPacket)
     def packet(run_id: str):
         store.job(run_id)
         with mutation(), local_application(settings) as (cases, context, cap):
@@ -792,14 +910,18 @@ def create_app(options: ApiOptions):
             service.recover_reviews(context, run_id)
             return service.packet(context, service.store.spec(run_id))
 
-    @app.post("/api/v1/runs/{run_id}/review")
+    @app.post("/api/v1/runs/{run_id}/review", response_model=RunState)
     def review(run_id: str, body: DecisionRequest):
         store.job(run_id)
         with (
+            scheduling_lock,
             mutation(),
             local_review_application(settings, body.password.get_secret_value()) as args,
         ):
             cases, human, human_cap, actor, cap = args
+            if body.decision == "REQUEST_CHANGES":
+                # Reject BUSY before committing an irreversible human decision.
+                require_idle()
             service = InvestigationService(cases, settings, capability=cap)
             service.recover_reviews(command_context(actor), run_id)
             reviewer = service.review_service()
@@ -823,7 +945,7 @@ def create_app(options: ApiOptions):
                 raise ValueError(f"review rejected: {result.issues}")
             state = service.project_review(command_context(actor), packet.packet_id)
             if state.status == "DRAFTING":
-                schedule(run_id)
+                queue_idle(run_id)
             return state
 
     return app

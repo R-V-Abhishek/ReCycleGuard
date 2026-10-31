@@ -1,8 +1,8 @@
 # Local investigation API
 
-This is a backend-only, single-process demonstration service. No frontend was
-implemented. The future frontend contract is [openapi.json](openapi.json), with a
-[detailed UI implementation plan](UI_IMPLEMENTATION_PLAN.md).
+This is a single-process demonstration API. The separate [React frontend](../../ui/README.md)
+consumes its explicit response contracts in [openapi.json](openapi.json).
+The API process does not serve frontend assets.
 
 ## Start
 
@@ -70,9 +70,12 @@ not a project frontend. `/openapi.json` is the live machine-readable contract.
    services with the local model. Optional `budgets` override server defaults;
    defaults reserve the configured per-call allowance, up to 12 calls and 600s.
    Bounds are admission limits, not measured latency promises.
-7. Read `/runs/{id}` for authoritative `state` plus API `job` status. Subscribe
+7. Read `/runs/{id}` for authoritative `state`, frozen `configuration` and API `job` status. Subscribe
    to `/runs/{id}/events` or poll `/runs/{id}/trace?after=N`. Read `/agent` for
    configured prompt templates/schemas before running.
+   `GET /api/v1/runs?dossier_id=ID` lists recoverable runs after a lost start response;
+   never blindly repeat a mutation after an unknown outcome. Health advertises
+   `available_modes`, which is configuration availability rather than a successful model probe.
 8. Read `/runs/{id}/report` and `/runs/{id}/audit`. The report remains qualified
    when evidence is incomplete. The audit verifies frozen bytes, pins, index
    publication and ledger integrity; it does not certify legal correctness.
@@ -86,6 +89,12 @@ All routes after step 1 use the `/api/v1` prefix. Creating another foundation ca
 move profile/corpus heads: a stale candidate is rejected rather than silently
 approved. To import corrected inputs, register a new dossier and review its new
 candidate. Previous immutable records remain available.
+
+Idle cancellation uses the persisted graph without reconstructing the model runner.
+Run reads can recover a previously committed review projection; a redraft needing
+execution becomes explicitly resumable. Review scheduling rejects a busy redraft
+before committing its human decision. HTTP errors expose structured code/message
+details without original host paths.
 
 ## Trace and streaming
 

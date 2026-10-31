@@ -32,7 +32,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
               }
             }
           },
@@ -76,7 +78,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/AgentResponse"
+                }
               }
             }
           },
@@ -130,7 +134,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/EnrollmentResponse"
+                }
               }
             }
           },
@@ -174,7 +180,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogueResponse"
+                }
               }
             }
           },
@@ -216,7 +224,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/DossierResponse"
+                }
               }
             }
           },
@@ -270,7 +280,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/DossierResponse"
+                }
               }
             }
           },
@@ -323,7 +335,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/DossierResponse"
+                }
               }
             }
           },
@@ -376,7 +390,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/DossierResponse"
+                }
               }
             }
           },
@@ -439,7 +455,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/DossierResponse"
+                }
               }
             }
           },
@@ -492,7 +510,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/EvidenceResponse"
+                }
               }
             }
           },
@@ -553,8 +573,11 @@
           "200": {
             "description": "Successful Response",
             "content": {
-              "application/json": {
-                "schema": {}
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
               }
             }
           },
@@ -617,7 +640,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/DossierResponse"
+                }
               }
             }
           },
@@ -671,7 +696,69 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/StartedRunResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "summary": "List Runs",
+        "operationId": "list_runs_api_v1_runs_get",
+        "parameters": [
+          {
+            "name": "dossier_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Dossier Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunListResponse"
+                }
               }
             }
           },
@@ -724,7 +811,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/RunResponse"
+                }
               }
             }
           },
@@ -777,7 +866,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/QueuedRunResponse"
+                }
               }
             }
           },
@@ -830,7 +921,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/CancellationResponse"
+                }
               }
             }
           },
@@ -894,7 +987,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/TraceResponse"
+                }
               }
             }
           },
@@ -973,8 +1068,10 @@
           "200": {
             "description": "Successful Response",
             "content": {
-              "application/json": {
-                "schema": {}
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
               }
             }
           },
@@ -1027,7 +1124,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/CorpusProfileAuditManifest"
+                }
               }
             }
           },
@@ -1080,7 +1179,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/InvestigationReport"
+                }
               }
             }
           },
@@ -1133,7 +1234,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewPacket"
+                }
               }
             }
           },
@@ -1196,7 +1299,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/RunState"
+                }
               }
             }
           },
@@ -1216,6 +1321,464 @@
   },
   "components": {
     "schemas": {
+      "AgentResponse": {
+        "properties": {
+          "configured": {
+            "type": "boolean",
+            "title": "Configured"
+          },
+          "model_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Id"
+          },
+          "prompt_pin": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConfigurationPin"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "system_template": {
+            "type": "string",
+            "title": "System Template"
+          },
+          "phase_rules": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Phase Rules"
+          },
+          "response_schemas": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "type": "object",
+            "title": "Response Schemas"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "configured",
+          "model_id",
+          "prompt_pin",
+          "system_template",
+          "phase_rules",
+          "response_schemas",
+          "note"
+        ],
+        "title": "AgentResponse"
+      },
+      "ArtifactRevision": {
+        "properties": {
+          "artifact_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Artifact Id"
+          },
+          "artifact_revision_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Artifact Revision Id"
+          },
+          "blob": {
+            "$ref": "#/components/schemas/BlobRef"
+          },
+          "original_filename": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Filename"
+          },
+          "source_kind": {
+            "type": "string",
+            "enum": [
+              "GAZETTE",
+              "OFFICIAL_GUIDANCE",
+              "PORTAL_CAPTURE",
+              "COMPANY_RECORD",
+              "SYNTHETIC_RECORD",
+              "AGGREGATE_STATISTICS",
+              "RESEARCH_NOTE"
+            ],
+            "title": "Source Kind"
+          },
+          "doc_type": {
+            "type": "string",
+            "enum": [
+              "STATUTORY_INSTRUMENT",
+              "SOP",
+              "TECHNICAL_FRAMEWORK",
+              "FAQ",
+              "PORTAL_INSTRUCTION",
+              "NOTICE",
+              "REGISTRATION_CERTIFICATE",
+              "PORTAL_SNAPSHOT",
+              "PORTAL_EPR_CERTIFICATE",
+              "GST_INVOICE",
+              "ERP_CSV",
+              "CONTRACT",
+              "PURCHASE_ORDER",
+              "PAYMENT_RECORD",
+              "WEIGHT_TICKET",
+              "RECYCLING_ACKNOWLEDGMENT",
+              "DESTRUCTION_CERTIFICATE",
+              "AWARENESS_PROOF",
+              "RETURN_DRAFT",
+              "FILING_ACKNOWLEDGMENT",
+              "OTHER"
+            ],
+            "title": "Doc Type"
+          },
+          "establishes": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "IDENTITY",
+                "REGISTRATION_COVERAGE",
+                "REPORTED_ACCOUNT_POSITION",
+                "CERTIFICATE_IDENTITY",
+                "TRANSFER_STAGE",
+                "LIABILITY_ALLOCATION",
+                "PAYMENT",
+                "PHYSICAL_MOVEMENT",
+                "DESTRUCTION",
+                "AWARENESS_ACTIVITY",
+                "FILING_RECEIPT",
+                "RULE_TEXT",
+                "CONTEXT_ONLY"
+              ]
+            },
+            "type": "array",
+            "title": "Establishes"
+          },
+          "does_not_establish": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "IDENTITY",
+                "REGISTRATION_COVERAGE",
+                "REPORTED_ACCOUNT_POSITION",
+                "CERTIFICATE_IDENTITY",
+                "TRANSFER_STAGE",
+                "LIABILITY_ALLOCATION",
+                "PAYMENT",
+                "PHYSICAL_MOVEMENT",
+                "DESTRUCTION",
+                "AWARENESS_ACTIVITY",
+                "FILING_RECEIPT",
+                "RULE_TEXT",
+                "CONTEXT_ONLY"
+              ]
+            },
+            "type": "array",
+            "title": "Does Not Establish"
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source Url"
+          },
+          "fetch_attempt_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fetch Attempt Id"
+          },
+          "captured_at": {
+            "$ref": "#/components/schemas/TemporalValue"
+          },
+          "ingested_at": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|\\+00:00)$",
+            "title": "Ingested At"
+          },
+          "access_policy_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Access Policy Id"
+          },
+          "rights_decision_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Rights Decision Id"
+          },
+          "synthetic": {
+            "type": "boolean",
+            "title": "Synthetic"
+          },
+          "derived_from": {
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$"
+            },
+            "type": "array",
+            "title": "Derived From"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "artifact_id",
+          "artifact_revision_id",
+          "blob",
+          "original_filename",
+          "source_kind",
+          "doc_type",
+          "establishes",
+          "does_not_establish",
+          "source_url",
+          "fetch_attempt_id",
+          "captured_at",
+          "ingested_at",
+          "access_policy_id",
+          "rights_decision_id",
+          "synthetic",
+          "derived_from"
+        ],
+        "title": "ArtifactRevision"
+      },
+      "AuditLimitation": {
+        "properties": {
+          "limitation_id": {
+            "type": "string",
+            "title": "Limitation Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "UNREVIEWED_PROVISION",
+              "MISSING_EXTENSION_ORDER",
+              "DISABLED_PURCHASE_CEILING",
+              "NOTICE_LEAD_NO_ORDER",
+              "REDISTRIBUTION_RESTRICTED",
+              "TEMPORAL_APPLICABILITY_UNRESOLVED",
+              "SEMANTIC_GRADE_UNRESOLVED",
+              "UNSUPPORTED_FEATURE"
+            ],
+            "title": "Kind"
+          },
+          "scope": {
+            "type": "string",
+            "title": "Scope"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "effect_on_retrieval": {
+            "type": "string",
+            "title": "Effect On Retrieval"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "limitation_id",
+          "kind",
+          "scope",
+          "description",
+          "effect_on_retrieval"
+        ],
+        "title": "AuditLimitation",
+        "description": "Explicit recorded limitation for handoff documentation."
+      },
+      "BaselineReport": {
+        "properties": {
+          "revision": {
+            "$ref": "#/components/schemas/ReportRevision"
+          },
+          "sections": {
+            "items": {
+              "$ref": "#/components/schemas/ReportSection"
+            },
+            "type": "array",
+            "title": "Sections"
+          },
+          "claims": {
+            "items": {
+              "$ref": "#/components/schemas/ReportClaim"
+            },
+            "type": "array",
+            "title": "Claims"
+          },
+          "calculations": {
+            "items": {
+              "$ref": "#/components/schemas/CalculationResult"
+            },
+            "type": "array",
+            "title": "Calculations"
+          },
+          "rendered_markdown": {
+            "type": "string",
+            "title": "Rendered Markdown"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "revision",
+          "sections",
+          "claims",
+          "calculations",
+          "rendered_markdown"
+        ],
+        "title": "BaselineReport"
+      },
+      "BlobRef": {
+        "properties": {
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Sha256"
+          },
+          "byte_length": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Byte Length"
+          },
+          "media_type": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Media Type"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "sha256",
+          "byte_length",
+          "media_type"
+        ],
+        "title": "BlobRef"
+      },
+      "BucketResult": {
+        "properties": {
+          "bucket_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Bucket Id"
+          },
+          "required": {
+            "$ref": "#/components/schemas/NonnegativeMass"
+          },
+          "supported": {
+            "$ref": "#/components/schemas/NonnegativeMass"
+          },
+          "signed_gap": {
+            "$ref": "#/components/schemas/Quantity"
+          },
+          "shortfall": {
+            "$ref": "#/components/schemas/NonnegativeMass"
+          },
+          "surplus": {
+            "$ref": "#/components/schemas/NonnegativeMass"
+          },
+          "pending": {
+            "$ref": "#/components/schemas/NonnegativeMass"
+          },
+          "portal_reported": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NonnegativeMass"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ledger_supported": {
+            "$ref": "#/components/schemas/NonnegativeMass"
+          },
+          "delta": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Quantity"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "snapshot_comparison_ref": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Comparison Ref"
+          },
+          "allocation_ids": {
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$"
+            },
+            "type": "array",
+            "title": "Allocation Ids"
+          },
+          "qualification_refs": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceRef"
+            },
+            "type": "array",
+            "title": "Qualification Refs"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "bucket_id",
+          "required",
+          "supported",
+          "signed_gap",
+          "shortfall",
+          "surplus",
+          "pending",
+          "portal_reported",
+          "ledger_supported",
+          "delta",
+          "snapshot_comparison_ref",
+          "allocation_ids",
+          "qualification_refs"
+        ],
+        "title": "BucketResult"
+      },
       "BudgetLimits": {
         "properties": {
           "max_case_actions": {
@@ -1297,6 +1860,403 @@
         "type": "object",
         "title": "BudgetLimits"
       },
+      "BudgetUsage": {
+        "properties": {
+          "actions": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Actions",
+            "default": 0
+          },
+          "model_calls": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Model Calls",
+            "default": 0
+          },
+          "tool_calls": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Tool Calls",
+            "default": 0
+          },
+          "retries": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Retries",
+            "default": 0
+          },
+          "reserved_tokens": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Reserved Tokens",
+            "default": 0
+          },
+          "observed_tokens": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed Tokens"
+          },
+          "observed_cost_usd": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Observed Cost Usd"
+          },
+          "usage_known_calls": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Usage Known Calls",
+            "default": 0
+          },
+          "cost_known_calls": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Cost Known Calls",
+            "default": 0
+          },
+          "preflight_actions": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Preflight Actions",
+            "default": 0
+          },
+          "verification_actions": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Verification Actions",
+            "default": 0
+          },
+          "report_repairs": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Report Repairs",
+            "default": 0
+          },
+          "finding_actions": {
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0.0
+            },
+            "type": "object",
+            "title": "Finding Actions"
+          },
+          "finding_reformulations": {
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0.0
+            },
+            "type": "object",
+            "title": "Finding Reformulations"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "BudgetUsage"
+      },
+      "CalculationResult": {
+        "properties": {
+          "calculation_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Calculation Id"
+          },
+          "case_version_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Case Version Id"
+          },
+          "profile_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Profile Id"
+          },
+          "tool_version": {
+            "type": "string",
+            "title": "Tool Version"
+          },
+          "input_digest": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Input Digest"
+          },
+          "analyzed_input_membership_blob": {
+            "$ref": "#/components/schemas/BlobRef"
+          },
+          "analyzed_bucket_ids": {
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$"
+            },
+            "type": "array",
+            "title": "Analyzed Bucket Ids"
+          },
+          "bucket_results": {
+            "items": {
+              "$ref": "#/components/schemas/BucketResult"
+            },
+            "type": "array",
+            "title": "Bucket Results"
+          },
+          "quantity_dispositions_blob": {
+            "$ref": "#/components/schemas/BlobRef"
+          },
+          "derivation_blob": {
+            "$ref": "#/components/schemas/BlobRef"
+          },
+          "coverage": {
+            "type": "string",
+            "enum": [
+              "COMPLETE_WITHIN_SCOPE",
+              "QUALIFIED",
+              "BLOCKED"
+            ],
+            "title": "Coverage"
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/Issue"
+            },
+            "type": "array",
+            "title": "Issues"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "calculation_id",
+          "case_version_id",
+          "profile_id",
+          "tool_version",
+          "input_digest",
+          "analyzed_input_membership_blob",
+          "analyzed_bucket_ids",
+          "bucket_results",
+          "quantity_dispositions_blob",
+          "derivation_blob",
+          "coverage",
+          "issues"
+        ],
+        "title": "CalculationResult"
+      },
+      "CalculationValueRef": {
+        "properties": {
+          "calculation_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Calculation Id"
+          },
+          "bucket_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Bucket Id"
+          },
+          "field": {
+            "type": "string",
+            "enum": [
+              "required",
+              "supported",
+              "signed_gap",
+              "shortfall",
+              "surplus",
+              "pending",
+              "portal_reported",
+              "ledger_supported",
+              "delta"
+            ],
+            "title": "Field"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "calculation_id",
+          "bucket_id",
+          "field"
+        ],
+        "title": "CalculationValueRef"
+      },
+      "CancellationResponse": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          },
+          "cancellation_requested": {
+            "type": "boolean",
+            "title": "Cancellation Requested"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "run_id",
+          "cancellation_requested",
+          "note"
+        ],
+        "title": "CancellationResponse"
+      },
+      "CatalogueResponse": {
+        "properties": {
+          "fixtures": {
+            "items": {
+              "$ref": "#/components/schemas/FixtureResponse"
+            },
+            "type": "array",
+            "title": "Fixtures"
+          },
+          "dossiers": {
+            "items": {
+              "$ref": "#/components/schemas/DossierResponse"
+            },
+            "type": "array",
+            "title": "Dossiers"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "fixtures",
+          "dossiers"
+        ],
+        "title": "CatalogueResponse"
+      },
+      "ConfigurationPin": {
+        "properties": {
+          "configuration_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Configuration Id"
+          },
+          "digest": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Digest"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "configuration_id",
+          "digest"
+        ],
+        "title": "ConfigurationPin"
+      },
+      "CorpusProfileAuditManifest": {
+        "properties": {
+          "verification_status": {
+            "type": "string",
+            "enum": [
+              "UNVERIFIED_METADATA",
+              "VERIFIED_INTEGRITY"
+            ],
+            "title": "Verification Status",
+            "default": "UNVERIFIED_METADATA"
+          },
+          "runtime_metadata": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Runtime Metadata"
+          },
+          "verified_checks": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Verified Checks"
+          },
+          "verified_audit_streams": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Verified Audit Streams"
+          },
+          "manifest_id": {
+            "type": "string",
+            "title": "Manifest Id",
+            "default": "manifest:h08_corpus_profile_audit_v1"
+          },
+          "generated_at": {
+            "type": "string",
+            "title": "Generated At"
+          },
+          "owner": {
+            "type": "string",
+            "title": "Owner",
+            "default": "Sampreeth (H08)"
+          },
+          "task_ref": {
+            "type": "string",
+            "title": "Task Ref",
+            "default": "H08"
+          },
+          "checkpoint_ref": {
+            "type": "string",
+            "title": "Checkpoint Ref",
+            "default": "checkpoint-3"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/SourceAuditRecord"
+            },
+            "type": "array",
+            "title": "Sources"
+          },
+          "index": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IndexAuditRecord"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "profile": {
+            "$ref": "#/components/schemas/ProfileAuditRecord"
+          },
+          "limitations": {
+            "items": {
+              "$ref": "#/components/schemas/AuditLimitation"
+            },
+            "type": "array",
+            "title": "Limitations"
+          },
+          "retrieval_engine_note": {
+            "type": "string",
+            "title": "Retrieval Engine Note",
+            "default": "Metadata helper only; no runtime, model, retrieval grades or review decisions verified."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "sources",
+          "profile",
+          "limitations"
+        ],
+        "title": "CorpusProfileAuditManifest",
+        "description": "Typed audit outcome; only VERIFIED_INTEGRITY has inspected frozen bytes."
+      },
       "DecisionRequest": {
         "properties": {
           "password": {
@@ -1342,6 +2302,76 @@
         ],
         "title": "DecisionRequest"
       },
+      "DossierResponse": {
+        "properties": {
+          "dossier_id": {
+            "type": "string",
+            "title": "Dossier Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "UPLOADED",
+              "DRAFT",
+              "APPROVED"
+            ],
+            "title": "Status"
+          },
+          "synthetic": {
+            "type": "boolean",
+            "title": "Synthetic"
+          },
+          "case_id": {
+            "type": "string",
+            "title": "Case Id"
+          },
+          "candidate_digest": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Candidate Digest"
+          },
+          "foundation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FoundationResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "foundation_blob": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BlobRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "dossier_id",
+          "name",
+          "status",
+          "synthetic",
+          "case_id"
+        ],
+        "title": "DossierResponse"
+      },
       "Enrollment": {
         "properties": {
           "actor_id": {
@@ -1363,6 +2393,21 @@
           "password"
         ],
         "title": "Enrollment"
+      },
+      "EnrollmentResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ENROLLED",
+            "title": "Status"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "title": "EnrollmentResponse"
       },
       "EvidenceRef": {
         "properties": {
@@ -1416,6 +2461,371 @@
         ],
         "title": "EvidenceRef"
       },
+      "EvidenceResponse": {
+        "properties": {
+          "snapshot": {
+            "$ref": "#/components/schemas/SnapshotRef"
+          },
+          "records": {
+            "items": {
+              "additionalProperties": {
+                "$ref": "#/components/schemas/JsonValue"
+              },
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Records"
+          },
+          "observations": {
+            "items": {
+              "$ref": "#/components/schemas/Observation"
+            },
+            "type": "array",
+            "title": "Observations"
+          },
+          "originals": {
+            "items": {
+              "$ref": "#/components/schemas/ArtifactRevision"
+            },
+            "type": "array",
+            "title": "Originals"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "snapshot",
+          "records",
+          "observations",
+          "originals"
+        ],
+        "title": "EvidenceResponse"
+      },
+      "FindingRecord": {
+        "properties": {
+          "finding_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Finding Id"
+          },
+          "finding_revision_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Finding Revision Id"
+          },
+          "case_version_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Case Version Id"
+          },
+          "bucket_ids": {
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$"
+            },
+            "type": "array",
+            "title": "Bucket Ids"
+          },
+          "issue_type": {
+            "type": "string",
+            "enum": [
+              "F01_CLEAN_BASELINE",
+              "F02_OVERLAPPING_EXPORT",
+              "F03_MULTISTAGE_ID_REUSE",
+              "F04_UNIT_DIMENSION_MIX",
+              "F05_WRONG_ENTITY_ALIAS",
+              "F06_STALE_SNAPSHOT",
+              "F07_PAID_NO_TRANSFER",
+              "F08_PRIOR_ARREARS_DRAIN",
+              "F09_EXPIRED_CANCELLED",
+              "F10_CAPABILITY_MISMATCH",
+              "F11_WRONG_PERIOD_RULE",
+              "F12_UNSEEN_NOTICE_LEAD",
+              "F13_WEIGHT_BASIS_CONFLICT",
+              "F14_OUT_OF_SCOPE_REGIME",
+              "F15_EXTRACTION_PAGE_LOSS",
+              "F16_PROMPT_INJECTION"
+            ],
+            "title": "Issue Type"
+          },
+          "advisory_status": {
+            "type": "string",
+            "enum": [
+              "RECONCILED_WITHIN_SCOPE",
+              "DISCREPANCY_DETECTED",
+              "PENDING_VERIFICATION",
+              "REQUIRES_EXPERT_REVIEW"
+            ],
+            "title": "Advisory Status"
+          },
+          "priority": {
+            "type": "string",
+            "enum": [
+              "HIGH",
+              "MEDIUM",
+              "LOW"
+            ],
+            "title": "Priority"
+          },
+          "priority_basis": {
+            "type": "string",
+            "title": "Priority Basis"
+          },
+          "portal_reported_value_ref": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CalculationValueRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ledger_supported_value_ref": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CalculationValueRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "delta_value_ref": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CalculationValueRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "snapshot_comparison_ref": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Snapshot Comparison Ref"
+          },
+          "fact_refs": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceRef"
+            },
+            "type": "array",
+            "title": "Fact Refs"
+          },
+          "calculation_refs": {
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$"
+            },
+            "type": "array",
+            "title": "Calculation Refs"
+          },
+          "provision_refs": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceRef"
+            },
+            "type": "array",
+            "title": "Provision Refs"
+          },
+          "evidence_assessments": {
+            "items": {
+              "additionalProperties": {
+                "$ref": "#/components/schemas/JsonValue"
+              },
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Evidence Assessments"
+          },
+          "hypotheses": {
+            "items": {
+              "$ref": "#/components/schemas/Hypothesis"
+            },
+            "type": "array",
+            "title": "Hypotheses"
+          },
+          "abstention_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "MISSING_EVIDENCE",
+                  "MISSING_AUTHORITY",
+                  "RULE_CONFLICT",
+                  "TEMPORAL_UNCERTAINTY",
+                  "UNSUPPORTED_FEATURE",
+                  "INCOMPLETE_HISTORY",
+                  "BUDGET_LIMIT"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Abstention Reason"
+          },
+          "withheld_claim_scopes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Withheld Claim Scopes"
+          },
+          "next_action": {
+            "$ref": "#/components/schemas/Recommendation"
+          },
+          "action_owner_ref": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action Owner Ref"
+          },
+          "scope_limits": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Scope Limits"
+          },
+          "supersedes_finding_revision_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supersedes Finding Revision Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "finding_id",
+          "finding_revision_id",
+          "case_version_id",
+          "bucket_ids",
+          "issue_type",
+          "advisory_status",
+          "priority",
+          "priority_basis",
+          "portal_reported_value_ref",
+          "ledger_supported_value_ref",
+          "delta_value_ref",
+          "snapshot_comparison_ref",
+          "fact_refs",
+          "calculation_refs",
+          "provision_refs",
+          "evidence_assessments",
+          "hypotheses",
+          "abstention_reason",
+          "withheld_claim_scopes",
+          "next_action",
+          "action_owner_ref",
+          "scope_limits",
+          "supersedes_finding_revision_id"
+        ],
+        "title": "FindingRecord"
+      },
+      "FixtureResponse": {
+        "properties": {
+          "fixture_id": {
+            "type": "string",
+            "title": "Fixture Id"
+          },
+          "case_id": {
+            "type": "string",
+            "title": "Case Id"
+          },
+          "fiscal_year": {
+            "type": "string",
+            "title": "Fiscal Year"
+          },
+          "synthetic": {
+            "type": "boolean",
+            "title": "Synthetic"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "fixture_id",
+          "case_id",
+          "fiscal_year",
+          "synthetic"
+        ],
+        "title": "FixtureResponse"
+      },
+      "FoundationResult": {
+        "properties": {
+          "case_snapshot": {
+            "$ref": "#/components/schemas/FrozenSnapshot"
+          },
+          "corpus_snapshot": {
+            "$ref": "#/components/schemas/FrozenSnapshot"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/ProfileRef"
+          },
+          "inventory_count": {
+            "type": "integer",
+            "title": "Inventory Count"
+          },
+          "extraction_count": {
+            "type": "integer",
+            "title": "Extraction Count"
+          },
+          "observation_count": {
+            "type": "integer",
+            "title": "Observation Count"
+          },
+          "record_count": {
+            "type": "integer",
+            "title": "Record Count"
+          },
+          "normalization_quarantine_count": {
+            "type": "integer",
+            "title": "Normalization Quarantine Count"
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/Issue"
+            },
+            "type": "array",
+            "title": "Issues"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "case_snapshot",
+          "corpus_snapshot",
+          "profile",
+          "inventory_count",
+          "extraction_count",
+          "observation_count",
+          "record_count",
+          "normalization_quarantine_count",
+          "issues"
+        ],
+        "title": "FoundationResult"
+      },
       "FoundationReviewRequest": {
         "properties": {
           "password": {
@@ -1444,6 +2854,93 @@
         ],
         "title": "FoundationReviewRequest"
       },
+      "FrozenSnapshot": {
+        "properties": {
+          "snapshot_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Snapshot Id"
+          },
+          "snapshot_kind": {
+            "type": "string",
+            "enum": [
+              "CASE",
+              "CORPUS"
+            ],
+            "title": "Snapshot Kind"
+          },
+          "schema_version": {
+            "type": "string",
+            "title": "Schema Version"
+          },
+          "parent_snapshot_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Snapshot Id"
+          },
+          "membership_blob": {
+            "$ref": "#/components/schemas/BlobRef"
+          },
+          "membership_digest": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Membership Digest"
+          },
+          "coverage_blob": {
+            "$ref": "#/components/schemas/BlobRef"
+          },
+          "created_at": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|\\+00:00)$",
+            "title": "Created At"
+          },
+          "created_by": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Created By"
+          },
+          "source_receipt_ids": {
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$"
+            },
+            "type": "array",
+            "title": "Source Receipt Ids"
+          },
+          "review_state": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "APPROVED",
+              "REJECTED"
+            ],
+            "title": "Review State"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "snapshot_id",
+          "snapshot_kind",
+          "schema_version",
+          "parent_snapshot_id",
+          "membership_blob",
+          "membership_digest",
+          "coverage_blob",
+          "created_at",
+          "created_by",
+          "source_receipt_ids",
+          "review_state"
+        ],
+        "title": "FrozenSnapshot"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -1457,6 +2954,330 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "OK",
+            "title": "Status"
+          },
+          "model_configured": {
+            "type": "boolean",
+            "title": "Model Configured"
+          },
+          "model_probed": {
+            "type": "boolean",
+            "title": "Model Probed"
+          },
+          "concurrency": {
+            "type": "integer",
+            "title": "Concurrency"
+          },
+          "ui_implemented": {
+            "type": "boolean",
+            "title": "Ui Implemented"
+          },
+          "available_modes": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "MODEL_BACKED",
+                "SCRIPTED_TEST"
+              ]
+            },
+            "type": "array",
+            "title": "Available Modes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status",
+          "model_configured",
+          "model_probed",
+          "concurrency",
+          "ui_implemented",
+          "available_modes"
+        ],
+        "title": "HealthResponse"
+      },
+      "Hypothesis": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "support_state": {
+            "type": "string",
+            "enum": [
+              "SUPPORTED",
+              "QUALIFIED",
+              "UNSUPPORTED"
+            ],
+            "title": "Support State"
+          },
+          "refs": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceRef"
+            },
+            "type": "array",
+            "title": "Refs"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "text",
+          "support_state",
+          "refs"
+        ],
+        "title": "Hypothesis"
+      },
+      "IndexAuditRecord": {
+        "properties": {
+          "index_id": {
+            "type": "string",
+            "title": "Index Id"
+          },
+          "corpus_snapshot_id": {
+            "type": "string",
+            "title": "Corpus Snapshot Id"
+          },
+          "corpus_membership_digest": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Corpus Membership Digest"
+          },
+          "index_integrity_digest": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Index Integrity Digest"
+          },
+          "tokenizer": {
+            "type": "string",
+            "title": "Tokenizer"
+          },
+          "bm25_k1": {
+            "type": "number",
+            "title": "Bm25 K1"
+          },
+          "bm25_b": {
+            "type": "number",
+            "title": "Bm25 B"
+          },
+          "total_chunks": {
+            "type": "integer",
+            "title": "Total Chunks"
+          },
+          "build_code_revision": {
+            "type": "string",
+            "title": "Build Code Revision"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "index_id",
+          "corpus_snapshot_id",
+          "corpus_membership_digest",
+          "index_integrity_digest",
+          "tokenizer",
+          "bm25_k1",
+          "bm25_b",
+          "total_chunks",
+          "build_code_revision"
+        ],
+        "title": "IndexAuditRecord",
+        "description": "Pinned index manifest digest for the active lexical index."
+      },
+      "InvestigationReport": {
+        "properties": {
+          "report": {
+            "$ref": "#/components/schemas/BaselineReport"
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/FindingRecord"
+            },
+            "type": "array",
+            "title": "Findings"
+          },
+          "available_evidence_refs": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceRef"
+            },
+            "type": "array",
+            "title": "Available Evidence Refs"
+          },
+          "verification": {
+            "$ref": "#/components/schemas/VerificationResult"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "report",
+          "findings",
+          "available_evidence_refs",
+          "verification"
+        ],
+        "title": "InvestigationReport"
+      },
+      "Issue": {
+        "properties": {
+          "issue_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Issue Id"
+          },
+          "code": {
+            "type": "string",
+            "enum": [
+              "INVALID_SCHEMA",
+              "ACCESS_DENIED",
+              "HASH_MISMATCH",
+              "MISSING_ARTIFACT",
+              "INCOMPLETE_COVERAGE",
+              "EXTRACTION_FAILED",
+              "UNCONFIRMED_IDENTIFIER",
+              "AMBIGUOUS_IDENTITY",
+              "AMBIGUOUS_EVENT",
+              "DIMENSION_MISMATCH",
+              "NUMERIC_PRECISION_EXCEEDED",
+              "EARLIER_LIABILITY_UNMET",
+              "LIABILITY_PRIORITY_UNRESOLVED",
+              "UNSUPPORTED_PROFILE",
+              "UNAPPROVED_PROFILE",
+              "APPLICABILITY_UNRESOLVED",
+              "RULE_CONFLICT",
+              "SOURCE_INCOMPLETE",
+              "STALE_SNAPSHOT",
+              "BUDGET_EXHAUSTED",
+              "CYCLE_DETECTED",
+              "PROVIDER_TIMEOUT",
+              "PROVIDER_INVALID_OUTPUT",
+              "AUDIT_UNAVAILABLE",
+              "CONCURRENT_MODIFICATION",
+              "STALE_REVIEW",
+              "EXPORT_RESTRICTED",
+              "PROHIBITED_VERDICT",
+              "CANCELLED",
+              "INTEGRITY_FAILED",
+              "OVER_ALLOCATION",
+              "UNSUPPORTED_FEATURE",
+              "CREDIT_EXPIRED",
+              "CREDIT_CANCELLED",
+              "CAPABILITY_MISMATCH",
+              "WEIGHT_BASIS_CONFLICT"
+            ],
+            "title": "Code"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "INFO",
+              "WARNING",
+              "BLOCKING"
+            ],
+            "title": "Severity"
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Message"
+          },
+          "field_path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Field Path"
+          },
+          "evidence_refs": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceRef"
+            },
+            "type": "array",
+            "title": "Evidence Refs"
+          },
+          "retryable": {
+            "type": "boolean",
+            "title": "Retryable"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "issue_id",
+          "code",
+          "severity",
+          "message",
+          "field_path",
+          "evidence_refs",
+          "retryable"
+        ],
+        "title": "Issue"
+      },
+      "JobResponse": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          },
+          "dossier_id": {
+            "type": "string",
+            "title": "Dossier Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "QUEUED",
+              "RUNNING",
+              "STOPPED",
+              "FAILED",
+              "INTERRUPTED"
+            ],
+            "title": "Status"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "cancel_requested": {
+            "type": "integer",
+            "title": "Cancel Requested"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "run_id",
+          "dossier_id",
+          "status",
+          "detail",
+          "cancel_requested"
+        ],
+        "title": "JobResponse"
+      },
+      "JsonValue": {},
       "Locator": {
         "properties": {
           "kind": {
@@ -1606,6 +3427,390 @@
         ],
         "title": "Locator"
       },
+      "NonnegativeMass": {
+        "properties": {
+          "decimal": {
+            "type": "string",
+            "pattern": "^-?(0|[1-9][0-9]{0,17})(\\.[0-9]{1,8})?$",
+            "title": "Decimal"
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "KG",
+              "TONNE",
+              "INR",
+              "UNIT_COUNT"
+            ],
+            "title": "Unit"
+          },
+          "dimension": {
+            "type": "string",
+            "enum": [
+              "METAL_MASS",
+              "EQUIPMENT_MASS",
+              "MONEY",
+              "COUNT"
+            ],
+            "title": "Dimension"
+          },
+          "metal": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "AU",
+                  "CU",
+                  "AL",
+                  "FE"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metal"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "decimal",
+          "unit",
+          "dimension",
+          "metal"
+        ],
+        "title": "NonnegativeMass"
+      },
+      "Observation": {
+        "properties": {
+          "observation_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Observation Id"
+          },
+          "extraction_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Extraction Id"
+          },
+          "artifact_revision_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Artifact Revision Id"
+          },
+          "locator": {
+            "$ref": "#/components/schemas/Locator"
+          },
+          "observation_type": {
+            "type": "string",
+            "title": "Observation Type"
+          },
+          "raw_fields": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "type": "object",
+            "title": "Raw Fields"
+          },
+          "parsed_fields": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "type": "object",
+            "title": "Parsed Fields"
+          },
+          "validation_state": {
+            "type": "string",
+            "enum": [
+              "VALID",
+              "REVIEW_REQUIRED",
+              "INVALID"
+            ],
+            "title": "Validation State"
+          },
+          "extraction_method": {
+            "type": "string",
+            "enum": [
+              "CSV",
+              "JSON",
+              "PDF_TEXT",
+              "PDF_TABLE",
+              "OCR",
+              "HUMAN_ASSERTION"
+            ],
+            "title": "Extraction Method"
+          },
+          "field_quality": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/JsonValue"
+            },
+            "type": "object",
+            "title": "Field Quality"
+          },
+          "event_time": {
+            "$ref": "#/components/schemas/TemporalValue"
+          },
+          "source_capture_time": {
+            "$ref": "#/components/schemas/TemporalValue"
+          },
+          "ingestion_time": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|\\+00:00)$",
+            "title": "Ingestion Time"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "observation_id",
+          "extraction_id",
+          "artifact_revision_id",
+          "locator",
+          "observation_type",
+          "raw_fields",
+          "parsed_fields",
+          "validation_state",
+          "extraction_method",
+          "field_quality",
+          "event_time",
+          "source_capture_time",
+          "ingestion_time"
+        ],
+        "title": "Observation",
+        "description": "Raw and parsed observation with extraction provenance and temporal triad (CONTRACTS §3.3)."
+      },
+      "ProfileAuditRecord": {
+        "properties": {
+          "profile_id": {
+            "type": "string",
+            "title": "Profile Id"
+          },
+          "profile_version": {
+            "type": "string",
+            "title": "Profile Version"
+          },
+          "profile_digest": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Profile Digest"
+          },
+          "review_state": {
+            "type": "string",
+            "enum": [
+              "DRAFT",
+              "APPROVED",
+              "REJECTED"
+            ],
+            "title": "Review State"
+          },
+          "supported_regime": {
+            "type": "string",
+            "title": "Supported Regime"
+          },
+          "target_basis": {
+            "type": "string",
+            "title": "Target Basis"
+          },
+          "allowed_metals": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Allowed Metals"
+          },
+          "category_scope": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Category Scope"
+          },
+          "priority_check": {
+            "type": "string",
+            "title": "Priority Check"
+          },
+          "purchase_ceiling_state": {
+            "type": "string",
+            "title": "Purchase Ceiling State"
+          },
+          "purchase_ceiling_note": {
+            "type": "string",
+            "title": "Purchase Ceiling Note"
+          },
+          "unsupported_features": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Unsupported Features"
+          },
+          "source_dependency_digests": {
+            "items": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Source Dependency Digests"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "profile_id",
+          "profile_version",
+          "profile_digest",
+          "review_state",
+          "supported_regime",
+          "target_basis",
+          "allowed_metals",
+          "category_scope",
+          "priority_check",
+          "purchase_ceiling_state",
+          "purchase_ceiling_note",
+          "unsupported_features",
+          "source_dependency_digests"
+        ],
+        "title": "ProfileAuditRecord",
+        "description": "Pinned digest and policy summary for the active calculation profile."
+      },
+      "ProfileRef": {
+        "properties": {
+          "profile_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Profile Id"
+          },
+          "profile_version": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Profile Version"
+          },
+          "digest": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Digest"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "profile_id",
+          "profile_version",
+          "digest"
+        ],
+        "title": "ProfileRef"
+      },
+      "Quantity": {
+        "properties": {
+          "decimal": {
+            "type": "string",
+            "pattern": "^-?(0|[1-9][0-9]{0,17})(\\.[0-9]{1,8})?$",
+            "title": "Decimal"
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "KG",
+              "TONNE",
+              "INR",
+              "UNIT_COUNT"
+            ],
+            "title": "Unit"
+          },
+          "dimension": {
+            "type": "string",
+            "enum": [
+              "METAL_MASS",
+              "EQUIPMENT_MASS",
+              "MONEY",
+              "COUNT"
+            ],
+            "title": "Dimension"
+          },
+          "metal": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "AU",
+                  "CU",
+                  "AL",
+                  "FE"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metal"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "decimal",
+          "unit",
+          "dimension",
+          "metal"
+        ],
+        "title": "Quantity"
+      },
+      "QueuedRunResponse": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          },
+          "status": {
+            "type": "string",
+            "const": "QUEUED",
+            "title": "Status"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "run_id",
+          "status"
+        ],
+        "title": "QueuedRunResponse"
+      },
+      "Recommendation": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "INVESTIGATE",
+              "REQUEST_EVIDENCE",
+              "ESCALATE",
+              "NO_FURTHER_ACTION"
+            ],
+            "title": "Kind"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "evidence_refs": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceRef"
+            },
+            "type": "array",
+            "title": "Evidence Refs"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "kind",
+          "description",
+          "evidence_refs"
+        ],
+        "title": "Recommendation"
+      },
       "RecordSupportAssertion": {
         "properties": {
           "target_record_revision_id": {
@@ -1635,6 +3840,376 @@
           "reason"
         ],
         "title": "RecordSupportAssertion"
+      },
+      "ReportClaim": {
+        "properties": {
+          "claim_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Claim Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "FACT",
+              "NUMERIC",
+              "INTERPRETATION",
+              "LIMITATION",
+              "RECOMMENDATION"
+            ],
+            "title": "Kind"
+          },
+          "template_or_text": {
+            "type": "string",
+            "title": "Template Or Text"
+          },
+          "evidence_refs": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceRef"
+            },
+            "type": "array",
+            "title": "Evidence Refs"
+          },
+          "calculation_value_ref": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CalculationValueRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "support_status": {
+            "type": "string",
+            "enum": [
+              "SUPPORTED",
+              "QUALIFIED",
+              "UNSUPPORTED"
+            ],
+            "title": "Support Status"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "claim_id",
+          "kind",
+          "template_or_text",
+          "evidence_refs",
+          "calculation_value_ref",
+          "support_status"
+        ],
+        "title": "ReportClaim"
+      },
+      "ReportRevision": {
+        "properties": {
+          "report_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Report Id"
+          },
+          "report_revision_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Report Revision Id"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "section_refs": {
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$"
+            },
+            "type": "array",
+            "title": "Section Refs"
+          },
+          "claim_ids": {
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$"
+            },
+            "type": "array",
+            "title": "Claim Ids"
+          },
+          "finding_revision_ids": {
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$"
+            },
+            "type": "array",
+            "title": "Finding Revision Ids"
+          },
+          "calculation_ids": {
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$"
+            },
+            "type": "array",
+            "title": "Calculation Ids"
+          },
+          "coverage_ref": {
+            "$ref": "#/components/schemas/EvidenceRef"
+          },
+          "review_dependency_digest": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Review Dependency Digest"
+          },
+          "supersedes_report_revision_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supersedes Report Revision Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "report_id",
+          "report_revision_id",
+          "run_id",
+          "section_refs",
+          "claim_ids",
+          "finding_revision_ids",
+          "calculation_ids",
+          "coverage_ref",
+          "review_dependency_digest",
+          "supersedes_report_revision_id"
+        ],
+        "title": "ReportRevision"
+      },
+      "ReportSection": {
+        "properties": {
+          "section_id": {
+            "type": "string",
+            "enum": [
+              "CASE_SCOPE",
+              "EVIDENCE_COVERAGE",
+              "BUCKET_RECONCILIATION",
+              "FINDING_REGISTER",
+              "INVESTIGATION_HISTORY",
+              "NEXT_ACTIONS",
+              "HUMAN_DECISIONS",
+              "LIMITATIONS_AND_REPRODUCIBILITY"
+            ],
+            "title": "Section Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "claim_ids": {
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$"
+            },
+            "type": "array",
+            "title": "Claim Ids"
+          },
+          "evidence_refs": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceRef"
+            },
+            "type": "array",
+            "title": "Evidence Refs"
+          },
+          "structured_content_ref": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Structured Content Ref"
+          },
+          "coverage_state": {
+            "type": "string",
+            "enum": [
+              "COMPLETE_WITHIN_SCOPE",
+              "QUALIFIED",
+              "BLOCKED"
+            ],
+            "title": "Coverage State"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "section_id",
+          "title",
+          "claim_ids",
+          "evidence_refs",
+          "structured_content_ref",
+          "coverage_state"
+        ],
+        "title": "ReportSection"
+      },
+      "ReviewPacket": {
+        "properties": {
+          "packet_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Packet Id"
+          },
+          "creation_operation_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Creation Operation Id"
+          },
+          "run_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Run Id"
+          },
+          "report_blob": {
+            "$ref": "#/components/schemas/BlobRef"
+          },
+          "report_revision_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Report Revision Id"
+          },
+          "review_dependency_digest": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Review Dependency Digest"
+          },
+          "input_snapshot_refs": {
+            "items": {
+              "$ref": "#/components/schemas/SnapshotRef"
+            },
+            "type": "array",
+            "title": "Input Snapshot Refs"
+          },
+          "proposed_action_refs": {
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$"
+            },
+            "type": "array",
+            "title": "Proposed Action Refs"
+          },
+          "unresolved_issue_refs": {
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$"
+            },
+            "type": "array",
+            "title": "Unresolved Issue Refs"
+          },
+          "permitted_decisions": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "APPROVE",
+                "REJECT",
+                "REQUEST_CHANGES",
+                "ESCALATE"
+              ]
+            },
+            "type": "array",
+            "title": "Permitted Decisions"
+          },
+          "created_at": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|\\+00:00)$",
+            "title": "Created At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "packet_id",
+          "creation_operation_id",
+          "run_id",
+          "report_blob",
+          "report_revision_id",
+          "review_dependency_digest",
+          "input_snapshot_refs",
+          "proposed_action_refs",
+          "unresolved_issue_refs",
+          "permitted_decisions",
+          "created_at"
+        ],
+        "title": "ReviewPacket"
+      },
+      "RunConfigurationResponse": {
+        "properties": {
+          "execution_kind": {
+            "type": "string",
+            "enum": [
+              "MODEL_BACKED",
+              "SCRIPTED_TEST"
+            ],
+            "title": "Execution Kind"
+          },
+          "budgets": {
+            "$ref": "#/components/schemas/BudgetLimits"
+          },
+          "model_configuration_id": {
+            "type": "string",
+            "title": "Model Configuration Id"
+          },
+          "prompt_configuration_id": {
+            "type": "string",
+            "title": "Prompt Configuration Id"
+          },
+          "case_snapshot": {
+            "$ref": "#/components/schemas/SnapshotRef"
+          },
+          "corpus_snapshot": {
+            "$ref": "#/components/schemas/SnapshotRef"
+          },
+          "profile": {
+            "$ref": "#/components/schemas/ProfileRef"
+          },
+          "index": {
+            "$ref": "#/components/schemas/ConfigurationPin"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "execution_kind",
+          "budgets",
+          "model_configuration_id",
+          "prompt_configuration_id",
+          "case_snapshot",
+          "corpus_snapshot",
+          "profile",
+          "index"
+        ],
+        "title": "RunConfigurationResponse"
+      },
+      "RunListResponse": {
+        "properties": {
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/RunResponse"
+            },
+            "type": "array",
+            "title": "Runs"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "runs"
+        ],
+        "title": "RunListResponse"
       },
       "RunRequest": {
         "properties": {
@@ -1670,6 +4245,258 @@
         ],
         "title": "RunRequest"
       },
+      "RunResponse": {
+        "properties": {
+          "state": {
+            "$ref": "#/components/schemas/RunState"
+          },
+          "job": {
+            "$ref": "#/components/schemas/JobResponse"
+          },
+          "configuration": {
+            "$ref": "#/components/schemas/RunConfigurationResponse"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "state",
+          "job",
+          "configuration"
+        ],
+        "title": "RunResponse"
+      },
+      "RunState": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Run Id"
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Version"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "CREATED",
+              "PREFLIGHT",
+              "INVESTIGATING",
+              "DRAFTING",
+              "VERIFYING",
+              "AWAITING_REVIEW",
+              "COMPLETED",
+              "BLOCKED_INPUT",
+              "BLOCKED_OUTPUT",
+              "FAILED",
+              "CANCELLED"
+            ],
+            "title": "Status"
+          },
+          "current_turn": {
+            "type": "integer",
+            "title": "Current Turn"
+          },
+          "pending_finding_ids": {
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$"
+            },
+            "type": "array",
+            "title": "Pending Finding Ids"
+          },
+          "resolved_finding_ids": {
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$"
+            },
+            "type": "array",
+            "title": "Resolved Finding Ids"
+          },
+          "abstained_finding_ids": {
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$"
+            },
+            "type": "array",
+            "title": "Abstained Finding Ids"
+          },
+          "budget": {
+            "$ref": "#/components/schemas/BudgetUsage"
+          },
+          "created_at": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|\\+00:00)$",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|\\+00:00)$",
+            "title": "Updated At"
+          },
+          "stop_reason": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "RESOLVED_WITHIN_SCOPE",
+                  "NO_NEW_EVIDENCE",
+                  "EXPERT_REVIEW_REQUIRED",
+                  "BUDGET_EXHAUSTED",
+                  "CYCLE_DETECTED",
+                  "PROVIDER_FAILURE",
+                  "AUDIT_FAILURE",
+                  "REVIEW_REJECTED",
+                  "CHANGES_REQUESTED",
+                  "MANUAL_CLOSURE"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stop Reason"
+          },
+          "review_outcome": {
+            "type": "string",
+            "enum": [
+              "NOT_REQUESTED",
+              "PENDING",
+              "APPROVED",
+              "REJECTED",
+              "CHANGES_REQUESTED",
+              "ESCALATED",
+              "CLOSED_WITHOUT_DECISION"
+            ],
+            "title": "Review Outcome"
+          },
+          "plan_refs": {
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$"
+            },
+            "type": "array",
+            "title": "Plan Refs"
+          },
+          "assessment_refs": {
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$"
+            },
+            "type": "array",
+            "title": "Assessment Refs"
+          },
+          "result_refs": {
+            "items": {
+              "$ref": "#/components/schemas/BlobRef"
+            },
+            "type": "array",
+            "title": "Result Refs"
+          },
+          "action_fingerprints": {
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "type": "array",
+            "title": "Action Fingerprints"
+          },
+          "search_queries": {
+            "additionalProperties": {
+              "items": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              },
+              "type": "array"
+            },
+            "type": "object",
+            "title": "Search Queries"
+          },
+          "review_record_refs": {
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$"
+            },
+            "type": "array",
+            "title": "Review Record Refs"
+          },
+          "last_audit_sequence": {
+            "type": "integer",
+            "title": "Last Audit Sequence"
+          },
+          "pending_operation_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Operation Id"
+          },
+          "pending_attempt_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pending Attempt Id"
+          },
+          "active_turn_input": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BlobRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "last_checkpoint_ref": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BlobRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "run_id",
+          "version",
+          "status",
+          "current_turn",
+          "pending_finding_ids",
+          "resolved_finding_ids",
+          "abstained_finding_ids",
+          "budget",
+          "created_at",
+          "updated_at",
+          "stop_reason",
+          "review_outcome",
+          "plan_refs",
+          "assessment_refs",
+          "result_refs",
+          "action_fingerprints",
+          "last_audit_sequence",
+          "pending_operation_id",
+          "active_turn_input",
+          "last_checkpoint_ref"
+        ],
+        "title": "RunState"
+      },
       "Selection": {
         "properties": {
           "fixture_id": {
@@ -1684,6 +4511,173 @@
           "fixture_id"
         ],
         "title": "Selection"
+      },
+      "SnapshotRef": {
+        "properties": {
+          "snapshot_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Snapshot Id"
+          },
+          "membership_digest": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Membership Digest"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "snapshot_id",
+          "membership_digest"
+        ],
+        "title": "SnapshotRef",
+        "description": "Pinned reference; introduced by A02, not an implemented C05 lookup."
+      },
+      "SourceAuditRecord": {
+        "properties": {
+          "artifact_revision_id": {
+            "type": "string",
+            "title": "Artifact Revision Id"
+          },
+          "source_alias": {
+            "type": "string",
+            "title": "Source Alias"
+          },
+          "document_title": {
+            "type": "string",
+            "title": "Document Title"
+          },
+          "source_kind": {
+            "type": "string",
+            "title": "Source Kind"
+          },
+          "source_url": {
+            "type": "string",
+            "title": "Source Url"
+          },
+          "sha256_digest": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Sha256 Digest"
+          },
+          "total_pages": {
+            "type": "integer",
+            "title": "Total Pages"
+          },
+          "active_physical_pages": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Active Physical Pages"
+          },
+          "active_provision_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Active Provision Ids"
+          },
+          "access_policy_id": {
+            "type": "string",
+            "title": "Access Policy Id"
+          },
+          "rights_decision_id": {
+            "type": "string",
+            "title": "Rights Decision Id"
+          },
+          "copyright_owner": {
+            "type": "string",
+            "title": "Copyright Owner"
+          },
+          "statutory_exception": {
+            "type": "string",
+            "title": "Statutory Exception"
+          },
+          "redistribution_allowed": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Redistribution Allowed"
+          },
+          "review_state": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "DRAFT",
+                  "APPROVED",
+                  "REJECTED"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review State"
+          },
+          "review_note": {
+            "type": "string",
+            "title": "Review Note"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "artifact_revision_id",
+          "source_alias",
+          "document_title",
+          "source_kind",
+          "source_url",
+          "sha256_digest",
+          "total_pages",
+          "active_physical_pages",
+          "active_provision_ids",
+          "access_policy_id",
+          "rights_decision_id",
+          "copyright_owner",
+          "statutory_exception",
+          "redistribution_allowed",
+          "review_state",
+          "review_note"
+        ],
+        "title": "SourceAuditRecord",
+        "description": "Pinned digest and locator record for a single active corpus source."
+      },
+      "StartedRunResponse": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          },
+          "status": {
+            "type": "string",
+            "const": "QUEUED",
+            "title": "Status"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "MODEL_BACKED",
+              "SCRIPTED_TEST"
+            ],
+            "title": "Mode"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "run_id",
+          "status",
+          "mode"
+        ],
+        "title": "StartedRunResponse"
       },
       "SupportReviewRequest": {
         "properties": {
@@ -1721,6 +4715,168 @@
           "reason"
         ],
         "title": "SupportReviewRequest"
+      },
+      "TemporalValue": {
+        "properties": {
+          "raw": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Raw"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "precision": {
+            "type": "string",
+            "enum": [
+              "INSTANT",
+              "DATE",
+              "MONTH",
+              "YEAR",
+              "UNKNOWN"
+            ],
+            "title": "Precision"
+          },
+          "timezone": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timezone"
+          },
+          "interpretation_status": {
+            "type": "string",
+            "enum": [
+              "PARSED",
+              "REVIEWED",
+              "AMBIGUOUS",
+              "UNKNOWN"
+            ],
+            "title": "Interpretation Status"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "raw",
+          "value",
+          "precision",
+          "timezone",
+          "interpretation_status"
+        ],
+        "title": "TemporalValue"
+      },
+      "TraceEventResponse": {
+        "properties": {
+          "sequence": {
+            "type": "integer",
+            "title": "Sequence"
+          },
+          "event_id": {
+            "type": "string",
+            "title": "Event Id"
+          },
+          "operation_id": {
+            "type": "string",
+            "title": "Operation Id"
+          },
+          "turn_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Turn Id"
+          },
+          "attempt_id": {
+            "type": "string",
+            "title": "Attempt Id"
+          },
+          "event_type": {
+            "type": "string",
+            "title": "Event Type"
+          },
+          "payload_ref": {
+            "$ref": "#/components/schemas/BlobRef"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "PROMPT_PREPARED",
+              "PLAN",
+              "TOOL_PROPOSED",
+              "ASSESSMENT",
+              "MODEL_RESULT",
+              "TOOL_OR_STAGE_RESULT",
+              "AUDIT"
+            ],
+            "title": "Kind"
+          }
+        },
+        "additionalProperties": {
+          "$ref": "#/components/schemas/JsonValue"
+        },
+        "type": "object",
+        "required": [
+          "sequence",
+          "event_id",
+          "operation_id",
+          "turn_id",
+          "attempt_id",
+          "event_type",
+          "payload_ref",
+          "kind"
+        ],
+        "title": "TraceEventResponse",
+        "description": "Stable event identity with version-extensible, JSON-only payload fields."
+      },
+      "TraceResponse": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/TraceEventResponse"
+            },
+            "type": "array",
+            "title": "Events"
+          },
+          "last_sequence": {
+            "type": "integer",
+            "title": "Last Sequence"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "run_id",
+          "events",
+          "last_sequence"
+        ],
+        "title": "TraceResponse"
       },
       "ValidationError": {
         "properties": {
@@ -1761,6 +4917,74 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "VerificationResult": {
+        "properties": {
+          "verification_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Verification Id"
+          },
+          "report_revision_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Report Revision Id"
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "PASS",
+              "QUALIFIED",
+              "BLOCKED"
+            ],
+            "title": "Verdict"
+          },
+          "checks": {
+            "items": {
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "boolean"
+                  }
+                ]
+              },
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Checks"
+          },
+          "issues": {
+            "items": {
+              "$ref": "#/components/schemas/Issue"
+            },
+            "type": "array",
+            "title": "Issues"
+          },
+          "verifier_version": {
+            "type": "string",
+            "title": "Verifier Version"
+          },
+          "verified_dependency_digest": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Verified Dependency Digest"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "verification_id",
+          "report_revision_id",
+          "verdict",
+          "checks",
+          "issues",
+          "verifier_version",
+          "verified_dependency_digest"
+        ],
+        "title": "VerificationResult"
       }
     }
   }

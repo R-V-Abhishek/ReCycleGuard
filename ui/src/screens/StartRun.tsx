@@ -3,7 +3,7 @@ import { ApiError } from "../api/client";
 import type { BudgetLimits, RunMode } from "../api/types";
 import { Badge, ErrorBanner, JsonView, Mono, Section, Unavailable, useAction, useLoad } from "../components/common";
 import { useHeader } from "../components/Shell";
-import { navigate, startedBudgets, useClient } from "../state/session";
+import { href, navigate, useClient } from "../state/session";
 
 const BUDGET_FIELDS: [keyof BudgetLimits, string][] = [
   ["max_model_calls", "Model calls"],
@@ -18,11 +18,16 @@ export function StartRun({ dossierId }: { dossierId: string }) {
   const agent = useLoad(() => client.agent(), [client]);
   const health = useLoad(() => client.health(), [client]);
   const dossier = useLoad(() => client.dossier(dossierId), [client, dossierId]);
+  const recent = useLoad(() => client.runs(dossierId), [client, dossierId]);
   const [mode, setMode] = useState<RunMode>("MODEL_BACKED");
   const [budgets, setBudgets] = useState<Partial<Record<keyof BudgetLimits, string>>>({});
   const [locked, setLocked] = useState(false);
   const start = useAction();
   const { setHeader } = useHeader();
+  const availableModes = health.data?.available_modes;
+  useEffect(() => {
+    if (availableModes?.length && !availableModes.includes(mode)) setMode(availableModes[0]);
+  }, [availableModes, mode]);
   useEffect(() => {
     setHeader({ dossierId, dossierName: dossier.data?.name, mode });
   }, [dossierId, dossier.data?.name, mode, setHeader]);
@@ -31,21 +36,27 @@ export function StartRun({ dossierId }: { dossierId: string }) {
     const out: Record<string, number> = {};
     for (const [key] of BUDGET_FIELDS) {
       const raw = budgets[key]?.trim();
-      if (raw) out[key] = parseInt(raw, 10);
+      if (raw) {
+        const value = Number(raw);
+        if (!Number.isSafeInteger(value) || value < 1) throw new Error(`${key} must be a positive whole number`);
+        out[key] = value;
+      }
     }
     return Object.keys(out).length ? out : undefined;
   };
   const begin = () =>
-    void start.run(async () => {
+    void start.run(async (signal) => {
       const chosen = parsedBudgets();
       try {
         const run = await client.startRun(dossierId, mode, chosen);
-        if (chosen) startedBudgets.set(run.run_id, chosen);
-        navigate("runs", run.run_id);
+        if (!signal.aborted) navigate("runs", run.run_id);
       } catch (cause) {
         // The run may exist, and the API has no run list or idempotency key. Don't offer a
         // second start until a person has deliberately unlocked it.
-        if (cause instanceof ApiError && cause.kind === "UNKNOWN_OUTCOME") setLocked(true);
+        if (!signal.aborted && cause instanceof ApiError && cause.kind === "UNKNOWN_OUTCOME") {
+          setLocked(true);
+          await recent.reload();
+        }
         throw cause;
       }
     });
@@ -55,6 +66,7 @@ export function StartRun({ dossierId }: { dossierId: string }) {
   return (
     <>
       <ErrorBanner error={dossier.error} />
+      <ErrorBanner error={health.error} />
       <Section title="Agent setup" aside={<Badge value="TEMPLATE" title="Configuration, not proof of a call" />}>
         <ErrorBanner error={agent.error} />
         <p className="note">
@@ -67,7 +79,7 @@ export function StartRun({ dossierId }: { dossierId: string }) {
           <dd>{config?.prompt_pin ? <Mono>{config.prompt_pin.configuration_id}</Mono> : <Unavailable />}</dd>
           <dt>Model readiness</dt>
           <dd>
-            {health.data?.model_configured ? "Configured, not probed. Readiness is only confirmed when a run starts." : <Unavailable label="not configured on the server" />}
+            {health.data?.model_configured ? "Configured, not probed. Starting a run does not establish model quality or compatibility." : <Unavailable label="not configured on the server" />}
           </dd>
         </dl>
         {config && (
@@ -95,12 +107,13 @@ export function StartRun({ dossierId }: { dossierId: string }) {
         <fieldset>
           <legend>Execution mode</legend>
           <label className="check">
-            <input type="radio" checked={mode === "MODEL_BACKED"} onChange={() => setMode("MODEL_BACKED")} /> Model-backed: the local model proposes each step
+            <input type="radio" disabled={!availableModes?.includes("MODEL_BACKED")} checked={mode === "MODEL_BACKED"} onChange={() => setMode("MODEL_BACKED")} /> Model-backed: the local model proposes each step
           </label>
           <label className="check">
-            <input type="radio" checked={mode === "SCRIPTED_TEST"} onChange={() => setMode("SCRIPTED_TEST")} /> Scripted test: replayed proposals, shows no model reasoning. The server must have test adapters enabled.
+            <input type="radio" disabled={!availableModes?.includes("SCRIPTED_TEST")} checked={mode === "SCRIPTED_TEST"} onChange={() => setMode("SCRIPTED_TEST")} /> Scripted test: replayed proposals, shows no model reasoning. The server must have test adapters enabled.
           </label>
         </fieldset>
+        {availableModes?.length === 0 && <div className="banner warn">The server has no enabled investigation mode.</div>}
         <details>
           <summary>Budget overrides (optional)</summary>
           <p className="muted small">
@@ -118,13 +131,22 @@ export function StartRun({ dossierId }: { dossierId: string }) {
         <ErrorBanner error={start.error} />
         {locked && (
           <div className="banner warn">
-            Starting is locked because the last request may have created a run. The server allows one active run at a time, so if one is running, another start returns a conflict.
-            <button className="link" onClick={() => { setLocked(false); start.clearError(); }}>I've checked, unlock start</button>
+            Starting is locked because the last request may have created a run. Refresh the read-only run list below and open its recorded investigation instead of resubmitting. An empty list alone does not prove the request failed.
           </div>
         )}
-        <button className="primary" disabled={!approved || start.busy || locked} onClick={begin}>
+        <button className="primary" disabled={!approved || start.busy || locked || Boolean(health.error) || !availableModes?.includes(mode) || (mode === "MODEL_BACKED" && !config?.configured)} onClick={begin}>
           {start.busy ? "Starting…" : "Start investigation"}
         </button>
+      </Section>
+      <Section title="Investigations for this dossier" aside={<button disabled={recent.loading} onClick={() => void recent.reload()}>Refresh runs</button>}>
+        <ErrorBanner error={recent.error} />
+        {recent.loading && <p className="muted">Loading run records…</p>}
+        {recent.data?.runs.map((run) => <p key={run.state.run_id}>
+          <a href={href("runs", run.state.run_id)}><Mono>{run.state.run_id}</Mono></a>{" "}
+          <Badge value={run.state.status} /> <Badge value={run.job.status} />
+          <Badge value={run.configuration.execution_kind} />
+        </p>)}
+        {!recent.loading && recent.data?.runs.length === 0 && <p className="muted">No recorded runs for this dossier.</p>}
       </Section>
     </>
   );

@@ -96,7 +96,7 @@ const DECISION_LABEL: Record<ReviewDecisionKind, string> = {
   ESCALATE: "Escalate",
 };
 
-function ReviewForm({ runId, report, canRequest, onDone }: { runId: string; report: InvestigationReport; canRequest: boolean; onDone(): void }) {
+export function ReviewForm({ runId, report, canRequest, onDone }: { runId: string; report: InvestigationReport; canRequest: boolean; onDone(): void }) {
   const client = useClient();
   const [packet, setPacket] = useState<ReviewPacket>();
   const [decision, setDecision] = useState<ReviewDecisionKind>();
@@ -105,19 +105,25 @@ function ReviewForm({ runId, report, canRequest, onDone }: { runId: string; repo
   const [lastDecision, setLastDecision] = useState<string>();
   const action = useAction();
   const revision = report.report.revision.report_revision_id;
-  const stale = packet !== undefined && packet.report_revision_id !== revision;
+  const stale = packet !== undefined && (
+    !canRequest || packet.run_id !== runId || packet.report_revision_id !== revision ||
+    packet.review_dependency_digest !== report.report.revision.review_dependency_digest
+  );
+  useEffect(() => { if (stale) setPassword(""); }, [stale]);
 
-  const requestPacket = () => void action.run(async () => {
-    setPacket(await client.packet(runId));
+  const requestPacket = () => void action.run(async (signal) => {
+    const next = await client.packet(runId);
+    if (signal.aborted) return;
+    setPacket(next);
     setDecision(undefined);
     setLastDecision(undefined);
   });
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
-    if (!packet || !decision) return;
+    if (action.busy || !packet || stale || !decision || !packet.permitted_decisions.includes(decision) || !reason.trim() || !password) return;
     const secret = password;
     setPassword("");
-    void action.run(async () => {
+    void action.run(async (signal) => {
       try {
         await client.review(runId, {
           password: secret,
@@ -126,13 +132,16 @@ function ReviewForm({ runId, report, canRequest, onDone }: { runId: string; repo
           decision,
           reason,
         });
+        if (signal.aborted) return;
         setLastDecision(DECISION_LABEL[decision]);
         setReason("");
       } finally {
         // Success, a stale version or a lost response all need a fresh packet from current state.
-        setPacket(undefined);
-        setDecision(undefined);
-        onDone();
+        if (!signal.aborted) {
+          setPacket(undefined);
+          setDecision(undefined);
+          onDone();
+        }
       }
     });
   };
@@ -152,15 +161,15 @@ function ReviewForm({ runId, report, canRequest, onDone }: { runId: string; repo
       )}
       {packet && (
         <form onSubmit={submit}>
-          {stale && <div className="banner warn">This packet is for a different report revision. Reload the report and open a new packet.</div>}
+          {stale && <div className="banner warn">This packet no longer matches the current run, report, dependencies or review state. Reload before reviewing.</div>}
           <dl className="pairs">
             <dt>Report revision</dt><dd><Mono>{packet.report_revision_id}</Mono></dd>
             <dt>Dependency digest</dt><dd><Mono>{packet.review_dependency_digest}</Mono></dd>
             <dt>Input snapshots</dt>
-            <dd>{packet.input_snapshot_refs.map((ref) => <div key={ref.snapshot_id}><Mono>{ref.snapshot_id}</Mono></div>)}</dd>
+            <dd>{packet.input_snapshot_refs.map((ref) => <div key={ref.snapshot_id}><Mono>{ref.snapshot_id}</Mono> · <Mono>{ref.membership_digest}</Mono></div>)}</dd>
             <dt>Unresolved issues</dt><dd>{packet.unresolved_issue_refs.length}</dd>
           </dl>
-          <fieldset>
+          <fieldset disabled={action.busy || stale}>
             <legend>Decision for this exact revision</legend>
             {packet.permitted_decisions.map((kind) => (
               <label className="check" key={kind}>
@@ -196,6 +205,7 @@ export function Report({ runId }: { runId: string }) {
   const refresh = () => {
     void run.reload();
     void report.reload();
+    void audit.reload();
   };
 
   return (
@@ -214,7 +224,7 @@ export function Report({ runId }: { runId: string }) {
         </section>
       )}
       <p className="muted small">
-        Advisory results for a synthetic dossier. This doesn't file returns, trade certificates, certify legal compliance or calculate compensation.
+        Advisory results{dossier.data?.synthetic === true ? " for a synthetic dossier" : ""}. This doesn't file returns, trade certificates, certify legal compliance or calculate compensation.
       </p>
       {report.error ? <ErrorBanner error={report.error} /> : null}
       {report.loading && !body && <p>Loading…</p>}
@@ -243,7 +253,7 @@ export function Report({ runId }: { runId: string }) {
             <summary>Report text</summary>
             <pre className="block">{body.report.rendered_markdown}</pre>
           </details>
-          <ReviewForm runId={runId} report={body} canRequest={state?.status === "AWAITING_REVIEW"} onDone={refresh} />
+          <ReviewForm key={`${runId}:${body.report.revision.report_revision_id}:${body.report.revision.review_dependency_digest}`} runId={runId} report={body} canRequest={state?.status === "AWAITING_REVIEW"} onDone={refresh} />
         </>
       )}
       <Section title="Integrity audit" aside={audit.data && <Badge value={audit.data.verification_status} />}>
