@@ -449,7 +449,7 @@ All references are exact task/checkpoint IDs. Required predecessors are an AND c
 | **A06** | DONE | CP2                   | None                    | 26 Oct        | **Bounded graph, checkpointed state and budget controls implemented.** Scripted plan/action/assessment, recovery and budget verification; [A06 handoff](docs/checkpoints/checkpoint-3/a06.md). |
 | **A07** | DONE | A06, H06, S04, V05    | None                    | 27 Oct        | **Real services integrated; scripted C10 retained.** Audited adaptive trace and authenticated review recovery; [A07 evidence](docs/checkpoints/checkpoint-3/a07.md).                      |
 | **A08** | DONE | CP3, V08, V09, H08    | None                    | 29 Oct        | **Run Week 1 acceptance, cold start and reproducible prototype handoff.** G01–G12 evidence; clean-start demo; explicit A/B completion level.           |
-| **A09** | BLOCKED   | CP4                   | None                    | 30 Oct–1 Nov | **Tune graph/CLI on development data and freeze candidate code.** Dev changes with regression tests; pinned graph/prompt/budget configs.                |
+| **A09** | READY | CP4                   | None                    | 30 Oct–1 Nov | **Tune graph/CLI on development data and freeze candidate code.** Dev changes with regression tests; pinned graph/prompt/budget configs.                |
 | **A10** | BLOCKED   | CP6                   | None                    | 4–5 Nov      | **Integrate research report, architecture/results narrative and slides.** 8–12-page report draft and slides describe actual measured behavior.         |
 | **A11** | BLOCKED   | A10, V14              | None                    | 6 Nov         | **Freeze final review build and run four-person rehearsal.** Demo recovery copy; viva ownership; approved artifact versions.                            |
 | **A12** | BLOCKED   | CP7                   | None                    | 8–12 Nov     | **Resolve submission packaging issues and assemble final report/slides/code.** Final artifact inventory; no unregistered scientific result replacement. |
@@ -466,7 +466,7 @@ All references are exact task/checkpoint IDs. Required predecessors are an AND c
 | **H06** | DONE | H05                   | None                    | 26 Oct        | **Implement filtered retrieval, locator resolution and evidence grades.** Full candidate dispositions; five grades; bounded context expansion.      |
 | **H07** | DONE | H06, H04              | None                    | 27 Oct        | **Complete temporal overlays, deadline register and missing-order tests.** Amendment/role/time tests; separate deadline types; explicit abstention. |
 | **H08** | DONE | H07, CP3              | None                    | 28 Oct        | **Audit final corpus/profile and development retrieval regressions.** Reviewed exact source/index/profile versions; limitations and rights.         |
-| **H09** | BLOCKED   | CP4                   | None                    | 30 Oct–1 Nov | **Tune development retrieval and freeze corpus/index/policy.** Dev error analysis; frozen applicability and retrieval inputs.                       |
+| **H09** | READY | CP4                   | None                    | 30 Oct–1 Nov | **Tune development retrieval and freeze corpus/index/policy.** Dev error analysis; frozen applicability and retrieval inputs.                       |
 | **H10** | BLOCKED   | V11                   | V12                     | 3 Nov         | **Blind-score citation, temporal support and next-action quality.** Written rubric; overlap/double-scoring; retained judgments.                     |
 | **H11** | BLOCKED   | H09, H10              | None                    | 4–5 Nov      | **Finalize source rights, attribution, references and limitations.** Asset-level release decisions and reproducibility restrictions.                |
 | **H12** | BLOCKED   | CP7                   | None                    | 8–12 Nov     | **Audit final references, source rights and release attributions.** Final source/license check against actual distributed content.                  |
@@ -482,7 +482,7 @@ All references are exact task/checkpoint IDs. Required predecessors are an AND c
 | **S04** | DONE | S03                   | None                    | 26 Oct        | **Complete lifecycle, priority, entity/capability/product/commercial tools.** Full-server-input checks; F08/F09; PASS/FAIL/UNKNOWN results.          |
 | **S06** | DONE | S05, S04, H04         | None                    | 27 Oct        | **Implement all F01–F16 fault recipes and generation invariants.** Each recipe has a visible effect, clean reference and validation.                |
 | **S07** | DONE | S06, V04              | None                    | 28 Oct        | **Generate grouped 24-dev/24-held-out pilot and validate manifests.** 48 opaque dossiers; split/leakage checks; versioned regeneration.              |
-| **S08** | BLOCKED   | CP4                   | None                    | 30 Oct–1 Nov | **Fix development tool/generator defects and freeze deterministic inputs.** Regression-tested tools/templates/profile; preserved split and versions. |
+| **S08** | READY | CP4                   | None                    | 30 Oct–1 Nov | **Fix development tool/generator defects and freeze deterministic inputs.** Regression-tested tools/templates/profile; preserved split and versions. |
 | **S09** | BLOCKED   | V11                   | V12                     | 3 Nov         | **Independently score exact balances and finding matches.** Bucket/finding counts and classified tool/parser/oracle errors.                          |
 | **S10** | BLOCKED   | S08, S07              | None                    | 4–5 Nov      | **Finalize dataset/generator method, card and release manifest.** Synthetic limits, split/recipe documentation and permitted regeneration.           |
 | **S11** | BLOCKED   | CP7                   | None                    | 8–12 Nov     | **Reproduce released generator, visible pilot and deterministic examples.** Independent regeneration/baseline verification transcript.               |
@@ -500,7 +500,7 @@ All references are exact task/checkpoint IDs. Required predecessors are an AND c
 | **V07** | DONE      | CP2                   | None                    | 27 Oct              | **Build minimal investigator runtime and enforce oracle isolation.** No hidden code/data mounts; attempted access denied and recorded. [V07 implementation](docs/checkpoints/checkpoint-3/v07.md). |
 | **V08** | DONE | CP3, V06, V07         | None                    | 28 Oct              | **Verify crash recovery, budgets, checkpoint lag and export integrity.** Failure-window/recovery tests and consistent restore evidence.                |
 | **V09** | DONE | S07, V04, H08         | None                    | 28–29 Oct          | **Independently validate full oracle and seal pilot/scorer versions.** Numeric/rubric validation; sealed digests; held-out access record.              |
-| **V10** | BLOCKED   | CP4                   | None                    | 30 Oct–1 Nov       | **Rehearse evaluator and freeze protocol, scorer and resource feasibility.** Dev dry-run; rubric/denominators/repeats/invalid-trial policy.            |
+| **V10** | READY | CP4                   | None                    | 30 Oct–1 Nov       | **Rehearse evaluator and freeze protocol, scorer and resource feasibility.** Dev dry-run; rubric/denominators/repeats/invalid-trial policy.            |
 | **V11** | BLOCKED   | CP5                   | None                    | 2–3 Nov            | **Execute sealed deterministic and non-model evaluation runs.** Closed trials; exact failure/usage/coverage records; no test tuning.                   |
 | **V12** | BLOCKED   | CP5, MG1              | None                    | 2–3 Nov if enabled | **Execute fixed-retrieval and adaptive real-model trials.** Matched V1/V2 registered trials; never use scripted model outputs.                         |
 | **V13** | BLOCKED   | V11, H10, S09         | V12                     | 3–4 Nov            | **Close scoring, adjudication, uncertainty and results ledger.** All scheduled attempts accounted for; reproducible paired summaries.                  |
@@ -523,7 +523,7 @@ V12 begins BLOCKED; if CP5 is approved NON_MODEL_ONLY, record V12 as NOT_RUN wit
 | **CP1** | APPROVED | A04                                              | 24 Oct                      | Lead accepted qualified evidence foundation on 26 Oct; explicit CP1 exception to four-person acknowledgement. [Approval ledger](docs/checkpoints/checkpoint-1/approvals.json). |
 | **CP2** | APPROVED | A05                                              | 25 Oct                      | Lead approved qualified baseline on 27 Oct after Windows/Linux Python 3.11/3.12 CI; explicit lead acceptance, no all-four acknowledgement claimed. [CP2 approval](docs/checkpoints/checkpoint-2/approvals.json). |
 | **CP3** | WAITING   | A07, H07, S06                                    | 27 Oct                      | Integrated investigation and fault/temporal checks.                |
-| **CP4** | WAITING   | A08                                              | 29 Oct                      | Week 1 acceptance; declare offline versus real-agent level.        |
+| **CP4** | APPROVED | A08                                              | 29 Oct                      | Week 1 acceptance; declare offline versus real-agent level.        |
 | **CP5** | WAITING   | A09, H09, S08, V10; MG1 when INCLUDES_REAL_MODEL | 1 Nov, before held-out runs | Frozen experiment scope, candidate, data and scorer.               |
 | **MG1** | WAITING   | U01, A07, V07, V10                               | Conditional, before V1/V2   | Real C10 compatibility, permissions, budgets, trace and isolation. |
 | **CP6** | WAITING   | V13, H10, S09                                    | 3–4 Nov                    | Closed, adjudicated scientific results.                            |
@@ -1043,3 +1043,14 @@ agent semantic review is recorded, without claiming human review. A08 technical
 acceptance is DONE for the scripted prototype. CP4 remains WAITING only for its
 normal exact-candidate four-person acknowledgment; MG1 stays separate.
 See [technical completion](docs/checkpoints/checkpoint-4/COMPLETION.md).
+
+
+### CP4 approval, 1 November 2026
+
+Abhishek confirmed that all four members acknowledge candidate `b5a9831` and
+explicitly instructed: “yes. APPROVE it”. CP4 is APPROVED for the documented
+scripted prototype scope, with the qualifications retained in the
+[approval record](docs/checkpoints/checkpoint-4/APPROVAL.md).
+A09, H09, S08 and V10 are now READY to start, not completed. MG1 and CP5 remain
+separate, unapproved gates; no sealed experiment or real-model quality result
+is inferred from this checkpoint acceptance.

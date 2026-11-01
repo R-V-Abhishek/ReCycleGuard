@@ -1,7 +1,7 @@
 # CP4 technical completion
 
 1 November 2026. Branch: `checkpoint-4`.
-**A08 technical acceptance is complete. Formal four-person acknowledgment remains unrecorded.**
+**A08 technical acceptance is complete. CP4 was approved on 1 November 2026; see [approval](APPROVAL.md).**
 This supersedes the implementation blockers in the earlier integration record;
 it does not invent human, legal or real-model acceptance.
 
@@ -59,8 +59,8 @@ request-scoped IDs. Neither failure was reclassified as a successful model trial
 ## Acceptance boundary
 
 A08, V07 and V09 implementation/evidence work is complete for the explicitly
-scripted prototype level. CP4's normal four-member acknowledgment must still be
-recorded against the exact published candidate before the register says APPROVED.
-No teammate acknowledgment is inferred from task completion messages. Real-model
+scripted prototype level. Abhishek subsequently confirmed all four members'
+acknowledgment and explicitly approved candidate `b5a9831`; the approval record
+distinguishes this lead-reported confirmation from individual signed attestations. Real-model
 quality, real-model sandbox transport and experiment readiness are separate MG1/
 CP5 work. Public export remains PARTIAL until exact-object rights clearance.
