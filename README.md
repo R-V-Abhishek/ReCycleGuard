@@ -53,7 +53,7 @@ The initial research notes are dated 16 October 2026; the additional CPCB data/R
 
 - [System design](docs/design/SYSTEM_DESIGN.md): component architecture, online-source storage, synthetic dossier formats, reconciliation, retrieval, complete audit trails, recovery, and evaluation.
 - [Component contracts](docs/design/CONTRACTS.md): versioned input/output types, permissions, component interfaces, data/control flow, and integration acceptance criteria.
-- [Implementation plan](implementation%20plan.md): four-person ownership, task dependencies, integration gates, evaluation and publication artifacts. **Use its task dependency graphs, state register and checkpoint approvals to control implementation.** U01 explores an explicitly configured local Qwen backend; native workflow compatibility is incomplete and development is paused. Real agent evaluation still requires the separate MG1 gate.
+- [Implementation plan](implementation%20plan.md): four-person ownership, task dependencies, integration gates, evaluation and publication artifacts. **Use its task dependency graphs, state register and checkpoint approvals to control implementation.** U01 explores an explicitly configured local Qwen backend; prompt v4 runs the development dossiers but MG1 is not approved. Real agent evaluation still requires the separate MG1 gate.
 
 The specifications were drafted on 18 October and corrected against the research review on 22 October 2026. They qualify tentative research assumptions and describe planned implementation.
 

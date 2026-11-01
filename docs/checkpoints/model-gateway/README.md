@@ -2,6 +2,18 @@
 
 Status: **Experimental native compatibility demonstrated; real-model acceptance remains gated**.
 
+**Current status (reconciled 1 November 2026).** Prompt v4 (`prompt:u01_qwen_non_thinking_v4`,
+digest `7aae007d…feeb`) is the pinned prompt. Its single-case smoke is retained in
+[prompt-v4-summary.json](evidence/prompt-v4-summary.json) (AWAITING_REVIEW, 2 model calls,
+3,656 observed tokens, 0 retries, 100/55/45/25 kg). The 21-dossier v4 table below is
+reported in this log; its per-run raw outputs are local, not committed. The v1-v3
+failures, the "All three runs ended FAILED" paragraph and the "Verification and stopping
+point" blocker text are **historical records of the pre-v4 pause**, not the current state.
+U01 is IN_PROGRESS toward MG1; MG1 is not approved. The v4 table shows the same tool
+(`compute_reconciliation({})`) and the same `REFUTES`/`ABSTAIN` assessment in all 21 runs,
+including the clean F01 baseline, so workflow completion must not be read as
+investigation quality.
+
 Integration review, 30 October: the 21 saved S06 runs reached AWAITING_REVIEW
 with zero retries, two model calls and one tool action each. These are diagnostic
 compatibility observations. They do not independently establish full fault
@@ -101,7 +113,7 @@ Every single S06 dossier was evaluated using the live local MLX model (`Qwen3.5-
 | `units_metal` | `c8b478a402` | `F04` + `F10` | `compute_reconciliation({})` | AL: 107k/91k/16k, CU: 321k/268k/53k | `REFUTES` / `ABSTAIN` | `AWAITING_REVIEW` / `NO_NEW_EVIDENCE` | 41.07s |
 | `textless_injection`| `6d40180c28` | `F15` + `F16` | `compute_reconciliation({})` | 8,513.0 / 7,619.0 / 894.0 / 0.0 | `REFUTES` / `ABSTAIN` | `AWAITING_REVIEW` / `NO_NEW_EVIDENCE` | 41.11s |
 
-All three runs ended **FAILED / PROVIDER_FAILURE**, with no human review requested
+*(Historical, prompts v1-v3.)* All three runs ended **FAILED / PROVIDER_FAILURE**, with no human review requested
 or approved. v2's actual deterministic tool computed **100 required, 55 supported,
 45 gap and 25 pending**. Its recorded final assessment was the runner's explicit
 failure/abstention record, not an accepted model assessment. Timing and token figures
@@ -116,6 +128,8 @@ These are synthetic fixture runs; the temporary reviewer credentials were remove
 
 ## Verification and stopping point
 
+*(Historical record of the 28-29 October pause, before prompt v4. See the current-status note at the top.)*
+
 - Full local regression suite: **471 passed, 6 Windows-only tests skipped**.
 - 32 adapter tests use actual ephemeral loopback HTTP servers; no model weights
   are needed by CI. Composition tests cover unavailable defaults and configuration drift.
@@ -128,7 +142,8 @@ These are synthetic fixture runs; the temporary reviewer credentials were remove
 - The owned model server was stopped on pause and port 8766 was confirmed free.
   Downloaded weights, isolated environment and progress artifacts remain local.
 
-The blocker is reliable contract-conforming generation. MLX-LM's native server does
+At that pause the blocker was reliable contract-conforming generation (later addressed for the
+development dossiers by prompt v4, without constrained decoding). MLX-LM's native server does
 not provide the JSON-schema constrained decoding needed by this experiment. Prompt
 changes alone did not solve the observed failures. The next investigation is a
 supported constrained-decoding integration (Outlines documents MLX-LM support),

@@ -39,6 +39,8 @@ Delivery branch: `codex/s-ui-api-review`.
 
 ## Checkpoint dependencies
 
+*(Status on 31 Oct. V06-V09 were integrated and CP4 approved on 1 Nov 2026: see [APPROVAL.md](APPROVAL.md).)*
+
 Vedantha's V06/V07 submission is now available on remote `V06` at `71edc54`.
 It was inspected for scope, but is not merged or approved by this UI review.
 It adds export/replay and runtime isolation. Integration must verify those
