@@ -38,6 +38,10 @@ packages = ["src/recycleguard"]
 testpaths = ["tests"]
 pythonpath = ["."]
 addopts = "--import-mode=importlib"
+markers = [
+    "slow: generation-heavy tests (pilot/S06 dossier rendering, full foundation builds)",
+    "model: tests that exercise the model gateway or local model adapters",
+]
 
 [tool.ruff]
 target-version = "py311"
