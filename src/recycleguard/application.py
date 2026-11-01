@@ -52,6 +52,8 @@ def local_application(settings, reviewer_password: str | None = None):
                 "calculation.",
                 "report.",
                 "graph.",
+                "export.",
+                "replay.",
             }
         )
     )
@@ -79,7 +81,7 @@ def local_review_application(settings, password: str):
     authority = LocalAuthority(
         {
             "service": TrustedPrincipal(
-                actor, frozenset({"snapshot.", "profile.", "graph.", "report."})
+                actor, frozenset({"snapshot.", "profile.", "graph.", "report.", "export.", "replay."})
             ),
             "human": TrustedPrincipal(human, frozenset({"review."})),
         }
