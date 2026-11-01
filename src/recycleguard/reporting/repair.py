@@ -10,6 +10,7 @@ from recycleguard.reporting.baseline import (
     BaselineReportBuilder,
     ReportVerifier,
     VerificationResult,
+    inspection_limitations,
 )
 
 
@@ -76,6 +77,7 @@ class ReportRepairService:
             findings=findings,
             coverage_ref=coverage,
             run_id=report.revision.run_id,
+            limitations=inspection_limitations(report),
         )
         final = self.verifier.verify(
             repaired,

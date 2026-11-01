@@ -6,6 +6,7 @@ from pydantic import ConfigDict, Field, JsonValue, model_validator
 
 from .artifacts import ProfileRef, SnapshotRef
 from .core import ID, BlobRef, BoundaryModel, Digest, EvidenceRef, Nonempty, Timestamp
+from .results import AbstentionReason, FaultFamily
 
 RunStatus = Literal[
     "CREATED",
@@ -174,6 +175,28 @@ class ActionProposal(ActionDraft):
     plan_ref: ID
 
 
+class FindingProposal(BoundaryModel):
+    """A model's suggested finding. It reaches a report only through the deterministic gate.
+
+    References and scopes stay loose here so a bad citation is a retained gate rejection,
+    not a failed assessment.
+    """
+
+    issue_type: FaultFamily
+    advisory_status: Literal[
+        "RECONCILED_WITHIN_SCOPE",
+        "DISCREPANCY_DETECTED",
+        "PENDING_VERIFICATION",
+        "REQUIRES_EXPERT_REVIEW",
+    ]
+    basis: Nonempty
+    evidence_ref_ids: list[str]
+    abstention_reason: AbstentionReason | None = None
+    withheld_claim_scopes: list[str] = Field(default_factory=list)
+    next_action_kind: Literal["INVESTIGATE", "REQUEST_EVIDENCE", "ESCALATE", "NO_FURTHER_ACTION"]
+    next_action_text: Nonempty
+
+
 class AssessmentProposal(BoundaryModel):
     model_config = ConfigDict(
         json_schema_extra={
@@ -198,6 +221,7 @@ class AssessmentProposal(BoundaryModel):
     next_check_or_stop: Nonempty
     disposition: Literal["CONTINUE", "RESOLVE", "ABSTAIN"]
     revised_plan: PlanDraft | None
+    finding_proposal: FindingProposal | None = None
 
     @model_validator(mode="after")
     def revision_has_trigger(self):
@@ -223,6 +247,7 @@ class ObservationAssessment(BoundaryModel):
     next_check_or_stop: Nonempty
     revised_plan_ref: ID | None
     disposition: Literal["CONTINUE", "RESOLVE", "ABSTAIN"]
+    finding_proposal: FindingProposal | None = None
 
 
 class RunState(BoundaryModel):

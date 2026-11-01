@@ -77,6 +77,9 @@ MG1 needs U01, A07 (done), V07 extended to real-model runs, and V10.
 | **C16-run** (A) | Trial coordinator, evaluator-only. It:<br>• reads a frozen protocol JSON;<br>• builds the counterbalanced schedule (case × variant × repeat, with V1/V2 order alternating per case);<br>• launches each trial with a fresh data root through the CLI;<br>• writes an append-only `ledger.jsonl` with one row per attempt;<br>• seals outputs by digest;<br>• resumes safely;<br>• checks a **kill switch** file before each trial;<br>• enforces night caps on wall time and tokens. | New `benchmarks/evaluation/trials.py`, `scripts/run_trials.py` | Dry run with the scripted port on 3 dev cases → ledger and seals verified | L | Most important new code: test resume after `kill -9` |
 | **SCORE-fix** (A) | Scorer fixes:<br>• Undefined precision/recall become `None`/N/A (`benchmarks/evaluation/scoring.py:173-174`).<br>• Add a BucketResult → scorer projection.<br>• Add `scripts/score_trials.py`, run in a separate process with the oracle root.<br>• Add a paired case-level bootstrap (seeded stdlib, resampling cases with all their repeats) in `benchmarks/evaluation/analysis.py`. | `benchmarks/evaluation/*` | `tests/unit/test_v04_oracle.py`, plus new scorer and analysis tests | M | Scorer bugs become laundered results → hand-check 3 scored trials |
 
+**Engineering status:** U01, V1-impl, V07-rm, C16-run and SCORE-fix are built and uncommitted, with fixture checks only; see
+[MG1 engineering note](docs/checkpoints/mg1/ENGINEERING_NOTE.md). Nothing has run on the real model and MG1 is not approved.
+
 ### MG1 pass/fail criteria (all must pass; measured on **dev cases only**)
 
 1. **Smoke first (night of 1–2 Nov, ~30 min).** 3 dev cases (F01 clean, F07 paid-no-transfer,
@@ -127,7 +130,7 @@ A09, H09, S08 and V10 run in parallel on 3 Nov evening, using the night-2 dev re
 
 | Code | Goal / tasks | Files | Evidence → verify | Effort | Risks |
 |---|---|---|---|---|---|
-| **A09** (A) | Dev-only tuning: prompt v5 if needed (from the advisory metrics), graph stop criteria, one frozen `BudgetLimits` for both variants:<br>`max_model_calls=12`, `tokens_per_model_call=16384`, `max_total_tokens=196608`, `max_wall_seconds=600`, `tools_per_finding=8`, `reformulations=2`, `retries=1`, `report_repairs=1`.<br>Make evaluation mode **reject per-run budget overrides** (`api/app.py:115-118`, `:713-723`). | `local_model.py` (prompt), `contracts/workflow.py`, `api/app.py` | Regression tests; prompt pin digest | M | Tuning on held-out = invalid → only dev ledgers are read |
+| **A09** (A) | Dev-only tuning: prompt v5 if needed (from the advisory metrics), graph stop criteria, one frozen `BudgetLimits` for both variants:<br>`max_model_calls=12`, `tokens_per_model_call=32768`, `max_total_tokens=393216`, `max_wall_seconds=600`, `tools_per_finding=8`, `reformulations=2`, `retries=1`, `report_repairs=1`.<br>Make evaluation mode **reject per-run budget overrides** (`api/app.py:115-118`, `:713-723`). | `local_model.py` (prompt), `contracts/workflow.py`, `api/app.py` | Regression tests; prompt pin digest | M | Tuning on held-out = invalid → only dev ledgers are read |
 | **H09** (A; H reviews) | Freeze the corpus, index and retrieval policy: R02/R08 membership digest, index manifest, V1's fixed query set, applicability policy. The corpus is still 2 sources; disclose it. | `indexing/`, `knowledge/`, `configs/` | `audit_frozen_corpus_profile` returns `VERIFIED_INTEGRITY` | S | Small corpus limits RAG claims |
 | **S08** (A; S reviews) | Fix dev tool and generator defects found in the night-2 runs. Freeze C08 version, profile, generator revision and `pilot-0.1`. Regenerate the held-out set into the evaluator root and check it against `benchmarks/pilot/heldout_seal.json`. | `domain/`, `benchmarks/generator/` | `generate --check` passes; seal matches | S–M | Any generator change means a new dataset version → avoid |
 | **V10b** (A; V reviews) | Final protocol v1.0. Dev dry run of the full pipeline (coordinator → scorer → analysis) on 4 dev cases. Throughput measurement decides the repeat count (rule below). Human-scoring rubric `docs/evaluation/RUBRIC.md` and blind sheet generator (`benchmarks/evaluation/rubric.py`, which hides variant labels). | `docs/evaluation/*`, `benchmarks/evaluation/*` | Dry-run ledger, scores and tables regenerate end-to-end | M | Rubric ambiguity → adjudication rules written in advance |
@@ -142,7 +145,7 @@ A09, H09, S08 and V10 run in parallel on 3 Nov evening, using the night-2 dev re
 
 Everything below is hashed into `docs/checkpoints/checkpoint-5/freeze.json`:
 - **Code and dependencies:** commit SHA and tag `cp5-freeze`; `uv.lock`, `tools/local-model/uv.lock`, `ui/package-lock.json` digests; wheel SHA-256; Python version.
-- **Model:** model ID, revision `8b2b98c…`, quantization, weights-manifest SHA-256, MLX-LM/MLX versions, server flags, `temperature=0.0`, seed or "unseeded", `max_output_tokens=768`, `max_total_tokens=16384`, stop tokens, endpoint, **provider = "local MLX-LM on <machine id>"**, freeze date.
+- **Model:** model ID, revision `8b2b98c…`, quantization, weights-manifest SHA-256, MLX-LM/MLX versions, server flags, `temperature=0.0`, seed or "unseeded", `max_output_tokens=1024`, `max_total_tokens=32768`, stop tokens, endpoint, **provider = "local MLX-LM on <machine id>"**, freeze date.
 - **Prompt:** template ID and prompt pin digest (`LocalModelConfig.prompt_pin()`), and the response-schema digests.
 - **Budgets:** `BudgetLimits` JSON digest; night caps (wall 7 h, 2 M tokens); kill-switch path.
 - **Corpus/index/profile:** corpus snapshot, index manifest and profile digests; V1 query-set digest.
@@ -284,14 +287,14 @@ about 20 s per call (2 calls / ~3,600 tokens / ~40 s per run).
 
 | Item | V1 | V2 | Notes |
 |---|---|---|---|
-| Expected calls per run | 3 | 5 | V1 does ASSESS and drafting only |
-| Expected tokens per run | ~6k | ~10k | |
-| Expected wall time per run | ~60 s | ~120–180 s | |
-| Hard cap per run | 12 calls / 196,608 tokens / 600 s | same | Identical budgets |
+| Expected calls per run | 6 | 5 | V1 makes one ASSESS call per fixed check: 3 queries, reconciliation, certificate trace, inspection (fewer if a case has no certificates). Reports are drafted by deterministic code. |
+| Expected tokens per run | ~13k | ~11k | ~2.2k per call |
+| Expected wall time per run | ~150 s | ~125 s | ~25 s per call. V1 exceeds the MG1 V1 mean ≤ 120 s threshold on this estimate; keep the threshold and report the measured result. |
+| Hard cap per run | 12 calls / 393,216 reserved tokens / 600 s | same | Identical budgets; `evaluation_budgets()` |
 | Held-out runs (R = 2) | 48 | 48 | |
-| Expected total | ~0.29 M tokens, ~0.8 h | ~0.48 M tokens, ~2.4 h | **~0.77 M tokens, ~3.2 h** |
-| With 1.5× safety margin | | | **~1.2 M tokens, ~4.8 h** (fits one night) |
-| Theoretical worst case | | | ~18.9 M tokens / 16 h (prevented by the stop rule) |
+| Expected total | ~0.62 M tokens, ~2.0 h | ~0.53 M tokens, ~1.7 h | **~1.15 M tokens, ~3.7 h** |
+| With 1.5× safety margin | | | **~1.7 M tokens, ~5.5 h** (fits the 2 M / 7 h stop rule, with little slack) |
+| Theoretical worst case | | | ~37.7 M reserved tokens / 16 h (prevented by the stop rule) |
 | Dev reliability night | 24 + 9 | 24 + 9 | ~0.35 M tokens, ~1.5 h |
 | Money | ₹0 provider spend | | Energy and compute not metered: recorded as `null` |
 

@@ -3,6 +3,7 @@
 import hashlib
 import json
 from datetime import UTC, datetime
+from decimal import Decimal
 from pathlib import Path
 from typing import Literal
 
@@ -31,6 +32,7 @@ from recycleguard.contracts.workflow import (
     AssessmentProposal,
     BudgetLimits,
     ConfigurationPin,
+    ObservationAssessment,
     PlanProposal,
     RunSpec,
     StageOutcome,
@@ -47,11 +49,13 @@ from recycleguard.reporting.baseline import (
     BaselineReportBuilder,
     ReportVerifier,
     VerificationResult,
+    inspection_limitation,
 )
 from recycleguard.retrieval.service import RetrievalService
 from recycleguard.review.service import ReviewService
 from recycleguard.storage import canonical_json_bytes
 from recycleguard.workflow import ToolBinding, WorkflowRunner, WorkflowStages
+from recycleguard.workflow.finding_gate import RejectedFindingProposal, gate_finding_proposals
 from recycleguard.workflow.ports import OutcomeUnknownError
 from recycleguard.workflow.runner import CallRecord
 from recycleguard.workflow.store import GraphStore
@@ -68,6 +72,15 @@ class ScriptedExchange(BoundaryModel):
         return self
 
 
+FIXED_INSPECTION_LIMIT = 20
+
+
+class FixedPlan(BoundaryModel):
+    """V1: a predeclared check sequence pinned with the run. The model only assesses."""
+
+    rule_queries: list[Nonempty] = Field(min_length=1, max_length=3)
+
+
 class InvestigationRequest(BoundaryModel):
     run_id: ID
     case_snapshot: SnapshotRef
@@ -75,6 +88,7 @@ class InvestigationRequest(BoundaryModel):
     finding_ids: list[ID] = Field(min_length=1)
     scripted_exchanges: list[ScriptedExchange] = Field(default_factory=list)
     local_model_config: LocalModelConfig | None = None
+    fixed_plan: FixedPlan | None = None
     budgets: BudgetLimits = Field(default_factory=BudgetLimits)
     parent_run_id: ID | None = None
 
@@ -89,6 +103,7 @@ class InvestigationConfiguration(BoundaryModel):
     index_manifest: IndexManifest
     scripted_exchanges: list[ScriptedExchange] = Field(default_factory=list)
     local_model_config: LocalModelConfig | None = None
+    fixed_plan: FixedPlan | None = None
     adapter_version: str = "a07-real-services-1"
 
     @model_validator(mode="after")
@@ -137,6 +152,7 @@ class InvestigationReport(BoundaryModel):
     findings: list[FindingRecord]
     available_evidence_refs: list[EvidenceRef]
     verification: VerificationResult
+    rejected_finding_proposals: list[RejectedFindingProposal] = Field(default_factory=list)
 
 
 def digest(value):
@@ -145,6 +161,22 @@ def digest(value):
 
 def pin(name, value):
     return ConfigurationPin(configuration_id=f"configuration:{name}", digest=digest(value))
+
+
+def evaluation_budgets(config: LocalModelConfig) -> BudgetLimits:
+    """The one budget for V1 and V2 real-model runs. Reservations, not expected use."""
+    return BudgetLimits(
+        tokens_per_model_call=config.max_total_tokens,
+        max_total_tokens=config.max_total_tokens * 12,
+        max_model_calls=12,
+        max_wall_seconds=600,
+    )
+
+
+def experiment_variant(native, fixed_plan):
+    if native is None:
+        return "REAL_SERVICES_SCRIPTED_C10" if fixed_plan is None else "V1_FIXED_SCRIPTED_TEST"
+    return "V2_ADAPTIVE_REAL_MODEL" if fixed_plan is None else "V1_FIXED_RETRIEVAL_REAL_MODEL"
 
 
 def source_revision():
@@ -241,6 +273,12 @@ class InvestigationService:
             raise ValueError("scripted C10 requires explicit test mode and test adapters")
         if native is not None and request.budgets.tokens_per_model_call > native.max_total_tokens:
             raise ValueError("investigation call budget exceeds the pinned local model limit")
+        if (
+            native is not None
+            and self.settings.mode == "evaluation"
+            and request.budgets != evaluation_budgets(native)
+        ):
+            raise ValueError("evaluation runs use the frozen budget; overrides are rejected")
         case = self.cases.snapshots.get(request.case_snapshot)
         corpus = self.cases.snapshots.get(request.corpus_snapshot)
         membership = json.loads(self.blobs.get(case.membership_blob))
@@ -259,6 +297,7 @@ class InvestigationService:
             index_manifest=manifest,
             scripted_exchanges=request.scripted_exchanges,
             local_model_config=native,
+            fixed_plan=request.fixed_plan,
         )
         configuration_ref = self.blobs.put(
             canonical_json_bytes(configuration.model_dump(mode="json")),
@@ -281,9 +320,7 @@ class InvestigationService:
             audit_policy=pin("a07_audit", "durable-child-operations-v1"),
             security_policy=pin("a07_security", "readonly-tools-human-review-v1"),
             execution_kind="SCRIPTED_TEST" if native is None else "MODEL_BACKED",
-            experiment_variant="REAL_SERVICES_SCRIPTED_C10"
-            if native is None
-            else "REAL_SERVICES_LOCAL_MODEL",
+            experiment_variant=experiment_variant(native, request.fixed_plan),
             finding_ids=request.finding_ids,
             budgets=request.budgets,
             parent_run_id=request.parent_run_id,
@@ -314,6 +351,8 @@ class InvestigationService:
         expected_kind = "SCRIPTED_TEST" if native is None else "MODEL_BACKED"
         if spec.execution_kind != expected_kind:
             raise ValueError("execution kind differs from the stored model backend")
+        if spec.experiment_variant != experiment_variant(native, configuration.fixed_plan):
+            raise ValueError("experiment variant differs from the stored configuration")
         expected = {
             "adapters": pin("a07_adapters", "a07-real-services-1"),
             "tools": pin("a07_tools", self.tool_schemas()),
@@ -422,6 +461,40 @@ class InvestigationService:
             audit_event_ids=[],
         )
 
+    def _fixed_checks(self, spec, fixed_plan):
+        """Derived only from the plan and frozen case, so a resumed run gets the same sequence."""
+        certificates = sorted(
+            {
+                record["certificate_id"]
+                for record in self._membership(spec)["normalization"]["records"]
+                if record["record_type"] == "Certificate"
+            }
+        )
+        if certificates:
+            TraceRequest(certificate_ids=certificates)  # over the tool's limit fails before start
+        # A whole-dossier inspection overflows the per-call prompt bound. Unsupported states come
+        # first because they carry the open questions; each report states how many were inspected.
+        candidates = [
+            item
+            for item in self._observations(spec)
+            if item.parsed_fields.get("record_type")
+            in {"Certificate", "CertificateEvent", "Allocation"}
+        ]
+        candidates.sort(
+            key=lambda item: (
+                "SUPPORTED"
+                in (item.parsed_fields.get("state"), item.parsed_fields.get("assertion_state")),
+                item.observation_id,
+            )
+        )
+        observations = [item.observation_id for item in candidates[:FIXED_INSPECTION_LIMIT]]
+        return [
+            *(("search_rules", {"query": query}) for query in fixed_plan.rule_queries),
+            ("compute_reconciliation", {"bucket_ids": []}),
+            *([("trace_certificate", {"certificate_ids": certificates})] if certificates else []),
+            *([("inspect_evidence", {"observation_ids": observations})] if observations else []),
+        ]
+
     def _observations(self, spec):
         observations = []
         for raw in self._membership(spec)["extractions"]:
@@ -441,13 +514,25 @@ class InvestigationService:
             return []
         claims = inspect_regulatory_claims(self._observations(spec), reporting_period=max(years))
         classifications = {
-            "OLD_RULE_PERIOD": ("F11_WRONG_PERIOD_RULE", "TEMPORAL_UNCERTAINTY"),
-            "UNVERIFIED_EXTENSION": ("F12_UNSEEN_NOTICE_LEAD", "MISSING_AUTHORITY"),
-            "UNSUPPORTED_REFURBISHMENT_OFFSET": ("F14_OUT_OF_SCOPE_REGIME", "UNSUPPORTED_FEATURE"),
+            "OLD_RULE_PERIOD": (
+                "F11_WRONG_PERIOD_RULE",
+                "TEMPORAL_UNCERTAINTY",
+                "rule_version_applied",
+            ),
+            "UNVERIFIED_EXTENSION": (
+                "F12_UNSEEN_NOTICE_LEAD",
+                "MISSING_AUTHORITY",
+                "deadline_extension",
+            ),
+            "UNSUPPORTED_REFURBISHMENT_OFFSET": (
+                "F14_OUT_OF_SCOPE_REGIME",
+                "UNSUPPORTED_FEATURE",
+                "gold_offset_credits",
+            ),
         }
         findings = []
         for claim in claims:
-            issue_type, reason = classifications[claim.kind]
+            issue_type, reason, withheld = classifications[claim.kind]
             findings.append(
                 FindingRecord(
                     finding_id=claim.finding_id,
@@ -468,7 +553,7 @@ class InvestigationService:
                     evidence_assessments=[{"outcome": claim.outcome, "scope": claim.scope}],
                     hypotheses=[],
                     abstention_reason=reason,
-                    withheld_claim_scopes=[claim.scope],
+                    withheld_claim_scopes=[withheld],
                     next_action=Recommendation(
                         kind="REQUEST_EVIDENCE",
                         description=claim.summary,
@@ -480,6 +565,52 @@ class InvestigationService:
                 )
             )
         return findings
+
+    def _run_evidence(self, spec):
+        """What this run's own tools returned, and what the model proposed from it."""
+        allowed, calculation_ids, inspected, proposals = {}, set(), set(), []
+        for event in self.kernel.list_stream_events(f"stream:{spec.run_id}"):
+            if event.event_type == "graph.assessment.result":
+                assessment = ObservationAssessment.model_validate_json(
+                    self.blobs.get(event.payload_blob)
+                )
+                if assessment.finding_proposal is not None:
+                    proposals.append(assessment.finding_proposal)
+            elif event.event_type.startswith("graph.tool.") and event.event_type.endswith(
+                ".result"
+            ):
+                output = self.store.read(event.operation_id, CallRecord).stage_output
+                if output is None:
+                    continue
+                for ref in output.evidence_refs:
+                    allowed[ref.ref_id] = ref
+                    if ref.ref_kind == "OBSERVATION":
+                        inspected.add(ref.ref_id)
+                for calculation_id in output.calculation_ids:
+                    calculation_ids.add(calculation_id)
+                    allowed[calculation_id] = EvidenceRef(
+                        ref_kind="CALCULATION",
+                        ref_id=calculation_id,
+                        artifact_revision_id=None,
+                        locator=None,
+                    )
+        return allowed, calculation_ids, inspected, proposals
+
+    def _gated_findings(self, spec, calculation, deterministic):
+        allowed, calculation_ids, inspected, proposals = self._run_evidence(spec)
+        clean = calculation.calculation_id in calculation_ids and all(
+            Decimal(bucket.shortfall.decimal) == 0 and Decimal(bucket.pending.decimal) == 0
+            for bucket in calculation.bucket_results
+        )
+        accepted, rejected = gate_finding_proposals(
+            proposals,
+            allowed_refs=allowed,
+            deterministic_issue_types={finding.issue_type for finding in deterministic},
+            reconciliation_clean=clean,
+            case_version_id=spec.case_snapshot.snapshot_id,
+            calculation_ids={calculation.calculation_id},
+        )
+        return accepted, rejected, len(inspected)
 
     def latest_report(self, run_id):
         self.store.load(run_id)  # verifies complete run audit chain before interpreting outputs
@@ -799,6 +930,11 @@ class InvestigationService:
                 result,
                 "QUALIFIED",
                 "Certificate lifecycle checked",
+                list(
+                    {
+                        ref.ref_id: ref for target in result.results for ref in target.evidence
+                    }.values()
+                ),
                 service_operation_ids=[child.operation_id],
                 model_evidence=result.model_dump(mode="json"),
             )
@@ -830,6 +966,8 @@ class InvestigationService:
             baseline = self._baseline(context, spec)
             calculated = baseline.output.calculation
             findings = self._findings(spec)
+            accepted, rejected, inspected = self._gated_findings(spec, calculated, findings)
+            findings = findings + accepted
             refs = [
                 ref for finding in findings for ref in finding.fact_refs + finding.provision_refs
             ]
@@ -862,6 +1000,7 @@ class InvestigationService:
                 findings=findings,
                 run_id=spec.run_id,
                 coverage_ref=coverage_ref,
+                limitations=[inspection_limitation(inspected, len(self._observations(spec)))],
             )
             verified = ReportVerifier().verify(
                 report,
@@ -874,6 +1013,7 @@ class InvestigationService:
                 findings=findings,
                 available_evidence_refs=refs,
                 verification=verified,
+                rejected_finding_proposals=rejected,
             )
             return self._outcome(
                 context,
@@ -915,6 +1055,9 @@ class InvestigationService:
             stages=WorkflowStages(preflight, draft, verify),
             checkpoint_path=self.settings.data_root / "workflow-checkpoints.sqlite",
             model_run_validator=validate_model_run if native is not None else None,
+            fixed_checks=None
+            if configuration.fixed_plan is None
+            else self._fixed_checks(spec, configuration.fixed_plan),
         )
         runner.index = index
         return runner

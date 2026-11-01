@@ -265,20 +265,33 @@ def test_changed_script_model_pin_cannot_load_frozen_runtime(investigation):
 
 
 @pytest.mark.parametrize(
-    ("case_key", "issue_type", "reason", "scope"),
+    ("case_key", "issue_type", "reason", "scope", "withheld"),
     [
         (
             "period",
             "F11_WRONG_PERIOD_RULE",
             "TEMPORAL_UNCERTAINTY",
             "cited rule / reporting period",
+            "rule_version_applied",
         ),
-        ("notice", "F12_UNSEEN_NOTICE_LEAD", "MISSING_AUTHORITY", "claimed deadline extension"),
-        ("gold", "F14_OUT_OF_SCOPE_REGIME", "UNSUPPORTED_FEATURE", "refurbishment offset only"),
+        (
+            "notice",
+            "F12_UNSEEN_NOTICE_LEAD",
+            "MISSING_AUTHORITY",
+            "claimed deadline extension",
+            "deadline_extension",
+        ),
+        (
+            "gold",
+            "F14_OUT_OF_SCOPE_REGIME",
+            "UNSUPPORTED_FEATURE",
+            "refurbishment offset only",
+            "gold_offset_credits",
+        ),
     ],
 )
 def test_actual_s06_pdf_claims_become_scoped_findings_without_quantity_mutation(
-    investigation, monkeypatch, case_key, issue_type, reason, scope
+    investigation, monkeypatch, case_key, issue_type, reason, scope, withheld
 ):
     # Test selection metadata stays here; runtime sees only opaque original evidence
     # and normalized producer records, never recipes or expected benchmark effects.
@@ -320,7 +333,7 @@ def test_actual_s06_pdf_claims_become_scoped_findings_without_quantity_mutation(
         for finding in selected:
             assert finding.advisory_status == "REQUIRES_EXPERT_REVIEW"
             assert finding.abstention_reason == reason
-            assert finding.withheld_claim_scopes == [scope]
+            assert finding.withheld_claim_scopes == [withheld]
             assert finding.scope_limits == [scope]
             assert finding.fact_refs
             assert all(

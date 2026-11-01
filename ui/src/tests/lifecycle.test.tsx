@@ -34,7 +34,7 @@ function runView(id = "run:one", status = "INVESTIGATING"): RunView {
         preflight_actions: 0, verification_actions: 0, report_repairs: 0,
         finding_actions: {}, finding_reformulations: {} } },
     job: { run_id: id, dossier_id: "dossier:one", status: "RUNNING", detail: null, cancel_requested: 0 },
-    configuration: { execution_kind: "MODEL_BACKED", budgets: { max_model_calls: 999 },
+    configuration: { execution_kind: "MODEL_BACKED", experiment_variant: "V2_ADAPTIVE_REAL_MODEL", budgets: { max_model_calls: 999 },
       model_configuration_id: "configuration:model", prompt_configuration_id: "configuration:prompt",
       case_snapshot: { snapshot_id: "snapshot:case", membership_digest: "a".repeat(64) },
       corpus_snapshot: { snapshot_id: "snapshot:corpus", membership_digest: "b".repeat(64) },
@@ -223,5 +223,5 @@ it("offers only server-enabled execution modes before dispatch", async () => {
   const button = screen.getByRole("button", { name: "Start investigation" });
   await waitFor(() => expect((button as HTMLButtonElement).disabled).toBe(false));
   fireEvent.click(button);
-  await waitFor(() => expect(start).toHaveBeenCalledWith("dossier:one", "SCRIPTED_TEST", undefined));
+  await waitFor(() => expect(start).toHaveBeenCalledWith("dossier:one", "SCRIPTED_TEST", undefined, "ADAPTIVE"));
 });

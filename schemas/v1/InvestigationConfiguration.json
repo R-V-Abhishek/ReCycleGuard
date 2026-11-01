@@ -68,6 +68,27 @@
       "title": "DenseConfiguration",
       "type": "object"
     },
+    "FixedPlan": {
+      "additionalProperties": false,
+      "description": "V1: a predeclared check sequence pinned with the run. The model only assesses.",
+      "properties": {
+        "rule_queries": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 3,
+          "minItems": 1,
+          "title": "Rule Queries",
+          "type": "array"
+        }
+      },
+      "required": [
+        "rule_queries"
+      ],
+      "title": "FixedPlan",
+      "type": "object"
+    },
     "IndexManifest": {
       "additionalProperties": false,
       "description": "Integrity and membership manifest for a frozen index (CONTRACTS §6.1).",
@@ -262,13 +283,13 @@
           "type": "string"
         },
         "prompt_template_id": {
-          "default": "prompt:u01_qwen_non_thinking_v4",
+          "default": "prompt:u01_qwen_non_thinking_v5",
           "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
           "title": "Prompt Template Id",
           "type": "string"
         },
         "prompt_version": {
-          "default": "u01_non_thinking_v4",
+          "default": "u01_non_thinking_v5",
           "minLength": 1,
           "title": "Prompt Version",
           "type": "string"
@@ -279,13 +300,13 @@
           "type": "string"
         },
         "max_output_tokens": {
-          "default": 768,
+          "default": 1024,
           "minimum": 1,
           "title": "Max Output Tokens",
           "type": "integer"
         },
         "max_total_tokens": {
-          "default": 16384,
+          "default": 32768,
           "minimum": 1,
           "title": "Max Total Tokens",
           "type": "integer"
@@ -296,6 +317,36 @@
           "maximum": 300,
           "title": "Timeout Seconds",
           "type": "number"
+        },
+        "stop_sequences": {
+          "default": [
+            "<|im_end|>",
+            "<|endoftext|>"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "title": "Stop Sequences",
+          "type": "array"
+        },
+        "server_flags": {
+          "default": [
+            "--decode-concurrency",
+            "1",
+            "--prompt-concurrency",
+            "1",
+            "--prompt-cache-size",
+            "1",
+            "--prefill-step-size",
+            "256",
+            "--max-tokens",
+            "1024"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "title": "Server Flags",
+          "type": "array"
         }
       },
       "required": [
@@ -353,6 +404,17 @@
       "anyOf": [
         {
           "$ref": "#/$defs/LocalModelConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "fixed_plan": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/FixedPlan"
         },
         {
           "type": "null"

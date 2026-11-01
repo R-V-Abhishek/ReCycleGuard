@@ -232,8 +232,11 @@ export interface Job {
   cancel_requested: number;
 }
 
+export type RunVariant = "ADAPTIVE" | "FIXED_RETRIEVAL";
+
 export interface RunConfiguration {
   execution_kind: RunMode;
+  experiment_variant: string;
   budgets: BudgetLimits;
   model_configuration_id: string;
   prompt_configuration_id: string;

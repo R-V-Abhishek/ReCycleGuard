@@ -34,6 +34,18 @@ AbstentionReason = Literal[
     "INCOMPLETE_HISTORY",
     "BUDGET_LIMIT",
 ]
+# Public categories of withheld claim. They name kinds of claim, never a case's answer.
+WithheldScope = Literal[
+    "pending_untransferred_credits",
+    "earlier_liability_priority",
+    "undated_history",
+    "weight_basis_selection",
+    "stale_portal_statement",
+    "rule_version_applied",
+    "deadline_extension",
+    "gold_offset_credits",
+    "lost_document_page",
+]
 
 
 class CalculationRequest(BoundaryModel):

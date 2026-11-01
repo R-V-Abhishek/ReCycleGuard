@@ -74,6 +74,7 @@ class JobResponse(BoundaryModel):
 
 class RunConfigurationResponse(BoundaryModel):
     execution_kind: Literal["MODEL_BACKED", "SCRIPTED_TEST"]
+    experiment_variant: str
     budgets: BudgetLimits
     model_configuration_id: str
     prompt_configuration_id: str

@@ -3,6 +3,7 @@
 import hashlib
 import http.client
 import json
+import re
 import time
 from pathlib import Path
 from typing import Annotated, Literal
@@ -54,10 +55,41 @@ _PHASE_RULES = {
         'next_check_or_stop="stop", and revised_plan=null. '
         "Example valid refutation stopping structure: "
         '{"verdict":"REFUTES","weak_result_or_mistake":null,"next_check_or_stop":"stop",'
-        '"disposition":"ABSTAIN","revised_plan":null}. '
+        '"disposition":"ABSTAIN","revised_plan":null,"finding_proposal":null}. '
+        "finding_proposal is null unless this observation shows an issue_type from the schema. "
+        "When proposing: copy evidence_ref_ids only from stage_output.evidence_ref_ids or "
+        "stage_output.calculation_ids; write basis and next_action_text in words without any "
+        "digits; never state amounts. Use F01_CLEAN_BASELINE with RECONCILED_WITHIN_SCOPE only "
+        "when a reconciliation shows no shortfall and nothing pending. When a claim cannot be "
+        "supported, set advisory_status to PENDING_VERIFICATION or REQUIRES_EXPERT_REVIEW, set "
+        "abstention_reason, and set withheld_claim_scopes from: pending_untransferred_credits, "
+        "earlier_liability_priority, undated_history, weight_basis_selection, "
+        "stale_portal_statement, rule_version_applied, deadline_extension, gold_offset_credits, "
+        "lost_document_page. "
     ),
 }
 _SCHEMAS = {"PLAN": PlanProposal, "ASSESS": AssessmentProposal}
+# Greedy decoding repeats an identical prompt exactly, so a retry must differ to be worth a call.
+_RETRY_NOTE = (
+    "Retry: your previous reply failed validation. Reply with one complete JSON object that "
+    "matches the schema, with no other text. "
+)
+_RETRY_ATTEMPT = re.compile(r"_[1-9]\d*$")  # the runner numbers attempts from _0
+# Behavioural flags only; serve.py records the same list in server-session.json.
+SERVER_FLAGS = [
+    "--decode-concurrency",
+    "1",
+    "--prompt-concurrency",
+    "1",
+    "--prompt-cache-size",
+    "1",
+    "--prefill-step-size",
+    "256",
+    "--max-tokens",
+    "1024",
+]
+# mlx-lm 0.32.2 seed handling is unverified; temperature 0 needs no sampling, so none is sent.
+DETERMINISM = "UNSEEDED_GREEDY"
 
 
 class LocalModelConfig(BoundaryModel):
@@ -70,12 +102,14 @@ class LocalModelConfig(BoundaryModel):
     runtime_lock_path: Path
     runtime_lock_digest: Digest
     runtime_version: Literal["0.32.2"] = "0.32.2"
-    prompt_template_id: ID = "prompt:u01_qwen_non_thinking_v4"
-    prompt_version: Nonempty = "u01_non_thinking_v4"
+    prompt_template_id: ID = "prompt:u01_qwen_non_thinking_v5"
+    prompt_version: Nonempty = "u01_non_thinking_v5"
     endpoint: str = "http://127.0.0.1:8080/v1/completions"
-    max_output_tokens: Annotated[int, Field(ge=1)] = 768
-    max_total_tokens: Annotated[int, Field(ge=1)] = 16384
+    max_output_tokens: Annotated[int, Field(ge=1)] = 1024
+    max_total_tokens: Annotated[int, Field(ge=1)] = 32768
     timeout_seconds: Annotated[float, Field(gt=0, le=300)] = 120.0
+    stop_sequences: list[str] = ["<|im_end|>", "<|endoftext|>"]
+    server_flags: list[str] = SERVER_FLAGS
 
     @model_validator(mode="after")
     def local_endpoint_and_paths(self):
@@ -117,6 +151,7 @@ class LocalModelConfig(BoundaryModel):
                         "version": self.prompt_version,
                         "system": _SYSTEM,
                         "phase_rules": _PHASE_RULES,
+                        "retry_note": _RETRY_NOTE,
                         "format": "qwen-im-start/non-thinking/raw-completion",
                         "schemas": {
                             phase: schema.model_json_schema() for phase, schema in _SCHEMAS.items()
@@ -238,12 +273,28 @@ class LocalModelPort:
         if not byte_level:
             raise ValueError("local model tokenizer does not establish the byte-level BPE bound")
 
+    def _server_session_digest(self):
+        """Digest of the server's session record; other flags mean it is not the pinned server."""
+        path = self.config.model_path / "server-session.json"
+        if not path.is_file():
+            return None
+        raw = path.read_bytes()
+        if json.loads(raw).get("server_flags") != self.config.server_flags:
+            raise ValueError("local backend server flags differ from the pinned configuration")
+        return hashlib.sha256(raw).hexdigest()
+
     def _http(self, method, path, body=None):
         endpoint = urlsplit(self.config.endpoint)
         connection = http.client.HTTPConnection(
             "127.0.0.1", endpoint.port, timeout=self.config.timeout_seconds
         )
         try:
+            try:
+                connection.connect()
+            except TimeoutError as exc:
+                # Nothing was sent, so unlike a timeout after dispatch this outcome is known.
+                # Windows can also take about 2 s to report a refused loopback connection.
+                raise ConnectionRefusedError("local backend did not accept a connection") from exc
             # HTTPConnection neither consults proxy environment variables nor follows redirects.
             connection.request(
                 method,
@@ -274,6 +325,7 @@ class LocalModelPort:
     def probe(self) -> dict:
         """Verify local provenance and the server inventory without generating a prompt."""
         self._provenance()
+        self._server_session_digest()
         status, _, raw = self._http("GET", "/v1/models")
         if status != 200 or len(raw) > _MAX_RESPONSE_BYTES:
             raise ValueError("local backend did not return its pinned model inventory")
@@ -296,6 +348,12 @@ class LocalModelPort:
         started = time.monotonic()
         trace = {
             "configuration": self.config.pin().model_dump(mode="json"),
+            "prompt": self.config.prompt_pin().model_dump(mode="json"),
+            "model_revision": self.config.model_revision,
+            "weights_manifest_digest": self.config.weights_manifest_digest,
+            "server_session_digest": None,
+            "determinism": DETERMINISM,
+            "elapsed_seconds": None,
             "endpoint": self.config.endpoint,
             "method": "POST",
             "request_body_utf8": None,
@@ -311,6 +369,7 @@ class LocalModelPort:
         status, code, message, retryable = "SUCCESS", None, None, False
         try:
             self._provenance()
+            trace["server_session_digest"] = self._server_session_digest()
             if request.model_configuration_id != self.config.configuration_id:
                 raise ValueError("request model configuration differs from the pinned backend")
             prompt_pin = self.config.prompt_pin()
@@ -340,6 +399,7 @@ class LocalModelPort:
                 "<|im_start|>system\n"
                 + _SYSTEM
                 + _PHASE_RULES[payload.phase]
+                + (_RETRY_NOTE if _RETRY_ATTEMPT.search(context.attempt_id) else "")
                 + "JSON Schema: "
                 + json.dumps(schema.model_json_schema(), ensure_ascii=True, separators=(",", ":"))
                 + "<|im_end|>\n<|im_start|>user\n"
@@ -363,7 +423,7 @@ class LocalModelPort:
                         "max_tokens": self.config.max_output_tokens,
                         "temperature": 0.0,
                         "stream": False,
-                        "stop": ["<|im_end|>", "<|endoftext|>"],
+                        "stop": self.config.stop_sequences,
                     }
                 )
                 trace["request_body_utf8"] = body.decode("utf-8")
@@ -395,7 +455,11 @@ class LocalModelPort:
                     raise ValueError("backend exceeded the reserved token allowance")
                 if completion.choices[0].finish_reason != "stop":
                     raise ValueError("backend output stopped at its length limit")
-                validated = schema.model_validate_json(model_text).model_dump(mode="json")
+                # Keep only what the model sent: an omitted optional key must still equal the
+                # exact response that the runner compares it with.
+                validated = schema.model_validate_json(model_text).model_dump(
+                    mode="json", exclude_unset=True
+                )
         except TimeoutError as exc:
             status, code, message = (
                 "OUTCOME_UNKNOWN",
@@ -432,6 +496,8 @@ class LocalModelPort:
             ]
         )
         trace["error"] = message
+        elapsed = time.monotonic() - started
+        trace["elapsed_seconds"] = elapsed
         trace_blob = self.blobs.put(canonical_json_bytes(trace), "application/json")
         output = None
         if model_text is not None:
@@ -442,8 +508,20 @@ class LocalModelPort:
                 exact_response_blob=exact,
                 validated_output_or_null=validated,
                 validation_issues=issues,
-                usage={"total_tokens": completion.usage.total_tokens},
-                timing={"elapsed_seconds": time.monotonic() - started},
+                usage={
+                    "total_tokens": completion.usage.total_tokens,
+                    "prompt_tokens": completion.usage.prompt_tokens,
+                    "completion_tokens": completion.usage.completion_tokens,
+                    "cached_prompt_tokens": (
+                        None
+                        if completion.usage.prompt_tokens_details is None
+                        else completion.usage.prompt_tokens_details.cached_tokens
+                    ),
+                    "usage_source": "SERVER_REPORTED",
+                    "cost_usd": None,
+                    "cost_note": "local; not metered",
+                },
+                timing={"elapsed_seconds": elapsed},
                 outcome=status,
             )
         return ServiceResult[ModelCallResult](

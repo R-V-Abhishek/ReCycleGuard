@@ -5,6 +5,7 @@ Evaluator-only. The coordinator never calls a model itself: a caller supplies a
 data root). It records every attempt, including failures, and stops at run boundaries.
 """
 
+import hashlib
 import json
 import os
 import time
@@ -88,6 +89,22 @@ class Ledger:
 
     def attempts(self, trial_id: str) -> int:
         return sum(1 for r in self.rows() if r["trial_id"] == trial_id and r["status"] == "STARTED")
+
+
+def verify_seals(output: Path) -> int:
+    """Every recorded digest must match its stored result. Returns the number checked."""
+    checked = 0
+    for row in Ledger(output / "ledger.jsonl").rows():
+        digest = row.get("result_digest")
+        if digest is None:
+            continue
+        stored = output / "results" / f"{digest}.json"
+        if not stored.is_file():
+            raise ValueError(f"sealed result is missing: {row['trial_id']}")
+        if hashlib.sha256(stored.read_bytes()).hexdigest() != digest:
+            raise ValueError(f"sealed result changed: {row['trial_id']}")
+        checked += 1
+    return checked
 
 
 @dataclass(frozen=True)

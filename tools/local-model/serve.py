@@ -9,6 +9,20 @@ from importlib.metadata import version
 
 from download import MODEL_ID, MODEL_ROOT, REVISION, ROOT
 
+# Keep equal to recycleguard.local_model.SERVER_FLAGS; this runtime does not import the app.
+SERVER_FLAGS = [
+    "--decode-concurrency",
+    "1",
+    "--prompt-concurrency",
+    "1",
+    "--prompt-cache-size",
+    "1",
+    "--prefill-step-size",
+    "256",
+    "--max-tokens",
+    "1024",
+]
+
 
 def main():
     manifest_path = MODEL_ROOT / "download-manifest.json"
@@ -43,6 +57,7 @@ def main():
             (ROOT / "tools/local-model/uv.lock").read_bytes()
         ).hexdigest(),
         "endpoint": "http://127.0.0.1:8766/v1/completions",
+        "server_flags": SERVER_FLAGS,
     }
     (MODEL_ROOT / "server-session.json").write_text(
         json.dumps(session, indent=2) + "\n", encoding="utf-8"
@@ -63,16 +78,7 @@ def main():
             "127.0.0.1",
             "--port",
             "8766",
-            "--decode-concurrency",
-            "1",
-            "--prompt-concurrency",
-            "1",
-            "--prompt-cache-size",
-            "1",
-            "--prefill-step-size",
-            "256",
-            "--max-tokens",
-            "1024",
+            *SERVER_FLAGS,
             "--log-level",
             "WARNING",
             "--allowed-origins",

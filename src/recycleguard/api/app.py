@@ -37,13 +37,16 @@ from recycleguard.contracts.workflow import BudgetLimits, PlanProposal, RunState
 from recycleguard.foundation import FoundationService
 from recycleguard.foundation_review import FoundationReviewer
 from recycleguard.investigation import (
+    FixedPlan,
     InvestigationConfiguration,
     InvestigationReport,
     InvestigationRequest,
     InvestigationService,
     ScriptedExchange,
+    evaluation_budgets,
 )
 from recycleguard.knowledge.corpus_audit import CorpusProfileAuditManifest
+from recycleguard.knowledge.fixed_queries import FIXED_RULE_QUERIES
 from recycleguard.local_model import LocalModelConfig
 from recycleguard.local_session import initialize_reviewer
 from recycleguard.storage import canonical_json_bytes
@@ -115,6 +118,7 @@ class SupportReviewRequest(BoundaryModel):
 class RunRequest(BoundaryModel):
     dossier_id: Nonempty
     mode: Literal["MODEL_BACKED", "SCRIPTED_TEST"] = "MODEL_BACKED"
+    variant: Literal["ADAPTIVE", "FIXED_RETRIEVAL"] = "ADAPTIVE"
     budgets: BudgetLimits | None = None
 
 
@@ -302,6 +306,7 @@ def create_app(options: ApiOptions):
             "job": job,
             "configuration": {
                 "execution_kind": spec.execution_kind,
+                "experiment_variant": spec.experiment_variant,
                 "budgets": spec.budgets.model_dump(mode="json"),
                 "model_configuration_id": spec.model.configuration_id,
                 "prompt_configuration_id": spec.prompt.configuration_id,
@@ -712,16 +717,7 @@ def create_app(options: ApiOptions):
                     steps = list(options.test_exchanges)
                 budgets = body.budgets
                 if budgets is None:
-                    budgets = (
-                        BudgetLimits()
-                        if config is None
-                        else BudgetLimits(
-                            tokens_per_model_call=config.max_total_tokens,
-                            max_total_tokens=config.max_total_tokens * 12,
-                            max_model_calls=12,
-                            max_wall_seconds=600,
-                        )
-                    )
+                    budgets = BudgetLimits() if config is None else evaluation_budgets(config)
                 run_id = "run:" + uuid4().hex
                 finding_ids = [f"finding:{run_id.split(':')[1]}"]
                 if config is None:
@@ -751,6 +747,9 @@ def create_app(options: ApiOptions):
                             finding_ids=finding_ids,
                             scripted_exchanges=steps,
                             local_model_config=config,
+                            fixed_plan=FixedPlan(rule_queries=list(FIXED_RULE_QUERIES))
+                            if body.variant == "FIXED_RETRIEVAL"
+                            else None,
                             budgets=budgets,
                         ),
                     )

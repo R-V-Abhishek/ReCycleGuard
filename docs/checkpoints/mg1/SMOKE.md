@@ -31,6 +31,13 @@ the session scratchpad; it is a one-off script, not repository code).
 - Tokens per run (4.4-5.6k) are higher than the 3.6k in the earlier v4 smoke.
 - Latency is whole-run wall time only; per-call latency is not recorded in the trace.
 
+## Later corrections (appended; the record above is unchanged)
+- Per-call latency is recorded for calls that return model text (`ModelCallResult.timing`), so
+  "not recorded in the trace" above was wrong for those calls. Failed calls have none yet.
+- This smoke used prompt v4. Prompt v5 changes the frozen prompt, so these results do not carry
+  over; see [MODEL_TEST_HANDOFF.md](MODEL_TEST_HANDOFF.md). The kill-switch file and trial
+  coordinator now exist as `scripts/run_trials.py`, untested on the real model.
+
 ## MG1 status
 Remaining MG1 work (see `EXECUTION_PLAN.md`): V1 variant, trial coordinator with kill-switch
 file, per-call latency/usage logging, host-level isolation evidence for real-model runs,

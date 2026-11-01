@@ -20,10 +20,12 @@ from recycleguard.contracts.artifacts import ProfileRef
 from recycleguard.contracts.audit import OperationIntent, OperationResult
 from recycleguard.contracts.core import BlobRef, BoundaryModel, Issue, ServiceResult, Status
 from recycleguard.contracts.workflow import (
+    ActionDraft,
     ActionProposal,
     AssessmentProposal,
     ContextManifest,
     ObservationAssessment,
+    PlanDraft,
     PlanProposal,
     PlanRecord,
     RunSpec,
@@ -49,6 +51,9 @@ _ALLOWED = {
 }
 
 
+_PROMPT_EVIDENCE_IDS = 50
+
+
 class GraphInput(TypedDict):
     run_id: str
     expected_version: int
@@ -67,6 +72,11 @@ class CallRecord(BoundaryModel):
 class ProviderUsage(BoundaryModel):
     total_tokens: int
     cost_usd: str | None = None
+    prompt_tokens: int | None = None
+    completion_tokens: int | None = None
+    cached_prompt_tokens: int | None = None
+    usage_source: str | None = None
+    cost_note: str | None = None
 
 
 class WorkflowStop(ValueError):
@@ -87,12 +97,14 @@ class WorkflowRunner:
         checkpoint_path: Path,
         clock: Callable = lambda: datetime.now(UTC),
         model_run_validator: Callable[[RunSpec], None] | None = None,
+        fixed_checks: list[tuple[str, dict]] | None = None,
     ):
         if not set(tools).issubset(_ALLOWED):
             raise ValueError("tool registry contains a prohibited operation")
         self.cases, self.settings, self.port = cases, settings, model_port
         self.tools, self.stages, self.clock = dict(tools), stages, clock
         self.model_run_validator = model_run_validator
+        self.fixed_checks = fixed_checks
         self.kernel, self.blobs = cases.kernel, cases.kernel.blob_store
         self.store = GraphStore(self.kernel)
         checkpoint_path = Path(checkpoint_path)
@@ -976,8 +988,55 @@ class WorkflowRunner:
                     return model.model_validate_json(canonical_json_bytes(raw))
         raise ValueError("missing workflow decision record")
 
-    def _investigate(self, root, spec, initial, cap):
-        proposal, _ = self._model(
+    @staticmethod
+    def _stage_view(stage):
+        """IDs instead of full locators keep the prompt bounded; output_blob keeps everything."""
+        view = stage.model_dump(mode="json")
+        ids = [ref["ref_id"] for ref in view.pop("evidence_refs")]
+        view["evidence_ref_ids"] = ids[:_PROMPT_EVIDENCE_IDS]
+        view["evidence_refs_total"] = len(ids)
+        return view
+
+    @staticmethod
+    def _previous_assessment_view(assessment):
+        view = assessment.model_dump(mode="json")
+        ids = [ref["ref_id"] for ref in view.pop("observation_refs")]
+        view["observation_ref_ids"] = ids[:_PROMPT_EVIDENCE_IDS]
+        view["observation_refs_total"] = len(ids)
+        return view
+
+    def _assessment_view(self, observation):
+        view = observation.model_dump(mode="json")
+        if observation.stage_output is not None:
+            view["stage_output"] = self._stage_view(observation.stage_output)
+        return view
+
+    def _fixed_proposal(self, initial):
+        # Every finding runs the whole sequence, so completed actions give the position.
+        checks = self.fixed_checks
+        step = len(initial.action_fingerprints) % len(checks)
+        operation, arguments = checks[step]
+        return PlanProposal(
+            plan=PlanDraft(
+                objective="Run the predeclared fixed check sequence",
+                hypotheses=[],
+                proposed_checks=[name for name, _ in checks],
+                expected_evidence=["Tool observations from every fixed check"],
+                stopping_criteria=["All fixed checks ran or an execution bound was reached"],
+            ),
+            action=ActionDraft(
+                action_kind="CHECK",
+                allowed_operation=operation,
+                typed_arguments=arguments,
+                finding_id=initial.pending_finding_ids[0],
+                concise_reason=f"Fixed check {step + 1} of {len(checks)}.",
+                evidence_refs=[],
+            ),
+            stop_reason=None,
+        ), step + 1 == len(checks)
+
+    def _plan_proposal(self, root, spec, initial, cap):
+        return self._model(
             root,
             spec,
             initial,
@@ -990,8 +1049,8 @@ class WorkflowRunner:
                     "observations. Use actual prior results; never invent observation identifiers."
                 ),
                 "prior_stage_observations": [
-                    CallRecord.model_validate_json(self.blobs.get(ref)).stage_output.model_dump(
-                        mode="json"
+                    self._stage_view(
+                        CallRecord.model_validate_json(self.blobs.get(ref)).stage_output
                     )
                     for ref in initial.result_refs[-2:]
                     if CallRecord.model_validate_json(self.blobs.get(ref)).stage_output is not None
@@ -1006,14 +1065,21 @@ class WorkflowRunner:
                     for ref in initial.plan_refs[-2:]
                 ],
                 "previous_assessments": [
-                    self._record(
-                        spec, ref, ObservationAssessment, "graph.assessment.result"
-                    ).model_dump(mode="json")
+                    self._previous_assessment_view(
+                        self._record(spec, ref, ObservationAssessment, "graph.assessment.result")
+                    )
                     for ref in initial.assessment_refs[-2:]
                 ],
             },
             cap,
-        )
+        )[0]
+
+    def _investigate(self, root, spec, initial, cap):
+        fixed = self.fixed_checks is not None
+        if fixed:
+            proposal, last_check = self._fixed_proposal(initial)
+        else:
+            proposal = self._plan_proposal(root, spec, initial, cap)
         if proposal.action is None:
             self._plan(root, spec, proposal.plan, initial, cap)
             raise WorkflowStop(proposal.stop_reason)
@@ -1071,7 +1137,7 @@ class WorkflowRunner:
                 {
                     "plan": plan.model_dump(mode="json"),
                     "action": proposed.model_dump(mode="json"),
-                    "observation": observation.model_dump(mode="json"),
+                    "observation": self._assessment_view(observation),
                 },
                 cap,
             )
@@ -1097,8 +1163,16 @@ class WorkflowRunner:
                 capability=cap,
             )
             raise
+        disposition = assessed.disposition
+        if fixed:
+            # The fixed sequence always completes, so V1 never uses fewer sources by stopping
+            # early. The model's own answer stays in its retained call record.
+            if not last_check:
+                disposition = "CONTINUE"
+            elif disposition == "CONTINUE":
+                disposition = "ABSTAIN"
         revised = None
-        if assessed.revised_plan is not None:
+        if assessed.revised_plan is not None and not fixed:
             revised = self._plan(
                 root,
                 spec,
@@ -1120,7 +1194,8 @@ class WorkflowRunner:
             weak_result_or_mistake=assessed.weak_result_or_mistake,
             next_check_or_stop=assessed.next_check_or_stop,
             revised_plan_ref=None if revised is None else revised.plan_id,
-            disposition=assessed.disposition,
+            disposition=disposition,
+            finding_proposal=assessed.finding_proposal,
         )
         self.store.archive(
             self._ctx(root, spec, "assessment"), "graph.assessment", assessment, capability=cap
@@ -1131,9 +1206,9 @@ class WorkflowRunner:
             list(initial.resolved_finding_ids),
             list(initial.abstained_finding_ids),
         )
-        if assessed.disposition == "RESOLVE":
+        if disposition == "RESOLVE":
             resolved.append(pending.pop(0))
-        elif assessed.disposition == "ABSTAIN":
+        elif disposition == "ABSTAIN":
             abstained.append(pending.pop(0))
         if is_search:
             queries[action.finding_id] = previous_queries + [fingerprint]

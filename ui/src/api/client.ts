@@ -10,6 +10,7 @@ import type {
   ReviewDecisionKind,
   ReviewPacket,
   RunMode,
+  RunVariant,
   RunState,
   RunView,
   SupportAssertion,
@@ -234,9 +235,9 @@ export class ApiClient {
     catch { throw interrupted(ROUTES.artifact, response.status); }
   }
 
-  startRun = (dossier_id: string, mode: RunMode, budgets?: BudgetLimits) =>
+  startRun = (dossier_id: string, mode: RunMode, budgets?: BudgetLimits, variant: RunVariant = "ADAPTIVE") =>
     this.json<{ run_id: string; status: string; mode: RunMode }>(ROUTES.startRun, {
-      json: budgets ? { dossier_id, mode, budgets } : { dossier_id, mode },
+      json: budgets ? { dossier_id, mode, variant, budgets } : { dossier_id, mode, variant },
     });
   runs = (dossierId?: string) => this.json<{ runs: RunView[] }>(ROUTES.runs, {
     query: dossierId === undefined ? "" : `?dossier_id=${encodeURIComponent(dossierId)}`,

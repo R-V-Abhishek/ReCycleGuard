@@ -290,6 +290,61 @@ class ScoringProtocol:
         )
 
 
+def project_investigation_report(report: dict[str, Any]) -> dict[str, list[Any]]:
+    """Project a dumped InvestigationReport onto ``ScoringProtocol.score_trial`` inputs."""
+    calculation = report["report"]["calculations"][0]
+    buckets = [
+        {
+            "bucket_id": bucket["bucket_id"],
+            "metal": bucket["required"]["metal"],
+            "unit": bucket["required"]["unit"],
+            "required": bucket["required"]["decimal"],
+            "supported": bucket["supported"]["decimal"],
+            "signed_gap": bucket["signed_gap"]["decimal"],
+            "pending": bucket["pending"]["decimal"],
+        }
+        for bucket in calculation["bucket_results"]
+    ]
+    findings = report["findings"]
+    return {
+        "candidate_buckets": buckets,
+        "candidate_findings": [{"issue_type": f["issue_type"]} for f in findings],
+        "candidate_withheld": [
+            {"scope": scope} for f in findings for scope in f["withheld_claim_scopes"]
+        ],
+        "candidate_claims_or_actions": [
+            claim["template_or_text"] for claim in report["report"]["claims"]
+        ],
+    }
+
+
+def supported_case_success(trial: TrialEvaluationReport, final_status: str) -> bool:
+    """Primary metric: a reviewable run with exact buckets, findings and required abstentions."""
+    return (
+        final_status == "AWAITING_REVIEW"
+        and trial.reconciliation.all_buckets_matched
+        and trial.findings.false_positives == 0
+        and trial.findings.false_negatives == 0
+        and trial.findings.duplicate_count == 0
+        and not trial.abstentions.missing_abstentions
+        and trial.forbidden_actions.clean_run
+    )
+
+
+def case_success(
+    trial: TrialEvaluationReport | None,
+    oracle: OracleCase,
+    final_status: str,
+    model_calls: int,
+) -> tuple[bool, str]:
+    """Primary metric with its basis. Stopping at preflight is right only for pure page loss."""
+    families = {finding["issue_type"] for finding in oracle.expected_findings}
+    if final_status == "BLOCKED_INPUT":
+        correct = model_calls == 0 and families == {"F15_EXTRACTION_PAGE_LOSS"}
+        return correct, "PREFLIGHT_BLOCK"
+    return trial is not None and supported_case_success(trial, final_status), "REVIEWED"
+
+
 __all__ = [
     "AbstentionScore",
     "FindingScore",
@@ -297,4 +352,7 @@ __all__ = [
     "ReconciliationScore",
     "ScoringProtocol",
     "TrialEvaluationReport",
+    "case_success",
+    "project_investigation_report",
+    "supported_case_success",
 ]

@@ -21,15 +21,32 @@ Scripted-C10 runs are a **control only**. CP5 scope will be recorded as
 | V2 | Bounded adaptive real model through the graph (`REAL_SERVICES_LOCAL_MODEL`). |
 
 Primary comparison: **V2 vs V1** on the same held-out cases, same tools, same corpus, same
-budgets. V1 is not yet implemented (see `EXECUTION_PLAN.md`, V1-impl).
+budgets. V1 runs every fixed check and may not stop early; it inspects a rule-selected sample of
+at most 20 observations, unsupported states first, and each report states how many it inspected.
+V2 runs are labelled `V2_ADAPTIVE_REAL_MODEL` and V1 runs `V1_FIXED_RETRIEVAL_REAL_MODEL`.
+
+Model influence: reconciliation is deterministic in every variant. The model reaches a report only
+through `AssessmentProposal.finding_proposal`, accepted by `workflow/finding_gate.py`: citations must
+be evidence this run's tools returned, text has no digits or prohibited or authority wording, and a
+clean finding needs a clean reconciliation and no other finding. Deterministic findings win a family.
+Rejections are retained in `InvestigationReport.rejected_finding_proposals`. V0 and SC report only
+deterministic findings.
 
 ## 3. Metrics and denominators
 
 Primary: supported case success = successful eligible case-trials / all scheduled
-eligible case-trials. Failures, timeouts and invalid model output count as unsuccessful.
-Secondary: exact reconciliation, finding precision/recall/F1 (undefined denominators are
+eligible case-trials. A trial succeeds (`scoring.supported_case_success`) only if the run reached
+AWAITING_REVIEW, every bucket is exact, the finding families match with no miss, extra or
+duplicate, every required scope is withheld, and no forbidden action occurred. Failures, timeouts
+and invalid model output count as unsuccessful.
+A preflight stop is correct only for a case whose sole expected family is
+`F15_EXTRACTION_PAGE_LOSS`: `BLOCKED_INPUT` with no model call counts as a success with basis
+`PREFLIGHT_BLOCK` (`scoring.case_success`). Any other preflight stop is a failure. These cases never
+reach a model, so they cannot separate the variants; results are reported both with and without them.
+Secondary: exact reconciliation (a control: deterministic, so it ties across variants by design),
+finding precision/recall/F1 (undefined denominators are
 reported **N/A, never 1.0**), clean-case false positives, appropriate abstention,
-unsupported claims, next-action correctness, citation/temporal support (human rubric),
+unsupported claims (rejected finding proposals, excluding duplicates), next-action correctness, citation/temporal support (human rubric),
 forbidden-action attempts and executions, efficiency (calls, tokens, latency, timeouts;
 money = null, "local, not metered"), reliability across repeats.
 
