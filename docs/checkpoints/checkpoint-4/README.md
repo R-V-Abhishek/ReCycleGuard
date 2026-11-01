@@ -1,16 +1,16 @@
-# Checkpoint 4: Backend API & Model Gateway Integration
+# Checkpoint 4: prototype integration
 
-Branch: `codex/backend-api`  
-Owner / Integrator: Abhishek
+Integration branch: `checkpoint-4`. Owner/integrator: Abhishek.
+**Status: WAITING; not approved.**
 
-See [API Handoff Document](API_HANDOFF.md) for full architecture, per-member contributions,
-verification records, live-model trial results, and downstream qualifications.
+- [A08 integration, verification and remaining gates](A08_INTEGRATION.md)
+- [Executed verification and qualifications](VERIFICATION.md)
+- [API handoff and earlier live-model trial](API_HANDOFF.md)
+- [S_ui architecture/API review](S_UI_REVIEW.md)
+- [API setup and endpoints](../../api/README.md)
+- [OpenAPI specification](../../api/openapi.json)
+- [Frontend setup](../../../ui/README.md)
 
-See [S_ui architecture/API review](S_UI_REVIEW.md) for frontend integration repairs,
-verification and the newly available V06/V07 submission. CP4 remains awaiting its
-independent acceptance dependencies.
-
-For frontend developers and API users:
-- [API Setup & Endpoints](../../api/README.md)
-- [OpenAPI Specification](../../api/openapi.json)
-- [UI Implementation Plan](../../api/UI_IMPLEMENTATION_PLAN.md)
+V06/V07 and V08/V09 are integrated with reviewed repairs. CP4 still requires
+actual enforced runtime isolation with durable denied-access evidence, the
+independent full visible-reference review/seal, and exact-candidate acceptance.

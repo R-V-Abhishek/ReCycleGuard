@@ -1,9 +1,8 @@
-"""C16 Runtime isolation and oracle access enforcement.
+"""Cooperative path/environment policy checks for the planned isolated runtime.
 
-Pursuant to SYSTEM_DESIGN.md §11, CONTRACTS.md §10 (G11) and implementation plan.md §11:
-- Restricts investigator access to visible mounts only.
-- Denies and audits attempted access to hidden oracle, seeds, ground truth, and evaluator code.
-- Sanitizes environment variables and validates mount points against symlink traversal.
+These checks do not intercept arbitrary filesystem access or create an OS/process
+sandbox. Callers must install an enforced runtime boundary and durably record
+violations before claiming G11 acceptance.
 """
 
 import os
@@ -68,7 +67,7 @@ class OracleAccessDeniedError(PermissionError):
 
 
 class RuntimeIsolationEnforcer:
-    """Enforces non-root, isolated execution sandbox and prevents oracle leakage."""
+    """Validate declared access; this helper alone is not an execution sandbox."""
 
     def __init__(self, visible_root: Path | str, runtime_root: Path | str):
         self.visible_root = Path(visible_root).resolve()
@@ -155,10 +154,25 @@ class RuntimeIsolationEnforcer:
         for mount in mount_points:
             checked_rules += 1
             m_path = Path(mount).resolve()
-            for pattern in FORBIDDEN_PATH_PATTERNS:
-                checked_rules += 1
-                if pattern.search(str(m_path)):
-                    self._record_violation(str(m_path), "EVALUATOR_CODE_MOUNT", caller_actor_id)
+            try:
+                self.check_path_access(m_path, caller_actor_id=caller_actor_id)
+            except OracleAccessDeniedError:
+                self._record_violation(str(m_path), "EVALUATOR_CODE_MOUNT", caller_actor_id)
+                continue
+            # A safe-looking directory name does not clear hidden descendants.
+            # Do not follow links while inspecting the declared mount tree.
+            for directory, dirs, files in os.walk(m_path, followlinks=False):
+                for name in [*dirs, *files]:
+                    candidate = Path(directory) / name
+                    checked_rules += 1
+                    try:
+                        self.check_path_access(candidate, caller_actor_id=caller_actor_id)
+                    except OracleAccessDeniedError:
+                        self._record_violation(
+                            str(candidate), "EVALUATOR_CODE_MOUNT", caller_actor_id
+                        )
+                        if name in dirs:
+                            dirs.remove(name)
 
         passed = len(self.violations) == 0
         return IsolationReport(

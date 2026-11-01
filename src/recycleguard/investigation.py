@@ -148,12 +148,26 @@ def pin(name, value):
 
 
 def source_revision():
-    root = Path(__file__).resolve().parents[2]
+    package = Path(__file__).resolve().parent
+    sources = sorted(package.rglob("*.py"))
+    if not sources:
+        raise ValueError("runtime source files are unavailable")
     hashed = hashlib.sha256()
-    for path in sorted((root / "src/recycleguard").rglob("*.py")):
-        hashed.update(path.relative_to(root).as_posix().encode())
+    for path in sources:
+        relative = f"src/recycleguard/{path.relative_to(package).as_posix()}"
+        hashed.update(relative.encode())
         hashed.update(path.read_text(encoding="utf-8").encode())
     return f"source-sha256:{hashed.hexdigest()}"
+
+
+def dependency_lock_path():
+    package = Path(__file__).resolve().parent
+    # Source checkouts use the working lock; installed wheels carry exact build bytes.
+    checkout = package.parent.name == "src" and (package.parent.parent / "pyproject.toml").is_file()
+    path = package.parent.parent / "uv.lock" if checkout else package / "runtime/uv.lock"
+    if not path.is_file():
+        raise ValueError("runtime dependency lock is unavailable")
+    return path
 
 
 class ScriptedInvestigator:
@@ -258,9 +272,7 @@ class InvestigationService:
             profile=ProfileRef.model_validate(membership["profile"]),
             index=manifest.pin(),
             code_revision=source_revision(),
-            dependency_lock_digest=hashlib.sha256(
-                (Path(__file__).resolve().parents[2] / "uv.lock").read_bytes()
-            ).hexdigest(),
+            dependency_lock_digest=hashlib.sha256(dependency_lock_path().read_bytes()).hexdigest(),
             adapters=pin("a07_adapters", "a07-real-services-1"),
             tools=pin("a07_tools", self.tool_schemas()),
             prompt=pin("a07_prompt", "bounded-v1") if native is None else native.prompt_pin(),
@@ -328,7 +340,7 @@ class InvestigationService:
             raise ValueError(
                 "source code differs from the frozen run; start a new parent-linked run"
             )
-        lock = Path(__file__).resolve().parents[2] / "uv.lock"
+        lock = dependency_lock_path()
         if hashlib.sha256(lock.read_bytes()).hexdigest() != spec.dependency_lock_digest:
             raise ValueError("dependency lock differs from the frozen run")
         return configuration

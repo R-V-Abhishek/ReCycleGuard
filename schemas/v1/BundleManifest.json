@@ -1,0 +1,113 @@
+{
+  "$defs": {
+    "BlobRef": {
+      "additionalProperties": false,
+      "properties": {
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_length": {
+          "minimum": 0,
+          "title": "Byte Length",
+          "type": "integer"
+        },
+        "media_type": {
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sha256",
+        "byte_length",
+        "media_type"
+      ],
+      "title": "BlobRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Authoritative bundle manifest for complete local or qualified public export\n(CONTRACTS §12).",
+  "properties": {
+    "bundle_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Bundle Id",
+      "type": "string"
+    },
+    "bundle_kind": {
+      "enum": [
+        "COMPLETE_LOCAL",
+        "QUALIFIED_PUBLIC"
+      ],
+      "title": "Bundle Kind",
+      "type": "string"
+    },
+    "selected_run_refs": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Selected Run Refs",
+      "type": "array"
+    },
+    "included_objects_blob": {
+      "$ref": "#/$defs/BlobRef"
+    },
+    "omission_dispositions_blob": {
+      "$ref": "#/$defs/BlobRef"
+    },
+    "attribution_blob": {
+      "$ref": "#/$defs/BlobRef"
+    },
+    "audit_head_refs": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Audit Head Refs",
+      "type": "array"
+    },
+    "dependency_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Dependency Digest",
+      "type": "string"
+    },
+    "completeness": {
+      "enum": [
+        "COMPLETE_LOCAL",
+        "QUALIFIED_PUBLIC",
+        "PARTIAL"
+      ],
+      "title": "Completeness",
+      "type": "string"
+    },
+    "integrity_result_ref": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Integrity Result Ref"
+    }
+  },
+  "required": [
+    "bundle_id",
+    "bundle_kind",
+    "selected_run_refs",
+    "included_objects_blob",
+    "omission_dispositions_blob",
+    "attribution_blob",
+    "audit_head_refs",
+    "dependency_digest",
+    "completeness"
+  ],
+  "title": "BundleManifest",
+  "type": "object"
+}

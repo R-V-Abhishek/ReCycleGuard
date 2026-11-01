@@ -31,6 +31,9 @@ dev = [
 [tool.hatch.build.targets.wheel]
 packages = ["src/recycleguard"]
 
+[tool.hatch.build.targets.wheel.force-include]
+"uv.lock" = "recycleguard/runtime/uv.lock"
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]

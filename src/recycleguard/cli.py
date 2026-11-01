@@ -10,16 +10,16 @@ import typer
 from pydantic import ValidationError
 
 from recycleguard import __version__
-from recycleguard.application import local_application, local_review_application
+from recycleguard.application import command_context, local_application, local_review_application
 from recycleguard.baseline import BaselineService
 from recycleguard.config import Settings
-from recycleguard.contracts import PROTOCOL_VERSION, CommandContext, Quantity
+from recycleguard.contracts import PROTOCOL_VERSION, ActorRef, CommandContext, Quantity
 from recycleguard.contracts.baseline import BaselineRequest, RecordSupportReview
 from recycleguard.contracts.bundles import ReplayRequest
-from recycleguard.exports.service import ExportService
 from recycleguard.contracts.foundation import FoundationApproval, FoundationRequest
 from recycleguard.contracts.profiles import ProfilePublication, ProfileReview
 from recycleguard.contracts.snapshots import CaseReopen, SnapshotPublication, SnapshotReview
+from recycleguard.exports.service import ExportService
 from recycleguard.foundation import FoundationService
 from recycleguard.foundation_review import FoundationReviewer
 from recycleguard.local_session import initialize_reviewer
@@ -473,7 +473,7 @@ def serve_api(
     token_file: Annotated[Path | None, typer.Option(exists=True, dir_okay=False)] = None,
     cors_origin: Annotated[list[str] | None, typer.Option()] = None,
 ):
-    """Start one API worker. No frontend is installed or served."""
+    """Start one API worker. Frontend assets are served separately."""
     import os
 
     import uvicorn
@@ -507,15 +507,20 @@ def audit_export(
     kind: Annotated[
         str, typer.Option("--kind", help="COMPLETE_LOCAL or QUALIFIED_PUBLIC")
     ] = "COMPLETE_LOCAL",
+    output: Annotated[Path | None, typer.Option(file_okay=False)] = None,
 ):
     """Export an auditable bundle (COMPLETE_LOCAL or QUALIFIED_PUBLIC)."""
     try:
-        bundle_kind = "QUALIFIED_PUBLIC" if kind == "QUALIFIED_PUBLIC" else "COMPLETE_LOCAL"
+        if kind not in {"COMPLETE_LOCAL", "QUALIFIED_PUBLIC"}:
+            raise typer.BadParameter("kind must be COMPLETE_LOCAL or QUALIFIED_PUBLIC")
+        bundle_kind = kind
         with local_application(Settings.from_environment()) as (cases, context, capability):
             service = ExportService(cases)
             result = service.export_bundle(
                 context, run_id, bundle_kind=bundle_kind, capability=capability
             )
+            if result.status == "SUCCESS" and output is not None:
+                service.write_package(result.output, output)
             typer.echo(result.model_dump_json())
             if result.status != "SUCCESS":
                 raise typer.Exit(1)
@@ -546,9 +551,11 @@ def replay(
     bundle_id: Annotated[str, typer.Option("--bundle-id", help="Bundle ID to replay")],
     mode: Annotated[str, typer.Option("--mode", help="ARTIFACT or RECOMPUTE")] = "ARTIFACT",
 ):
-    """Execute offline replay or recomputation with zero external model calls."""
+    """Replay stored artifacts offline; unsupported execution modes fail explicitly."""
     try:
-        replay_mode = "RECOMPUTE" if mode == "RECOMPUTE" else "ARTIFACT"
+        if mode not in {"ARTIFACT", "RECOMPUTE", "MODEL_RERUN"}:
+            raise typer.BadParameter("mode must be ARTIFACT, RECOMPUTE or MODEL_RERUN")
+        replay_mode = mode
         request = ReplayRequest(
             bundle_id=bundle_id,
             mode=replay_mode,
@@ -562,6 +569,49 @@ def replay(
             if result.status != "SUCCESS":
                 raise typer.Exit(1)
     except (ValueError, OSError, sqlite3.Error) as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc
+
+
+@audit_app.command("verify-package")
+def verify_package(directory: Annotated[Path, typer.Argument(exists=True, file_okay=False)]):
+    """Verify a standalone package without a source application database."""
+    try:
+        service, manifest = ExportService.open_package(directory)
+        result = service.verify_bundle(manifest)
+        typer.echo(result.model_dump_json())
+        if result.verdict != "PASS":
+            raise typer.Exit(1)
+    except (ValueError, OSError) as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc
+
+
+@app.command("replay-package")
+def replay_package(directory: Annotated[Path, typer.Argument(exists=True, file_okay=False)]):
+    """Inspect verified frozen artifacts offline; do not execute tools or restore a live DB."""
+    try:
+        service, manifest = ExportService.open_package(directory)
+        context = command_context(
+            ActorRef(
+                actor_id="service:offline_artifact_inspector",
+                actor_kind="SERVICE",
+                authenticated_session_ref=None,
+            )
+        )
+        result = service.replay_bundle(
+            context,
+            ReplayRequest(
+                bundle_id=manifest.bundle_id,
+                mode="ARTIFACT",
+                dependency_environment_ref="env:offline_artifact_inspection",
+                access_scope_id="scope:package_read_only",
+            ),
+        )
+        typer.echo(result.model_dump_json())
+        if result.status != "SUCCESS":
+            raise typer.Exit(1)
+    except (ValueError, OSError) as exc:
         typer.echo(str(exc), err=True)
         raise typer.Exit(1) from exc
 

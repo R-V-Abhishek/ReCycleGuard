@@ -2,8 +2,9 @@
 
 import hashlib
 import json
+import re
 from collections.abc import Iterable, Mapping
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, localcontext
 from pathlib import Path
 from typing import Literal
 
@@ -29,6 +30,21 @@ class OracleSeal(BoundaryModel):
     visible_reference_status: Literal["HAND_REVIEWED", "UNVERIFIED_WORLD_PROJECTION"]
 
 
+class VisibleReferenceReview(BoundaryModel):
+    """Trusted evaluator review evidence bound to exact supplied visible answers.
+
+    This is an attestation record, not an authentication mechanism. The caller
+    must retain its referenced originals/calculations outside investigator roots.
+    """
+
+    reviewer_ref: ID
+    oracle_digest: Digest
+    visible_input_digest: Digest
+    evidence_refs: list[Nonempty] = Field(min_length=1)
+    reference_calculation_refs: list[Nonempty] = Field(min_length=1)
+    recorded_at: Timestamp
+
+
 class HeldOutAccessRecord(BoundaryModel):
     access_id: ID
     dataset_version: Nonempty
@@ -43,6 +59,9 @@ class HeldOutAccessRecord(BoundaryModel):
 
 
 def _decimal(value, field: str, errors: list[str]) -> Decimal | None:
+    if type(value) is not str or not re.fullmatch(r"-?(0|[1-9][0-9]{0,17})(\.[0-9]{1,8})?", value):
+        errors.append(f"{field}: expected canonical decimal string")
+        return None
     try:
         result = Decimal(value)
     except (InvalidOperation, TypeError, ValueError):
@@ -74,29 +93,59 @@ def _check_balance(balance: Mapping, errors: list[str], prefix: str) -> None:
         errors.append(f"{prefix}: surplus mismatch")
     if delta != portal - supported:
         errors.append(f"{prefix}: portal delta mismatch")
-    if pending < 0:
-        errors.append(f"{prefix}: negative pending")
+    for field, value in (
+        ("required", required),
+        ("supported", supported),
+        ("shortfall", shortfall),
+        ("surplus", surplus),
+        ("pending", pending),
+        ("portal_reported", portal),
+    ):
+        if value < 0:
+            errors.append(f"{prefix}: negative {field}")
 
 
 def validate_oracle(oracle: OracleCase) -> OracleValidation:
     numeric_errors: list[str] = []
     rubric_errors: list[str] = []
-    for index, balance in enumerate(oracle.expected_world_balances):
-        _check_balance(balance, numeric_errors, f"world[{index}]")
-    for index, balance in enumerate(oracle.world_projection_balances):
-        _check_balance(balance, numeric_errors, f"projection[{index}]")
-    for index, balance in enumerate(oracle.visible_evidence_balances):
-        _check_balance(balance, numeric_errors, f"visible[{index}]")
-    expected_ids = {balance.get("bucket_id") for balance in oracle.expected_world_balances}
-    for group, balances in (
+    groups = (
+        ("world", oracle.expected_world_balances),
         ("projection", oracle.world_projection_balances),
         ("visible", oracle.visible_evidence_balances),
-    ):
+    )
+    if not oracle.expected_world_balances:
+        rubric_errors.append("world: missing balances")
+    for group, balances in groups:
+        for index, balance in enumerate(balances):
+            with localcontext() as context:
+                context.prec = 60
+                _check_balance(balance, numeric_errors, f"{group}[{index}]")
+            identifier = balance.get("bucket_id")
+            if type(identifier) is not str or not re.fullmatch(r"bucket:[^\s]+", identifier):
+                rubric_errors.append(f"{group}[{index}]: invalid bucket_id")
+            if balance.get("metal") not in {"AU", "CU", "AL", "FE"}:
+                rubric_errors.append(f"{group}[{index}]: invalid metal")
+            year = balance.get("liability_year")
+            if type(year) is not str or not re.fullmatch(r"[0-9]{4}-[0-9]{4}", year):
+                rubric_errors.append(f"{group}[{index}]: invalid liability year")
+            elif int(year[5:]) != int(year[:4]) + 1:
+                rubric_errors.append(f"{group}[{index}]: invalid liability year interval")
+            if balance.get("unit") != "KG":
+                rubric_errors.append(f"{group}[{index}]: invalid unit")
         ids = [balance.get("bucket_id") for balance in balances]
         if len(ids) != len(set(ids)):
             rubric_errors.append(f"{group}: duplicate bucket_id")
-        if not set(ids).issubset(expected_ids):
-            rubric_errors.append(f"{group}: unexpected bucket_id")
+    world = {balance.get("bucket_id"): balance for balance in oracle.expected_world_balances}
+    for group, balances in groups[1:]:
+        if balances and {balance.get("bucket_id") for balance in balances} != set(world):
+            rubric_errors.append(f"{group}: incomplete or unexpected bucket coverage")
+        for balance in balances:
+            expected = world.get(balance.get("bucket_id"))
+            if expected and any(
+                balance.get(field) != expected.get(field)
+                for field in ("metal", "liability_year", "unit")
+            ):
+                rubric_errors.append(f"{group}: bucket dimension mismatch")
     if not oracle.review_rubric_version:
         rubric_errors.append("missing review rubric version")
     if not oracle.reference_calculation_refs:
@@ -113,6 +162,13 @@ def validate_oracle(oracle: OracleCase) -> OracleValidation:
 
 def validate_oracle_against_world(world, oracle: OracleCase) -> OracleValidation:
     result = validate_oracle(oracle)
+    if world.case_id != oracle.case_id:
+        return result.model_copy(
+            update={
+                "valid": False,
+                "rubric_errors": [*result.rubric_errors, "world: case identity mismatch"],
+            }
+        )
     numeric_errors = list(result.numeric_errors)
     expected = []
     transfers = {item.key: item for item in world.transfers}
@@ -153,6 +209,9 @@ def validate_oracle_against_world(world, oracle: OracleCase) -> OracleValidation
         got = actual.get(item["bucket_id"])
         if got is None:
             continue
+        bucket = next(bucket for bucket in world.buckets if bucket.bucket_id == item["bucket_id"])
+        if got.get("metal") != bucket.metal or got.get("liability_year") != bucket.liability_year:
+            numeric_errors.append(f"world.{item['bucket_id']}: dimension mismatch")
         for field, value in item.items():
             if field == "bucket_id":
                 continue
@@ -169,36 +228,52 @@ def validate_oracle_against_world(world, oracle: OracleCase) -> OracleValidation
     )
 
 
+def oracle_digest(oracle: OracleCase) -> str:
+    """Digest the same canonical evaluator artifact written by the oracle builder."""
+    return hashlib.sha256(
+        (
+            json.dumps(oracle.model_dump(mode="json"), indent=2, sort_keys=True, ensure_ascii=True)
+            + "\n"
+        ).encode()
+    ).hexdigest()
+
+
 def seal_oracles(
     records: Mapping[str, OracleCase],
     *,
     dataset_version: str,
     reviewed_case_ids: Iterable[str] = (),
+    review_records: Mapping[str, VisibleReferenceReview] | None = None,
 ) -> OracleSeal:
     if not records:
         raise ValueError("cannot seal an empty oracle set")
     reviewed = sorted(set(reviewed_case_ids))
     expected = set(records)
+    if any(case_id != record.case_id for case_id, record in records.items()):
+        raise ValueError("oracle mapping key does not match case identity")
+    if len({record.review_rubric_version for record in records.values()}) != 1:
+        raise ValueError("oracle seal requires one rubric version")
+    reviews = review_records or {}
+    if set(reviews) != set(reviewed):
+        raise ValueError("reviewed cases require exact independent review records")
+    for case_id in reviewed:
+        if case_id not in records:
+            raise ValueError("reviewed case is absent from oracle records")
+        record = records[case_id]
+        review = reviews[case_id]
+        if record.visible_reference_status != "HAND_REVIEWED":
+            raise ValueError("unverified world projection cannot be promoted by a seal")
+        if review.oracle_digest != oracle_digest(record):
+            raise ValueError("independent review does not bind this oracle digest")
+        if set(review.reference_calculation_refs) != set(record.reference_calculation_refs):
+            raise ValueError("independent review calculation references do not match")
     if set(reviewed) - expected:
         raise ValueError("reviewed case is absent from oracle records")
     validations = [validate_oracle(record) for record in records.values()]
     invalid = [item for item in validations if not item.valid]
     if invalid:
         raise ValueError("oracle validation failed: " + ", ".join(item.case_id for item in invalid))
-    digests = {
-        case_id: hashlib.sha256(
-            (
-                json.dumps(
-                    records[case_id].model_dump(mode="json"),
-                    indent=2,
-                    sort_keys=True,
-                    ensure_ascii=True,
-                )
-                + "\n"
-            ).encode()
-        ).hexdigest()
-        for case_id in sorted(records)
-    }
+    digests = {case_id: oracle_digest(records[case_id]) for case_id in sorted(records)}
     aggregate = hashlib.sha256(
         "\n".join(f"{case_id}\t{digests[case_id]}" for case_id in sorted(digests)).encode()
     ).hexdigest()
@@ -215,6 +290,11 @@ def seal_oracles(
 
 
 def record_heldout_access(path: Path, record: HeldOutAccessRecord, seal: OracleSeal) -> None:
+    # These flags record evaluator assertions, not proof of process isolation.
+    if len(record.case_ids) != len(set(record.case_ids)):
+        raise ValueError("held-out access contains duplicate cases")
+    if set(record.visible_input_digests) != set(record.case_ids):
+        raise ValueError("held-out access requires exact visible input digest coverage")
     if not record.run_closed or not record.oracle_loaded_after_close:
         raise ValueError("held-out oracle access requires a closed run")
     if record.dataset_version != seal.dataset_version:

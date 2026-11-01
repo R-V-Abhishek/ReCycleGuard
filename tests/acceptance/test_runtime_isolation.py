@@ -136,3 +136,24 @@ def test_g11_mount_validation(sandbox_env):
     assert not report.passed
     assert len(report.violations) > 0
     assert any(v.violation_kind == "EVALUATOR_CODE_MOUNT" for v in report.violations)
+
+
+def test_parent_mount_cannot_expose_hidden_sibling_tree(sandbox_env):
+    visible_root, runtime_root, _, _ = sandbox_env
+    enforcer = RuntimeIsolationEnforcer(visible_root, runtime_root)
+    assert not enforcer.validate_mounts([visible_root.parent]).passed
+
+
+def test_hidden_descendant_is_not_cleared_by_safe_mount_name(sandbox_env):
+    visible_root, runtime_root, _, _ = sandbox_env
+    hidden = visible_root / "nested" / "oracle_answers.json"
+    hidden.parent.mkdir()
+    hidden.write_text("{}", encoding="utf-8")
+    enforcer = RuntimeIsolationEnforcer(visible_root, runtime_root)
+    assert not enforcer.validate_mounts([visible_root]).passed
+
+
+def test_visible_and_runtime_mounts_can_pass_cooperative_validation(sandbox_env):
+    visible_root, runtime_root, _, _ = sandbox_env
+    enforcer = RuntimeIsolationEnforcer(visible_root, runtime_root)
+    assert enforcer.validate_mounts([visible_root, runtime_root]).passed

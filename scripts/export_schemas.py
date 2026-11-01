@@ -31,6 +31,16 @@ from recycleguard.contracts.baseline import (
     RecordSupportAssertion,
     RecordSupportReview,
 )
+from recycleguard.contracts.bundles import (
+    AttributionRecord,
+    BundleManifest,
+    IncludedObjectEntry,
+    IntegrityResult,
+    OmissionDisposition,
+    ReplayRequest,
+    ReplayResult,
+    RightsDecision,
+)
 from recycleguard.contracts.checks import CheckRequest, CheckTarget, StructuredCheckResult
 from recycleguard.contracts.domain import (
     AccountBalanceObservation,
@@ -173,6 +183,14 @@ from recycleguard.retrieval.claim_checks import (
 from recycleguard.workflow.runner import CallRecord, ProviderUsage
 
 MODELS = [
+    AttributionRecord,
+    BundleManifest,
+    IncludedObjectEntry,
+    IntegrityResult,
+    OmissionDisposition,
+    ReplayRequest,
+    ReplayResult,
+    RightsDecision,
     LocalModelConfig,
     CandidateDisposition,
     DenseConfiguration,
