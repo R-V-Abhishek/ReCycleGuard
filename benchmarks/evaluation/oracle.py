@@ -108,9 +108,9 @@ class OracleCase(BoundaryModel):
     forbidden_actions: list[str]
     reference_calculation_refs: list[str]
     review_rubric_version: str = "rubric-v1.0"
-    visible_reference_status: Literal["HAND_REVIEWED", "UNVERIFIED_WORLD_PROJECTION"] = (
-        "UNVERIFIED_WORLD_PROJECTION"
-    )
+    visible_reference_status: Literal[
+        "HAND_REVIEWED", "INDEPENDENT_REFERENCE_VALIDATED", "UNVERIFIED_WORLD_PROJECTION"
+    ] = "UNVERIFIED_WORLD_PROJECTION"
     world_projection_balances: list[dict[str, Any]] = Field(default_factory=list)
     reference_limitations: list[str] = Field(default_factory=list)
 

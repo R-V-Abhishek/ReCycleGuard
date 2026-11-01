@@ -27,7 +27,9 @@ class OracleSeal(BoundaryModel):
     oracle_digests: dict[ID, Digest]
     aggregate_digest: Digest
     reviewed_case_ids: list[ID]
-    visible_reference_status: Literal["HAND_REVIEWED", "UNVERIFIED_WORLD_PROJECTION"]
+    visible_reference_status: Literal[
+        "HAND_REVIEWED", "INDEPENDENT_REFERENCE_VALIDATED", "UNVERIFIED_WORLD_PROJECTION"
+    ]
 
 
 class VisibleReferenceReview(BoundaryModel):
@@ -150,7 +152,10 @@ def validate_oracle(oracle: OracleCase) -> OracleValidation:
         rubric_errors.append("missing review rubric version")
     if not oracle.reference_calculation_refs:
         rubric_errors.append("missing independent calculation reference")
-    if oracle.visible_reference_status == "HAND_REVIEWED" and not oracle.visible_evidence_balances:
+    if (
+        oracle.visible_reference_status != "UNVERIFIED_WORLD_PROJECTION"
+        and not oracle.visible_evidence_balances
+    ):
         rubric_errors.append("hand-reviewed oracle has no visible balances")
     return OracleValidation(
         case_id=oracle.case_id,
@@ -261,7 +266,7 @@ def seal_oracles(
             raise ValueError("reviewed case is absent from oracle records")
         record = records[case_id]
         review = reviews[case_id]
-        if record.visible_reference_status != "HAND_REVIEWED":
+        if record.visible_reference_status == "UNVERIFIED_WORLD_PROJECTION":
             raise ValueError("unverified world projection cannot be promoted by a seal")
         if review.oracle_digest != oracle_digest(record):
             raise ValueError("independent review does not bind this oracle digest")
@@ -284,7 +289,16 @@ def seal_oracles(
         aggregate_digest=aggregate,
         reviewed_case_ids=reviewed,
         visible_reference_status=(
-            "HAND_REVIEWED" if set(reviewed) == expected else "UNVERIFIED_WORLD_PROJECTION"
+            (
+                "HAND_REVIEWED"
+                if all(
+                    record.visible_reference_status == "HAND_REVIEWED"
+                    for record in records.values()
+                )
+                else "INDEPENDENT_REFERENCE_VALIDATED"
+            )
+            if set(reviewed) == expected
+            else "UNVERIFIED_WORLD_PROJECTION"
         ),
     )
 

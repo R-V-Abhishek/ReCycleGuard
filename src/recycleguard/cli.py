@@ -616,5 +616,37 @@ def replay_package(directory: Annotated[Path, typer.Argument(exists=True, file_o
         raise typer.Exit(1) from exc
 
 
+@app.command(
+    "isolated-investigation",
+    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
+)
+def isolated_investigation(
+    context: typer.Context,
+    image: Annotated[str, typer.Option()],
+    visible_root: Annotated[Path, typer.Option(exists=True, file_okay=False)],
+    runtime_root: Annotated[Path, typer.Option(exists=True, file_okay=False)],
+    arguments: Annotated[list[str], typer.Argument()],
+    user_id: Annotated[int, typer.Option(min=1)] = 10001,
+):
+    """Run the investigator in the fixed nonroot, networkless Docker boundary."""
+    import subprocess
+
+    from recycleguard.isolated_runtime import run_isolated
+
+    try:
+        result = run_isolated(
+            image, visible_root, runtime_root, [*arguments, *context.args], user_id=user_id
+        )
+        if result.stdout:
+            typer.echo(result.stdout, nl=False)
+        if result.stderr:
+            typer.echo(result.stderr, nl=False, err=True)
+        if result.returncode:
+            raise typer.Exit(1)
+    except (ValueError, OSError, subprocess.TimeoutExpired) as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(1) from exc
+
+
 if __name__ == "__main__":
     app()

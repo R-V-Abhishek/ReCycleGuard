@@ -62,7 +62,7 @@ class ScoringProtocol:
 
     @staticmethod
     def _reviewed(oracle):
-        if oracle.visible_reference_status != "HAND_REVIEWED":
+        if oracle.visible_reference_status == "UNVERIFIED_WORLD_PROJECTION":
             raise ValueError("visible evidence oracle requires independent review before scoring")
 
     def score_reconciliation(

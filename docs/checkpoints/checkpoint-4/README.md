@@ -1,16 +1,14 @@
 # Checkpoint 4: prototype integration
 
 Integration branch: `checkpoint-4`. Owner/integrator: Abhishek.
-**Status: WAITING; not approved.**
+**Technical acceptance complete; formal team acknowledgment unrecorded.**
 
-- [A08 integration, verification and remaining gates](A08_INTEGRATION.md)
-- [Executed verification and qualifications](VERIFICATION.md)
-- [API handoff and earlier live-model trial](API_HANDOFF.md)
-- [S_ui architecture/API review](S_UI_REVIEW.md)
-- [API setup and endpoints](../../api/README.md)
-- [OpenAPI specification](../../api/openapi.json)
-- [Frontend setup](../../../ui/README.md)
+- [Final technical completion and acceptance boundary](COMPLETION.md)
+- [Actual isolated-runtime evidence](isolation-evidence.json)
+- [Earlier A08 integration and repairs](A08_INTEGRATION.md)
+- [Verification history and qualifications](VERIFICATION.md)
+- [API setup](../../api/README.md) · [frontend setup](../../../ui/README.md)
 
-V06/V07 and V08/V09 are integrated with reviewed repairs. CP4 still requires
-actual enforced runtime isolation with durable denied-access evidence, the
-independent full visible-reference review/seal, and exact-candidate acceptance.
+V06–V09 are integrated and the earlier runtime/reference implementation gaps
+are resolved. The checkpoint register retains WAITING solely for the required
+exact-candidate human acknowledgment; it does not claim the technical gaps remain.

@@ -448,7 +448,7 @@ All references are exact task/checkpoint IDs. Required predecessors are an AND c
 | **A05** | DONE | CP1, S03, V03         | None                    | 25 Oct        | **Deterministic CLI and audited baseline accepted.** [CP2 verification and reproduction](docs/checkpoints/checkpoint-2/README.md); 100/55/45 with 25 pending, qualified evidence scope. |
 | **A06** | DONE | CP2                   | None                    | 26 Oct        | **Bounded graph, checkpointed state and budget controls implemented.** Scripted plan/action/assessment, recovery and budget verification; [A06 handoff](docs/checkpoints/checkpoint-3/a06.md). |
 | **A07** | DONE | A06, H06, S04, V05    | None                    | 27 Oct        | **Real services integrated; scripted C10 retained.** Audited adaptive trace and authenticated review recovery; [A07 evidence](docs/checkpoints/checkpoint-3/a07.md).                      |
-| **A08** | IN_PROGRESS | CP3, V08, V09, H08    | None                    | 29 Oct        | **Run Week 1 acceptance, cold start and reproducible prototype handoff.** G01–G12 evidence; clean-start demo; explicit A/B completion level.           |
+| **A08** | DONE | CP3, V08, V09, H08    | None                    | 29 Oct        | **Run Week 1 acceptance, cold start and reproducible prototype handoff.** G01–G12 evidence; clean-start demo; explicit A/B completion level.           |
 | **A09** | BLOCKED   | CP4                   | None                    | 30 Oct–1 Nov | **Tune graph/CLI on development data and freeze candidate code.** Dev changes with regression tests; pinned graph/prompt/budget configs.                |
 | **A10** | BLOCKED   | CP6                   | None                    | 4–5 Nov      | **Integrate research report, architecture/results narrative and slides.** 8–12-page report draft and slides describe actual measured behavior.         |
 | **A11** | BLOCKED   | A10, V14              | None                    | 6 Nov         | **Freeze final review build and run four-person rehearsal.** Demo recovery copy; viva ownership; approved artifact versions.                            |
@@ -499,7 +499,7 @@ All references are exact task/checkpoint IDs. Required predecessors are an AND c
 | **V06** | DONE      | V05                   | None                    | 27 Oct              | **Implement local/public export, integrity and offline replay.** Verified bundles; rights-through-derivatives tests; no-provider replay. [V06 implementation](docs/checkpoints/checkpoint-3/v06.md). |
 | **V07** | DONE      | CP2                   | None                    | 27 Oct              | **Build minimal investigator runtime and enforce oracle isolation.** No hidden code/data mounts; attempted access denied and recorded. [V07 implementation](docs/checkpoints/checkpoint-3/v07.md). |
 | **V08** | DONE | CP3, V06, V07         | None                    | 28 Oct              | **Verify crash recovery, budgets, checkpoint lag and export integrity.** Failure-window/recovery tests and consistent restore evidence.                |
-| **V09** | IN_PROGRESS | S07, V04, H08         | None                    | 28–29 Oct          | **Independently validate full oracle and seal pilot/scorer versions.** Numeric/rubric validation; sealed digests; held-out access record.              |
+| **V09** | DONE | S07, V04, H08         | None                    | 28–29 Oct          | **Independently validate full oracle and seal pilot/scorer versions.** Numeric/rubric validation; sealed digests; held-out access record.              |
 | **V10** | BLOCKED   | CP4                   | None                    | 30 Oct–1 Nov       | **Rehearse evaluator and freeze protocol, scorer and resource feasibility.** Dev dry-run; rubric/denominators/repeats/invalid-trial policy.            |
 | **V11** | BLOCKED   | CP5                   | None                    | 2–3 Nov            | **Execute sealed deterministic and non-model evaluation runs.** Closed trials; exact failure/usage/coverage records; no test tuning.                   |
 | **V12** | BLOCKED   | CP5, MG1              | None                    | 2–3 Nov if enabled | **Execute fixed-retrieval and adaptive real-model trials.** Matched V1/V2 registered trials; never use scripted model outputs.                         |
@@ -1031,3 +1031,15 @@ visible-evidence/rubric reference review and seal are still absent. A08 has
 executed fresh scripted CLI/API flows and is assembling gate evidence; it is
 not complete. **CP4 remains WAITING**. See the
 [A08 integration record](docs/checkpoints/checkpoint-4/A08_INTEGRATION.md).
+
+
+### CP4 technical completion, 1 November 2026
+
+The earlier V07/V09 implementation gaps are resolved: an actual nonroot,
+networkless wheel-only investigator reached a qualified report; denied-access
+bytes were durably archived, and all48 original-visible reference calculations
+and family/abstention checks were independently validated and sealed. Separate
+agent semantic review is recorded, without claiming human review. A08 technical
+acceptance is DONE for the scripted prototype. CP4 remains WAITING only for its
+normal exact-candidate four-person acknowledgment; MG1 stays separate.
+See [technical completion](docs/checkpoints/checkpoint-4/COMPLETION.md).
