@@ -34,8 +34,9 @@ forbidden-action attempts and executions, efficiency (calls, tokens, latency, ti
 money = null, "local, not metered"), reliability across repeats.
 
 Open item: `benchmarks/evaluation/scoring.py` also produces a weighted composite
-(0.5 exact buckets + 0.3 finding F1 + 0.2 abstention accuracy). It is **not** the primary
-metric unless the freeze record says so.
+(0.5 exact buckets + 0.3 finding component + 0.2 abstention accuracy). It is **not** the primary
+metric unless the freeze record says so. Undefined finding precision/recall/F1 are now `None`
+(N/A); the composite uses `composite_component` (1.0 only for a correct empty result).
 
 ## 4. MG1 criteria (dev cases only)
 

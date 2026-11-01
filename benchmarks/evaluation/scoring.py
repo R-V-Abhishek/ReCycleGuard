@@ -21,9 +21,13 @@ class ReconciliationScore(BoundaryModel):
 
 
 class FindingScore(BoundaryModel):
-    precision: float
-    recall: float
-    f1: float
+    # None means the denominator is undefined (nothing emitted, or nothing expected), never 1.0.
+    precision: float | None
+    recall: float | None
+    f1: float | None
+    # Value used by the weighted composite: F1 when defined; otherwise 1.0 only for a correct
+    # empty result (nothing expected, nothing emitted) and 0.0 for any miss or false alarm.
+    composite_component: float
     true_positives: int
     false_positives: int
     false_negatives: int
@@ -170,18 +174,29 @@ class ScoringProtocol:
 
         fn = len(expected_set - set(seen_types.keys()))
 
-        precision = (tp / (tp + fp)) if (tp + fp) > 0 else (1.0 if not expected_set else 0.0)
-        recall = (tp / len(expected_set)) if expected_set else 1.0
-        f1 = (2 * precision * recall / (precision + recall)) if (precision + recall) > 0 else 0.0
+        precision = (tp / (tp + fp)) if (tp + fp) > 0 else None
+        recall = (tp / len(expected_set)) if expected_set else None
+        if precision is None or recall is None:
+            f1 = None
+        else:
+            f1 = (
+                (2 * precision * recall / (precision + recall)) if (precision + recall) > 0 else 0.0
+            )
 
         # Duplicate findings must never inflate precision/recall
         dup_penalty = min(0.1 * duplicate_count, 0.5)
-        f1_penalized = max(0.0, f1 - dup_penalty)
+        if f1 is not None:
+            f1_penalized = max(0.0, f1 - dup_penalty)
+            component = f1_penalized
+        else:
+            f1_penalized = None
+            component = 1.0 if (tp == 0 and fp == 0 and fn == 0) else 0.0
 
         return FindingScore(
-            precision=round(precision, 4),
-            recall=round(recall, 4),
-            f1=round(f1_penalized, 4),
+            precision=None if precision is None else round(precision, 4),
+            recall=None if recall is None else round(recall, 4),
+            f1=None if f1_penalized is None else round(f1_penalized, 4),
+            composite_component=round(component, 4),
             true_positives=tp,
             false_positives=fp,
             false_negatives=fn,
@@ -259,7 +274,9 @@ class ScoringProtocol:
             composite = 0.0
         else:
             composite = (
-                0.5 * rec.exact_bucket_match_rate + 0.3 * find.f1 + 0.2 * abst.abstention_accuracy
+                0.5 * rec.exact_bucket_match_rate
+                + 0.3 * find.composite_component
+                + 0.2 * abst.abstention_accuracy
             )
 
         return TrialEvaluationReport(

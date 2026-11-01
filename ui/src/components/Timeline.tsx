@@ -5,6 +5,19 @@ import { Badge, IssueList, JsonView, Mono, Unavailable } from "./common";
 import { EvidenceChips } from "./evidence";
 import { PromptInspector } from "./PromptInspector";
 
+// Latency and token usage come from the retained ModelCallResult (timing/usage); nothing is estimated.
+export function modelTiming(event: TraceEvent): { seconds: number | null; tokens: number | null } {
+  if (event.kind !== "MODEL_RESULT" || !event.response || typeof event.response !== "object" || Array.isArray(event.response)) {
+    return { seconds: null, tokens: null };
+  }
+  const response = event.response as Record<string, Json>;
+  const timing = response.timing as Record<string, Json> | null | undefined;
+  const usage = response.usage as Record<string, Json> | null | undefined;
+  const seconds = timing && typeof timing.elapsed_seconds === "number" ? timing.elapsed_seconds : null;
+  const tokens = usage && typeof usage.total_tokens === "number" ? usage.total_tokens : null;
+  return { seconds, tokens };
+}
+
 export function rowSummary(event: TraceEvent, events: TraceEvent[] = []): { kind: string; title: string; detail?: string; status?: string } {
   switch (event.kind) {
     case "PROMPT_PREPARED":
@@ -233,7 +246,15 @@ export function EventDetail({
             <dt>Turn</dt><dd>{event.turn_id ? <Mono>{event.turn_id}</Mono> : <Unavailable />}</dd>
             <dt>Attempt</dt><dd>{event.attempt_id ? <Mono>{event.attempt_id}</Mono> : <Unavailable />}</dd>
             <dt>Payload digest</dt><dd><Mono>{event.payload_ref.sha256}</Mono></dd>
-            <dt>Duration</dt><dd><Unavailable label="not recorded in the trace" /></dd>
+            <dt>Duration</dt><dd>{(() => {
+              const timing = modelTiming(event);
+              return timing.seconds === null ? <Unavailable label="recorded for model calls only" /> : `${timing.seconds.toFixed(1)} s`;
+            })()}</dd>
+            {event.kind === "MODEL_RESULT" && (
+              <>
+                <dt>Tokens (provider)</dt><dd>{modelTiming(event).tokens ?? <Unavailable label="not reported" />}</dd>
+              </>
+            )}
           </dl>
         )}
       </div>
