@@ -18,6 +18,15 @@ from .core import (
     ServiceResult,
     TemporalValue,
 )
+from .export import (
+    BundleExclusion,
+    BundleManifest,
+    BundleObject,
+    BundleRequest,
+    IntegrityResult,
+    ReplayRequest,
+    ReplayResult,
+)
 from .extraction import (
     CoverageDisposition,
     CoverageItem,
@@ -68,6 +77,10 @@ from .sources import (
 __all__ = [
     "AcknowledgmentRecord",
     "AcknowledgmentValidationState",
+    "BundleExclusion",
+    "BundleManifest",
+    "BundleObject",
+    "BundleRequest",
     "CandidateDisposition",
     "CandidateDispositionKind",
     "DenseConfiguration",
@@ -100,6 +113,7 @@ __all__ = [
     "ExtractionResult",
     "ExtractionStatus",
     "Issue",
+    "IntegrityResult",
     "Locator",
     "Observation",
     "ProvisionVersion",
@@ -114,6 +128,8 @@ __all__ = [
     "ReviewPacket",
     "ReviewRecord",
     "ReviewTransitionResult",
+    "ReplayRequest",
+    "ReplayResult",
     "RightsMetadata",
     "Role",
     "ServiceResult",
