@@ -260,6 +260,7 @@ class WorkflowRunner:
                 {
                     "run_id": spec.run_id,
                     "version": state.version,
+                    "last_audit_sequence": state.last_audit_sequence,
                     "state_blob": self.store.state_blob(spec.run_id).model_dump(mode="json"),
                     "checkpoint_id": cached.config["configurable"].get("checkpoint_id"),
                 }
@@ -293,9 +294,12 @@ class WorkflowRunner:
                 checkpoint["run_id"] != run_id
                 or historical.run_id != run_id
                 or checkpoint["version"] != historical.version
+                or checkpoint["last_audit_sequence"] != historical.last_audit_sequence
                 or historical.version > state.version
             ):
                 raise ValueError("checkpoint disagrees with authoritative state")
+            if historical.last_audit_sequence > state.last_audit_sequence:
+                raise ValueError("checkpoint is ahead of authoritative audit state")
         # Rebuild cache from the application ledger; this route invokes no tools/model.
         if not self._lock.acquire(blocking=False):
             raise ValueError("concurrent dispatcher invocation")
