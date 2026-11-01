@@ -16,7 +16,14 @@ from pathlib import Path
 from recycleguard.isolated_runtime import _check_mount
 
 SANDBOX_EXEC = "/usr/bin/sandbox-exec"
-SYSTEM_READS = ("/usr/lib", "/usr/share", "/System", "/Library/Frameworks", "/private/var/db/dyld")
+SYSTEM_READS = (
+    "/usr/lib",
+    "/usr/share",
+    "/System",
+    "/Library/Frameworks",
+    "/private/var/db/dyld",
+    "/private/var/db/timezone",
+)
 EXTERNAL_PROBE = ("198.51.100.1", 443)
 
 
@@ -49,6 +56,8 @@ def sandbox_profile(
 (allow file-read-metadata)
 (allow file-read*
 {subpaths}
+  (literal "/")
+  (literal "/private/etc/apache2/mime.types")
   (literal "/dev/null")
   (literal "/dev/urandom")
   (literal "/dev/random"))

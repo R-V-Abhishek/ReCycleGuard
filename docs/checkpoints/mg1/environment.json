@@ -1,6 +1,6 @@
 {
-  "recorded": "2026-11-01",
-  "purpose": "ENV-1 environment and pin verification before MG1; probe only, no inference was requested",
+  "recorded": "2026-11-02",
+  "purpose": "Refreshed for prompt v5 (config pin changed); probe checks pins and loopback inventory only",
   "host": {
     "macos": "26.7.1",
     "chip": "Apple M3",
@@ -12,19 +12,41 @@
     "revision": "8b2b98c00a6b4d291155e4890773ca8f769aee53",
     "mlx_lm_version": "0.32.2"
   },
-  "config_pin_digest": "495c9e4bf9f95266f45404fad2c6c29d664f27524f4b296718b4f89a46f431a0",
+  "config_pin_digest": "8f5c0b8b7d2f3a93fda485b80ab259548e79b64790bfccc1985081fe737c3ced",
   "config_weights_manifest_digest": "46a794e9e67ba33d0cffccc1e840db42ba684f60d8c9a9bed8384082a145203f",
   "config_runtime_lock_digest": "37748e1fdad347e32c77542bfc08ab1de34b8c17acbcc84cf36819493e5c06c4",
   "tools_local_model_uv_lock_sha256": "37748e1fdad347e32c77542bfc08ab1de34b8c17acbcc84cf36819493e5c06c4",
   "repo_uv_lock_sha256": "d986d84dc67bfd558a8b6ed023583542e8c002acbf07d7faf236613eedf96708",
   "weights_integrity": "serve.py verified every weight file size and SHA-256 and the runtime package versions before binding 127.0.0.1:8766",
   "probe": {
-    "inventory_blob_sha256": "8cc105301aca6b951579c70d0840f5882dbb2116944f76691bee081f7c287251",
+    "inventory_blob_sha256": "f53394f58a4683c293c8008eb1d0bdd6005c461d75002c8d94bba5373f0fe19e",
     "endpoint": "127.0.0.1:8766 (loopback)"
   },
   "caveats": [
     "Home-directory model path omitted from this record.",
     "Probe verifies pins and inventory only; it is not a reliability, determinism or quality measurement.",
     "MG1 is not approved."
-  ]
+  ],
+  "prompt": {
+    "template_id": "prompt:u01_non_thinking_v5",
+    "version": "u01_non_thinking_v5"
+  },
+  "call_limits": {
+    "max_output_tokens": 1024,
+    "max_total_tokens": 32768,
+    "timeout_seconds": 180.0
+  },
+  "server_flags": [
+    "--decode-concurrency",
+    "1",
+    "--prompt-concurrency",
+    "1",
+    "--prompt-cache-size",
+    "1",
+    "--prefill-step-size",
+    "256",
+    "--max-tokens",
+    "1024"
+  ],
+  "tested_commit": "cc82195 plus a three-line host_sandbox.py profile fix (see MODEL_TEST_RESULTS.md)"
 }
