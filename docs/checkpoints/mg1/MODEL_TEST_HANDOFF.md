@@ -22,7 +22,7 @@ uv run --project tools/local-model python tools/local-model/serve.py   # own ter
 uv run recycleguard model probe --config .recycleguard/local-model.json
 ```
 
-Expected: the probe passes and shows revision `8b2b98c0…` and prompt `u01_non_thinking_v5`.
+Expected: the probe passes and shows revision `8b2b98c0…` and prompt `u01_non_thinking_v6`.
 
 Confirm `benchmarks/hidden/s06-dev-0.1/clean` and `benchmarks/hidden/pilot-0.1/oracle` exist (they are
 git-ignored). If either is missing, stop and report it: the generator also renders held-out cases.

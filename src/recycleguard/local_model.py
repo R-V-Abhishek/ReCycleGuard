@@ -35,6 +35,8 @@ _PHASE_RULES = {
         "keys present in the user JSON 'allowed_tools' object. Never select an operation not "
         "present in user allowed_tools keys. Copy the exact first pending_findings identifier into "
         "finding_id, and set typed_arguments={} (for tools with no parameters). "
+        'For inspect_evidence use typed_arguments={"observation_ids":[]}, which inspects every '
+        "observation; never write an observation id that is not copied from the user JSON. "
         "Only if stopping without a check: action MUST be null and stop_reason MUST be "
         "NO_NEW_EVIDENCE or EXPERT_REVIEW_REQUIRED. "
         "Example valid check structure: "
@@ -56,13 +58,16 @@ _PHASE_RULES = {
         "Example valid refutation stopping structure: "
         '{"verdict":"REFUTES","weak_result_or_mistake":null,"next_check_or_stop":"stop",'
         '"disposition":"ABSTAIN","revised_plan":null,"finding_proposal":null}. '
-        "finding_proposal is null unless this observation shows an issue_type from the schema. "
+        "finding_proposal is null unless this observation shows an issue_type that is exactly "
+        "one of the schema values. "
         "When proposing: copy evidence_ref_ids only from stage_output.evidence_ref_ids or "
         "stage_output.calculation_ids; write basis and next_action_text in words without any "
         "digits; never state amounts. Use F01_CLEAN_BASELINE with RECONCILED_WITHIN_SCOPE only "
         "when a reconciliation shows no shortfall and nothing pending. When a claim cannot be "
         "supported, set advisory_status to PENDING_VERIFICATION or REQUIRES_EXPERT_REVIEW, set "
-        "abstention_reason, and set withheld_claim_scopes from: pending_untransferred_credits, "
+        "abstention_reason to exactly one of MISSING_EVIDENCE, MISSING_AUTHORITY, RULE_CONFLICT, "
+        "TEMPORAL_UNCERTAINTY, UNSUPPORTED_FEATURE, INCOMPLETE_HISTORY, BUDGET_LIMIT (never any "
+        "other word), and set withheld_claim_scopes from: pending_untransferred_credits, "
         "earlier_liability_priority, undated_history, weight_basis_selection, "
         "stale_portal_statement, rule_version_applied, deadline_extension, gold_offset_credits, "
         "lost_document_page. "
@@ -102,8 +107,8 @@ class LocalModelConfig(BoundaryModel):
     runtime_lock_path: Path
     runtime_lock_digest: Digest
     runtime_version: Literal["0.32.2"] = "0.32.2"
-    prompt_template_id: ID = "prompt:u01_qwen_non_thinking_v5"
-    prompt_version: Nonempty = "u01_non_thinking_v5"
+    prompt_template_id: ID = "prompt:u01_qwen_non_thinking_v6"
+    prompt_version: Nonempty = "u01_non_thinking_v6"
     endpoint: str = "http://127.0.0.1:8080/v1/completions"
     max_output_tokens: Annotated[int, Field(ge=1)] = 1024
     max_total_tokens: Annotated[int, Field(ge=1)] = 32768
