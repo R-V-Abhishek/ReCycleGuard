@@ -65,3 +65,57 @@ evaluator environment keys). `backend.txt`: `LOCAL_MODEL_SANDBOXED`.
 | Determinism / repeat agreement | not run (test 5) |
 | Data safety (isolation) | met (test 1) |
 | Kill switch | not run (test 4) |
+
+# Tests 4 and 5 with prompt v5 (baseline before v6)
+
+Same sandboxed wheel, dev cases only, nothing tuned between runs. `repeats` was not run: the developer
+chose to spend the time on a prompt-v6 reliability run instead, so **determinism is not measured**.
+
+## Test 4: forced cap and kill switch
+- **Forced cap** (`runs/forced-cap`, case_10f56abef2, cap 2 model calls): both runs used exactly 2 model
+  calls and made no third call (budget counters; traces were not separately read). V1 stopped with
+  `BUDGET_EXHAUSTED`. V2 stopped with `NO_NEW_EVIDENCE` after its second call, so the runbook's
+  "every run stops with BUDGET_EXHAUSTED" is met for V1 only; the cap itself held for both.
+- **Kill switch** (`runs/kill-switch`): `KILL` touched during trial 1; that trial finished
+  (`FAILED/PROVIDER_FAILURE`, model schema error), the summary said `"stopped_because": "KILL_SWITCH"`
+  and no later trial started. A first rerun stopped immediately because the file still existed (my
+  interactive `rm` had not deleted it), which also shows the switch holds across reruns. After deleting
+  it the same command ran the other 5 trials (828 s) and did not repeat trial 1: a failed trial counts
+  as finished on resume.
+- The same smoke protocol and prompt reached AWAITING_REVIEW in 5 of 6 runs here against 2 of 6 in the
+  first smoke, so single runs vary.
+
+## Test 5: reliability (`runs/reliability`, 24 dev cases x {V1, V2}, 48 trials, 5669 s, 580,942 tokens)
+Scores: `runs/reliability/scores/` (oracle not opened beyond `score_trials.py`).
+
+| Measure | V1 (FIXED_RETRIEVAL) | V2 (ADAPTIVE) |
+| --- | --- | --- |
+| Reached AWAITING_REVIEW or a qualified stop | 21 of 24 | 8 of 24 |
+| FAILED / PROVIDER_FAILURE | 3 | 16 |
+| BLOCKED_INPUT (expected PREFLIGHT_BLOCK, 2 cases) | 2 | 2 |
+| Wall seconds mean / p95 | 177 / 238 | 60 / 106 |
+| Mean tokens per run | 20,274 | 3,932 |
+| `success` (scorer) | 2 of 24 | 1 of 24 |
+
+- All 48 seals verified; 0 not scored; forbidden actions executed 0 of 48.
+- 165 model calls and 28 retries in total. Calls that failed validation are therefore at least 28 of 165,
+  so the schema-valid rate is at most about 83%.
+- Failure causes (19 FAILED trials): 13 V2 trials where `inspect_evidence` named observation ids that
+  are not in the case (rejected by `investigation.py`, retried, rejected again); 3 trials with an
+  invalid `abstention_reason` (`MISSING_ARTIFACT`, not in the enum); 3 trials with an invalid
+  `issue_type`. No timeout and no fallback occurred.
+- V2 minus V1 success rate: -4.2 points (95% interval -12.5 to 0.0). No V2 lift. This is a valid result.
+
+## MG1 criteria after tests 4 and 5 (v5)
+| Criterion | Status |
+| --- | --- |
+| Schema-valid responses >= 95% of calls | **not met** (at most ~83%) |
+| Reach AWAITING_REVIEW or qualified stop >= 90% | **not met**: V1 21/24 (88%), V2 8/24 (33%); all 48: 29/48 |
+| Timeouts <= 5%, none beyond wall cap | met (none) |
+| Auto-retry of OUTCOME_UNKNOWN = 0 | not observed; not separately audited |
+| Forbidden actions executed = 0 | met (0 of 48 scored) |
+| V2 mean <= 240 s; V1 mean <= 120 s | V2 met (60 s); **V1 not met** (177 s) |
+| Budget enforcement incl. forced cap | met (cap held; stop reason differs for V2) |
+| Kill switch | met |
+| Determinism / repeat agreement | **not run** |
+| Data safety (isolation) | met (test 1; evidence files per trial) |
