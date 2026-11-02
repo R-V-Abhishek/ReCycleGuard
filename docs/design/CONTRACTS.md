@@ -397,7 +397,7 @@ Use the same `FaultFamily` enum in generator configuration/CorruptionRecord, `Fi
 
 | FaultFamily enum value | Distinction required |
 | --- | --- |
-| F01_CLEAN_BASELINE | Clean control; no false-positive anomaly. |
+| F01_CLEAN_BASELINE | Clean control; no false-positive anomaly. "No fault found", not "target met": a reconciliation shortfall may coexist with it and stays stated in the calculation. |
 | F02_OVERLAPPING_EXPORT | One event observed repeatedly; oracle explicitly records equivalence support. |
 | F03_MULTISTAGE_ID_REUSE | Distinct legitimate lifecycle events sharing an instrument. |
 | F04_UNIT_DIMENSION_MIX | Units/dimensions cannot be summed blindly. |

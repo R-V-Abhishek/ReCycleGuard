@@ -77,8 +77,12 @@ MG1 needs U01, A07 (done), V07 extended to real-model runs, and V10.
 | **C16-run** (A) | Trial coordinator, evaluator-only. It:<br>• reads a frozen protocol JSON;<br>• builds the counterbalanced schedule (case × variant × repeat, with V1/V2 order alternating per case);<br>• launches each trial with a fresh data root through the CLI;<br>• writes an append-only `ledger.jsonl` with one row per attempt;<br>• seals outputs by digest;<br>• resumes safely;<br>• checks a **kill switch** file before each trial;<br>• enforces night caps on wall time and tokens. | New `benchmarks/evaluation/trials.py`, `scripts/run_trials.py` | Dry run with the scripted port on 3 dev cases → ledger and seals verified | L | Most important new code: test resume after `kill -9` |
 | **SCORE-fix** (A) | Scorer fixes:<br>• Undefined precision/recall become `None`/N/A (`benchmarks/evaluation/scoring.py:173-174`).<br>• Add a BucketResult → scorer projection.<br>• Add `scripts/score_trials.py`, run in a separate process with the oracle root.<br>• Add a paired case-level bootstrap (seeded stdlib, resampling cases with all their repeats) in `benchmarks/evaluation/analysis.py`. | `benchmarks/evaluation/*` | `tests/unit/test_v04_oracle.py`, plus new scorer and analysis tests | M | Scorer bugs become laundered results → hand-check 3 scored trials |
 
-**Engineering status:** U01, V1-impl, V07-rm, C16-run and SCORE-fix are built and uncommitted, with fixture checks only; see
-[MG1 engineering note](docs/checkpoints/mg1/ENGINEERING_NOTE.md). Nothing has run on the real model and MG1 is not approved.
+**Status (2 November 2026):** MG1 engineering is complete and has run on the real model. MG1 is **conditionally approved,
+setup only** ([approval](docs/checkpoints/mg1/APPROVAL.md), [results](docs/checkpoints/mg1/MODEL_TEST_RESULTS.md)). Open: no model
+finding has reached a report in any run, and determinism was not run. Next gate: CP5, not started.
+
+**Authority:** Sushanth and Abhishek own every task and make every approval, whatever owner or reviewer this plan names.
+No other acknowledgment is awaited at any gate.
 
 ### MG1 pass/fail criteria (all must pass; measured on **dev cases only**)
 
@@ -135,6 +139,11 @@ A09, H09, S08 and V10 run in parallel on 3 Nov evening, using the night-2 dev re
 | **S08** (A; S reviews) | Fix dev tool and generator defects found in the night-2 runs. Freeze C08 version, profile, generator revision and `pilot-0.1`. Regenerate the held-out set into the evaluator root and check it against `benchmarks/pilot/heldout_seal.json`. | `domain/`, `benchmarks/generator/` | `generate --check` passes; seal matches | S–M | Any generator change means a new dataset version → avoid |
 | **V10b** (A; V reviews) | Final protocol v1.0. Dev dry run of the full pipeline (coordinator → scorer → analysis) on 4 dev cases. Throughput measurement decides the repeat count (rule below). Human-scoring rubric `docs/evaluation/RUBRIC.md` and blind sheet generator (`benchmarks/evaluation/rubric.py`, which hides variant labels). | `docs/evaluation/*`, `benchmarks/evaluation/*` | Dry-run ledger, scores and tables regenerate end-to-end | M | Rubric ambiguity → adjudication rules written in advance |
 | **V09-h** (S, H teammates; 30–60 min) | Human spot-check of all 24 held-out numeric references (no model involved), recorded with reviewer names. It is a separate attestation; the status stays `INDEPENDENT_REFERENCE_VALIDATED`. | Private evaluator root, plus aggregate seal in docs | Signed spot-check record digest | S | Exposes held-out answers to teammates → they do not tune anything |
+
+**Proposal, 2 November 2026:** R = 3, because schedule no longer drives decisions. The value
+and the freeze itself remain undecided; Sushanth and Abhishek decide them together. The rule below stands
+until they do. Held-out runs now need `run_trials.py --held-out <freeze.json>`, and V0, SC, canaries and
+trial bundles run through the same coordinator (`docs/evaluation/PROTOCOL.md`).
 
 **Pre-declared repeat rule (decided at CP5 from the dev throughput, before any held-out run):**
 - If the dev V2 mean is ≤ 240 s, use **R = 2** for all 24 held-out cases (96 runs).

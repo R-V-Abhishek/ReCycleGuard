@@ -2,6 +2,7 @@
 
 import ast
 from pathlib import Path
+from types import SimpleNamespace
 from typing import get_args
 
 import pytest
@@ -10,7 +11,7 @@ from benchmarks.evaluation.oracle import ABSTENTIONS
 from recycleguard.contracts.core import EvidenceRef
 from recycleguard.contracts.results import WithheldScope
 from recycleguard.contracts.workflow import FindingProposal
-from recycleguard.workflow.finding_gate import gate_finding_proposals
+from recycleguard.workflow.finding_gate import gate_finding_proposals, reconciliation_settled
 
 CASE = "case_version:gate"
 OBSERVATION = EvidenceRef(
@@ -39,7 +40,7 @@ def gate(*proposals, clean=False, deterministic=()):
         proposals,
         allowed_refs=ALLOWED,
         deterministic_issue_types=deterministic,
-        reconciliation_clean=clean,
+        reconciliation_settled=clean,
         case_version_id=CASE,
         calculation_ids={"calculation:one"},
     )
@@ -104,10 +105,24 @@ def clean_proposal():
     )
 
 
+def test_shortfall_alone_does_not_block_a_clean_claim_but_pending_does():
+    def calculation(pending, shortfall="1459.0000"):
+        bucket = SimpleNamespace(
+            pending=SimpleNamespace(decimal=pending), shortfall=SimpleNamespace(decimal=shortfall)
+        )
+        return SimpleNamespace(calculation_id="calculation:one", bucket_results=[bucket])
+
+    assert reconciliation_settled(calculation("0.0000"), {"calculation:one"})
+    assert not reconciliation_settled(calculation("0.0001"), {"calculation:one"})
+    # A reconciliation this run never ran cannot settle anything.
+    assert not reconciliation_settled(calculation("0.0000"), {"calculation:other"})
+
+
 def test_clean_claim_needs_a_clean_reconciliation_and_no_other_finding():
     assert gate(clean_proposal())[1][0].reason == "CLEAN_NOT_ESTABLISHED"
     (finding,), _ = gate(clean_proposal(), clean=True)
     assert finding.calculation_refs == ["calculation:one"]
+    assert any("does not establish that the target was met" in s for s in finding.scope_limits)
     # Order must not matter: the other finding is proposed after the clean claim.
     accepted, rejected = gate(clean_proposal(), proposal(), clean=True)
     assert [f.issue_type for f in accepted] == ["F07_PAID_NO_TRANSFER"]

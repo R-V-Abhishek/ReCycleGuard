@@ -58,7 +58,7 @@ def test_exact_model_context_retains_the_actual_registry_and_result_references(w
         assert set(request["allowed_tools"]) == {"search_rules"}
         assert request["allowed_tools"]["search_rules"]["additionalProperties"] is False
         assert request["response_schema"]["required"] == ["plan", "action", "stop_reason"]
-        assert request["prior_stage_result_refs"]
+        assert request["prior_stage_observations"]
         assert len(state.result_refs) == 4  # Preflight, tool, draft and verification.
         for ref in state.result_refs:
             env.cases.kernel.blob_store.get(ref)

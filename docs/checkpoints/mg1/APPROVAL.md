@@ -6,6 +6,9 @@
   the prompt v6 reliability run (40 of 48 trials not FAILED, 83%).
 - **Acknowledgment basis:** the lead's own instruction ("Approve that"). Acknowledgment by Sampreeth,
   Sushanth or Vedantha is **not** asserted and has not been reported.
+- **Authority (added 2 November 2026):** Sushanth states that he and Abhishek control the project and
+  that no other approval is awaited. Sampreeth's and Vedantha's acknowledgment is therefore not required,
+  for MG1 or later gates. This does not claim they reviewed anything.
 
 ## What approval covers
 The real-model setup: pinned model and runtime, loopback server, host sandbox with probes

@@ -52,6 +52,7 @@ _ALLOWED = {
 
 
 _PROMPT_EVIDENCE_IDS = 50
+_PLAN_CALLS = {"plan", "plan_repair"}
 
 
 class GraphInput(TypedDict):
@@ -79,6 +80,30 @@ class ProviderUsage(BoundaryModel):
     cost_note: str | None = None
 
 
+def _unescaped(decision: str):
+    """Send a tool's JSON summary as JSON: nested strings double-escape it and cost prompt bytes.
+
+    Evidence cut at its byte bound is not valid JSON, so it stays a string and stays marked.
+    """
+    try:
+        value = json.loads(decision)
+    except ValueError:
+        return decision
+    if not isinstance(value, dict):
+        return decision
+    if "evidence_data_json" in value and not value.get("evidence_truncated"):
+        value["evidence_data"] = json.loads(value.pop("evidence_data_json"))
+    return value
+
+
+class RejectedAction(BoundaryModel):
+    """A proposed action refused before dispatch. The proposal stays in its model call record."""
+
+    allowed_operation: str
+    reason: str
+    model_call: str
+
+
 class WorkflowStop(ValueError):
     def __init__(self, reason, *, status="DRAFTING"):
         super().__init__(reason)
@@ -98,6 +123,7 @@ class WorkflowRunner:
         clock: Callable = lambda: datetime.now(UTC),
         model_run_validator: Callable[[RunSpec], None] | None = None,
         fixed_checks: list[tuple[str, dict]] | None = None,
+        plan_context: Callable[[], dict] | None = None,
     ):
         if not set(tools).issubset(_ALLOWED):
             raise ValueError("tool registry contains a prohibited operation")
@@ -105,6 +131,7 @@ class WorkflowRunner:
         self.tools, self.stages, self.clock = dict(tools), stages, clock
         self.model_run_validator = model_run_validator
         self.fixed_checks = fixed_checks
+        self.plan_context = plan_context
         self.kernel, self.blobs = cases.kernel, cases.kernel.blob_store
         self.store = GraphStore(self.kernel)
         checkpoint_path = Path(checkpoint_path)
@@ -729,7 +756,7 @@ class WorkflowRunner:
                             == raw.output.validated_output_or_null
                         )
                         if raw.status == "SUCCESS":
-                            schema = PlanProposal if name == "plan" else AssessmentProposal
+                            schema = PlanProposal if name in _PLAN_CALLS else AssessmentProposal
                             schema.model_validate_json(
                                 canonical_json_bytes(raw.output.validated_output_or_null)
                             )
@@ -881,8 +908,9 @@ class WorkflowRunner:
         result, _ = self._external(root, spec, name, "stage", spec, handler, cap)
         return result.stage_output
 
-    def _model(self, root, spec, initial, phase, body, cap):
+    def _model(self, root, spec, initial, phase, body, cap, *, name=None):
         response_model = PlanProposal if phase == "PLAN" else AssessmentProposal
+        label = phase if name is None else name.upper()
         blob = self.blobs.put(
             canonical_json_bytes(
                 {
@@ -907,7 +935,7 @@ class WorkflowRunner:
             prompt_template_digest=spec.prompt.digest,
             exact_request_blob=blob,
             context_manifest_id=(
-                f"context_manifest:{spec.run_id}:{initial.current_turn + 1}:{phase}"
+                f"context_manifest:{spec.run_id}:{initial.current_turn + 1}:{label}"
             ),
             allowed_tool_schema_digest=spec.tools.digest,
             response_schema_id=f"schema:{phase.lower()}",
@@ -922,10 +950,10 @@ class WorkflowRunner:
             max_total_tokens=spec.budgets.tokens_per_model_call,
         )
         self.store.archive(
-            self._ctx(root, spec, f"context_{phase}"), "graph.context", manifest, capability=cap
+            self._ctx(root, spec, f"context_{label}"), "graph.context", manifest, capability=cap
         )
         result, operation = self._external(
-            root, spec, phase.lower(), "model", request, self.port.invoke, cap
+            root, spec, name or phase.lower(), "model", request, self.port.invoke, cap
         )
         if result.status != "SUCCESS" or result.model_output is None:
             raise WorkflowStop("PROVIDER_FAILURE", status="FAILED")
@@ -991,10 +1019,13 @@ class WorkflowRunner:
     @staticmethod
     def _stage_view(stage):
         """IDs instead of full locators keep the prompt bounded; output_blob keeps everything."""
-        view = stage.model_dump(mode="json")
+        view = stage.model_dump(
+            mode="json", exclude={"output_blob", "service_operation_ids", "finding_revision_ids"}
+        )
         ids = [ref["ref_id"] for ref in view.pop("evidence_refs")]
         view["evidence_ref_ids"] = ids[:_PROMPT_EVIDENCE_IDS]
         view["evidence_refs_total"] = len(ids)
+        view["concise_decision"] = _unescaped(view["concise_decision"])
         return view
 
     @staticmethod
@@ -1006,7 +1037,9 @@ class WorkflowRunner:
         return view
 
     def _assessment_view(self, observation):
-        view = observation.model_dump(mode="json")
+        view = observation.model_dump(
+            mode="json", exclude={"raw_result_blob", "model_output", "stage_output"}
+        )
         if observation.stage_output is not None:
             view["stage_output"] = self._stage_view(observation.stage_output)
         return view
@@ -1035,13 +1068,17 @@ class WorkflowRunner:
             stop_reason=None,
         ), step + 1 == len(checks)
 
-    def _plan_proposal(self, root, spec, initial, cap):
+    def _plan_proposal(self, root, spec, initial, cap, *, previous_rejection=None):
         return self._model(
             root,
             spec,
             initial,
             "PLAN",
             {
+                **({} if self.plan_context is None else self.plan_context()),
+                **(
+                    {} if previous_rejection is None else {"previous_rejection": previous_rejection}
+                ),
                 "pending_findings": initial.pending_finding_ids,
                 "investigation_scope": (
                     "Assess supported allocation gaps and evidence qualifications in the "
@@ -1055,11 +1092,6 @@ class WorkflowRunner:
                     for ref in initial.result_refs[-2:]
                     if CallRecord.model_validate_json(self.blobs.get(ref)).stage_output is not None
                 ],
-                "prior_stage_result_refs": [
-                    ref.model_dump(mode="json") for ref in initial.result_refs
-                ],
-                "previous_assessment_refs": initial.assessment_refs,
-                "previous_plan_refs": initial.plan_refs,
                 "previous_plans": [
                     self._record(spec, ref, PlanRecord, "graph.plan.result").model_dump(mode="json")
                     for ref in initial.plan_refs[-2:]
@@ -1072,14 +1104,60 @@ class WorkflowRunner:
                 ],
             },
             cap,
+            name=None if previous_rejection is None else "plan_repair",
         )[0]
+
+    def _argument_rejection(self, action):
+        """Only a tool's own check; other malformed actions keep their later, stricter stops."""
+        binding = None if action is None else self.tools.get(action.allowed_operation)
+        if binding is None or binding.reject_arguments is None:
+            return None
+        try:
+            arguments = binding.arguments_model.model_validate_json(
+                canonical_json_bytes(action.typed_arguments)
+            )
+        except ValidationError:
+            return None
+        return binding.reject_arguments(arguments)
+
+    def _checked_plan_proposal(self, root, spec, initial, cap):
+        """Ask once more when arguments cannot run. Nothing is corrected on the model's behalf."""
+        proposal = self._plan_proposal(root, spec, initial, cap)
+        reason = self._argument_rejection(proposal.action)
+        if reason is None:
+            return proposal
+        self.store.archive(
+            self._ctx(root, spec, "rejected_action"),
+            "graph.action_rejected",
+            RejectedAction(
+                allowed_operation=proposal.action.allowed_operation,
+                reason=reason,
+                model_call="plan",
+            ),
+            capability=cap,
+        )
+        repaired = self._plan_proposal(root, spec, initial, cap, previous_rejection=reason)
+        reason = self._argument_rejection(repaired.action)
+        if reason is None:
+            return repaired
+        self.store.archive(
+            self._ctx(root, spec, "rejected_action_repair"),
+            "graph.action_rejected",
+            RejectedAction(
+                allowed_operation=repaired.action.allowed_operation,
+                reason=reason,
+                model_call="plan_repair",
+            ),
+            capability=cap,
+        )
+        raise WorkflowStop("PROVIDER_FAILURE", status="FAILED")
 
     def _investigate(self, root, spec, initial, cap):
         fixed = self.fixed_checks is not None
         if fixed:
             proposal, last_check = self._fixed_proposal(initial)
         else:
-            proposal = self._plan_proposal(root, spec, initial, cap)
+            proposal = self._checked_plan_proposal(root, spec, initial, cap)
         if proposal.action is None:
             self._plan(root, spec, proposal.plan, initial, cap)
             raise WorkflowStop(proposal.stop_reason)
@@ -1135,8 +1213,9 @@ class WorkflowRunner:
                 initial,
                 "ASSESS",
                 {
-                    "plan": plan.model_dump(mode="json"),
-                    "action": proposed.model_dump(mode="json"),
+                    # V1's plan is the same predeclared sequence for every check.
+                    **({} if fixed else {"plan": plan.model_dump(mode="json")}),
+                    "action": proposed.model_dump(mode="json", exclude={"plan_ref"}),
                     "observation": self._assessment_view(observation),
                 },
                 cap,

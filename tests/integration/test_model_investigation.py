@@ -101,8 +101,8 @@ def test_runtime_native_port_executes_actual_tools_without_support_promotion(nat
         posts = [body for method, _, body in backend.calls if method == "POST"]
         assert len(posts) == 2
         observation = assessment_payloads[0]["observation"]["stage_output"]
-        summary = json.loads(observation["concise_decision"])
-        evidence = json.loads(summary["evidence_data_json"])
+        summary = observation["concise_decision"]
+        evidence = summary["evidence_data"]
         assert not summary["evidence_truncated"]
         assert "untrusted data" in summary["trust"]
         assert evidence["buckets"][0]["required"]["decimal"] == "100.0000"

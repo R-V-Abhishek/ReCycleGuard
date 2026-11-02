@@ -28,9 +28,19 @@ V2 runs are labelled `V2_ADAPTIVE_REAL_MODEL` and V1 runs `V1_FIXED_RETRIEVAL_RE
 Model influence: reconciliation is deterministic in every variant. The model reaches a report only
 through `AssessmentProposal.finding_proposal`, accepted by `workflow/finding_gate.py`: citations must
 be evidence this run's tools returned, text has no digits or prohibited or authority wording, and a
-clean finding needs a clean reconciliation and no other finding. Deterministic findings win a family.
-Rejections are retained in `InvestigationReport.rejected_finding_proposals`. V0 and SC report only
-deterministic findings.
+clean finding needs a reconciliation from this run with nothing pending and no other finding. A clean
+finding means no fault was found, not that the target was met: a shortfall alone does not block it and
+stays stated in the reconciliation. Deterministic findings win a family. Rejections are retained in
+`InvestigationReport.rejected_finding_proposals`. V0 and SC report only deterministic findings.
+
+Refused actions: an adaptive action whose arguments cannot run (an observation id not in the case) is
+never dispatched or corrected. It is retained as `graph.action_rejected`, and the model is asked once
+more with the reason, at the cost of one model call from the same budget. A second refusal fails the run.
+
+Controls: V0 and SC run through the same coordinator with the protocol's `controls` field, once per
+case, because they are deterministic. Test adapters are enabled only for them and they receive no model
+configuration, so a control cannot be mistaken for a real-model run or the reverse. Both use the scripted
+port, so V0 records one scripted stop and SC two scripted replies; neither calls a model.
 
 ## 3. Metrics and denominators
 
@@ -80,10 +90,30 @@ behaviour and goes to A09 (dev-only tuning).
 
 ## 5. Trials (to be fixed at CP5)
 
-24 held-out cases x {V1, V2} x R repeats, plus V0 and SC. R = 2 if the dev V2 mean is
-<= 240 s, otherwise R = 1 plus a second repeat on a fixed 8-case family-stratified
-subset. The rule is applied before any held-out run. V1/V2 order alternates per case.
-Repeats are not independent samples; bootstraps resample cases with all their repeats.
+24 held-out cases x {V1, V2} x R repeats, plus V0 and SC.
+
+**R is undecided.** R = 3 is proposed, replacing the earlier throughput rule (R = 2 if the dev V2 mean is
+<= 240 s, otherwise R = 1 plus a second repeat on a fixed 8-case family-stratified subset), because time
+no longer drives the design. Sushanth and Abhishek decide it together at the freeze, before any held-out
+run. V1/V2 order alternates per case. Repeats are not independent samples; bootstraps resample cases
+with all their repeats.
+
+Held-out runs need `run_trials.py --held-out <freeze.json>`. It refuses to run unless the freeze verifies
+against the exact committed code, includes the real model, names this exact protocol by digest and names
+the held-out visible root. Development is the default and a fixture dry run can never use the flag.
+
+Development tuning uses the committed split `protocols/tuning-16.json`. `protocols/checking-8.json` is held
+back to check a tuned prompt and must not be used to tune. Both come from `scripts/make_dev_split.py`, which
+orders cases by a fixed digest within the single-family and combined strata, without using any result.
+
+Canaries: the protocol's `canaries` field names development cases to run at both ends of a session.
+`score_trials.py` compares status, stop reason, model calls, finding families and rejection reasons
+between the two ends, and against `canary_baseline` when given. A difference or a missing canary is
+reported as drift. Canaries are never scored.
+
+Each trial's audit root is sealed beside its result as `bundles/<sha256>.zip`, so
+`recorded_port.load_recordings` can replay its model calls. A replay is not a new trial and is not
+evidence of model quality. Bundles hold dossier data and stay on the machine.
 
 ## 6. Invalid trials and stop rules
 
@@ -96,6 +126,17 @@ failures, or the kill-switch file. Unfinished rows become NOT_RUN and are counte
 
 infrastructure, parser, tool, retrieval/applicability, model-schema, model-reasoning,
 verifier, budget-stop, timeout, oracle.
+
+`benchmarks/evaluation/taxonomy.py` gives each unsuccessful trial exactly one class from recorded
+outcomes, first match in this order: oracle, not-run (unfinished rows, counted separately), infrastructure,
+timeout, budget-stop, parser (any preflight stop that was not the correct outcome), model-schema, tool,
+verifier, retrieval/applicability (a missing rule-version or deadline scope), then model-reasoning.
+`model-reasoning` is the residual class, so it means "a reviewable report that did not match", and the
+human rubric, not this label, judges reasoning quality.
+
+The ledger records `BLOCKED` for `BLOCKED_OUTPUT`. It is terminal and scoreable, but it is not `SUCCESS`.
+`BLOCKED_INPUT` stays `SUCCESS` in the ledger, meaning the trial completed; the primary metric decides
+whether stopping there was right.
 
 ## 8. Scoring independence
 

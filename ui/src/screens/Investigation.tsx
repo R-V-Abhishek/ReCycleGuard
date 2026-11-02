@@ -11,6 +11,45 @@ import { applyEvents, emptyTrace, type TraceState } from "../state/traceStore";
 const TERMINAL = new Set(["COMPLETED", "FAILED", "CANCELLED", "BLOCKED_INPUT", "BLOCKED_OUTPUT"]);
 const PAUSED = new Set([...TERMINAL, "AWAITING_REVIEW"]);
 
+const LONG_RUN_SECONDS = 60;
+
+// Says what a stopped run means. It reports the recorded status and adds no compliance conclusion.
+export function stoppedRunNotice(status: string, stopReason: string | null): string | null {
+  if (status === "FAILED") {
+    return stopReason === "AUDIT_FAILURE"
+      ? "The audit record could not be verified, so this run stopped. Its output must not be relied on."
+      : "A model or tool call failed, or its result could not be accepted. Every attempt is kept in the timeline. A call with an uncertain outcome is not repeated automatically, so start a new run if you need another attempt.";
+  }
+  if (status === "BLOCKED_INPUT") {
+    return "The dossier could not be investigated, for example because declared pages are missing. No model call was made. Correct the dossier and start a new run.";
+  }
+  if (status === "BLOCKED_OUTPUT") {
+    return "The model proposed an action the workflow refused, so nothing ran for it. The refused proposal is kept in the timeline.";
+  }
+  if (stopReason === "BUDGET_EXHAUSTED") {
+    return "A budget ceiling stopped this run, so its checks may be incomplete. Any report is qualified accordingly.";
+  }
+  return null;
+}
+
+export function elapsedSeconds(from: string, now: number): number | null {
+  const started = Date.parse(from);
+  return Number.isNaN(started) ? null : Math.max(0, Math.floor((now - started) / 1000));
+}
+
+function RunProgress({ createdAt, updatedAt }: { createdAt: string; updatedAt: string }) {
+  const now = Date.now();
+  const elapsed = elapsedSeconds(createdAt, now);
+  const idle = elapsedSeconds(updatedAt, now);
+  if (elapsed === null) return null;
+  return (
+    <span className="muted small">
+      Running for {elapsed} s{idle === null ? "" : `; last recorded step ${idle} s ago`}.
+      {elapsed >= LONG_RUN_SECONDS && " A local model call can take minutes. Budget ceilings stop the run if it runs too long."}
+    </span>
+  );
+}
+
 type TraceAction = { type: "merge"; events: TraceEvent[] } | { type: "reset" };
 const traceReducer = (state: TraceState, action: TraceAction) =>
   action.type === "reset" ? emptyTrace : applyEvents(state, action.events);
@@ -188,7 +227,13 @@ function InvestigationRun({ runId }: { runId: string }) {
             )}
             <a className="button" href={href("runs", runId, "report")}>Report and review</a>
           </div>
+          {(job.status === "RUNNING" || job.status === "QUEUED") && !PAUSED.has(state.status) && (
+            <RunProgress createdAt={state.created_at} updatedAt={state.updated_at} />
+          )}
           {job.status === "FAILED" && job.detail && <div className="banner error prewrap">Worker failure: {job.detail}</div>}
+          {stoppedRunNotice(state.status, state.stop_reason) && (
+            <div className="banner error" role="status">{stoppedRunNotice(state.status, state.stop_reason)}</div>
+          )}
         </section>
       )}
 

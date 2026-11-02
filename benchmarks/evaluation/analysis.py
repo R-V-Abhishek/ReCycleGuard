@@ -5,6 +5,27 @@ from collections import defaultdict
 from collections.abc import Iterable
 
 
+def rate_interval(
+    rows: Iterable[dict], variant: str, *, resamples: int = 10000, seed: int
+) -> list[float] | None:
+    """95% percentile interval of one variant's success rate; whole cases are resampled."""
+    outcomes = defaultdict(list)
+    for row in rows:
+        if row["variant"] == variant:
+            outcomes[row["case_id"]].append(row["success"])
+    cases = sorted(outcomes)
+    if not cases:
+        return None
+
+    def rate(sample):
+        trials = [success for case in sample for success in outcomes[case]]
+        return sum(trials) / len(trials)
+
+    generator = random.Random(seed)
+    samples = sorted(rate(generator.choices(cases, k=len(cases))) for _ in range(resamples))
+    return [samples[int(0.025 * resamples)], samples[int(0.975 * resamples) - 1]]
+
+
 def paired_bootstrap(
     rows: Iterable[dict], a: str, b: str, *, resamples: int = 10000, seed: int
 ) -> dict:

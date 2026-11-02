@@ -3,7 +3,6 @@
 import hashlib
 import json
 from datetime import UTC, datetime
-from decimal import Decimal
 from pathlib import Path
 from typing import Literal
 
@@ -55,7 +54,11 @@ from recycleguard.retrieval.service import RetrievalService
 from recycleguard.review.service import ReviewService
 from recycleguard.storage import canonical_json_bytes
 from recycleguard.workflow import ToolBinding, WorkflowRunner, WorkflowStages
-from recycleguard.workflow.finding_gate import RejectedFindingProposal, gate_finding_proposals
+from recycleguard.workflow.finding_gate import (
+    RejectedFindingProposal,
+    gate_finding_proposals,
+    reconciliation_settled,
+)
 from recycleguard.workflow.ports import OutcomeUnknownError
 from recycleguard.workflow.runner import CallRecord
 from recycleguard.workflow.store import GraphStore
@@ -481,6 +484,15 @@ class InvestigationService:
         )
         if certificates:
             TraceRequest(certificate_ids=certificates)  # over the tool's limit fails before start
+        observations = self._priority_observations(spec)[:FIXED_INSPECTION_LIMIT]
+        return [
+            *(("search_rules", {"query": query}) for query in fixed_plan.rule_queries),
+            ("compute_reconciliation", {"bucket_ids": []}),
+            *([("trace_certificate", {"certificate_ids": certificates})] if certificates else []),
+            *([("inspect_evidence", {"observation_ids": observations})] if observations else []),
+        ]
+
+    def _priority_observations(self, spec):
         # A whole-dossier inspection overflows the per-call prompt bound. Unsupported states come
         # first because they carry the open questions; each report states how many were inspected.
         candidates = [
@@ -496,13 +508,7 @@ class InvestigationService:
                 item.observation_id,
             )
         )
-        observations = [item.observation_id for item in candidates[:FIXED_INSPECTION_LIMIT]]
-        return [
-            *(("search_rules", {"query": query}) for query in fixed_plan.rule_queries),
-            ("compute_reconciliation", {"bucket_ids": []}),
-            *([("trace_certificate", {"certificate_ids": certificates})] if certificates else []),
-            *([("inspect_evidence", {"observation_ids": observations})] if observations else []),
-        ]
+        return [item.observation_id for item in candidates]
 
     def _observations(self, spec):
         observations = []
@@ -607,15 +613,11 @@ class InvestigationService:
 
     def _gated_findings(self, spec, calculation, deterministic):
         allowed, calculation_ids, inspected, proposals = self._run_evidence(spec)
-        clean = calculation.calculation_id in calculation_ids and all(
-            Decimal(bucket.shortfall.decimal) == 0 and Decimal(bucket.pending.decimal) == 0
-            for bucket in calculation.bucket_results
-        )
         accepted, rejected = gate_finding_proposals(
             proposals,
             allowed_refs=allowed,
             deterministic_issue_types={finding.issue_type for finding in deterministic},
-            reconciliation_clean=clean,
+            reconciliation_settled=reconciliation_settled(calculation, calculation_ids),
             case_version_id=spec.case_snapshot.snapshot_id,
             calculation_ids={calculation.calculation_id},
         )
@@ -832,7 +834,7 @@ class InvestigationService:
                     "observations": [
                         {
                             "observation_id": o.observation_id,
-                            "locator": o.locator.model_dump(mode="json"),
+                            "locator": o.locator.model_dump(mode="json", exclude_none=True),
                             "validation_state": o.validation_state,
                             "parsed_fields": {
                                 key: value
@@ -863,6 +865,22 @@ class InvestigationService:
                     "observations_omitted": len(selected) > 20,
                 },
             )
+
+        def unknown_observations(request):
+            known = {item.observation_id for item in self._observations(spec)}
+            if set(request.observation_ids) <= known:
+                return None
+            return (
+                "observation_ids contained an id that is not in this case. Send [] or copy ids "
+                "exactly from inspectable_observation_ids."
+            )
+
+        def plan_context():
+            priority = self._priority_observations(spec)
+            return {
+                "inspectable_observation_ids": priority[:FIXED_INSPECTION_LIMIT],
+                "inspectable_observations_total": len(self._observations(spec)),
+            }
 
         def search(context, request):
             child = self.foundation._context(context, "retrieval")
@@ -1054,7 +1072,7 @@ class InvestigationService:
             self.settings,
             model_port=port,
             tools={
-                "inspect_evidence": ToolBinding(InspectRequest, inspect),
+                "inspect_evidence": ToolBinding(InspectRequest, inspect, unknown_observations),
                 "lookup_locator": ToolBinding(LocatorRequest, locator),
                 "trace_certificate": ToolBinding(TraceRequest, trace),
                 "compute_reconciliation": ToolBinding(ReconcileRequest, reconcile),
@@ -1067,6 +1085,7 @@ class InvestigationService:
             fixed_checks=None
             if configuration.fixed_plan is None
             else self._fixed_checks(spec, configuration.fixed_plan),
+            plan_context=plan_context,
         )
         runner.index = index
         return runner

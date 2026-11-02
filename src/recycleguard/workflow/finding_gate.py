@@ -3,6 +3,7 @@
 import hashlib
 import re
 from collections.abc import Iterable, Mapping
+from decimal import Decimal
 from typing import Literal, get_args
 
 from recycleguard.contracts.core import BoundaryModel, EvidenceRef
@@ -110,8 +111,22 @@ def _finding(
             evidence_refs=refs,
         ),
         action_owner_ref=None,
-        scope_limits=["Model proposal; not a verified determination."],
+        scope_limits=[
+            "Model proposal; not a verified determination.",
+            *(
+                ["No fault found within scope; this does not establish that the target was met."]
+                if proposal.issue_type == _CLEAN
+                else []
+            ),
+        ],
         supersedes_finding_revision_id=None,
+    )
+
+
+def reconciliation_settled(calculation, run_calculation_ids: Iterable[str]) -> bool:
+    """This run's reconciliation has nothing pending. A shortfall alone is not a fault."""
+    return calculation.calculation_id in set(run_calculation_ids) and all(
+        Decimal(bucket.pending.decimal) == 0 for bucket in calculation.bucket_results
     )
 
 
@@ -120,14 +135,15 @@ def gate_finding_proposals(
     *,
     allowed_refs: Mapping[str, EvidenceRef],
     deterministic_issue_types: Iterable[str],
-    reconciliation_clean: bool,
+    reconciliation_settled: bool,
     case_version_id: str,
     calculation_ids: Iterable[str] = (),
 ) -> tuple[list[FindingRecord], list[RejectedFindingProposal]]:
     """Accept at most one finding per family. Deterministic findings always win a family.
 
-    A clean claim is checked last: it needs a clean reconciliation from this run and no other
-    finding, whichever order the model proposed them in.
+    A clean claim is checked last: it needs a reconciliation from this run with nothing pending
+    and no other finding, whichever order the model proposed them in. It means no fault was found.
+    It does not mean the target was met; a shortfall stays in the reconciliation.
     """
     taken = set(deterministic_issue_types)
     calculations = set(calculation_ids)
@@ -138,7 +154,11 @@ def gate_finding_proposals(
         reason = _rejection(proposal, allowed_refs)
         if reason is None and proposal.issue_type in taken:
             reason = "DUPLICATE_ISSUE_TYPE"
-        if reason is None and proposal.issue_type == _CLEAN and (taken or not reconciliation_clean):
+        if (
+            reason is None
+            and proposal.issue_type == _CLEAN
+            and (taken or not reconciliation_settled)
+        ):
             reason = "CLEAN_NOT_ESTABLISHED"
         if reason is not None:
             rejected.append(RejectedFindingProposal(proposal=proposal, reason=reason))

@@ -11,6 +11,8 @@ from recycleguard.contracts.workflow import RunSpec, StageOutcome
 class ToolBinding:
     arguments_model: type[BoundaryModel]
     handler: Callable[[CommandContext, BoundaryModel], ServiceResult[StageOutcome]]
+    # Why arguments cannot be dispatched, so the model is asked again instead of a futile retry.
+    reject_arguments: Callable[[BoundaryModel], str | None] | None = None
 
 
 @dataclass(frozen=True)

@@ -1,14 +1,19 @@
 """Run a frozen trial protocol: one process and one fresh set of roots per attempt.
 
 Evaluator-only. Rerunning with the same output directory resumes; a different protocol is refused.
-Creating ``<output>/KILL`` stops the schedule before the next trial. Development cases only.
+Creating ``<output>/KILL`` stops the schedule before the next trial. Development cases only, unless
+``--held-out`` names a freeze manifest that verifies against this exact code and protocol.
 
     uv run scripts/run_trials.py <protocol.json> <output-dir> --config <...> --venv <wheel-venv>
     uv run scripts/run_trials.py <protocol.json> <output-dir> --config <...> --isolation-disclosed
     uv run scripts/run_trials.py <protocol.json> <output-dir> --fixture-model   # dry run, no model
+    uv run scripts/run_trials.py <protocol.json> <output-dir> --config <...> --venv <wheel-venv> \
+        --held-out <freeze.json>
 
 Protocol: {"protocol_version": "...", "case_ids": ["case_..."], "repeats": 1,
 "variants": ["FIXED_RETRIEVAL", "ADAPTIVE"], "wall_seconds": 25200, "tokens": 2000000}
+Optional: "controls": ["V0", "SC"] (one deterministic run per case) and "canaries": ["case_..."]
+(development cases run at both ends of the session, compared by score_trials and never scored).
 """
 
 import argparse
@@ -19,20 +24,26 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from benchmarks.evaluation.trials import (
+REPOSITORY = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPOSITORY))  # evaluator code is not part of the installed wheel
+
+from benchmarks.evaluation.bundles import write_bundle  # noqa: E402
+from benchmarks.evaluation.freeze import verify_freeze  # noqa: E402
+from benchmarks.evaluation.trials import (  # noqa: E402
+    CANARY,
+    CONTROLS,
     Caps,
     Coordinator,
     Ledger,
     TrialOutcome,
-    build_schedule,
+    protocol_schedule,
     verify_seals,
 )
 
-REPOSITORY = Path(__file__).resolve().parents[1]
 VISIBLE_FIXTURES = REPOSITORY / "tests/fixtures/visible"
 ORIGINALS = (
     VISIBLE_FIXTURES / "h04/acquired_originals/e-waste_rules_2022.pdf",
@@ -43,6 +54,7 @@ CHILD_TIMEOUT_SECONDS = 1200
 KEPT_ENVIRONMENT = {"PATH", "PYTHONPATH", "SYSTEMROOT", "TEMP", "TMP", "HOME", "VIRTUAL_ENV"}
 # A run that stopped itself is a valid result to score; only a crash may be attempted again.
 RUN_FAILED = {"FAILED"}
+RUN_BLOCKED = {"BLOCKED_OUTPUT"}
 FIXTURE, DISCLOSED, SANDBOXED = (
     "FIXTURE_NOT_EVIDENCE",
     "LOCAL_MODEL_COOPERATIVE_ISOLATION",
@@ -57,6 +69,7 @@ class Launch:
     backend: str
     config_path: Path
     python: Path | None = None
+    fixtures: Path = VISIBLE_FIXTURES
 
 
 def freeze(protocol_path, output):
@@ -87,12 +100,41 @@ def require_development_cases(case_ids):
         raise SystemExit(f"not development cases: {unknown}")
 
 
-def prepare_attempt(spec, attempt):
+def held_out_case_ids():
+    from benchmarks.generator.pilot_cases import DEV, build_pilot_cases
+
+    return {f"case_{case.world.case_tag}" for case in build_pilot_cases() if case.split != DEV}
+
+
+def require_verified_freeze(freeze_path, protocol_path):
+    """Refuse everything but an exact, committed, approved freeze. Returns the held-out root."""
+    freeze = json.loads(freeze_path.read_bytes())
+    problems = verify_freeze(REPOSITORY, freeze, strict_commit=True)
+    values = freeze.get("values", {})
+    if freeze.get("scope") != "INCLUDES_REAL_MODEL":
+        problems.append("freeze scope does not include the real model")
+    if values.get("protocol_sha256") != hashlib.sha256(protocol_path.read_bytes()).hexdigest():
+        problems.append("freeze does not name this exact protocol")
+    root = values.get("held_out_visible_root")
+    if not root or not Path(root).is_dir():
+        problems.append("freeze does not name an existing held-out visible root")
+    if problems:
+        raise SystemExit("held-out run refused: " + "; ".join(problems))
+    return Path(root).resolve()
+
+
+def require_held_out_cases(case_ids):
+    unknown = sorted(set(case_ids) - held_out_case_ids())
+    if unknown:
+        raise SystemExit(f"not held-out cases: {unknown}")
+
+
+def prepare_attempt(spec, attempt, fixtures=VISIBLE_FIXTURES):
     """A visible root holding only this case and the two public originals."""
     visible, runtime, program = attempt / "visible", attempt / "runtime", attempt / "program"
-    shutil.copytree(
-        VISIBLE_FIXTURES / spec.case_id, visible / "fixtures" / spec.case_id, symlinks=False
-    )
+    # A canary is always a development case, whichever cases the session scores.
+    source = VISIBLE_FIXTURES if spec.role == CANARY else fixtures
+    shutil.copytree(source / spec.case_id, visible / "fixtures" / spec.case_id, symlinks=False)
     (visible / "originals").mkdir()
     for original in ORIGINALS:
         shutil.copy2(original, visible / "originals" / original.name)
@@ -116,28 +158,53 @@ def sandbox_reads(config_path, python):
             check=True,
         ).stdout.strip()
     )
+    # The configuration and runtime lock are single files. Granting their directories would expose
+    # everything beside them: the data root and the local-model tooling.
     return (
         python.parent.parent.resolve(),
         home.resolve(),
-        config_path.parent.resolve(),
+        config_path.resolve(),
         config.model_path.resolve(),
-        config.runtime_lock_path.resolve().parent,
+        config.runtime_lock_path.resolve(),
     ), urlsplit(config.endpoint).port
 
 
-def forbidden_paths():
-    """Existing evaluator paths the probes must be refused. A missing one would prove nothing."""
-    candidates = (
+def forbidden_paths(output=None):
+    """Existing evaluator paths the probes must be refused. A missing one would prove nothing.
+
+    Each evaluator tree has its own probe, and so do this session's results: a later trial must
+    not read an earlier one.
+    """
+    candidates = [
+        REPOSITORY / "benchmarks",
         REPOSITORY / "benchmarks/evaluation",
+        REPOSITORY / "benchmarks/generator",
+        REPOSITORY / "benchmarks/heldout",
         REPOSITORY / "benchmarks/hidden",
+        REPOSITORY / "benchmarks/pilot",
+        REPOSITORY / "docs/evaluation",
+        REPOSITORY / "docs/checkpoints",
+        REPOSITORY / "scripts",
+        REPOSITORY / "tests",
         REPOSITORY / "tests/fixtures/expected",
         REPOSITORY / ".git",
-    )
+    ]
+    if output is not None:
+        candidates += [output / "ledger.jsonl", output / "results", output / "bundles"]
     return [path for path in candidates if path.exists()]
 
 
-def child_command(launch, spec, attempt, budgets=None):
-    visible, runtime, program = prepare_attempt(spec, attempt)
+def require_separate_grants(reads, forbidden):
+    """A read grant holding or held by an evaluator path would make its probe fail or lie."""
+    for grant in reads:
+        for path in forbidden:
+            path = path.resolve()
+            if grant == path or grant in path.parents or path in grant.parents:
+                raise SystemExit(f"sandbox read grant {grant} overlaps evaluator path {path}")
+
+
+def child_command(launch, spec, attempt, budgets=None, output=None):
+    visible, runtime, program = prepare_attempt(spec, attempt, launch.fixtures)
     arguments = [] if budgets is None else ["--budgets", json.dumps(budgets)]
     arguments += [
         "--case",
@@ -148,9 +215,10 @@ def child_command(launch, spec, attempt, budgets=None):
         str(visible.resolve()),
         "--runtime",
         str(runtime.resolve()),
-        "--config",
-        str(launch.config_path),
     ]
+    # A control has no model, so it is never told where one is.
+    if spec.variant not in CONTROLS:
+        arguments += ["--config", str(launch.config_path)]
     if launch.backend != SANDBOXED:
         environment = {k: v for k, v in os.environ.items() if k.upper() in KEPT_ENVIRONMENT}
         return [sys.executable, str(program), *arguments], environment, runtime
@@ -158,12 +226,14 @@ def child_command(launch, spec, attempt, budgets=None):
     from recycleguard.host_sandbox import sandbox_command, sandbox_environment, sandbox_profile
 
     reads, port = sandbox_reads(launch.config_path, launch.python)
+    forbidden = forbidden_paths(output)
+    require_separate_grants(reads, forbidden)
     profile = attempt / "sandbox.sb"
     profile.write_text(
         sandbox_profile(visible, runtime, (program.parent.resolve(), *reads), model_port=port),
         "utf-8",
     )
-    for path in forbidden_paths():
+    for path in forbidden:
         arguments += ["--forbidden", str(path)]
     arguments.append("--sandboxed")
     return (
@@ -190,7 +260,7 @@ def trial_runner(output, launch, budgets=None):
         trial_dir.mkdir(parents=True, exist_ok=True)
         attempt = trial_dir / f"attempt-{sum(1 for _ in trial_dir.iterdir()) + 1}"
         attempt.mkdir()
-        command, environment, runtime = child_command(launch, spec, attempt, budgets)
+        command, environment, runtime = child_command(launch, spec, attempt, budgets, output)
         with (attempt / "child.log").open("wb") as log:
             done = subprocess.run(
                 command,
@@ -206,23 +276,37 @@ def trial_runner(output, launch, budgets=None):
         if done.returncode != 0 or not result_path.is_file():
             return TrialOutcome(status="INFRA_FAILED", detail=f"child exit {done.returncode}")
         digest, result = seal(result_path, results)
+        detail = f"{result['status']}/{result['stop_reason']}"
+        try:
+            bundle = write_bundle(runtime / "root", output / "bundles")
+        except OSError as exc:  # the sealed result stands; only its replay material is missing
+            bundle, detail = None, f"{detail}; bundle not written: {type(exc).__name__}"
         return TrialOutcome(
-            status="FAILED" if result["status"] in RUN_FAILED else "SUCCESS",
+            status="FAILED"
+            if result["status"] in RUN_FAILED
+            else "BLOCKED"
+            if result["status"] in RUN_BLOCKED
+            else "SUCCESS",
             tokens=result["budget"]["observed_tokens"],
-            detail=f"{result['status']}/{result['stop_reason']}",
+            detail=detail,
             result_digest=digest,
+            bundle_digest=bundle,
         )
 
     return run
 
 
-def coordinate(protocol_path, output, launch):
+def coordinate(protocol_path, output, launch, *, held_out=None):
     output = output.resolve()
     protocol = freeze(protocol_path, output)
-    require_development_cases(protocol["case_ids"])
-    schedule = build_schedule(
-        protocol["case_ids"], tuple(protocol["variants"]), protocol["repeats"]
-    )
+    require_development_cases(protocol.get("canaries", ()))
+    if held_out is None:
+        require_development_cases(protocol["case_ids"])
+    else:
+        launch = replace(launch, fixtures=require_verified_freeze(held_out, protocol_path))
+        require_held_out_cases(protocol["case_ids"])
+        (output / "freeze.json").write_bytes(held_out.read_bytes())
+    schedule = protocol_schedule(protocol)
     # Result files carry the runtime's variant label even on the fake, so record the backend here.
     (output / "backend.txt").write_text(launch.backend + "\n", "utf-8")
     summary = Coordinator(
@@ -286,14 +370,17 @@ def main():
     parser.add_argument("--venv", type=Path, help="venv holding only the installed wheel")
     parser.add_argument("--isolation-disclosed", action="store_true")
     parser.add_argument("--fixture-model", action="store_true")
+    parser.add_argument("--held-out", type=Path, help="verified CP5 freeze manifest")
     arguments = parser.parse_args()
     if arguments.fixture_model:
+        if arguments.held_out is not None:
+            parser.error("a fixture dry run can never use held-out cases")
         with_fixture_model(arguments.protocol, arguments.output)
     elif arguments.config is None:
         parser.error("give --config or --fixture-model")
     elif arguments.isolation_disclosed:
         launch = Launch(DISCLOSED, arguments.config.resolve())
-        coordinate(arguments.protocol, arguments.output, launch)
+        coordinate(arguments.protocol, arguments.output, launch, held_out=arguments.held_out)
     else:
         from recycleguard.host_sandbox import SANDBOX_EXEC
 
@@ -305,7 +392,7 @@ def main():
         launch = Launch(
             SANDBOXED, arguments.config.resolve(), arguments.venv.resolve() / "bin/python"
         )
-        coordinate(arguments.protocol, arguments.output, launch)
+        coordinate(arguments.protocol, arguments.output, launch, held_out=arguments.held_out)
 
 
 if __name__ == "__main__":

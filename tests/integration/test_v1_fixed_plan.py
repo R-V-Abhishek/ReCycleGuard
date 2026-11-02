@@ -183,6 +183,78 @@ def test_adaptive_run_also_uses_the_gate(native, monkeypatch):
     assert "F07_PAID_NO_TRANSFER" in issue_types
 
 
+def inspect_plan(observation_ids):
+    step = plan(operation="inspect_evidence").output
+    step["action"]["typed_arguments"] = {"observation_ids": observation_ids}
+    return step
+
+
+def rejected_actions(service, spec):
+    return [
+        json.loads(service.blobs.get(event.payload_blob))
+        for event in service.kernel.list_stream_events(f"stream:{spec.run_id}")
+        if event.event_type == "graph.action_rejected.result"
+    ]
+
+
+def test_invented_observation_id_asks_the_model_again_and_never_dispatches(native, monkeypatch):
+    keep_going = assess(verdict="UNKNOWN", disposition="ABSTAIN").output
+    plans = []
+
+    def respond(payload):
+        if payload["phase"] == "ASSESS":
+            return keep_going
+        plans.append(payload)
+        if len(plans) == 1:
+            return inspect_plan(["obs:invented"])
+        return inspect_plan(payload["inspectable_observation_ids"][:1])
+
+    spec, state, _, operations = run(native, monkeypatch, respond, fixed=False)
+    assert state.status == "AWAITING_REVIEW"
+    assert "previous_rejection" not in plans[0] and plans[0]["inspectable_observation_ids"]
+    assert "obs:invented" not in plans[1]["previous_rejection"]
+    assert operations == ["inspect_evidence"]
+    assert state.budget.tool_calls == 1 and state.budget.model_calls == 3
+    assert [item["model_call"] for item in rejected_actions(native[0], spec)] == ["plan"]
+
+
+def test_invented_id_after_the_repair_fails_without_correcting_the_model(native, monkeypatch):
+    def respond(payload):
+        return inspect_plan(["obs:invented"])
+
+    spec, state, _, operations = run(native, monkeypatch, respond, fixed=False)
+    assert state.status == "FAILED" and state.budget.tool_calls == 0 and not operations
+    assert [item["model_call"] for item in rejected_actions(native[0], spec)] == [
+        "plan",
+        "plan_repair",
+    ]
+
+
+def test_clean_claim_is_rejected_while_credits_are_pending(native, monkeypatch):
+    service = native[0]
+    buckets = []
+
+    def respond(payload):
+        stage = payload["observation"]["stage_output"]
+        if stage["calculation_ids"]:
+            buckets.extend(stage["concise_decision"]["evidence_data"]["buckets"])
+            return assess_with(
+                proposal(
+                    stage["calculation_ids"],
+                    issue_type="F01_CLEAN_BASELINE",
+                    advisory_status="RECONCILED_WITHIN_SCOPE",
+                    next_action_kind="NO_FURTHER_ACTION",
+                )
+            )
+        return assess(verdict="UNKNOWN", disposition="CONTINUE").output
+
+    spec, _, _, _ = run(native, monkeypatch, respond)
+    current = service.latest_report(spec.run_id)
+    assert buckets and buckets[0]["pending"]["decimal"] != "0.0000"
+    assert all(f.issue_type != "F01_CLEAN_BASELINE" for f in current.findings)
+    assert {item.reason for item in current.rejected_finding_proposals} == {"CLEAN_NOT_ESTABLISHED"}
+
+
 def test_plan_after_a_whole_dossier_inspection_stays_within_the_prompt_bound(native, monkeypatch):
     inspect = plan(operation="inspect_evidence").output
     inspect["action"]["typed_arguments"] = {"observation_ids": []}

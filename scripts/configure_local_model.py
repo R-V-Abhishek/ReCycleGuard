@@ -1,14 +1,21 @@
-"""Write explicit machine-local inference configuration after the pinned download."""
+"""Write explicit machine-local inference configuration after the pinned download.
+
+``--constrained`` writes a separate configuration whose pin records the constrained server mode.
+"""
 
 import hashlib
+import sys
 from pathlib import Path
 
-from recycleguard.local_model import LocalModelConfig
+from recycleguard.local_model import CONSTRAINED_FLAG, SERVER_FLAGS, LocalModelConfig
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 def main():
+    constrained = sys.argv[1:] == ["--constrained"]
+    if sys.argv[1:] and not constrained:
+        raise SystemExit("usage: configure_local_model.py [--constrained]")
     model = ROOT / ".recycleguard/models/qwen3.5-9b-4bit"
     manifest = model / "download-manifest.json"
     lock = ROOT / "tools/local-model/uv.lock"
@@ -24,8 +31,10 @@ def main():
         max_output_tokens=1024,
         max_total_tokens=32768,
         timeout_seconds=180.0,
+        server_flags=[*SERVER_FLAGS, *([CONSTRAINED_FLAG] if constrained else [])],
     )
-    target = ROOT / ".recycleguard/local-model.json"
+    name = "local-model-constrained.json" if constrained else "local-model.json"
+    target = ROOT / ".recycleguard" / name
     target.write_text(config.model_dump_json(indent=2) + "\n", encoding="utf-8")
     print(f"Wrote explicit local backend configuration: {target}")
 

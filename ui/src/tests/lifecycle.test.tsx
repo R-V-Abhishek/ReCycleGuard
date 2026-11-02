@@ -6,7 +6,7 @@ import { preparedContext } from "../components/PromptInspector";
 import { useAction, useLoad } from "../components/common";
 import { Connect } from "../screens/Connect";
 import { Dossiers } from "../screens/Dossiers";
-import { Investigation } from "../screens/Investigation";
+import { elapsedSeconds, Investigation, stoppedRunNotice } from "../screens/Investigation";
 import { StartRun } from "../screens/StartRun";
 import { SessionContext } from "../state/session";
 
@@ -210,6 +210,36 @@ it("does not subscribe past a missing snapshot sequence", async () => {
   expect(streaming).not.toHaveBeenCalled();
 });
 
+
+it("explains a failed run and keeps the recorded status", async () => {
+  const client = clientFixture();
+  const failed = runView("run:one", "FAILED");
+  vi.spyOn(client, "run").mockResolvedValue({ ...failed,
+    state: { ...failed.state, stop_reason: "PROVIDER_FAILURE" },
+    job: { ...failed.job, status: "STOPPED" } });
+  render(session(client, <Investigation runId="run:one" />));
+  expect(await screen.findByText(/uncertain outcome is not repeated automatically/)).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Request cancellation" })).toBeNull();
+});
+
+it("tells the user a long run is still working", async () => {
+  const client = clientFixture();
+  const running = runView();
+  const longAgo = new Date(Date.now() - 300_000).toISOString();
+  vi.spyOn(client, "run").mockResolvedValue({ ...running,
+    state: { ...running.state, created_at: longAgo, updated_at: longAgo } });
+  render(session(client, <Investigation runId="run:one" />));
+  expect(await screen.findByText(/A local model call can take minutes/)).toBeTruthy();
+});
+
+it("does not invent a duration from a missing timestamp or a notice for a healthy run", () => {
+  expect(elapsedSeconds("", 1000)).toBeNull();
+  expect(elapsedSeconds("1970-01-01T00:00:10Z", 15_000)).toBe(5);
+  expect(stoppedRunNotice("AWAITING_REVIEW", "NO_NEW_EVIDENCE")).toBeNull();
+  expect(stoppedRunNotice("BLOCKED_INPUT", null)).toMatch(/No model call was made/);
+  expect(stoppedRunNotice("BLOCKED_OUTPUT", null)).toMatch(/refused/);
+  expect(stoppedRunNotice("AWAITING_REVIEW", "BUDGET_EXHAUSTED")).toMatch(/budget ceiling/i);
+});
 
 it("offers only server-enabled execution modes before dispatch", async () => {
   const client = clientFixture();

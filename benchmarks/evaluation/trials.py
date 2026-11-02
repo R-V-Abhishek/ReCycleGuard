@@ -17,8 +17,14 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
-TERMINAL = {"SUCCESS", "FAILED", "NOT_RUN"}
-Status = Literal["STARTED", "SUCCESS", "FAILED", "INFRA_FAILED", "INTERRUPTED", "NOT_RUN"]
+TERMINAL = {"SUCCESS", "BLOCKED", "FAILED", "NOT_RUN"}
+Status = Literal[
+    "STARTED", "SUCCESS", "BLOCKED", "FAILED", "INFRA_FAILED", "INTERRUPTED", "NOT_RUN"
+]
+CONTROLS = ("V0", "SC")
+CONTROL_REPEAT = 1
+TRIAL, CANARY = "TRIAL", "CANARY"
+SEALED_FILES = (("result_digest", "results/{}.json"), ("bundle_digest", "bundles/{}.zip"))
 
 
 class TrialSpec(BaseModel):
@@ -28,42 +34,85 @@ class TrialSpec(BaseModel):
     variant: str
     repeat: int
     position: int
+    role: Literal["TRIAL", "CANARY"] = TRIAL
 
 
 class TrialOutcome(BaseModel):
-    """What a runner reports. ``tokens`` stays None when the provider did not report it."""
+    """What a runner reports. ``tokens`` stays None when the provider did not report it.
+
+    BLOCKED is a run the workflow itself refused to complete: a scoreable result, not a success.
+    """
 
     model_config = ConfigDict(extra="forbid", frozen=True)
-    status: Literal["SUCCESS", "FAILED", "INFRA_FAILED"]
+    status: Literal["SUCCESS", "BLOCKED", "FAILED", "INFRA_FAILED"]
     tokens: int | None = None
     detail: str = ""
     result_digest: str | None = None
+    bundle_digest: str | None = None
 
 
 def build_schedule(
-    case_ids: Iterable[str], variants: tuple[str, str], repeats: int
+    case_ids: Iterable[str],
+    variants: tuple[str, str],
+    repeats: int,
+    *,
+    controls: Iterable[str] = (),
+    canaries: Iterable[str] = (),
 ) -> list[TrialSpec]:
-    """Repeat-major order; the two variants alternate which runs first from case to case."""
-    cases = list(case_ids)
-    if len(set(cases)) != len(cases):
+    """Repeat-major order; the two variants alternate which runs first from case to case.
+
+    Controls are deterministic, so they run once per case after the real-model trials. A canary
+    is a development case run at both ends of a session to expose drift; it is never scored.
+    """
+    cases, controls, canaries = list(case_ids), tuple(controls), list(canaries)
+    if len(set(cases)) != len(cases) or len(set(canaries)) != len(canaries):
         raise ValueError("case ids must be unique")
     if len(variants) != 2 or len(set(variants)) != 2 or repeats < 1:
         raise ValueError("two distinct variants and at least one repeat are required")
+    if not set(controls) <= set(CONTROLS) or len(set(controls)) != len(controls):
+        raise ValueError("controls must be distinct values of V0 and SC")
+    if set(canaries) & set(cases):
+        raise ValueError("a canary case cannot also be a scored case")
     schedule = []
+
+    def add(case, variant, repeat, label, role=TRIAL):
+        schedule.append(
+            TrialSpec(
+                trial_id=f"{case}|{variant}|{label}",
+                case_id=case,
+                variant=variant,
+                repeat=repeat,
+                position=len(schedule),
+                role=role,
+            )
+        )
+
+    def add_canaries(label):
+        for case in canaries:
+            for variant in variants:
+                add(case, variant, CONTROL_REPEAT, f"canary-{label}", CANARY)
+
+    add_canaries("start")
     for repeat in range(1, repeats + 1):
         for index, case in enumerate(cases):
             ordered = variants if (index + repeat) % 2 == 0 else variants[::-1]
             for variant in ordered:
-                schedule.append(
-                    TrialSpec(
-                        trial_id=f"{case}|{variant}|r{repeat}",
-                        case_id=case,
-                        variant=variant,
-                        repeat=repeat,
-                        position=len(schedule),
-                    )
-                )
+                add(case, variant, repeat, f"r{repeat}")
+    for case in cases:
+        for control in controls:
+            add(case, control, CONTROL_REPEAT, f"r{CONTROL_REPEAT}")
+    add_canaries("end")
     return schedule
+
+
+def protocol_schedule(protocol: dict) -> list[TrialSpec]:
+    return build_schedule(
+        protocol["case_ids"],
+        tuple(protocol["variants"]),
+        protocol["repeats"],
+        controls=protocol.get("controls", ()),
+        canaries=protocol.get("canaries", ()),
+    )
 
 
 class Ledger:
@@ -95,15 +144,16 @@ def verify_seals(output: Path) -> int:
     """Every recorded digest must match its stored result. Returns the number checked."""
     checked = 0
     for row in Ledger(output / "ledger.jsonl").rows():
-        digest = row.get("result_digest")
-        if digest is None:
-            continue
-        stored = output / "results" / f"{digest}.json"
-        if not stored.is_file():
-            raise ValueError(f"sealed result is missing: {row['trial_id']}")
-        if hashlib.sha256(stored.read_bytes()).hexdigest() != digest:
-            raise ValueError(f"sealed result changed: {row['trial_id']}")
-        checked += 1
+        for key, stored_as in SEALED_FILES:
+            digest = row.get(key)
+            if digest is None:
+                continue
+            stored = output / stored_as.format(digest)
+            if not stored.is_file():
+                raise ValueError(f"sealed result is missing: {row['trial_id']}")
+            if hashlib.sha256(stored.read_bytes()).hexdigest() != digest:
+                raise ValueError(f"sealed result changed: {row['trial_id']}")
+            checked += 1
     return checked
 
 
@@ -194,6 +244,7 @@ class Coordinator:
                     "tokens": outcome.tokens,
                     "detail": outcome.detail,
                     "result_digest": outcome.result_digest,
+                    "bundle_digest": outcome.bundle_digest,
                 }
             )
             completed += 1
