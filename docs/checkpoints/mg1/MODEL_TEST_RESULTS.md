@@ -119,3 +119,39 @@ Scores: `runs/reliability/scores/` (oracle not opened beyond `score_trials.py`).
 | Kill switch | met |
 | Determinism / repeat agreement | **not run** |
 | Data safety (isolation) | met (test 1; evidence files per trial) |
+
+## Test 6: reliability with prompt v6 (`runs/reliability-v6`, same 48 trials as test 5, 5153 s, 603,867 tokens)
+Prompt `u01_non_thinking_v6` (dev-only change targeting the three v5 failure causes). Same protocol, cases
+and wheel build otherwise. Scores: `runs/reliability-v6/scores/` (oracle not opened beyond `score_trials.py`).
+
+| Measure | V1 v5 | V1 v6 | V2 v5 | V2 v6 |
+| --- | --- | --- | --- | --- |
+| Not FAILED (review or qualified stop) | 21/24 | 24/24 | 8/24 | 16/24 |
+| AWAITING_REVIEW | - | 22 | - | 12 |
+| BLOCKED_INPUT (expected PREFLIGHT_BLOCK) | 2 | 2 | 2 | 2 |
+| BLOCKED_OUTPUT (EXPERT_REVIEW_REQUIRED) | - | 0 | - | 2 |
+| FAILED / PROVIDER_FAILURE | 3 | 0 | 16 | 8 |
+| Wall seconds mean / p95 | 177 / 238 | 154 / 181 | 60 / 106 | 61 / 87 |
+| `success` (scorer) | 2/24 | 2/24 | 1/24 | 1/24 |
+
+- All 48 seals verified; 0 not scored; 624 of 624 isolation probes denied (48 trials x 13).
+- All 8 V2 failures have one cause: `inspect_evidence` still names observation ids "not in frozen case"
+  (`PROVIDER_INVALID_OUTPUT`, retried, rejected again). No invalid `abstention_reason` or `issue_type`
+  failures occurred; the V1 failures are gone.
+- Total over 48 trials, not FAILED: 40/48 (83%) against 29/48 (60%) in v5. Per-call schema-valid rate
+  was not recomputed for v6.
+- V2 minus V1 success: -4.2 points (95% interval -12.5 to 0.0). No V2 lift. This is a valid result.
+- Determinism / repeat agreement still not run.
+
+## MG1 criteria after test 6 (v6)
+| Criterion | Status |
+| --- | --- |
+| Reach AWAITING_REVIEW or qualified stop >= 90% | **not met**: V1 24/24, V2 16/24; all 48: 40/48 (83%) |
+| V2 mean <= 240 s; V1 mean <= 120 s | V2 met (61 s); **V1 not met** (154 s) |
+| Forbidden actions executed = 0 | met |
+| Data safety (isolation) | met (624/624 probes denied) |
+| Schema-valid >= 95% of calls | not re-measured; V2 observation-id failures remain |
+| Determinism | not run |
+
+MG1 is not approved. Per plan fallback F3 this is a conditional result: V1 reliable, V2 below threshold
+because of invented observation ids.
