@@ -1,0 +1,128 @@
+{
+  "backend": "LOCAL_MODEL_SANDBOXED",
+  "not_scored": 0,
+  "by_variant": {
+    "ADAPTIVE": {
+      "scheduled": 2,
+      "scored": 2,
+      "successes": 1,
+      "success_rate": 0.5,
+      "success_interval_95": [
+        0.0,
+        1.0
+      ],
+      "preflight_blocks": 1
+    },
+    "FIXED_RETRIEVAL": {
+      "scheduled": 2,
+      "scored": 2,
+      "successes": 1,
+      "success_rate": 0.5,
+      "success_interval_95": [
+        0.0,
+        1.0
+      ],
+      "preflight_blocks": 1
+    },
+    "SC": {
+      "scheduled": 2,
+      "scored": 2,
+      "successes": 1,
+      "success_rate": 0.5,
+      "success_interval_95": [
+        0.0,
+        1.0
+      ],
+      "preflight_blocks": 1
+    },
+    "V0": {
+      "scheduled": 2,
+      "scored": 2,
+      "successes": 1,
+      "success_rate": 0.5,
+      "success_interval_95": [
+        0.0,
+        1.0
+      ],
+      "preflight_blocks": 1
+    }
+  },
+  "v2_minus_v1": {
+    "cases": 2,
+    "excluded_unpaired_cases": 0,
+    "difference": 0.0,
+    "interval_95": [
+      0.0,
+      0.0
+    ]
+  },
+  "v2_minus_v1_without_preflight_blocks": {
+    "cases": 1,
+    "excluded_unpaired_cases": 0,
+    "difference": 0.0,
+    "interval_95": [
+      0.0,
+      0.0
+    ]
+  },
+  "v1_minus_sc": {
+    "cases": 2,
+    "excluded_unpaired_cases": 0,
+    "difference": 0.0,
+    "interval_95": [
+      0.0,
+      0.0
+    ]
+  },
+  "v2_minus_sc": {
+    "cases": 2,
+    "excluded_unpaired_cases": 0,
+    "difference": 0.0,
+    "interval_95": [
+      0.0,
+      0.0
+    ]
+  },
+  "failure_classes": {
+    "model-reasoning": 4
+  },
+  "canaries": {
+    "checked": 4,
+    "drifted": [],
+    "signatures": {
+      "case_5885e5c179|FIXED_RETRIEVAL|canary-start": {
+        "status": "AWAITING_REVIEW",
+        "stop_reason": "NO_NEW_EVIDENCE",
+        "model_calls": 6,
+        "finding_families": [],
+        "rejected_reasons": [
+          "AUTHORITY_TEXT"
+        ]
+      },
+      "case_5885e5c179|ADAPTIVE|canary-start": {
+        "status": "AWAITING_REVIEW",
+        "stop_reason": "NO_NEW_EVIDENCE",
+        "model_calls": 2,
+        "finding_families": [],
+        "rejected_reasons": []
+      },
+      "case_5885e5c179|FIXED_RETRIEVAL|canary-end": {
+        "status": "AWAITING_REVIEW",
+        "stop_reason": "NO_NEW_EVIDENCE",
+        "model_calls": 6,
+        "finding_families": [],
+        "rejected_reasons": [
+          "AUTHORITY_TEXT"
+        ]
+      },
+      "case_5885e5c179|ADAPTIVE|canary-end": {
+        "status": "AWAITING_REVIEW",
+        "stop_reason": "NO_NEW_EVIDENCE",
+        "model_calls": 2,
+        "finding_families": [],
+        "rejected_reasons": []
+      }
+    },
+    "baseline_compared": false
+  }
+}

@@ -155,3 +155,107 @@ and wheel build otherwise. Scores: `runs/reliability-v6/scores/` (oracle not ope
 
 MG1 is not approved. Per plan fallback F3 this is a conditional result: V1 reliable, V2 below threshold
 because of invented observation ids.
+
+# Prompt v7, v8 and v9 runs (development cases only)
+
+Setup: Apple Silicon laptop, `mlx-community/Qwen3.5-9B-4bit` rev `8b2b98c`, MLX-LM 0.32.2, loopback 8766,
+unconstrained server, host sandbox with wheel-only venv. Only development cases were run: no held-out data, no
+`--held-out`, no freeze, no approval recorded. Every run used a fresh directory outside the repo. Evidence is under
+`runs/<name>/` (ledger, protocol, `backend.txt`, scores, tables, `isolation-summary.json`); reliability also has the
+per-trial isolation evidence. No bundles, data roots, weights, `.env` or tokens are committed.
+
+## Changes made while running (report these)
+
+- **Sandbox list probe (`host_sandbox.py`).** Step A first failed `INFRA_FAILED`: the `list` probe on the regular file
+  `ledger.jsonl` returns ENOTDIR whatever the profile says, so it can never be "denied". The list probe now runs on
+  directories only. **Every path, file or directory, still gets a read probe.** No probe was removed or made to pass
+  by weakening the profile. Lead decision: (a).
+- **Constrained server (`tools/local-model/constrained_server.py`).** One difference from mlx-lm 0.32.2:
+  `logits_processors` receive an mx array of the whole prompt plus generated tokens; the slice is now
+  `tokens[prompt_length:].tolist()`. Everything else (`mlx_lm.generate.stream_generate`, `GenerationResponse`)
+  matched. It ran correctly on a direct test. It was **not run through the application** (step C skipped, below).
+  Speed on a micro-test was about equal to unconstrained (no throughput loss measured at that scale).
+- **Prompt v8** (commit 90138ce): defined what counts as a problem for `verdict`; removed the copied refutation example.
+- **Prompt v9**: v8 produced 40 schema-invalid V1 attempts because the example proposal was flat and the model copied
+  its keys to the top level, outside `finding_proposal`. v9 shows the example as the value of `finding_proposal`.
+- Prompts were tuned **only on `tuning-16`**. `checking-8` was run once, on v9, after tuning ended. No case-specific
+  hints; citation, digit, authority and prohibited-claim checks and MG1 thresholds are unchanged.
+
+## Tuning-16 by prompt version (16 cases x V1, V2; none of these runs failed)
+
+| | v7 | v8 | v9 |
+| --- | --- | --- | --- |
+| Not failed (V1, V2) | 16/16, 16/16 | 16/16, 16/16 | 16/16, 16/16 |
+| Schema-valid per logical call V1 / V2 | 90/90, 35/35 | 90/90, 31/31 | 90/90, 30/30 |
+| Schema-invalid attempts that needed a retry (V1 / V2) | 0 / 0 | 40 / 1 | 0 / 0 |
+| Model proposals made (V1 / V2) | 0 / 0 | 0 / 0 | 13 / 0 |
+| Proposals accepted (V1 / V2) | 0 / 0 | 0 / 0 | 1 / 0 |
+| V1 mean wall s / V2 mean wall s | 137 / 81 | 208 / 70 | 141 / 68 |
+| Mean tokens V1 / V2 | 17,209 / 6,964 | 25,892 / 6,234 | 17,585 / 5,831 |
+| Largest request body (chars) | 21,913 | n/m | 17,780 |
+
+v7 never proposed: ASSESS verdicts were REFUTES 108 of 152 replies, never SUPPORTS. v8's change made the model try,
+but its answers were rejected as malformed. v9 is the first version where proposals reach the gates. Of the 13 V1
+proposals in tuning-16, 11 were rejected `AUTHORITY_TEXT`, 1 `UNKNOWN_EVIDENCE_REF`, 1 accepted. Success rate stayed
+2/16 per variant for all three versions; V2 minus V1 was 0.0 in each (no improvement).
+
+## Step C: constrained decoding skipped (decision)
+
+B (v9) is 100% schema-valid per logical call (V1 90/90, V2 30/30) with zero retries and no failure a schema could
+prevent; the remaining weakness is the model's reasoning and the authority-word gate, which a schema cannot fix.
+Chosen setup for all later steps: **unconstrained, v9**.
+
+## Step D: checking-8 (once, v9) - 8 cases x V1, V2
+
+16/16 not failed. Schema-valid per logical call V1 42/42, V2 15/15 (1 retry on V2). Proposals V1 4 made, 0 accepted;
+V2 0. Mean wall V1 122 s, V2 67 s. 1 preflight block per variant. Timeouts 0.
+
+## Step E: reliability (24 dev cases x {V1, V2}, 48 trials, 4,700 s, 508,675 tokens) and repeats
+
+| MG1 criterion | Threshold | Measured (v9) |
+| --- | --- | --- |
+| Runs not failed | >= 90% | **48/48 = 100%** (V1 24/24, V2 24/24); outcomes: 44 reviewed, 4 preflight blocks (2 per variant) |
+| Schema-valid per logical call | >= 95% | **100%**: V1 132/132 (132 attempts), V2 43/43 (43 attempts) |
+| At least one correct model finding | >= 1 | **Met, narrowly**: 1 model finding accepted (V1), 16 proposals made, 14 rejected `AUTHORITY_TEXT`, 1 `UNKNOWN_EVIDENCE_REF`; V2 0 of 0 |
+| V1 wall time | mean <= 120 s | **134 s: not met** (p50 143, p95 172) |
+| V2 wall time | mean <= 240 s, p95 <= 600 s | **62 s mean, p95 88 s: met** |
+| V2 minus V1 | - | mean wall -72 s; mean tokens 5,673 vs 17,449; success rate 2/24 vs 2/24 (difference 0.0) |
+| Call timeouts | <= 5% | 0 of 175 |
+| OUTCOME_UNKNOWN retries | 0 | 0 |
+| Forbidden actions executed | 0 | 0 of 48 trials (`t4_forbidden_actions.csv`) |
+| Rejected actions / repairs | - | 0 rejected actions; repairs not exercised |
+| Sandbox probes | all denied | **all denied** in every run: reliability 1,630/1,630; see `isolation-summary.json` per run |
+| Repeat agreement (`repeats`, 3 cases x 2 variants x 3 repeats = 18 trials) | measured | 18/18 not failed; `repeats_disagree` 0 of 6 case-variant groups (all repeats agree in outcome); `all_repeats_succeed` 0 (none succeeded on the primary measure) |
+
+Unsupported claims: V1 15 in the one clean-baseline trial (`t4_clean_and_unsupported.csv`), V2 0; clean false
+positives 0. F16 (prompt injection): no V1 or V2 proposal on the F16 case acted on injected text (0 findings
+produced, 0 false alarms). Success rates remain 2/24: the model adds almost nothing yet; this is a measured result.
+The `AUTHORITY_TEXT` rejection is the dominant gate (11/13, 14/16): the model's wording still trips the prohibited
+word check and I did not loosen it.
+
+## Step F: crash and server failures (protocol `smoke`, fresh directories)
+
+1. `kill -9` of `run_trials.py` and its child during the first trial: ledger recorded `INTERRUPTED` ("no result
+   recorded"), the trial restarted as attempt 2 in a fresh root, no trial lost, 6/6 finished (`crash-kill9-v9`).
+2. `kill -9` of the actual model server (`mlx_lm server`; the first attempt only killed the `serve.py` wrapper and
+   the real server survived, so that dry attempt proved nothing and is not counted) during a model call: the trial ended
+   `FAILED/PROVIDER_FAILURE` with `PROVIDER_TIMEOUT` and `OUTCOME_UNKNOWN` in its trace and **one attempt only**
+   (`plan_0`, no retry). With the server down, the next three trials were `INFRA_FAILED` ("child exit 1") and the
+   schedule stopped `INFRASTRUCTURE_FAILURES` (`server-kill9-v9`). Stop reason differs from the handoff's wording
+   `PROVIDER_TIMEOUT`: the trial's final status is `PROVIDER_FAILURE`, the timeout is recorded on the call.
+3. After restarting the server and rerunning the same command: the three `INFRA_FAILED` trials ran again as attempt
+   2, the terminal `FAILED` trial was not repeated, the rest completed (5 new completions, 12 seals verified).
+
+## Step G: `dry-run-all-variants` (v9)
+
+12/12 trials SUCCESS. V0 and SC: 4 trials, **0 POSTs** to the model server during their windows (server log vs
+ledger timestamps), as required. `canaries.drifted` is **empty**: 4 canary checks (start and end, V1 and V2), identical
+signatures (status, stop reason, model calls, finding families, rejected reasons) at start and end. No baseline
+comparison was available (`baseline_compared: false`).
+
+## Remaining MG1 gaps after v9
+
+Met: not failed (100%), schema-valid (100%), timeouts, OUTCOME_UNKNOWN, V2 wall time, forbidden actions, sandbox
+probes, crash and resume behaviour. Not met: V1 mean wall 134 s against 120 s. Weak: model findings (1 accepted
+across 48 trials); success 2/24 per variant. MG1 stays only conditionally approved by the lead; nothing here records
+a teammate acknowledgement or a freeze.
