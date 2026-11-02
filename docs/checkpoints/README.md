@@ -16,7 +16,9 @@ execution register in [implementation plan](../../implementation%20plan.md).
 
 [U01 local model development](model-gateway/README.md) is a separate, paused
 workstream toward MG1. Early native attempts (prompts v1-v3) failed strict contracts; prompt v6
-is the current pin. MG1 is conditionally approved for setup only (`mg1/APPROVAL.md`).
+is the last prompt run on the real model, and v7 has not run yet. MG1 is conditionally approved for setup only
+(`mg1/APPROVAL.md`), on the Mac's MLX setup. Runs are moving to llama.cpp in Docker on the RTX PC, on branch
+`cp-5_windows_model` ([runbook](mg1/DOCKER_RUNBOOK.md)). That is a new setup, so MG1 must be redone on it.
 
 For every subsequent checkpoint, create `checkpoint-N/` with:
 

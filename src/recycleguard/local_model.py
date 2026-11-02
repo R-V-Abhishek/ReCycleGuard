@@ -1,4 +1,4 @@
-"""Pinned MLX-LM text completions over explicit loopback HTTP, without internal retries."""
+"""Pinned local text completions (MLX-LM or llama.cpp) over loopback HTTP, without retries."""
 
 import hashlib
 import http.client
@@ -112,18 +112,38 @@ SERVER_FLAGS = [
 CONSTRAINED_FLAG = "--constrained-json"
 # mlx-lm 0.32.2 seed handling is unverified; temperature 0 needs no sampling, so none is sent.
 DETERMINISM = "UNSEEDED_GREEDY"
+MLX, LLAMA_CPP = "mlx", "llama_cpp"
+MLX_MODEL_ID = "mlx-community/Qwen3.5-9B-4bit"
+MLX_REVISION = "8b2b98c00a6b4d291155e4890773ca8f769aee53"
+MLX_RUNTIME = "0.32.2"
+# Keep equal to deploy/start_model.py; that image does not hold the application.
+LLAMA_SERVER_FLAGS = [
+    "--ctx-size",
+    "32768",
+    "--parallel",
+    "1",
+    "--n-gpu-layers",
+    "999",
+    "--n-predict",
+    "1024",
+    "--no-cache-prompt",
+]
+LLAMA_SEED = 0
+FIXTURE_MODEL_PREFIX = "fixture/"
+_RUNTIME_KEYS = {MLX: "mlx-lm", LLAMA_CPP: "llama.cpp"}
 
 
 class LocalModelConfig(BoundaryModel):
     configuration_id: ID = "configuration:u01_local_qwen35_9b"
-    model_id: Literal["mlx-community/Qwen3.5-9B-4bit"]
+    backend: Literal["mlx", "llama_cpp"] = MLX
+    model_id: Nonempty
     model_path: Path
-    model_revision: Literal["8b2b98c00a6b4d291155e4890773ca8f769aee53"]
+    model_revision: Annotated[str, Field(pattern=r"^[0-9a-f]{40}$")]
     weights_manifest_path: Path
     weights_manifest_digest: Digest
     runtime_lock_path: Path
     runtime_lock_digest: Digest
-    runtime_version: Literal["0.32.2"] = "0.32.2"
+    runtime_version: Nonempty = MLX_RUNTIME
     prompt_template_id: ID = "prompt:u01_qwen_non_thinking_v7"
     prompt_version: Nonempty = "u01_non_thinking_v7"
     endpoint: str = "http://127.0.0.1:8080/v1/completions"
@@ -135,6 +155,14 @@ class LocalModelConfig(BoundaryModel):
 
     @model_validator(mode="after")
     def local_endpoint_and_paths(self):
+        if self.backend == MLX and (self.model_id, self.model_revision, self.runtime_version) != (
+            MLX_MODEL_ID,
+            MLX_REVISION,
+            MLX_RUNTIME,
+        ):
+            raise ValueError("the MLX backend serves only its pinned model and runtime")
+        if self.backend == LLAMA_CPP and not re.fullmatch(r"b\d+", self.runtime_version):
+            raise ValueError("the llama.cpp backend pins an exact build such as b12033")
         endpoint = urlsplit(self.endpoint)
         if (
             endpoint.scheme != "http"
@@ -198,11 +226,14 @@ class _ManifestFile(BoundaryModel):
 
 
 class _WeightsManifest(BoundaryModel):
-    model_id: Literal["mlx-community/Qwen3.5-9B-4bit"]
-    revision: Literal["8b2b98c00a6b4d291155e4890773ca8f769aee53"]
+    model_id: Nonempty
+    revision: Nonempty
     quantization: Nonempty
     files: list[_ManifestFile]
     runtime: dict[str, str]
+    # GGUF repositories do not carry these two files, so they come from the base model's repository.
+    tokenizer_source: Nonempty | None = None
+    tokenizer_revision: Nonempty | None = None
 
 
 class _PromptDetails(BoundaryModel):
@@ -243,6 +274,32 @@ class _Models(BoundaryModel):
     data: list[_ServedModel]
 
 
+class _LlamaChoice(_Choice):
+    logprobs: None = None
+
+
+class _LlamaCompletion(_Completion):
+    """llama-server's reply has two more fields. Unknown fields are still refused."""
+
+    choices: list[_LlamaChoice] = Field(min_length=1, max_length=1)
+    timings: dict[str, JsonValue] | None = None
+
+
+class _LlamaServedModel(BoundaryModel):
+    """Server metadata, not model output: only the identity is checked."""
+
+    model_config = ConfigDict(extra="ignore", frozen=True, strict=True, allow_inf_nan=False)
+    id: Nonempty
+    object: Literal["model"]
+    created: int
+
+
+class _LlamaModels(BoundaryModel):
+    model_config = ConfigDict(extra="ignore", frozen=True, strict=True, allow_inf_nan=False)
+    object: Literal["list"]
+    data: list[_LlamaServedModel]
+
+
 def _retry_problem(exc: ValueError) -> str:
     """Where the reply failed, never what it said: a retry prompt must not echo model text."""
     if isinstance(exc, ValidationError):
@@ -277,7 +334,8 @@ class LocalModelPort:
         if (
             manifest.model_id != self.config.model_id
             or manifest.revision != self.config.model_revision
-            or manifest.runtime.get("mlx-lm") != self.config.runtime_version
+            or manifest.runtime.get(_RUNTIME_KEYS[self.config.backend])
+            != self.config.runtime_version
         ):
             raise ValueError(
                 "weights manifest model/revision/runtime differs from the configuration"
@@ -365,7 +423,9 @@ class LocalModelPort:
         status, _, raw = self._http("GET", "/v1/models")
         if status != 200 or len(raw) > _MAX_RESPONSE_BYTES:
             raise ValueError("local backend did not return its pinned model inventory")
-        models = _Models.model_validate_json(raw)
+        models = (
+            _LlamaModels if self.config.backend == LLAMA_CPP else _Models
+        ).model_validate_json(raw)
         if str(self.config.model_path.resolve()) not in [item.id for item in models.data]:
             raise ValueError("local backend inventory does not serve the pinned model path")
         inventory = self.blobs.put(raw, "application/json")
@@ -380,6 +440,22 @@ class LocalModelPort:
         }
         return self.backend_info
 
+    def _backend_fields(self, schema):
+        """Request fields that differ by server. The prompt and every reply check do not."""
+        if self.config.backend == LLAMA_CPP:
+            return {
+                "cache_prompt": False,
+                "seed": LLAMA_SEED,
+                **(
+                    {"json_schema": schema.model_json_schema()}
+                    if CONSTRAINED_FLAG in self.config.server_flags
+                    else {}
+                ),
+            }
+        if CONSTRAINED_FLAG in self.config.server_flags:
+            return {"response_schema": schema.model_json_schema()}
+        return {}
+
     def _retry_text(self, context):
         problem = self._retry_problems.get(context.operation_id)
         return _RETRY_NOTE if problem is None else f"{_RETRY_NOTE}Problem found: {problem}. "
@@ -392,7 +468,7 @@ class LocalModelPort:
             "model_revision": self.config.model_revision,
             "weights_manifest_digest": self.config.weights_manifest_digest,
             "server_session_digest": None,
-            "determinism": DETERMINISM,
+            "determinism": DETERMINISM if self.config.backend == MLX else "SEEDED_GREEDY",
             "elapsed_seconds": None,
             "endpoint": self.config.endpoint,
             "method": "POST",
@@ -464,11 +540,7 @@ class LocalModelPort:
                         "temperature": 0.0,
                         "stream": False,
                         "stop": self.config.stop_sequences,
-                        **(
-                            {"response_schema": schema.model_json_schema()}
-                            if CONSTRAINED_FLAG in self.config.server_flags
-                            else {}
-                        ),
+                        **self._backend_fields(schema),
                     }
                 )
                 trace["request_body_utf8"] = body.decode("utf-8")
@@ -484,7 +556,9 @@ class LocalModelPort:
                     raise ValueError(
                         f"local backend HTTP status/size is invalid: {response_status}"
                     )
-                completion = _Completion.model_validate_json(raw)
+                completion = (
+                    _LlamaCompletion if self.config.backend == LLAMA_CPP else _Completion
+                ).model_validate_json(raw)
                 model_text = completion.choices[0].text
                 if completion.model != str(self.config.model_path.resolve()):
                     raise ValueError("backend response model differs from the requested local path")

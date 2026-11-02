@@ -241,8 +241,17 @@
           "title": "Configuration Id",
           "type": "string"
         },
+        "backend": {
+          "default": "mlx",
+          "enum": [
+            "mlx",
+            "llama_cpp"
+          ],
+          "title": "Backend",
+          "type": "string"
+        },
         "model_id": {
-          "const": "mlx-community/Qwen3.5-9B-4bit",
+          "minLength": 1,
           "title": "Model Id",
           "type": "string"
         },
@@ -252,7 +261,7 @@
           "type": "string"
         },
         "model_revision": {
-          "const": "8b2b98c00a6b4d291155e4890773ca8f769aee53",
+          "pattern": "^[0-9a-f]{40}$",
           "title": "Model Revision",
           "type": "string"
         },
@@ -277,8 +286,8 @@
           "type": "string"
         },
         "runtime_version": {
-          "const": "0.32.2",
           "default": "0.32.2",
+          "minLength": 1,
           "title": "Runtime Version",
           "type": "string"
         },

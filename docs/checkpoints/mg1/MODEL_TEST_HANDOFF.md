@@ -1,5 +1,8 @@
 # Model test handoff
 
+> **Runs have moved to the RTX PC: use [DOCKER_RUNBOOK.md](DOCKER_RUNBOOK.md).** These Mac steps are the backup route, paused.
+> The criteria table and the notes on reading each check still apply to both.
+
 Tests that need the real model. They run only on the Apple Silicon laptop, in one stretch.
 **Nothing here is an approval.** Dev cases only; never open or run held-out data. Use a fresh output
 directory for each test, outside the repository, with no `hidden` or `oracle` in its path.

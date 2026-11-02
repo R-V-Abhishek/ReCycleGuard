@@ -18,6 +18,7 @@ from recycleguard.contracts.core import ActorRef
 from recycleguard.contracts.workflow import AssessmentProposal, PlanProposal
 from recycleguard.local_model import (
     CONSTRAINED_FLAG,
+    LLAMA_SERVER_FLAGS,
     SERVER_FLAGS,
     LocalModelConfig,
     LocalModelPort,
@@ -48,6 +49,7 @@ class Backend:
     calls: list = field(default_factory=list)
     delay: float = 0.0
     model_text: str = field(default_factory=lambda: json.dumps(proposal()))
+    fingerprint: str = "0.32.2-test-system"
 
 
 @pytest.fixture
@@ -82,8 +84,18 @@ def server(tmp_path):
                                 "id": backend.model_path,
                                 "object": "model",
                                 "created": 1,
+                                **(
+                                    {"owned_by": "llamacpp", "meta": {"n_ctx_train": 1}}
+                                    if backend.mode.startswith("llama")
+                                    else {}
+                                ),
                             }
                         ],
+                        **(
+                            {"models": [{"name": backend.model_path}]}
+                            if backend.mode.startswith("llama")
+                            else {}
+                        ),
                     }
                 )
             )
@@ -109,7 +121,7 @@ def server(tmp_path):
                 "object": "text_completion",
                 "created": 1,
                 "model": request["model"] if backend.mode != "wrong_model" else "other-model",
-                "system_fingerprint": "0.32.2-test-system",
+                "system_fingerprint": backend.fingerprint,
                 "choices": [
                     {
                         "index": 0,
@@ -124,6 +136,12 @@ def server(tmp_path):
                     "prompt_tokens_details": {"cached_tokens": 0},
                 },
             }
+            if backend.mode.startswith("llama"):
+                # The shape of llama-server's to_json_oaicompat at the pinned build.
+                response["choices"][0]["logprobs"] = None
+                response["timings"] = {"predicted_ms": 12.5}
+            if backend.mode == "llama_unknown_field":
+                response["unexpected"] = True
             if backend.mode == "wrong_usage":
                 response["usage"]["total_tokens"] = 181
             elif backend.mode == "over_budget":
@@ -191,6 +209,94 @@ def configuration(server, tmp_path):
         max_total_tokens=16384,
         timeout_seconds=2.0,
     )
+
+
+def llama_configuration(server, tmp_path, *, constrained=False):
+    """The same fixture model, described as a pinned llama.cpp GGUF."""
+    config = configuration(server, tmp_path)
+    manifest = json.loads(config.weights_manifest_path.read_text())
+    manifest.update(
+        model_id="unsloth/Qwen3.5-9B-GGUF",
+        revision="3" * 40,
+        quantization="Q8_0",
+        tokenizer_source="Qwen/Qwen3.5-9B",
+        tokenizer_revision="c" * 40,
+        runtime={"llama.cpp": "b12033"},
+    )
+    config.weights_manifest_path.write_text(json.dumps(manifest))
+    return config.model_copy(
+        update={
+            "backend": "llama_cpp",
+            "model_id": "unsloth/Qwen3.5-9B-GGUF",
+            "model_revision": "3" * 40,
+            "runtime_version": "b12033",
+            "weights_manifest_digest": hashlib.sha256(
+                config.weights_manifest_path.read_bytes()
+            ).hexdigest(),
+            "server_flags": [*LLAMA_SERVER_FLAGS, *([CONSTRAINED_FLAG] if constrained else [])],
+        }
+    )
+
+
+def test_llama_reply_with_its_extra_fields_is_accepted_and_the_output_still_validated(
+    server, tmp_path
+):
+    backend, _, _ = server
+    backend.mode, backend.fingerprint = "llama", "b12033-785322d"
+    port = LocalModelPort(llama_configuration(server, tmp_path), BlobStore(tmp_path / "blobs"))
+    assert port.probe()["runtime_version"] == "b12033"
+    result = invoke(port)
+    assert result.status == "SUCCESS"
+    assert result.output.validated_output_or_null == proposal()
+    body = json.loads(backend.calls[-1][2])
+    assert body["cache_prompt"] is False and body["seed"] == 0
+    assert "json_schema" not in body and "response_schema" not in body
+
+    backend.model_text = "not json"
+    assert invoke(port).status == "FAILED"
+
+
+def test_llama_constrained_mode_sends_its_own_schema_field(server, tmp_path):
+    backend, _, _ = server
+    backend.mode, backend.fingerprint = "llama", "b12033-785322d"
+    port = LocalModelPort(
+        llama_configuration(server, tmp_path, constrained=True), BlobStore(tmp_path / "blobs")
+    )
+    assert invoke(port).status == "SUCCESS"
+    body = json.loads(backend.calls[-1][2])
+    assert body["json_schema"] == PlanProposal.model_json_schema()
+    assert "response_schema" not in body
+
+
+def test_llama_reply_with_an_unknown_field_or_other_build_is_refused(server, tmp_path):
+    backend, _, _ = server
+    backend.mode, backend.fingerprint = "llama_unknown_field", "b12033-785322d"
+    port = LocalModelPort(llama_configuration(server, tmp_path), BlobStore(tmp_path / "blobs"))
+    assert invoke(port).status == "FAILED"
+    backend.mode, backend.fingerprint = "llama", "b12034-aaaaaaa"
+    assert invoke(port).status == "FAILED"
+
+
+def test_mlx_backend_still_accepts_only_its_pinned_model(server, tmp_path):
+    config = configuration(server, tmp_path)
+    fields = config.model_dump()
+    with pytest.raises(ValidationError):
+        LocalModelConfig(**{**fields, "model_id": "unsloth/Qwen3.5-9B-GGUF"})
+    with pytest.raises(ValidationError):
+        LocalModelConfig(**{**fields, "backend": "llama_cpp", "runtime_version": "latest"})
+
+
+def test_llama_flags_equal_the_copy_in_the_model_image():
+    source = (Path(__file__).parents[2] / "deploy/start_model.py").read_text("utf-8")
+    module = ast.parse(source)
+    values = {
+        target.id: ast.literal_eval(node.value)
+        for node in module.body
+        if isinstance(node, ast.Assign)
+        for target in node.targets
+        if target.id in {"FLAGS", "CONSTRAINED_FLAG"}
+    }
+    assert values == {"FLAGS": LLAMA_SERVER_FLAGS, "CONSTRAINED_FLAG": CONSTRAINED_FLAG}
 
 
 def request(port, *, phase="PLAN", budget=16384, additional=None):

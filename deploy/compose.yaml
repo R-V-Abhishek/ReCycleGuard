@@ -1,0 +1,139 @@
+# Runbook: docs/checkpoints/mg1/DOCKER_RUNBOOK.md. Run from the repository root with
+# COMPOSE_FILE=deploy/compose.yaml. Names are fixed because run_trials.py starts trials by name.
+name: recycleguard
+
+x-repo-build: &repo-build
+  context: ..
+  dockerfile: deploy/Dockerfile.repo
+
+services:
+  model-download:
+    profiles: [setup]
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.download
+    volumes:
+      - model-weights:/models/weights
+      - model-provenance:/models/provenance
+
+  model:
+    container_name: recycleguard-model
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.model
+    gpus: all
+    env_file: model.env
+    environment:
+      CONSTRAINED: ${CONSTRAINED:-0}
+    networks: [backend]
+    volumes:
+      - model-weights:/models/weights:ro
+      - model-provenance:/models/provenance
+
+  # Pipeline check without a GPU, replacing `model`. Its output is labelled as not evidence.
+  fake-model:
+    profiles: [fixture]
+    container_name: recycleguard-model
+    build:
+      <<: *repo-build
+      target: trials
+    command: [python, scripts/docker/fake_model.py]
+    networks:
+      backend:
+        aliases: [model]
+    volumes:
+      - model-provenance:/models/provenance
+
+  # Built here, started once per trial by run_trials.py. It never starts as a service.
+  investigator:
+    profiles: [build-only]
+    image: recycleguard-investigator:local
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.investigator
+      target: investigator
+
+  trials:
+    profiles: [tools]
+    build:
+      <<: *repo-build
+      target: trials
+    network_mode: none
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - trial-data:/work
+      - model-provenance:/models/provenance
+      - evaluator-data:/repo/benchmarks/hidden
+
+  test:
+    profiles: [tools]
+    build:
+      <<: *repo-build
+      target: test
+    network_mode: none
+    volumes:
+      - evaluator-data:/repo/benchmarks/hidden:ro
+    command: [sh, deploy/run_checks.sh]
+
+  # Demo only. Sharing the model's network, it must be down during trials; run_trials.py refuses
+  # to start otherwise, and each trial's probe checks the port.
+  api:
+    profiles: [demo]
+    container_name: recycleguard-api
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.investigator
+      target: demo
+    network_mode: service:model
+    depends_on:
+      model:
+        condition: service_healthy
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges]
+    environment:
+      # Empty is refused by `recycleguard serve`. Required here, it would block every compose command.
+      RECYCLEGUARD_API_TOKEN: ${RECYCLEGUARD_API_TOKEN:-}
+      RECYCLEGUARD_DATA_ROOT: /data
+      HOME: /data
+    volumes:
+      - api-data:/data
+      - model-provenance:/models/provenance:ro
+    entrypoint: [/opt/venv/bin/recycleguard]
+    command:
+      - serve
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --model-config
+      - /models/provenance/qwen3.5-9b-q8_0/local-model.json
+      - --fixture-root
+      - /fixtures
+
+  ui:
+    profiles: [demo]
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.ui
+    depends_on: [api]
+    networks: [backend, default]
+    ports:
+      - 127.0.0.1:8080:80
+
+networks:
+  backend:
+    internal: true
+
+volumes:
+  model-weights:
+    name: recycleguard-model-weights
+  model-provenance:
+    name: recycleguard-model-provenance
+  trial-data:
+    name: recycleguard-trial-data
+  evaluator-data:
+    name: recycleguard-evaluator-data
+  api-data:
+    name: recycleguard-api-data

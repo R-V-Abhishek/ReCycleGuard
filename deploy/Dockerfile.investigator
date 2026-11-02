@@ -1,0 +1,25 @@
+# One venv holding only the installed wheel: no repository, tests, scripts or evaluator code.
+# Trials and the demo API both use it. Test adapters are not enabled here; trial_child.py alone
+# turns them on, and only for a control.
+FROM ghcr.io/astral-sh/uv:0.9.7 AS uv
+FROM python:3.12-slim-bookworm@sha256:e697c81897302a4c4333bade000d98038fbb21eb064f8ee1fd42d02ebcd9d337 AS build
+COPY --from=uv /uv /usr/local/bin/uv
+WORKDIR /build
+COPY pyproject.toml uv.lock README.md ./
+COPY src/ src/
+RUN UV_PROJECT_ENVIRONMENT=/opt/venv uv sync --locked --no-dev --no-install-project
+RUN uv build --wheel --out-dir /wheels \
+    && uv pip install --python /opt/venv/bin/python --no-deps /wheels/*.whl
+
+FROM python:3.12-slim-bookworm@sha256:e697c81897302a4c4333bade000d98038fbb21eb064f8ee1fd42d02ebcd9d337 AS investigator
+COPY --from=build /opt/venv /opt/venv
+RUN mkdir /data && chown 10001:10001 /data
+ENV PATH="/opt/venv/bin:/usr/local/bin:/usr/bin:/bin" \
+    PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 HOME=/runtime TMPDIR=/tmp
+WORKDIR /tmp
+USER 10001:10001
+ENTRYPOINT ["/opt/venv/bin/python"]
+
+# Trials copy in only their own case, so the demo's fixtures live in a separate image.
+FROM investigator AS demo
+COPY tests/fixtures/visible /fixtures

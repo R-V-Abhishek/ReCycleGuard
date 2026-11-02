@@ -373,6 +373,214 @@ def test_each_evaluator_tree_and_session_result_gets_its_own_probe(run_trials, t
     assert {(tmp_path / "results").resolve(), (tmp_path / "ledger.jsonl").resolve()} <= probed
 
 
+def _inspection(network="container:recycleguard-model", **host):
+    mounts = [
+        {"Type": "volume", "Source": "trial", "Target": "/visible", "ReadOnly": True},
+        {"Type": "volume", "Source": "trial", "Target": "/program", "ReadOnly": True},
+        {"Type": "volume", "Source": "trial", "Target": "/runtime"},
+        {
+            "Type": "volume",
+            "Source": "provenance",
+            "Target": "/models/provenance",
+            "ReadOnly": True,
+        },
+    ]
+    return {
+        "Config": {"User": "10001:10001", "Env": ["PATH=/opt/venv/bin"]},
+        "HostConfig": {
+            "ReadonlyRootfs": True,
+            "CapDrop": ["ALL"],
+            "NetworkMode": network,
+            "Mounts": mounts,
+            **host,
+        },
+    }
+
+
+def test_a_correct_trial_container_passes_inspection():
+    from recycleguard.isolated_runtime import verify_trial_inspection
+
+    assert (
+        verify_trial_inspection(
+            _inspection(), "container:recycleguard-model", {"trial", "provenance"}
+        )
+        == []
+    )
+
+
+@pytest.mark.parametrize(
+    ("change", "expected"),
+    [
+        ({"Privileged": True}, "privileged"),
+        ({"ReadonlyRootfs": False}, "writable"),
+        ({"CapDrop": []}, "capabilities"),
+        ({"Binds": ["/var/run/docker.sock:/var/run/docker.sock"]}, "bind"),
+        ({"Devices": [{"PathOnHost": "/dev/nvidia0"}]}, "devices"),
+        ({"NetworkMode": "bridge"}, "network mode"),
+    ],
+)
+def test_a_weakened_trial_container_is_refused(change, expected):
+    from recycleguard.isolated_runtime import verify_trial_inspection
+
+    problems = verify_trial_inspection(
+        _inspection(**change), "container:recycleguard-model", {"trial", "provenance"}
+    )
+    assert any(expected in problem for problem in problems)
+
+
+def test_an_extra_mount_or_writable_evidence_or_foreign_volume_is_refused():
+    from recycleguard.isolated_runtime import verify_trial_inspection
+
+    network, volumes = "container:recycleguard-model", {"trial", "provenance"}
+    inspection = _inspection()
+    inspection["HostConfig"]["Mounts"].append(
+        {"Type": "volume", "Source": "trial", "Target": "/evaluator", "ReadOnly": True}
+    )
+    assert any("mounts are" in p for p in verify_trial_inspection(inspection, network, volumes))
+
+    inspection = _inspection()
+    inspection["HostConfig"]["Mounts"][0] = {
+        "Type": "volume",
+        "Source": "trial",
+        "Target": "/visible",
+    }
+    assert any("read-only" in p for p in verify_trial_inspection(inspection, network, volumes))
+
+    inspection = _inspection()
+    inspection["HostConfig"]["Mounts"][3]["Source"] = "evaluator"
+    assert any(
+        "not an allowed volume" in p for p in verify_trial_inspection(inspection, network, volumes)
+    )
+
+    inspection = _inspection()
+    inspection["Config"]["User"] = "0"
+    assert any("root" in p for p in verify_trial_inspection(inspection, network, volumes))
+
+
+def test_a_control_container_has_no_model_mount_or_network():
+    from recycleguard.isolated_runtime import verify_trial_inspection
+
+    inspection = _inspection("none")
+    assert verify_trial_inspection(inspection, "none", {"trial", "provenance"}) != []
+    inspection["HostConfig"]["Mounts"].pop()
+    assert verify_trial_inspection(inspection, "none", {"trial", "provenance"}) == []
+
+
+def test_trial_container_arguments_mount_only_this_attempt_and_refuse_bad_paths():
+    from recycleguard.isolated_runtime import trial_container_arguments
+
+    command = trial_container_arguments(
+        "trial-a", "image", "none", "data", "s/trials/t0000/attempt-1", None, ["-I", "/program/c"]
+    )
+    text = " ".join(command)
+    assert "volume-subpath=s/trials/t0000/attempt-1/visible,readonly" in text
+    assert "volume-subpath=s/trials/t0000/attempt-1/program,readonly" in text
+    assert "target=/runtime,volume-subpath=s/trials/t0000/attempt-1/runtime " in text
+    assert "/models/provenance" not in text and "docker.sock" not in text
+    assert command[command.index("--network") + 1] == "none"
+    assert {"--read-only", "--cap-drop", "ALL", "no-new-privileges"} <= set(command)
+    assert command[-3:] == ["image", "-I", "/program/c"]
+    for bad in ("a/../b", "a,target=/x", "a\nb"):
+        with pytest.raises(ValueError):
+            trial_container_arguments("t", "image", "none", "data", bad, None, [])
+
+
+def test_container_command_gives_a_model_only_to_real_variants(run_trials, tmp_path, monkeypatch):
+    spec = run_trials.protocol_schedule(
+        {
+            "case_ids": ["case_x"],
+            "repeats": 1,
+            "variants": ["FIXED_RETRIEVAL", "ADAPTIVE"],
+            "controls": ["V0"],
+        }
+    )
+    monkeypatch.setattr(
+        run_trials,
+        "prepare_attempt",
+        lambda spec, attempt, fixtures: (
+            attempt / "visible",
+            attempt / "runtime",
+            attempt / "program/trial_child.py",
+        ),
+    )
+    monkeypatch.setattr(run_trials.os, "geteuid", lambda: 1, raising=False)
+    config = Path("/models/provenance/m/local-model.json")
+    launch = run_trials.Launch(run_trials.DOCKERED, config)
+    by_variant = {}
+    for index, item in enumerate(spec):
+        attempt = tmp_path / f"attempt-{index}"
+        by_variant[item.variant] = run_trials.container_command(
+            launch, item, attempt, root=tmp_path.resolve()
+        )
+    real, _, real_network, _ = by_variant["ADAPTIVE"]
+    assert real_network == "container:recycleguard-model"
+    assert "--container" in real and config.as_posix() in real
+    assert "--sandboxed" not in real
+    control, _, control_network, _ = by_variant["V0"]
+    assert control_network == "none"
+    assert "--config" not in control
+    assert "/models/provenance" not in " ".join(control)
+
+
+def test_docker_session_refuses_output_outside_the_volume_and_a_running_api(
+    run_trials, monkeypatch
+):
+    with pytest.raises(SystemExit, match="must be under"):
+        run_trials.prepare_docker_session(Path("/elsewhere/out"))
+
+    calls = []
+
+    def fake_run(command, **_):
+        calls.append(command)
+        return subprocess.CompletedProcess(command, 0, stdout="abc123\n", stderr="")
+
+    monkeypatch.setattr(run_trials.subprocess, "run", fake_run)
+    with pytest.raises(SystemExit, match="demo API"):
+        run_trials.prepare_docker_session(run_trials.TRIAL_ROOT / "session")
+
+
+def test_a_timed_out_trial_container_is_removed(run_trials, tmp_path, monkeypatch):
+    calls = []
+
+    def fake_run(command, **_):
+        calls.append(command)
+        if command[:2] == ["docker", "start"]:
+            raise subprocess.TimeoutExpired(command, 1)
+        inspection = {**_inspection("container:model-id"), "Id": "model-id"}
+        stdout = json.dumps([inspection]).encode() if command[1] == "inspect" else b""
+        return subprocess.CompletedProcess(command, 0, stdout=stdout, stderr=b"")
+
+    monkeypatch.setattr(run_trials.subprocess, "run", fake_run)
+    monkeypatch.setattr(run_trials, "TRIAL_VOLUME", "trial")
+    monkeypatch.setattr(run_trials, "PROVENANCE_VOLUME", "provenance")
+    with (tmp_path / "log").open("wb") as log, pytest.raises(subprocess.TimeoutExpired):
+        run_trials.run_container(
+            ["docker", "create"], "t", "container:recycleguard-model", tmp_path, log
+        )
+    assert calls[-1] == ["docker", "rm", "--force", "t"]
+    assert (tmp_path / "isolation-inspect.json").is_file()
+
+
+def test_a_container_failing_inspection_never_starts(run_trials, tmp_path, monkeypatch):
+    calls = []
+
+    def fake_run(command, **_):
+        calls.append(command)
+        inspection = {**_inspection("container:model-id", Privileged=True), "Id": "model-id"}
+        stdout = json.dumps([inspection]).encode() if command[1] == "inspect" else b""
+        return subprocess.CompletedProcess(command, 0, stdout=stdout, stderr=b"")
+
+    monkeypatch.setattr(run_trials.subprocess, "run", fake_run)
+    monkeypatch.setattr(run_trials, "TRIAL_VOLUME", "trial")
+    monkeypatch.setattr(run_trials, "PROVENANCE_VOLUME", "provenance")
+    with (tmp_path / "log").open("wb") as log, pytest.raises(SystemExit, match="privileged"):
+        run_trials.run_container(
+            ["docker", "create"], "t", "container:recycleguard-model", tmp_path, log
+        )
+    assert not any(command[:2] == ["docker", "start"] for command in calls)
+    assert calls[-1] == ["docker", "rm", "--force", "t"]
+
+
 def test_child_gives_test_adapters_only_to_controls_and_a_model_only_to_real_variants(tmp_path):
     child = script("trial_child")
     (tmp_path / "config.json").write_text("{}")

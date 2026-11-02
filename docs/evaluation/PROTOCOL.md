@@ -7,7 +7,9 @@ about measurements below is a rule or target, not a result.
 ## 1. Scope
 
 All evaluation includes the real model: `mlx-community/Qwen3.5-9B-4bit`, revision
-`8b2b98c00a6b4d291155e4890773ca8f769aee53`, MLX-LM 0.32.2, served on loopback.
+`8b2b98c00a6b4d291155e4890773ca8f769aee53`, MLX-LM 0.32.2, served on loopback. Runs are moving to
+`unsloth/Qwen3.5-9B-GGUF` at Q8_0, revision `3885219b6810b007914f3a7950a8d1b469d598a5`, on llama.cpp `b12033` in Docker
+([runbook](../checkpoints/mg1/DOCKER_RUNBOOK.md)). The freeze must name whichever setup is finally chosen, after MG1 on it.
 Scripted-C10 runs are a **control only**. CP5 scope will be recorded as
 `INCLUDES_REAL_MODEL`; MG1 is a required gate. Data stays on the machine.
 

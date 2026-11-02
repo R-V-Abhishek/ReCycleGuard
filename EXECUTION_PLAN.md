@@ -81,6 +81,10 @@ MG1 needs U01, A07 (done), V07 extended to real-model runs, and V10.
 setup only** ([approval](docs/checkpoints/mg1/APPROVAL.md), [results](docs/checkpoints/mg1/MODEL_TEST_RESULTS.md)). Open: no model
 finding has reached a report in any run, and determinism was not run. Next gate: CP5, not started.
 
+**Change, 2 November 2026:** real-model runs move from the Mac to an RTX PC (24 GB GPU) under Docker, using Qwen3.5-9B Q8_0 on llama.cpp
+([runbook](docs/checkpoints/mg1/DOCKER_RUNBOOK.md)). Each trial's boundary is its own container, replacing `sandbox-exec`. This replaces the model named in the
+decisions table above, and MG1 must be redone on this setup. The Mac stays as the backup. No result exists on the new setup yet.
+
 **Authority:** Sushanth and Abhishek own every task and make every approval, whatever owner or reviewer this plan names.
 No other acknowledgment is awaited at any gate.
 

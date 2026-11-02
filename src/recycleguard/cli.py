@@ -472,6 +472,7 @@ def serve_api(
     model_config: Annotated[Path | None, typer.Option(exists=True, dir_okay=False)] = None,
     token_file: Annotated[Path | None, typer.Option(exists=True, dir_okay=False)] = None,
     cors_origin: Annotated[list[str] | None, typer.Option()] = None,
+    fixture_root: Annotated[Path | None, typer.Option(exists=True, file_okay=False)] = None,
 ):
     """Start one API worker. Frontend assets are served separately."""
     import os
@@ -492,6 +493,16 @@ def serve_api(
             token=token,
             model_config_path=model_config,
             cors_origins=tuple(cors_origin or ()),
+            # An installed wheel holds no fixtures, so its image names where they are.
+            **(
+                {}
+                if fixture_root is None
+                else {
+                    "fixture_root": fixture_root,
+                    "r02_path": fixture_root / "h04/acquired_originals/e-waste_rules_2022.pdf",
+                    "r08_path": fixture_root / "h01/acquired_originals/cpcb_faq_20240123.pdf",
+                }
+            ),
         )
     )
     uvicorn.run(application, host=host, port=port, workers=1)

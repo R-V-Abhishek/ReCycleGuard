@@ -6,6 +6,7 @@ Creating ``<output>/KILL`` stops the schedule before the next trial. Development
 
     uv run scripts/run_trials.py <protocol.json> <output-dir> --config <...> --venv <wheel-venv>
     uv run scripts/run_trials.py <protocol.json> <output-dir> --config <...> --isolation-disclosed
+    python scripts/run_trials.py <protocol.json> /work/<name> --config <...> --docker  # in `trials`
     uv run scripts/run_trials.py <protocol.json> <output-dir> --fixture-model   # dry run, no model
     uv run scripts/run_trials.py <protocol.json> <output-dir> --config <...> --venv <wheel-venv> \
         --held-out <freeze.json>
@@ -55,11 +56,21 @@ KEPT_ENVIRONMENT = {"PATH", "PYTHONPATH", "SYSTEMROOT", "TEMP", "TMP", "HOME", "
 # A run that stopped itself is a valid result to score; only a crash may be attempted again.
 RUN_FAILED = {"FAILED"}
 RUN_BLOCKED = {"BLOCKED_OUTPUT"}
-FIXTURE, DISCLOSED, SANDBOXED = (
+FIXTURE, DISCLOSED, SANDBOXED, DOCKERED, DOCKER_FIXTURE = (
     "FIXTURE_NOT_EVIDENCE",
     "LOCAL_MODEL_COOPERATIVE_ISOLATION",
     "LOCAL_MODEL_SANDBOXED",
+    "LOCAL_MODEL_DOCKER",
+    "FIXTURE_NOT_EVIDENCE_DOCKER",
 )
+CONTAINER_BACKENDS = {DOCKERED, DOCKER_FIXTURE}
+# Names fixed in deploy/compose.yaml. Paths are inside the `trials` container.
+TRIAL_ROOT = Path("/work")
+TRIAL_VOLUME = "recycleguard-trial-data"
+PROVENANCE_VOLUME = "recycleguard-model-provenance"
+MODEL_CONTAINER = "recycleguard-model"
+API_CONTAINER = "recycleguard-api"
+INVESTIGATOR_IMAGE = "recycleguard-investigator:local"
 
 
 @dataclass(frozen=True)
@@ -243,6 +254,101 @@ def child_command(launch, spec, attempt, budgets=None, output=None):
     )
 
 
+def container_command(launch, spec, attempt, budgets=None, root=TRIAL_ROOT):
+    """``docker create`` for one trial, with the paths the investigator sees inside it."""
+    from recycleguard.isolated_runtime import (
+        TRIAL_NO_NETWORK,
+        TRIAL_USER,
+        trial_container_arguments,
+    )
+
+    visible, runtime, program = prepare_attempt(spec, attempt, launch.fixtures)
+    if hasattr(os, "geteuid") and os.geteuid() == 0:  # the investigator is not root
+        os.chown(runtime, TRIAL_USER, TRIAL_USER)
+    control = spec.variant in CONTROLS
+    arguments = ["-I", f"/program/{program.name}"]
+    arguments += [] if budgets is None else ["--budgets", json.dumps(budgets)]
+    arguments += ["--case", spec.case_id, "--variant", spec.variant]
+    arguments += ["--visible", "/visible", "--runtime", "/runtime", "--container"]
+    if not control:
+        arguments += ["--config", launch.config_path.as_posix()]
+    subpath = attempt.resolve().relative_to(root).as_posix()
+    network = TRIAL_NO_NETWORK if control else f"container:{MODEL_CONTAINER}"
+    name = "recycleguard-trial-" + hashlib.sha256(subpath.encode()).hexdigest()[:16]
+    command = trial_container_arguments(
+        name,
+        INVESTIGATOR_IMAGE,
+        network,
+        TRIAL_VOLUME,
+        subpath,
+        None if control else PROVENANCE_VOLUME,
+        arguments,
+    )
+    return command, name, network, runtime
+
+
+def run_container(command, name, network, attempt, log):
+    """Create, check what Docker will start, then start. The container never outlives this call."""
+    from recycleguard.isolated_runtime import verify_trial_inspection
+
+    created = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT, check=False)
+    if created.returncode != 0:
+        return created
+    try:
+        inspected = subprocess.run(
+            ["docker", "inspect", name], capture_output=True, check=True, timeout=60
+        )
+        (attempt / "isolation-inspect.json").write_bytes(inspected.stdout)
+        expected = network
+        if network.startswith("container:"):
+            # Docker records the joined container by id, which also pins the running server.
+            model = subprocess.run(
+                ["docker", "inspect", network.split(":", 1)[1]],
+                capture_output=True,
+                check=True,
+                timeout=60,
+            )
+            expected = "container:" + json.loads(model.stdout)[0]["Id"]
+        problems = verify_trial_inspection(
+            json.loads(inspected.stdout)[0], expected, {TRIAL_VOLUME, PROVENANCE_VOLUME}
+        )
+        if problems:
+            raise SystemExit("trial container refused: " + "; ".join(problems))
+        return subprocess.run(
+            ["docker", "start", "--attach", name],
+            stdout=log,
+            stderr=subprocess.STDOUT,
+            timeout=CHILD_TIMEOUT_SECONDS,
+            check=False,
+        )
+    finally:
+        subprocess.run(["docker", "rm", "--force", name], capture_output=True, check=False)
+
+
+def prepare_docker_session(output):
+    """A killed coordinator can leave a trial running. Evidence holds only this session's work."""
+    from recycleguard.isolated_runtime import TRIAL_LABEL
+
+    if not output.is_relative_to(TRIAL_ROOT):
+        raise SystemExit(f"--docker output must be under {TRIAL_ROOT}, in the trial volume")
+    running = subprocess.run(
+        ["docker", "ps", "--quiet", "--filter", f"name=^{API_CONTAINER}$"],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    if running.stdout.strip():
+        raise SystemExit("stop the demo API first: it shares the model's network with trials")
+    stale = subprocess.run(
+        ["docker", "ps", "--all", "--quiet", "--filter", f"label={TRIAL_LABEL}"],
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.split()
+    if stale:
+        subprocess.run(["docker", "rm", "--force", *stale], capture_output=True, check=True)
+
+
 def seal(result_path, results):
     # Content-addressed, so a later change to a sealed result cannot go unnoticed.
     raw = result_path.read_bytes()
@@ -260,18 +366,23 @@ def trial_runner(output, launch, budgets=None):
         trial_dir.mkdir(parents=True, exist_ok=True)
         attempt = trial_dir / f"attempt-{sum(1 for _ in trial_dir.iterdir()) + 1}"
         attempt.mkdir()
-        command, environment, runtime = child_command(launch, spec, attempt, budgets, output)
-        with (attempt / "child.log").open("wb") as log:
-            done = subprocess.run(
-                command,
-                # The sandbox denies the repository, so the child must not start inside it.
-                cwd=runtime,
-                env=environment,
-                stdout=log,
-                stderr=subprocess.STDOUT,
-                timeout=CHILD_TIMEOUT_SECONDS,
-                check=False,
-            )
+        if launch.backend in CONTAINER_BACKENDS:
+            command, name, network, runtime = container_command(launch, spec, attempt, budgets)
+            with (attempt / "child.log").open("wb") as log:
+                done = run_container(command, name, network, attempt, log)
+        else:
+            command, environment, runtime = child_command(launch, spec, attempt, budgets, output)
+            with (attempt / "child.log").open("wb") as log:
+                done = subprocess.run(
+                    command,
+                    # The sandbox denies the repository, so the child must not start inside it.
+                    cwd=runtime,
+                    env=environment,
+                    stdout=log,
+                    stderr=subprocess.STDOUT,
+                    timeout=CHILD_TIMEOUT_SECONDS,
+                    check=False,
+                )
         result_path = runtime / "result.json"
         if done.returncode != 0 or not result_path.is_file():
             return TrialOutcome(status="INFRA_FAILED", detail=f"child exit {done.returncode}")
@@ -298,6 +409,8 @@ def trial_runner(output, launch, budgets=None):
 
 def coordinate(protocol_path, output, launch, *, held_out=None):
     output = output.resolve()
+    if launch.backend in CONTAINER_BACKENDS:
+        prepare_docker_session(output)
     protocol = freeze(protocol_path, output)
     require_development_cases(protocol.get("canaries", ()))
     if held_out is None:
@@ -369,6 +482,7 @@ def main():
     parser.add_argument("--config", type=Path)
     parser.add_argument("--venv", type=Path, help="venv holding only the installed wheel")
     parser.add_argument("--isolation-disclosed", action="store_true")
+    parser.add_argument("--docker", action="store_true", help="one fresh container per trial")
     parser.add_argument("--fixture-model", action="store_true")
     parser.add_argument("--held-out", type=Path, help="verified CP5 freeze manifest")
     arguments = parser.parse_args()
@@ -378,6 +492,15 @@ def main():
         with_fixture_model(arguments.protocol, arguments.output)
     elif arguments.config is None:
         parser.error("give --config or --fixture-model")
+    elif arguments.docker:
+        from recycleguard.local_model import FIXTURE_MODEL_PREFIX, LocalModelConfig
+
+        config = LocalModelConfig.model_validate_json(arguments.config.read_bytes())
+        fixture = config.model_id.startswith(FIXTURE_MODEL_PREFIX)
+        if fixture and arguments.held_out is not None:
+            parser.error("a fixture dry run can never use held-out cases")
+        launch = Launch(DOCKER_FIXTURE if fixture else DOCKERED, arguments.config.resolve())
+        coordinate(arguments.protocol, arguments.output, launch, held_out=arguments.held_out)
     elif arguments.isolation_disclosed:
         launch = Launch(DISCLOSED, arguments.config.resolve())
         coordinate(arguments.protocol, arguments.output, launch, held_out=arguments.held_out)

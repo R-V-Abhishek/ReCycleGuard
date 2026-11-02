@@ -227,8 +227,19 @@ def main():
     parser.add_argument("--config", type=Path)
     parser.add_argument("--forbidden", type=Path, action="append", default=[])
     parser.add_argument("--sandboxed", action="store_true")
+    parser.add_argument("--container", action="store_true")
     parser.add_argument("--budgets", type=json.loads)
     arguments = parser.parse_args()
+
+    if arguments.container:
+        from recycleguard.isolated_runtime import probe_trial_boundary
+
+        probe_trial_boundary(
+            arguments.visible,
+            Path(__file__).resolve().parent,
+            arguments.runtime,
+            arguments.runtime / "isolation-evidence-real.json",
+        )
 
     if arguments.sandboxed:
         from recycleguard.host_sandbox import probe_boundary
