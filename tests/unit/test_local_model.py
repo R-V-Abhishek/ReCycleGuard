@@ -505,3 +505,6 @@ def test_refuted_finding_cannot_be_resolved_by_the_local_response_parser(server,
     assert result.status == "FAILED" and result.issues[0].retryable
     assert port.blobs.get(result.output.exact_response_blob).decode() == backend.model_text
     assert result.output.validated_output_or_null is None
+
+
+pytestmark = pytest.mark.model

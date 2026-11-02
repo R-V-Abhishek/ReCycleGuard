@@ -159,3 +159,6 @@ def test_dossier_passes_real_intake(tmp_path, key):
             assert out.required.decimal == want["required"]
             assert out.supported.decimal == "0.0000"  # supplied allocations stay unpromoted
         assert result.output.coverage == "QUALIFIED"
+
+
+pytestmark = pytest.mark.slow

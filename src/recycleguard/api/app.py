@@ -43,7 +43,7 @@ from recycleguard.investigation import (
     InvestigationRequest,
     InvestigationService,
     ScriptedExchange,
-    evaluation_budgets,
+    resolve_budgets,
 )
 from recycleguard.knowledge.corpus_audit import CorpusProfileAuditManifest
 from recycleguard.knowledge.fixed_queries import FIXED_RULE_QUERIES
@@ -715,9 +715,7 @@ def create_app(options: ApiOptions):
                             "scripted mode requires explicitly configured test adapters"
                         )
                     steps = list(options.test_exchanges)
-                budgets = body.budgets
-                if budgets is None:
-                    budgets = BudgetLimits() if config is None else evaluation_budgets(config)
+                budgets = resolve_budgets(config, body.budgets)
                 run_id = "run:" + uuid4().hex
                 finding_ids = [f"finding:{run_id.split(':')[1]}"]
                 if config is None:
