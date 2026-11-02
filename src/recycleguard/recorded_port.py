@@ -6,10 +6,12 @@ there is no provider, fallback or nearest match. The recorded response and reque
 already be present in the store being replayed into.
 """
 
+import json
 from collections import defaultdict, deque
 
 from recycleguard.config import Settings
-from recycleguard.contracts import CommandContext, ServiceResult
+from recycleguard.contracts import BlobRef, CommandContext, ServiceResult
+from recycleguard.contracts.audit import OperationIntent, OperationResult
 from recycleguard.model_port import ModelCallRequest, ModelCallResult
 
 
@@ -57,3 +59,36 @@ class RecordedReplayModelPort:
                 "audit_event_ids": [],
             }
         )
+
+
+def load_recordings(kernel, run_id: str):
+    """Read ``(request, result)`` pairs from a finished run's audit records, in call order.
+
+    Each model operation's intent holds its exact request; each attempt's stored result holds the
+    provider result. Only attempts whose result was captured as a ``ServiceResult`` are returned.
+    A timeout or an unknown outcome has no recorded response, so a replay of it raises instead.
+    """
+    blobs, connection = kernel.blob_store, kernel.connection
+    pairs = []
+    intents = connection.execute(
+        "SELECT operation_id,intent_json FROM operation_intents WHERE stream_id=? ORDER BY rowid",
+        (f"stream:{run_id}",),
+    ).fetchall()
+    for intent_row in intents:
+        intent = OperationIntent.model_validate_json(intent_row["intent_json"])
+        if not intent.event_type.startswith("graph.model."):
+            continue
+        request = ModelCallRequest.model_validate_json(blobs.get(intent.payload))
+        attempts = connection.execute(
+            "SELECT a.attempt_id,r.result_json FROM operation_attempts a "
+            "JOIN attempt_results r ON r.attempt_id=a.attempt_id "
+            "WHERE a.operation_id=? ORDER BY a.rowid",
+            (intent_row["operation_id"],),
+        ).fetchall()
+        for attempt in attempts:
+            stored = OperationResult.model_validate_json(attempt["result_json"])
+            record = json.loads(blobs.get(stored.payload))
+            raw = json.loads(blobs.get(BlobRef.model_validate(record["raw_result_blob"])))
+            if "status" in raw:
+                pairs.append((request, ServiceResult[ModelCallResult].model_validate(raw)))
+    return pairs
