@@ -104,7 +104,10 @@ def probe_boundary(forbidden: list[Path], visible: Path, runtime: Path, evidence
         raise RuntimeError("isolation probes need forbidden host paths to try")
     records = []
     for path in forbidden:
-        records.append(_attempt("list", str(path), lambda p=path: list(p.iterdir())))
+        if path.is_dir():
+            # Listing a regular file fails with ENOTDIR whatever the profile says, so only
+            # directories get a list probe. Every path, file or directory, still gets a read probe.
+            records.append(_attempt("list", str(path), lambda p=path: list(p.iterdir())))
         records.append(_attempt("read", str(path), lambda p=path: p.read_bytes()))
     for target in (visible / ".forbidden-write", runtime.parent / ".forbidden-write"):
         records.append(
