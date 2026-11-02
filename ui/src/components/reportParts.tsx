@@ -7,6 +7,14 @@ import { EvidenceChips } from "./evidence";
 // The status is the backend's; nothing here is derived or recomputed.
 export function ClaimsBySection({ report, dossierId, onCalculation }: { report: InvestigationReport["report"]; dossierId?: string; onCalculation(id: string): void }) {
   const claims = new Map<string, ReportClaim>(report.claims.map((claim) => [claim.claim_id, claim]));
+  // The backend's exact value for a numeric claim, shown as stored; nothing is computed here.
+  const claimText = (claim: ReportClaim) => {
+    const ref = claim.calculation_value_ref;
+    if (!ref) return claim.template_or_text;
+    const bucket = report.calculations.find((c) => c.calculation_id === ref.calculation_id)?.bucket_results.find((b) => b.bucket_id === ref.bucket_id);
+    const quantity = bucket?.[ref.field];
+    return claim.template_or_text.replace("{value}", quantity ? `${quantity.decimal} ${quantity.unit}` : "unavailable");
+  };
   if (!report.sections.length) return <p className="muted">This report has no sections.</p>;
   return (
     <>
@@ -25,7 +33,7 @@ export function ClaimsBySection({ report, dossierId, onCalculation }: { report: 
                 <p>
                   <Badge value={claim.support_status} /> <span className="muted small">{claim.kind.replace(/_/g, " ")}</span>
                 </p>
-                <p>{claim.template_or_text}</p>
+                <p className="claim-text">{claimText(claim)}</p>
                 <EvidenceChips refs={claim.evidence_refs} dossierId={dossierId} onCalculation={onCalculation} />
               </div>
             );

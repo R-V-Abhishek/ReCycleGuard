@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { ApiClient } from "../api/client";
-import type { InvestigationReport, Issue } from "../api/types";
+import type { InvestigationReport, Issue, Quantity } from "../api/types";
 import { ChecksTable, ClaimsBySection, ReportText, UnresolvedIssues } from "../components/reportParts";
 import { SessionContext } from "../state/session";
 
@@ -11,14 +11,15 @@ const withSession = (node: React.ReactNode) => (
   <SessionContext.Provider value={{ client: new ApiClient("http://api", "t"), disconnect() {} }}>{node}</SessionContext.Provider>
 );
 
+const q = (decimal: string): Quantity => ({ decimal, unit: "KG", dimension: "METAL_MASS", metal: "AU" });
 const ref = { ref_kind: "OBSERVATION" as const, ref_id: "observation:one", artifact_revision_id: null, locator: null };
 const body: InvestigationReport["report"] = {
   revision: { report_id: "r", report_revision_id: "rr", review_dependency_digest: "d".repeat(64), supersedes_report_revision_id: null },
   sections: [
     { section_id: "s1", title: "Balances", claim_ids: ["c1", "c9"], evidence_refs: [], coverage_state: "QUALIFIED" },
   ],
-  claims: [{ claim_id: "c1", kind: "NUMERIC_FACT", template_or_text: "Shortfall is {value}", evidence_refs: [ref], support_status: "UNSUPPORTED" }],
-  calculations: [],
+  claims: [{ claim_id: "c1", kind: "NUMERIC", template_or_text: "Shortfall is {value}", evidence_refs: [ref], calculation_value_ref: { calculation_id: "calc:1", bucket_id: "bucket:au", field: "shortfall" }, support_status: "UNSUPPORTED" }],
+  calculations: [{ calculation_id: "calc:1", analyzed_bucket_ids: ["bucket:au"], bucket_results: [{ bucket_id: "bucket:au", required: q("12.3400"), supported: q("0.1"), signed_gap: q("-12.2400"), shortfall: q("12.2400"), surplus: q("0"), pending: q("0"), portal_reported: null, ledger_supported: q("0.1"), delta: null, snapshot_comparison_ref: null, allocation_ids: [], qualification_refs: [] }], coverage: "QUALIFIED", issues: [] }],
   rendered_markdown: "",
 };
 
@@ -27,7 +28,7 @@ describe("claims", () => {
     render(withSession(<ClaimsBySection report={body} onCalculation={() => {}} />));
     expect(screen.getByText("UNSUPPORTED")).toBeTruthy();
     expect(screen.getByText("QUALIFIED")).toBeTruthy();
-    expect(screen.getByText("Shortfall is {value}")).toBeTruthy();
+    expect(screen.getByText("Shortfall is 12.2400 KG")).toBeTruthy();
     expect(screen.getByText("observation:one")).toBeTruthy();
     expect(screen.getByText("c9")).toBeTruthy();
     expect(screen.getByText(/missing from the report/)).toBeTruthy();

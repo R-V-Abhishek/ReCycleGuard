@@ -414,6 +414,7 @@ export interface ReportClaim {
   kind: string;
   template_or_text: string;
   evidence_refs: EvidenceRef[];
+  calculation_value_ref: { calculation_id: string; bucket_id: string; field: keyof Pick<BucketResult, "required" | "supported" | "signed_gap" | "shortfall" | "surplus" | "pending" | "portal_reported" | "ledger_supported" | "delta"> } | null;
   support_status: "SUPPORTED" | "QUALIFIED" | "UNSUPPORTED";
 }
 
