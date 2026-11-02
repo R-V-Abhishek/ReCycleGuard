@@ -84,3 +84,14 @@ credentials, build an actual index and verify exact pins and recorded states.
 Negative cases change expected pins, index bytes, original/provision blobs,
 profile content and audit hashes. Legacy helper tests require an explicitly
 unverified result instead of fabricated source review/rights assertions.
+
+## Rights and redistribution for the release (H11 addendum, draft)
+
+- R02 (E-Waste (Management) Rules, 2022) and R08 (CPCB FAQ, 23 Jan 2024) are used as retrieval
+  sources. Their recorded rights state is `REVIEW_REQUIRED`; the audit output reports
+  `REDISTRIBUTION_RESTRICTED` for both.
+- Release plan: **manifest only.** The public archive lists each source's title, alias, SHA-256 and page
+  count (table above) and says where to obtain the original. It does not include the PDFs unless
+  redistribution is cleared in writing; confirm against the actual archive contents at CP8 (H12).
+- The corpus is two sources. Do not draw broad retrieval-quality conclusions from it.
+- Retrieved text is treated as untrusted evidence, including any instruction inside it.
