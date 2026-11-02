@@ -65,7 +65,9 @@ _PHASE_RULES = {
         "and finding_proposal must be null. Write basis and next_action_text as one short sentence "
         "each, in words only: no digits, amounts, dates or years. Never use the words approve, "
         "approved, certify, certified, certificate, certification, instruction or instructions; "
-        'say "credit record" for a certificate. Example shape: '
+        'say "credit record" for a certificate. The proposal is the value of the finding_proposal '
+        "key, an object nested inside your reply next to verdict, never extra keys at the top "
+        "level. Example value of finding_proposal: "
         '{"issue_type":"<one schema value>","advisory_status":"DISCREPANCY_DETECTED",'
         '"basis":"<sentence in words>","evidence_ref_ids":["<copied id>"],'
         '"abstention_reason":null,"withheld_claim_scopes":[],"next_action_kind":"INVESTIGATE",'
@@ -122,8 +124,8 @@ class LocalModelConfig(BoundaryModel):
     runtime_lock_path: Path
     runtime_lock_digest: Digest
     runtime_version: Literal["0.32.2"] = "0.32.2"
-    prompt_template_id: ID = "prompt:u01_qwen_non_thinking_v8"
-    prompt_version: Nonempty = "u01_non_thinking_v8"
+    prompt_template_id: ID = "prompt:u01_qwen_non_thinking_v9"
+    prompt_version: Nonempty = "u01_non_thinking_v9"
     endpoint: str = "http://127.0.0.1:8080/v1/completions"
     max_output_tokens: Annotated[int, Field(ge=1)] = 1024
     max_total_tokens: Annotated[int, Field(ge=1)] = 32768
