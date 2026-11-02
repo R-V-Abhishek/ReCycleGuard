@@ -54,12 +54,10 @@ _PHASE_RULES = {
         "If verdict is REFUTES, WEAK, NO_PROGRESS, or UNKNOWN, "
         "disposition CANNOT be RESOLVE; "
         "disposition MUST be CONTINUE or ABSTAIN. "
-        "When stopping an investigation because the finding is refuted or cannot be supported, "
-        "set verdict=REFUTES, disposition=ABSTAIN, "
-        'next_check_or_stop="stop", and revised_plan=null. '
-        "Example valid refutation stopping structure: "
-        '{"verdict":"REFUTES","weak_result_or_mistake":null,"next_check_or_stop":"stop",'
-        '"disposition":"ABSTAIN","revised_plan":null,"finding_proposal":null}. '
+        "verdict: use SUPPORTS when this observation itself shows a problem, such as an issue "
+        "listed in it, a pending or unsupported record, or a nonzero delta or shortfall; use "
+        "REFUTES only when it shows the opposite; use UNKNOWN when it shows nothing either way. "
+        'To stop, set next_check_or_stop="stop", disposition=ABSTAIN and revised_plan=null. '
         "finding_proposal: propose one when this observation shows a problem that matches an "
         "issue_type in the schema; otherwise null. Every proposal must cite ids copied exactly "
         "from stage_output.evidence_ref_ids or stage_output.calculation_ids; retrieval, provision, "
@@ -124,8 +122,8 @@ class LocalModelConfig(BoundaryModel):
     runtime_lock_path: Path
     runtime_lock_digest: Digest
     runtime_version: Literal["0.32.2"] = "0.32.2"
-    prompt_template_id: ID = "prompt:u01_qwen_non_thinking_v7"
-    prompt_version: Nonempty = "u01_non_thinking_v7"
+    prompt_template_id: ID = "prompt:u01_qwen_non_thinking_v8"
+    prompt_version: Nonempty = "u01_non_thinking_v8"
     endpoint: str = "http://127.0.0.1:8080/v1/completions"
     max_output_tokens: Annotated[int, Field(ge=1)] = 1024
     max_total_tokens: Annotated[int, Field(ge=1)] = 32768
