@@ -12,11 +12,11 @@ execution register in [implementation plan](../../implementation%20plan.md).
 | CP2: baseline vertical slice | `checkpoint-2` | [Construction and acceptance](checkpoint-2/README.md) | APPROVED on 27 October 2026; qualified baseline, lead acceptance and Windows/Linux verification |
 | CP3: integrated investigation | `checkpoint-3` | [Construction and acceptance](checkpoint-3/README.md) | CLOSED 29 October 2026 on lead's explicit request; qualified offline scope, real services with scripted C10; no four-person acknowledgement ([ledger](checkpoint-3/approvals.json)) |
 | CP4: prototype | `checkpoint-4` (tag `checkpoint-4-approved-2026-11-01`) | [Construction and acceptance](checkpoint-4/README.md) | APPROVED 1 November 2026; candidate `b5a9831`; lead-reported all-four acknowledgement; scripted prototype scope |
-| MG1 / CP5 | `checkpoint-5` | not yet created | WAITING; all evaluation will include the real model (see `EXECUTION_PLAN.md`) |
+| MG1 / CP5 | `checkpoint-5` | not yet created | MG1 APPROVED, CONDITIONAL (setup only; see `mg1/APPROVAL.md`); CP5 WAITING; all evaluation includes the real model (see `EXECUTION_PLAN.md`) |
 
 [U01 local model development](model-gateway/README.md) is a separate, paused
 workstream toward MG1. Early native attempts (prompts v1-v3) failed strict contracts; prompt v4
-is the current pin. MG1 is not approved.
+is the current pin. MG1 is conditionally approved for setup only (`mg1/APPROVAL.md`).
 
 For every subsequent checkpoint, create `checkpoint-N/` with:
 
