@@ -1,0 +1,46 @@
+{
+  "additionalProperties": false,
+  "description": "Attribution and licensing metadata for included or reviewed sources.",
+  "properties": {
+    "artifact_revision_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Artifact Revision Id",
+      "type": "string"
+    },
+    "title_or_description": {
+      "title": "Title Or Description",
+      "type": "string"
+    },
+    "copyright_owner": {
+      "title": "Copyright Owner",
+      "type": "string"
+    },
+    "license_or_basis": {
+      "title": "License Or Basis",
+      "type": "string"
+    },
+    "attribution_text": {
+      "title": "Attribution Text",
+      "type": "string"
+    },
+    "redistribution_status": {
+      "enum": [
+        "ALLOW",
+        "DENY",
+        "REVIEW_REQUIRED"
+      ],
+      "title": "Redistribution Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "artifact_revision_id",
+    "title_or_description",
+    "copyright_owner",
+    "license_or_basis",
+    "attribution_text",
+    "redistribution_status"
+  ],
+  "title": "AttributionRecord",
+  "type": "object"
+}

@@ -1,0 +1,139 @@
+{
+  "$defs": {
+    "BlobRef": {
+      "additionalProperties": false,
+      "properties": {
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_length": {
+          "minimum": 0,
+          "title": "Byte Length",
+          "type": "integer"
+        },
+        "media_type": {
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sha256",
+        "byte_length",
+        "media_type"
+      ],
+      "title": "BlobRef",
+      "type": "object"
+    },
+    "SnapshotRef": {
+      "additionalProperties": false,
+      "description": "Pinned reference; introduced by A02, not an implemented C05 lookup.",
+      "properties": {
+        "snapshot_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "membership_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Membership Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "snapshot_id",
+        "membership_digest"
+      ],
+      "title": "SnapshotRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "packet_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Packet Id",
+      "type": "string"
+    },
+    "creation_operation_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Creation Operation Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "report_blob": {
+      "$ref": "#/$defs/BlobRef"
+    },
+    "report_revision_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Report Revision Id",
+      "type": "string"
+    },
+    "review_dependency_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Review Dependency Digest",
+      "type": "string"
+    },
+    "input_snapshot_refs": {
+      "items": {
+        "$ref": "#/$defs/SnapshotRef"
+      },
+      "title": "Input Snapshot Refs",
+      "type": "array"
+    },
+    "proposed_action_refs": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Proposed Action Refs",
+      "type": "array"
+    },
+    "unresolved_issue_refs": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Unresolved Issue Refs",
+      "type": "array"
+    },
+    "permitted_decisions": {
+      "items": {
+        "enum": [
+          "APPROVE",
+          "REJECT",
+          "REQUEST_CHANGES",
+          "ESCALATE"
+        ],
+        "type": "string"
+      },
+      "title": "Permitted Decisions",
+      "type": "array"
+    },
+    "created_at": {
+      "title": "Created At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "packet_id",
+    "creation_operation_id",
+    "run_id",
+    "report_blob",
+    "report_revision_id",
+    "review_dependency_digest",
+    "input_snapshot_refs",
+    "proposed_action_refs",
+    "unresolved_issue_refs",
+    "permitted_decisions",
+    "created_at"
+  ],
+  "title": "ReviewPacket",
+  "type": "object"
+}

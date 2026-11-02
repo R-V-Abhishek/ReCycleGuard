@@ -1,0 +1,41 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "condition": {
+      "minLength": 1,
+      "title": "Condition",
+      "type": "string"
+    },
+    "testability": {
+      "enum": [
+        "TESTABLE",
+        "UNAVAILABLE"
+      ],
+      "title": "Testability",
+      "type": "string"
+    },
+    "state": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNKNOWN",
+        "NOT_EVALUATED"
+      ],
+      "title": "State",
+      "type": "string"
+    },
+    "reason": {
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+    }
+  },
+  "required": [
+    "condition",
+    "testability",
+    "state",
+    "reason"
+  ],
+  "title": "EligibilityOutcome",
+  "type": "object"
+}

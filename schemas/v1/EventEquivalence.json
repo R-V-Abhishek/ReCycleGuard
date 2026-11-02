@@ -1,0 +1,66 @@
+{
+  "additionalProperties": false,
+  "description": "Explicit mapping linking multiple raw observations to one resolved event.",
+  "properties": {
+    "equivalence_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Equivalence Id",
+      "type": "string"
+    },
+    "certificate_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Certificate Id",
+      "type": "string"
+    },
+    "resolved_event_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Resolved Event Id",
+      "type": "string"
+    },
+    "observation_ids": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Observation Ids",
+      "type": "array"
+    },
+    "matching_basis": {
+      "enum": [
+        "AUTHORITATIVE_EVENT_ID",
+        "EXACT_COMPOUND_KEY_AND_CORROBORATION"
+      ],
+      "title": "Matching Basis",
+      "type": "string"
+    },
+    "assertion_state": {
+      "enum": [
+        "SUPPORTED",
+        "PENDING",
+        "CONFLICTING"
+      ],
+      "title": "Assertion State",
+      "type": "string"
+    },
+    "review_state": {
+      "default": "DRAFT",
+      "enum": [
+        "DRAFT",
+        "APPROVED",
+        "REJECTED"
+      ],
+      "title": "Review State",
+      "type": "string"
+    }
+  },
+  "required": [
+    "equivalence_id",
+    "certificate_id",
+    "resolved_event_id",
+    "observation_ids",
+    "matching_basis",
+    "assertion_state"
+  ],
+  "title": "EventEquivalence",
+  "type": "object"
+}

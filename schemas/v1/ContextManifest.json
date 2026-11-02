@@ -1,0 +1,74 @@
+{
+  "$defs": {
+    "BlobRef": {
+      "additionalProperties": false,
+      "properties": {
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_length": {
+          "minimum": 0,
+          "title": "Byte Length",
+          "type": "integer"
+        },
+        "media_type": {
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sha256",
+        "byte_length",
+        "media_type"
+      ],
+      "title": "BlobRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "context_manifest_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Context Manifest Id",
+      "type": "string"
+    },
+    "run_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "phase": {
+      "enum": [
+        "PLAN",
+        "ASSESS"
+      ],
+      "title": "Phase",
+      "type": "string"
+    },
+    "exact_request_blob": {
+      "$ref": "#/$defs/BlobRef"
+    },
+    "allowed_tool_schema_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Allowed Tool Schema Digest",
+      "type": "string"
+    },
+    "max_total_tokens": {
+      "title": "Max Total Tokens",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "context_manifest_id",
+    "run_id",
+    "phase",
+    "exact_request_blob",
+    "allowed_tool_schema_digest",
+    "max_total_tokens"
+  ],
+  "title": "ContextManifest",
+  "type": "object"
+}

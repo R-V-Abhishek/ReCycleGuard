@@ -1,0 +1,507 @@
+{
+  "$defs": {
+    "ActorRef": {
+      "additionalProperties": false,
+      "properties": {
+        "actor_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Actor Id",
+          "type": "string"
+        },
+        "actor_kind": {
+          "enum": [
+            "HUMAN",
+            "SERVICE",
+            "MODEL_PROPOSAL",
+            "EVALUATOR"
+          ],
+          "title": "Actor Kind",
+          "type": "string"
+        },
+        "authenticated_session_ref": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Authenticated Session Ref"
+        }
+      },
+      "required": [
+        "actor_id",
+        "actor_kind",
+        "authenticated_session_ref"
+      ],
+      "title": "ActorRef",
+      "type": "object"
+    },
+    "EvidenceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "ref_kind": {
+          "enum": [
+            "ARTIFACT",
+            "OBSERVATION",
+            "RECORD",
+            "PROVISION",
+            "CALCULATION",
+            "FINDING"
+          ],
+          "title": "Ref Kind",
+          "type": "string"
+        },
+        "ref_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Ref Id",
+          "type": "string"
+        },
+        "artifact_revision_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Artifact Revision Id"
+        },
+        "locator": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Locator"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "ref_kind",
+        "ref_id",
+        "artifact_revision_id",
+        "locator"
+      ],
+      "title": "EvidenceRef",
+      "type": "object"
+    },
+    "Issue": {
+      "additionalProperties": false,
+      "properties": {
+        "issue_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Issue Id",
+          "type": "string"
+        },
+        "code": {
+          "enum": [
+            "INVALID_SCHEMA",
+            "ACCESS_DENIED",
+            "HASH_MISMATCH",
+            "MISSING_ARTIFACT",
+            "INCOMPLETE_COVERAGE",
+            "EXTRACTION_FAILED",
+            "UNCONFIRMED_IDENTIFIER",
+            "AMBIGUOUS_IDENTITY",
+            "AMBIGUOUS_EVENT",
+            "DIMENSION_MISMATCH",
+            "NUMERIC_PRECISION_EXCEEDED",
+            "EARLIER_LIABILITY_UNMET",
+            "LIABILITY_PRIORITY_UNRESOLVED",
+            "UNSUPPORTED_PROFILE",
+            "UNAPPROVED_PROFILE",
+            "APPLICABILITY_UNRESOLVED",
+            "RULE_CONFLICT",
+            "SOURCE_INCOMPLETE",
+            "STALE_SNAPSHOT",
+            "BUDGET_EXHAUSTED",
+            "CYCLE_DETECTED",
+            "PROVIDER_TIMEOUT",
+            "PROVIDER_INVALID_OUTPUT",
+            "AUDIT_UNAVAILABLE",
+            "CONCURRENT_MODIFICATION",
+            "STALE_REVIEW",
+            "EXPORT_RESTRICTED",
+            "PROHIBITED_VERDICT",
+            "CANCELLED",
+            "INTEGRITY_FAILED",
+            "OVER_ALLOCATION",
+            "UNSUPPORTED_FEATURE",
+            "CREDIT_EXPIRED",
+            "CREDIT_CANCELLED",
+            "CAPABILITY_MISMATCH",
+            "WEIGHT_BASIS_CONFLICT"
+          ],
+          "title": "Code",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "INFO",
+            "WARNING",
+            "BLOCKING"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "message": {
+          "minLength": 1,
+          "title": "Message",
+          "type": "string"
+        },
+        "field_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Field Path"
+        },
+        "evidence_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        },
+        "retryable": {
+          "title": "Retryable",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "issue_id",
+        "code",
+        "severity",
+        "message",
+        "field_path",
+        "evidence_refs",
+        "retryable"
+      ],
+      "title": "Issue",
+      "type": "object"
+    },
+    "Locator": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "PDF_PAGE",
+            "PDF_CELL",
+            "CSV_ROW",
+            "JSON_POINTER",
+            "TEXT_SPAN",
+            "DB_RECORD"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "page_index_1based": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Page Index 1Based"
+        },
+        "printed_page_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Printed Page Label"
+        },
+        "row_index_1based": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Row Index 1Based"
+        },
+        "column_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Column Name"
+        },
+        "json_pointer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Json Pointer"
+        },
+        "text_start": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Text Start"
+        },
+        "text_end": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Text End"
+        },
+        "table_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Table Id"
+        },
+        "cell_row": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cell Row"
+        },
+        "cell_column": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cell Column"
+        }
+      },
+      "required": [
+        "kind",
+        "page_index_1based",
+        "printed_page_label",
+        "row_index_1based",
+        "column_name",
+        "json_pointer",
+        "text_start",
+        "text_end",
+        "table_id",
+        "cell_row",
+        "cell_column"
+      ],
+      "title": "Locator",
+      "type": "object"
+    },
+    "ReviewRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "review_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Review Id",
+          "type": "string"
+        },
+        "run_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Run Id",
+          "type": "string"
+        },
+        "report_revision_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Report Revision Id",
+          "type": "string"
+        },
+        "input_snapshot_refs": {
+          "items": {
+            "$ref": "#/$defs/SnapshotRef"
+          },
+          "title": "Input Snapshot Refs",
+          "type": "array"
+        },
+        "packet_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Packet Id",
+          "type": "string"
+        },
+        "review_dependency_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Review Dependency Digest",
+          "type": "string"
+        },
+        "decision": {
+          "enum": [
+            "APPROVE",
+            "REJECT",
+            "REQUEST_CHANGES",
+            "ESCALATE"
+          ],
+          "title": "Decision",
+          "type": "string"
+        },
+        "authenticated_reviewer_ref": {
+          "$ref": "#/$defs/ActorRef"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "recorded_at": {
+          "title": "Recorded At",
+          "type": "string"
+        },
+        "supersedes_review_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Supersedes Review Id"
+        }
+      },
+      "required": [
+        "review_id",
+        "run_id",
+        "report_revision_id",
+        "input_snapshot_refs",
+        "packet_id",
+        "review_dependency_digest",
+        "decision",
+        "authenticated_reviewer_ref",
+        "reason",
+        "recorded_at"
+      ],
+      "title": "ReviewRecord",
+      "type": "object"
+    },
+    "SnapshotRef": {
+      "additionalProperties": false,
+      "description": "Pinned reference; introduced by A02, not an implemented C05 lookup.",
+      "properties": {
+        "snapshot_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "membership_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Membership Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "snapshot_id",
+        "membership_digest"
+      ],
+      "title": "SnapshotRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "new_run_status": {
+      "title": "New Run Status",
+      "type": "string"
+    },
+    "new_review_outcome": {
+      "enum": [
+        "NOT_REQUESTED",
+        "PENDING",
+        "APPROVED",
+        "REJECTED",
+        "CHANGES_REQUESTED",
+        "ESCALATED",
+        "CLOSED_WITHOUT_DECISION"
+      ],
+      "title": "New Review Outcome",
+      "type": "string"
+    },
+    "stop_reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Stop Reason"
+    },
+    "review_record": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ReviewRecord"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "issues": {
+      "items": {
+        "$ref": "#/$defs/Issue"
+      },
+      "title": "Issues",
+      "type": "array"
+    }
+  },
+  "required": [
+    "new_run_status",
+    "new_review_outcome"
+  ],
+  "title": "ReviewTransitionResult",
+  "type": "object"
+}

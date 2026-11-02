@@ -1,0 +1,383 @@
+{
+  "$defs": {
+    "EvidenceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "ref_kind": {
+          "enum": [
+            "ARTIFACT",
+            "OBSERVATION",
+            "RECORD",
+            "PROVISION",
+            "CALCULATION",
+            "FINDING"
+          ],
+          "title": "Ref Kind",
+          "type": "string"
+        },
+        "ref_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Ref Id",
+          "type": "string"
+        },
+        "artifact_revision_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Artifact Revision Id"
+        },
+        "locator": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Locator"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "ref_kind",
+        "ref_id",
+        "artifact_revision_id",
+        "locator"
+      ],
+      "title": "EvidenceRef",
+      "type": "object"
+    },
+    "Locator": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "PDF_PAGE",
+            "PDF_CELL",
+            "CSV_ROW",
+            "JSON_POINTER",
+            "TEXT_SPAN",
+            "DB_RECORD"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "page_index_1based": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Page Index 1Based"
+        },
+        "printed_page_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Printed Page Label"
+        },
+        "row_index_1based": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Row Index 1Based"
+        },
+        "column_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Column Name"
+        },
+        "json_pointer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Json Pointer"
+        },
+        "text_start": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Text Start"
+        },
+        "text_end": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Text End"
+        },
+        "table_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Table Id"
+        },
+        "cell_row": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cell Row"
+        },
+        "cell_column": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cell Column"
+        }
+      },
+      "required": [
+        "kind",
+        "page_index_1based",
+        "printed_page_label",
+        "row_index_1based",
+        "column_name",
+        "json_pointer",
+        "text_start",
+        "text_end",
+        "table_id",
+        "cell_row",
+        "cell_column"
+      ],
+      "title": "Locator",
+      "type": "object"
+    },
+    "TemporalValue": {
+      "additionalProperties": false,
+      "properties": {
+        "raw": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Raw"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        },
+        "precision": {
+          "enum": [
+            "INSTANT",
+            "DATE",
+            "MONTH",
+            "YEAR",
+            "UNKNOWN"
+          ],
+          "title": "Precision",
+          "type": "string"
+        },
+        "timezone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Timezone"
+        },
+        "interpretation_status": {
+          "enum": [
+            "PARSED",
+            "REVIEWED",
+            "AMBIGUOUS",
+            "UNKNOWN"
+          ],
+          "title": "Interpretation Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "raw",
+        "value",
+        "precision",
+        "timezone",
+        "interpretation_status"
+      ],
+      "title": "TemporalValue",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Frozen deadline register entry with mandatory kind separation (CONTRACTS §4.3).\n\nOBLIGATION_ACHIEVEMENT, CREDIT_EVENT, and RETURN_FILING are independent deadlines.\nA RETURN_FILING extension cannot extend OBLIGATION_ACHIEVEMENT or CREDIT_EVENT\nwithout separate reviewed authority.\n\nRule 9A is an enabling provision, not the extension order itself.\nA notice lead never creates a verified extension — extension_order_refs must be present\nand reviewed for extended_due to be treated as verified.",
+  "properties": {
+    "deadline_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Deadline Id",
+      "type": "string"
+    },
+    "producer_or_role_scope": {
+      "title": "Producer Or Role Scope",
+      "type": "string"
+    },
+    "fiscal_year": {
+      "title": "Fiscal Year",
+      "type": "string"
+    },
+    "quarter": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Quarter"
+    },
+    "kind": {
+      "enum": [
+        "OBLIGATION_ACHIEVEMENT",
+        "CREDIT_EVENT",
+        "RETURN_FILING"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "baseline_due": {
+      "$ref": "#/$defs/TemporalValue"
+    },
+    "baseline_basis_refs": {
+      "items": {
+        "$ref": "#/$defs/EvidenceRef"
+      },
+      "title": "Baseline Basis Refs",
+      "type": "array"
+    },
+    "extended_due": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TemporalValue"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "extension_order_refs": {
+      "items": {
+        "$ref": "#/$defs/EvidenceRef"
+      },
+      "title": "Extension Order Refs",
+      "type": "array"
+    },
+    "enabling_provision_refs": {
+      "items": {
+        "$ref": "#/$defs/EvidenceRef"
+      },
+      "title": "Enabling Provision Refs",
+      "type": "array"
+    },
+    "unverified_notice": {
+      "default": false,
+      "title": "Unverified Notice",
+      "type": "boolean"
+    },
+    "review_state": {
+      "default": "DRAFT",
+      "enum": [
+        "DRAFT",
+        "APPROVED",
+        "REJECTED"
+      ],
+      "title": "Review State",
+      "type": "string"
+    },
+    "supersedes_deadline_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Supersedes Deadline Id"
+    }
+  },
+  "required": [
+    "deadline_id",
+    "producer_or_role_scope",
+    "fiscal_year",
+    "kind",
+    "baseline_due"
+  ],
+  "title": "DeadlineEntry",
+  "type": "object"
+}

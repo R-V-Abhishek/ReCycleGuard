@@ -1,0 +1,47 @@
+{
+  "additionalProperties": false,
+  "description": "Context expansion settings for retrieval evidence bundles (CONTRACTS §6.1).",
+  "properties": {
+    "include_parent": {
+      "default": true,
+      "title": "Include Parent",
+      "type": "boolean"
+    },
+    "include_table_header": {
+      "default": true,
+      "title": "Include Table Header",
+      "type": "boolean"
+    },
+    "include_footnotes": {
+      "default": true,
+      "title": "Include Footnotes",
+      "type": "boolean"
+    },
+    "include_applicable_amendments": {
+      "default": true,
+      "title": "Include Applicable Amendments",
+      "type": "boolean"
+    },
+    "include_references": {
+      "default": false,
+      "title": "Include References",
+      "type": "boolean"
+    },
+    "max_depth": {
+      "default": 2,
+      "maximum": 8,
+      "minimum": 0,
+      "title": "Max Depth",
+      "type": "integer"
+    },
+    "max_nodes": {
+      "default": 20,
+      "maximum": 100,
+      "minimum": 0,
+      "title": "Max Nodes",
+      "type": "integer"
+    }
+  },
+  "title": "ExpansionPolicy",
+  "type": "object"
+}

@@ -1,0 +1,282 @@
+{
+  "$defs": {
+    "BlobRef": {
+      "additionalProperties": false,
+      "properties": {
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_length": {
+          "minimum": 0,
+          "title": "Byte Length",
+          "type": "integer"
+        },
+        "media_type": {
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sha256",
+        "byte_length",
+        "media_type"
+      ],
+      "title": "BlobRef",
+      "type": "object"
+    },
+    "TemporalValue": {
+      "additionalProperties": false,
+      "properties": {
+        "raw": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Raw"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        },
+        "precision": {
+          "enum": [
+            "INSTANT",
+            "DATE",
+            "MONTH",
+            "YEAR",
+            "UNKNOWN"
+          ],
+          "title": "Precision",
+          "type": "string"
+        },
+        "timezone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Timezone"
+        },
+        "interpretation_status": {
+          "enum": [
+            "PARSED",
+            "REVIEWED",
+            "AMBIGUOUS",
+            "UNKNOWN"
+          ],
+          "title": "Interpretation Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "raw",
+        "value",
+        "precision",
+        "timezone",
+        "interpretation_status"
+      ],
+      "title": "TemporalValue",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "artifact_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Artifact Id",
+      "type": "string"
+    },
+    "artifact_revision_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Artifact Revision Id",
+      "type": "string"
+    },
+    "blob": {
+      "$ref": "#/$defs/BlobRef"
+    },
+    "original_filename": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Original Filename"
+    },
+    "source_kind": {
+      "enum": [
+        "GAZETTE",
+        "OFFICIAL_GUIDANCE",
+        "PORTAL_CAPTURE",
+        "COMPANY_RECORD",
+        "SYNTHETIC_RECORD",
+        "AGGREGATE_STATISTICS",
+        "RESEARCH_NOTE"
+      ],
+      "title": "Source Kind",
+      "type": "string"
+    },
+    "doc_type": {
+      "enum": [
+        "STATUTORY_INSTRUMENT",
+        "SOP",
+        "TECHNICAL_FRAMEWORK",
+        "FAQ",
+        "PORTAL_INSTRUCTION",
+        "NOTICE",
+        "REGISTRATION_CERTIFICATE",
+        "PORTAL_SNAPSHOT",
+        "PORTAL_EPR_CERTIFICATE",
+        "GST_INVOICE",
+        "ERP_CSV",
+        "CONTRACT",
+        "PURCHASE_ORDER",
+        "PAYMENT_RECORD",
+        "WEIGHT_TICKET",
+        "RECYCLING_ACKNOWLEDGMENT",
+        "DESTRUCTION_CERTIFICATE",
+        "AWARENESS_PROOF",
+        "RETURN_DRAFT",
+        "FILING_ACKNOWLEDGMENT",
+        "OTHER"
+      ],
+      "title": "Doc Type",
+      "type": "string"
+    },
+    "establishes": {
+      "items": {
+        "enum": [
+          "IDENTITY",
+          "REGISTRATION_COVERAGE",
+          "REPORTED_ACCOUNT_POSITION",
+          "CERTIFICATE_IDENTITY",
+          "TRANSFER_STAGE",
+          "LIABILITY_ALLOCATION",
+          "PAYMENT",
+          "PHYSICAL_MOVEMENT",
+          "DESTRUCTION",
+          "AWARENESS_ACTIVITY",
+          "FILING_RECEIPT",
+          "RULE_TEXT",
+          "CONTEXT_ONLY"
+        ],
+        "type": "string"
+      },
+      "title": "Establishes",
+      "type": "array"
+    },
+    "does_not_establish": {
+      "items": {
+        "enum": [
+          "IDENTITY",
+          "REGISTRATION_COVERAGE",
+          "REPORTED_ACCOUNT_POSITION",
+          "CERTIFICATE_IDENTITY",
+          "TRANSFER_STAGE",
+          "LIABILITY_ALLOCATION",
+          "PAYMENT",
+          "PHYSICAL_MOVEMENT",
+          "DESTRUCTION",
+          "AWARENESS_ACTIVITY",
+          "FILING_RECEIPT",
+          "RULE_TEXT",
+          "CONTEXT_ONLY"
+        ],
+        "type": "string"
+      },
+      "title": "Does Not Establish",
+      "type": "array"
+    },
+    "source_url": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Source Url"
+    },
+    "fetch_attempt_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Fetch Attempt Id"
+    },
+    "captured_at": {
+      "$ref": "#/$defs/TemporalValue"
+    },
+    "ingested_at": {
+      "title": "Ingested At",
+      "type": "string"
+    },
+    "access_policy_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Access Policy Id",
+      "type": "string"
+    },
+    "rights_decision_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Rights Decision Id",
+      "type": "string"
+    },
+    "synthetic": {
+      "title": "Synthetic",
+      "type": "boolean"
+    },
+    "derived_from": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Derived From",
+      "type": "array"
+    }
+  },
+  "required": [
+    "artifact_id",
+    "artifact_revision_id",
+    "blob",
+    "original_filename",
+    "source_kind",
+    "doc_type",
+    "establishes",
+    "does_not_establish",
+    "source_url",
+    "fetch_attempt_id",
+    "captured_at",
+    "ingested_at",
+    "access_policy_id",
+    "rights_decision_id",
+    "synthetic",
+    "derived_from"
+  ],
+  "title": "ArtifactRevision",
+  "type": "object"
+}

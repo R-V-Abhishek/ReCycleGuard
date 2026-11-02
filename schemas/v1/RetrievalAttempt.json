@@ -1,0 +1,707 @@
+{
+  "$defs": {
+    "BlobRef": {
+      "additionalProperties": false,
+      "properties": {
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_length": {
+          "minimum": 0,
+          "title": "Byte Length",
+          "type": "integer"
+        },
+        "media_type": {
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sha256",
+        "byte_length",
+        "media_type"
+      ],
+      "title": "BlobRef",
+      "type": "object"
+    },
+    "CandidateDisposition": {
+      "additionalProperties": false,
+      "description": "Stage-specific candidate outcome during retrieval (CONTRACTS §6.1).",
+      "properties": {
+        "candidate_ref": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Candidate Ref",
+          "type": "string"
+        },
+        "disposition": {
+          "enum": [
+            "FILTERED_OUT",
+            "NOT_SCORED",
+            "OUTSIDE_ENGINE_WINDOW",
+            "SCORED",
+            "EXPANDED_CONTEXT",
+            "SELECTED",
+            "REJECTED_SUPPORT",
+            "OMITTED_CONTEXT_BUDGET"
+          ],
+          "title": "Disposition",
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "operation_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Operation Ref"
+        },
+        "score": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Score"
+        },
+        "rank": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rank"
+        }
+      },
+      "required": [
+        "candidate_ref",
+        "disposition"
+      ],
+      "title": "CandidateDisposition",
+      "type": "object"
+    },
+    "EvidenceGrade": {
+      "additionalProperties": false,
+      "description": "Five-dimensional evidence grade assessing candidate support (CONTRACTS §6.1).",
+      "properties": {
+        "candidate_ref": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Candidate Ref",
+          "type": "string"
+        },
+        "authority": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "UNRESOLVED"
+          ],
+          "title": "Authority",
+          "type": "string"
+        },
+        "temporal_fit": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "UNRESOLVED"
+          ],
+          "title": "Temporal Fit",
+          "type": "string"
+        },
+        "direct_support": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "UNRESOLVED"
+          ],
+          "title": "Direct Support",
+          "type": "string"
+        },
+        "completeness": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "UNRESOLVED"
+          ],
+          "title": "Completeness",
+          "type": "string"
+        },
+        "contradiction": {
+          "enum": [
+            "PASS",
+            "FAIL",
+            "UNRESOLVED"
+          ],
+          "title": "Contradiction",
+          "type": "string"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "assessed_by": {
+          "title": "Assessed By",
+          "type": "string"
+        },
+        "assessment_version": {
+          "title": "Assessment Version",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "candidate_ref",
+        "authority",
+        "temporal_fit",
+        "direct_support",
+        "completeness",
+        "contradiction",
+        "assessed_by",
+        "assessment_version"
+      ],
+      "title": "EvidenceGrade",
+      "type": "object"
+    },
+    "EvidenceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "ref_kind": {
+          "enum": [
+            "ARTIFACT",
+            "OBSERVATION",
+            "RECORD",
+            "PROVISION",
+            "CALCULATION",
+            "FINDING"
+          ],
+          "title": "Ref Kind",
+          "type": "string"
+        },
+        "ref_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Ref Id",
+          "type": "string"
+        },
+        "artifact_revision_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Artifact Revision Id"
+        },
+        "locator": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Locator"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "ref_kind",
+        "ref_id",
+        "artifact_revision_id",
+        "locator"
+      ],
+      "title": "EvidenceRef",
+      "type": "object"
+    },
+    "Locator": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "PDF_PAGE",
+            "PDF_CELL",
+            "CSV_ROW",
+            "JSON_POINTER",
+            "TEXT_SPAN",
+            "DB_RECORD"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "page_index_1based": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Page Index 1Based"
+        },
+        "printed_page_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Printed Page Label"
+        },
+        "row_index_1based": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Row Index 1Based"
+        },
+        "column_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Column Name"
+        },
+        "json_pointer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Json Pointer"
+        },
+        "text_start": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Text Start"
+        },
+        "text_end": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Text End"
+        },
+        "table_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Table Id"
+        },
+        "cell_row": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cell Row"
+        },
+        "cell_column": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cell Column"
+        }
+      },
+      "required": [
+        "kind",
+        "page_index_1based",
+        "printed_page_label",
+        "row_index_1based",
+        "column_name",
+        "json_pointer",
+        "text_start",
+        "text_end",
+        "table_id",
+        "cell_row",
+        "cell_column"
+      ],
+      "title": "Locator",
+      "type": "object"
+    },
+    "SearchRulesRequest": {
+      "additionalProperties": false,
+      "description": "Search request to frozen regulatory index (CONTRACTS §6.1).",
+      "properties": {
+        "query": {
+          "title": "Query",
+          "type": "string"
+        },
+        "corpus_snapshot_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Corpus Snapshot Id",
+          "type": "string"
+        },
+        "index_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Index Id",
+          "type": "string"
+        },
+        "question_basis": {
+          "default": "REPORTING_PERIOD",
+          "enum": [
+            "TRANSACTION_DATE",
+            "CAPTURE_DATE",
+            "REPORTING_PERIOD",
+            "FILING_DATE"
+          ],
+          "title": "Question Basis",
+          "type": "string"
+        },
+        "target_event_time": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TemporalValue"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "target_reporting_period": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Reporting Period"
+        },
+        "target_filing_date": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TemporalValue"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "deadline_entry_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Deadline Entry Ids",
+          "type": "array"
+        },
+        "regimes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Regimes",
+          "type": "array"
+        },
+        "roles": {
+          "items": {
+            "enum": [
+              "PRODUCER",
+              "MANUFACTURER",
+              "RECYCLER",
+              "REFURBISHER"
+            ],
+            "type": "string"
+          },
+          "title": "Roles",
+          "type": "array"
+        },
+        "eee_codes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Eee Codes",
+          "type": "array"
+        },
+        "top_k": {
+          "default": 10,
+          "maximum": 50,
+          "minimum": 1,
+          "title": "Top K",
+          "type": "integer"
+        },
+        "diagnostic_mode": {
+          "default": false,
+          "title": "Diagnostic Mode",
+          "type": "boolean"
+        },
+        "expected_index_digest": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected Index Digest"
+        },
+        "expected_corpus_membership_digest": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected Corpus Membership Digest"
+        }
+      },
+      "required": [
+        "query",
+        "corpus_snapshot_id",
+        "index_id"
+      ],
+      "title": "SearchRulesRequest",
+      "type": "object"
+    },
+    "TemporalValue": {
+      "additionalProperties": false,
+      "properties": {
+        "raw": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Raw"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        },
+        "precision": {
+          "enum": [
+            "INSTANT",
+            "DATE",
+            "MONTH",
+            "YEAR",
+            "UNKNOWN"
+          ],
+          "title": "Precision",
+          "type": "string"
+        },
+        "timezone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Timezone"
+        },
+        "interpretation_status": {
+          "enum": [
+            "PARSED",
+            "REVIEWED",
+            "AMBIGUOUS",
+            "UNKNOWN"
+          ],
+          "title": "Interpretation Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "raw",
+        "value",
+        "precision",
+        "timezone",
+        "interpretation_status"
+      ],
+      "title": "TemporalValue",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Complete audited retrieval attempt record (CONTRACTS §6.1).",
+  "properties": {
+    "attempt_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Attempt Id",
+      "type": "string"
+    },
+    "request": {
+      "$ref": "#/$defs/SearchRulesRequest"
+    },
+    "eligibility_set_reference": {
+      "title": "Eligibility Set Reference",
+      "type": "string"
+    },
+    "candidate_dispositions": {
+      "items": {
+        "$ref": "#/$defs/CandidateDisposition"
+      },
+      "title": "Candidate Dispositions",
+      "type": "array"
+    },
+    "engine_candidates": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Engine Candidates",
+      "type": "array"
+    },
+    "graph_expansion_edges": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Graph Expansion Edges",
+      "type": "array"
+    },
+    "grading_assessments": {
+      "items": {
+        "$ref": "#/$defs/EvidenceGrade"
+      },
+      "title": "Grading Assessments",
+      "type": "array"
+    },
+    "selected_refs": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Selected Refs",
+      "type": "array"
+    },
+    "excluded_refs": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Excluded Refs",
+      "type": "array"
+    },
+    "full_result_blob": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/BlobRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "execution_versions": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Execution Versions",
+      "type": "object"
+    }
+  },
+  "required": [
+    "attempt_id",
+    "request",
+    "eligibility_set_reference",
+    "candidate_dispositions",
+    "engine_candidates",
+    "graph_expansion_edges",
+    "grading_assessments",
+    "selected_refs",
+    "excluded_refs"
+  ],
+  "title": "RetrievalAttempt",
+  "type": "object"
+}

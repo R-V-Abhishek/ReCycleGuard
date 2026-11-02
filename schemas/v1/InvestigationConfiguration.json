@@ -1,0 +1,374 @@
+{
+  "$defs": {
+    "BlobRef": {
+      "additionalProperties": false,
+      "properties": {
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_length": {
+          "minimum": 0,
+          "title": "Byte Length",
+          "type": "integer"
+        },
+        "media_type": {
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sha256",
+        "byte_length",
+        "media_type"
+      ],
+      "title": "BlobRef",
+      "type": "object"
+    },
+    "DenseConfiguration": {
+      "additionalProperties": false,
+      "description": "Dense vector indexing configuration if external embeddings enabled.",
+      "properties": {
+        "model_name": {
+          "title": "Model Name",
+          "type": "string"
+        },
+        "revision": {
+          "title": "Revision",
+          "type": "string"
+        },
+        "dimension": {
+          "title": "Dimension",
+          "type": "integer"
+        },
+        "normalize": {
+          "default": true,
+          "title": "Normalize",
+          "type": "boolean"
+        },
+        "tokenizer_name": {
+          "title": "Tokenizer Name",
+          "type": "string"
+        },
+        "vector_blob_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Vector Blob Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "model_name",
+        "revision",
+        "dimension",
+        "tokenizer_name",
+        "vector_blob_digest"
+      ],
+      "title": "DenseConfiguration",
+      "type": "object"
+    },
+    "IndexManifest": {
+      "additionalProperties": false,
+      "description": "Integrity and membership manifest for a frozen index (CONTRACTS §6.1).",
+      "properties": {
+        "index_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Index Id",
+          "type": "string"
+        },
+        "corpus_snapshot_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Corpus Snapshot Id",
+          "type": "string"
+        },
+        "eligible_members_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Eligible Members Digest",
+          "type": "string"
+        },
+        "extraction_versions": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Extraction Versions",
+          "type": "object"
+        },
+        "lexical_configuration": {
+          "$ref": "#/$defs/LexicalConfiguration"
+        },
+        "dense_configuration_or_null": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DenseConfiguration"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "build_code_revision": {
+          "title": "Build Code Revision",
+          "type": "string"
+        },
+        "index_files": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Index Files",
+          "type": "array"
+        },
+        "integrity_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Integrity Digest",
+          "type": "string"
+        },
+        "total_chunks": {
+          "default": 0,
+          "title": "Total Chunks",
+          "type": "integer"
+        },
+        "corpus_membership_digest": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Corpus Membership Digest"
+        },
+        "index_blob": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/BlobRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "retrieval_configuration_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retrieval Configuration Id"
+        }
+      },
+      "required": [
+        "index_id",
+        "corpus_snapshot_id",
+        "eligible_members_digest",
+        "extraction_versions",
+        "lexical_configuration",
+        "build_code_revision",
+        "index_files",
+        "integrity_digest"
+      ],
+      "title": "IndexManifest",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "LexicalConfiguration": {
+      "additionalProperties": false,
+      "description": "Configuration parameters for SQLite FTS5 lexical index.",
+      "properties": {
+        "tokenizer": {
+          "default": "unicode61",
+          "title": "Tokenizer",
+          "type": "string"
+        },
+        "bm25_k1": {
+          "default": 1.2,
+          "title": "Bm25 K1",
+          "type": "number"
+        },
+        "bm25_b": {
+          "default": 0.75,
+          "title": "Bm25 B",
+          "type": "number"
+        },
+        "indexed_columns": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Indexed Columns",
+          "type": "array"
+        }
+      },
+      "title": "LexicalConfiguration",
+      "type": "object"
+    },
+    "LocalModelConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "configuration_id": {
+          "default": "configuration:u01_local_qwen35_9b",
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Configuration Id",
+          "type": "string"
+        },
+        "model_id": {
+          "const": "mlx-community/Qwen3.5-9B-4bit",
+          "title": "Model Id",
+          "type": "string"
+        },
+        "model_path": {
+          "format": "path",
+          "title": "Model Path",
+          "type": "string"
+        },
+        "model_revision": {
+          "const": "8b2b98c00a6b4d291155e4890773ca8f769aee53",
+          "title": "Model Revision",
+          "type": "string"
+        },
+        "weights_manifest_path": {
+          "format": "path",
+          "title": "Weights Manifest Path",
+          "type": "string"
+        },
+        "weights_manifest_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Weights Manifest Digest",
+          "type": "string"
+        },
+        "runtime_lock_path": {
+          "format": "path",
+          "title": "Runtime Lock Path",
+          "type": "string"
+        },
+        "runtime_lock_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Runtime Lock Digest",
+          "type": "string"
+        },
+        "runtime_version": {
+          "const": "0.32.2",
+          "default": "0.32.2",
+          "title": "Runtime Version",
+          "type": "string"
+        },
+        "prompt_template_id": {
+          "default": "prompt:u01_qwen_non_thinking_v4",
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Prompt Template Id",
+          "type": "string"
+        },
+        "prompt_version": {
+          "default": "u01_non_thinking_v4",
+          "minLength": 1,
+          "title": "Prompt Version",
+          "type": "string"
+        },
+        "endpoint": {
+          "default": "http://127.0.0.1:8080/v1/completions",
+          "title": "Endpoint",
+          "type": "string"
+        },
+        "max_output_tokens": {
+          "default": 768,
+          "minimum": 1,
+          "title": "Max Output Tokens",
+          "type": "integer"
+        },
+        "max_total_tokens": {
+          "default": 16384,
+          "minimum": 1,
+          "title": "Max Total Tokens",
+          "type": "integer"
+        },
+        "timeout_seconds": {
+          "default": 120.0,
+          "exclusiveMinimum": 0,
+          "maximum": 300,
+          "title": "Timeout Seconds",
+          "type": "number"
+        }
+      },
+      "required": [
+        "model_id",
+        "model_path",
+        "model_revision",
+        "weights_manifest_path",
+        "weights_manifest_digest",
+        "runtime_lock_path",
+        "runtime_lock_digest"
+      ],
+      "title": "LocalModelConfig",
+      "type": "object"
+    },
+    "ScriptedExchange": {
+      "additionalProperties": false,
+      "properties": {
+        "phase": {
+          "enum": [
+            "PLAN",
+            "ASSESS"
+          ],
+          "title": "Phase",
+          "type": "string"
+        },
+        "response": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Response",
+          "type": "object"
+        }
+      },
+      "required": [
+        "phase",
+        "response"
+      ],
+      "title": "ScriptedExchange",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "index_manifest": {
+      "$ref": "#/$defs/IndexManifest"
+    },
+    "scripted_exchanges": {
+      "items": {
+        "$ref": "#/$defs/ScriptedExchange"
+      },
+      "title": "Scripted Exchanges",
+      "type": "array"
+    },
+    "local_model_config": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/LocalModelConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "adapter_version": {
+      "default": "a07-real-services-1",
+      "title": "Adapter Version",
+      "type": "string"
+    }
+  },
+  "required": [
+    "index_manifest"
+  ],
+  "title": "InvestigationConfiguration",
+  "type": "object"
+}

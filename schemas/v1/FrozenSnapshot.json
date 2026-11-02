@@ -1,0 +1,115 @@
+{
+  "$defs": {
+    "BlobRef": {
+      "additionalProperties": false,
+      "properties": {
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_length": {
+          "minimum": 0,
+          "title": "Byte Length",
+          "type": "integer"
+        },
+        "media_type": {
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sha256",
+        "byte_length",
+        "media_type"
+      ],
+      "title": "BlobRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "snapshot_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Snapshot Id",
+      "type": "string"
+    },
+    "snapshot_kind": {
+      "enum": [
+        "CASE",
+        "CORPUS"
+      ],
+      "title": "Snapshot Kind",
+      "type": "string"
+    },
+    "schema_version": {
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "parent_snapshot_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Parent Snapshot Id"
+    },
+    "membership_blob": {
+      "$ref": "#/$defs/BlobRef"
+    },
+    "membership_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Membership Digest",
+      "type": "string"
+    },
+    "coverage_blob": {
+      "$ref": "#/$defs/BlobRef"
+    },
+    "created_at": {
+      "title": "Created At",
+      "type": "string"
+    },
+    "created_by": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Created By",
+      "type": "string"
+    },
+    "source_receipt_ids": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Source Receipt Ids",
+      "type": "array"
+    },
+    "review_state": {
+      "enum": [
+        "DRAFT",
+        "APPROVED",
+        "REJECTED"
+      ],
+      "title": "Review State",
+      "type": "string"
+    }
+  },
+  "required": [
+    "snapshot_id",
+    "snapshot_kind",
+    "schema_version",
+    "parent_snapshot_id",
+    "membership_blob",
+    "membership_digest",
+    "coverage_blob",
+    "created_at",
+    "created_by",
+    "source_receipt_ids",
+    "review_state"
+  ],
+  "title": "FrozenSnapshot",
+  "type": "object"
+}

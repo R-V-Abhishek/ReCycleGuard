@@ -1,0 +1,48 @@
+{
+  "finding_id": "finding:cp0_sample",
+  "finding_revision_id": "finding_revision:cp0_sample",
+  "case_version_id": "case_version:cp0_sample",
+  "bucket_ids": [
+    "bucket:prod_001_cu_2024_2025"
+  ],
+  "issue_type": "F07_PAID_NO_TRANSFER",
+  "advisory_status": "PENDING_VERIFICATION",
+  "priority": "HIGH",
+  "priority_basis": "Financial record lacks a supported credit allocation.",
+  "portal_reported_value_ref": null,
+  "ledger_supported_value_ref": {
+    "calculation_id": "calculation:cp0_sample",
+    "bucket_id": "bucket:prod_001_cu_2024_2025",
+    "field": "supported"
+  },
+  "delta_value_ref": null,
+  "snapshot_comparison_ref": null,
+  "fact_refs": [
+    {
+      "ref_kind": "RECORD",
+      "ref_id": "comm:inv_001",
+      "artifact_revision_id": null,
+      "locator": null
+    }
+  ],
+  "calculation_refs": [
+    "calculation:cp0_sample"
+  ],
+  "provision_refs": [],
+  "evidence_assessments": [],
+  "hypotheses": [],
+  "abstention_reason": "MISSING_EVIDENCE",
+  "withheld_claim_scopes": [
+    "Whether the additional 25 kg is supported credit."
+  ],
+  "next_action": {
+    "kind": "REQUEST_EVIDENCE",
+    "description": "Obtain evidence of completed transfer and supported allocation.",
+    "evidence_refs": []
+  },
+  "action_owner_ref": null,
+  "scope_limits": [
+    "Interface example; no approved profile or statutory compliance verdict."
+  ],
+  "supersedes_finding_revision_id": null
+}

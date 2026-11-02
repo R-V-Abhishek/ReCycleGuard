@@ -1,0 +1,299 @@
+{
+  "$defs": {
+    "BudgetLimits": {
+      "additionalProperties": false,
+      "properties": {
+        "max_case_actions": {
+          "default": 64,
+          "minimum": 1,
+          "title": "Max Case Actions",
+          "type": "integer"
+        },
+        "max_model_calls": {
+          "default": 24,
+          "minimum": 1,
+          "title": "Max Model Calls",
+          "type": "integer"
+        },
+        "max_total_tokens": {
+          "default": 49152,
+          "minimum": 1,
+          "title": "Max Total Tokens",
+          "type": "integer"
+        },
+        "tokens_per_model_call": {
+          "default": 2048,
+          "minimum": 1,
+          "title": "Tokens Per Model Call",
+          "type": "integer"
+        },
+        "max_wall_seconds": {
+          "default": 300,
+          "minimum": 1,
+          "title": "Max Wall Seconds",
+          "type": "integer"
+        },
+        "tools_per_finding": {
+          "default": 8,
+          "maximum": 8,
+          "minimum": 1,
+          "title": "Tools Per Finding",
+          "type": "integer"
+        },
+        "reformulations_per_finding": {
+          "default": 2,
+          "maximum": 2,
+          "minimum": 0,
+          "title": "Reformulations Per Finding",
+          "type": "integer"
+        },
+        "retries_per_operation": {
+          "default": 1,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Retries Per Operation",
+          "type": "integer"
+        },
+        "report_repairs": {
+          "default": 1,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Report Repairs",
+          "type": "integer"
+        },
+        "preflight_actions": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Preflight Actions",
+          "type": "integer"
+        },
+        "verification_actions": {
+          "default": 2,
+          "minimum": 1,
+          "title": "Verification Actions",
+          "type": "integer"
+        },
+        "cost_ceiling_usd": {
+          "default": null,
+          "title": "Cost Ceiling Usd",
+          "type": "null"
+        }
+      },
+      "title": "BudgetLimits",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "LocalModelConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "configuration_id": {
+          "default": "configuration:u01_local_qwen35_9b",
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Configuration Id",
+          "type": "string"
+        },
+        "model_id": {
+          "const": "mlx-community/Qwen3.5-9B-4bit",
+          "title": "Model Id",
+          "type": "string"
+        },
+        "model_path": {
+          "format": "path",
+          "title": "Model Path",
+          "type": "string"
+        },
+        "model_revision": {
+          "const": "8b2b98c00a6b4d291155e4890773ca8f769aee53",
+          "title": "Model Revision",
+          "type": "string"
+        },
+        "weights_manifest_path": {
+          "format": "path",
+          "title": "Weights Manifest Path",
+          "type": "string"
+        },
+        "weights_manifest_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Weights Manifest Digest",
+          "type": "string"
+        },
+        "runtime_lock_path": {
+          "format": "path",
+          "title": "Runtime Lock Path",
+          "type": "string"
+        },
+        "runtime_lock_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Runtime Lock Digest",
+          "type": "string"
+        },
+        "runtime_version": {
+          "const": "0.32.2",
+          "default": "0.32.2",
+          "title": "Runtime Version",
+          "type": "string"
+        },
+        "prompt_template_id": {
+          "default": "prompt:u01_qwen_non_thinking_v4",
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Prompt Template Id",
+          "type": "string"
+        },
+        "prompt_version": {
+          "default": "u01_non_thinking_v4",
+          "minLength": 1,
+          "title": "Prompt Version",
+          "type": "string"
+        },
+        "endpoint": {
+          "default": "http://127.0.0.1:8080/v1/completions",
+          "title": "Endpoint",
+          "type": "string"
+        },
+        "max_output_tokens": {
+          "default": 768,
+          "minimum": 1,
+          "title": "Max Output Tokens",
+          "type": "integer"
+        },
+        "max_total_tokens": {
+          "default": 16384,
+          "minimum": 1,
+          "title": "Max Total Tokens",
+          "type": "integer"
+        },
+        "timeout_seconds": {
+          "default": 120.0,
+          "exclusiveMinimum": 0,
+          "maximum": 300,
+          "title": "Timeout Seconds",
+          "type": "number"
+        }
+      },
+      "required": [
+        "model_id",
+        "model_path",
+        "model_revision",
+        "weights_manifest_path",
+        "weights_manifest_digest",
+        "runtime_lock_path",
+        "runtime_lock_digest"
+      ],
+      "title": "LocalModelConfig",
+      "type": "object"
+    },
+    "ScriptedExchange": {
+      "additionalProperties": false,
+      "properties": {
+        "phase": {
+          "enum": [
+            "PLAN",
+            "ASSESS"
+          ],
+          "title": "Phase",
+          "type": "string"
+        },
+        "response": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Response",
+          "type": "object"
+        }
+      },
+      "required": [
+        "phase",
+        "response"
+      ],
+      "title": "ScriptedExchange",
+      "type": "object"
+    },
+    "SnapshotRef": {
+      "additionalProperties": false,
+      "description": "Pinned reference; introduced by A02, not an implemented C05 lookup.",
+      "properties": {
+        "snapshot_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "membership_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Membership Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "snapshot_id",
+        "membership_digest"
+      ],
+      "title": "SnapshotRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "run_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "case_snapshot": {
+      "$ref": "#/$defs/SnapshotRef"
+    },
+    "corpus_snapshot": {
+      "$ref": "#/$defs/SnapshotRef"
+    },
+    "finding_ids": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Finding Ids",
+      "type": "array"
+    },
+    "scripted_exchanges": {
+      "items": {
+        "$ref": "#/$defs/ScriptedExchange"
+      },
+      "title": "Scripted Exchanges",
+      "type": "array"
+    },
+    "local_model_config": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/LocalModelConfig"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "budgets": {
+      "$ref": "#/$defs/BudgetLimits"
+    },
+    "parent_run_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Parent Run Id"
+    }
+  },
+  "required": [
+    "run_id",
+    "case_snapshot",
+    "corpus_snapshot",
+    "finding_ids"
+  ],
+  "title": "InvestigationRequest",
+  "type": "object"
+}

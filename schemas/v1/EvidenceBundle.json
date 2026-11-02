@@ -1,0 +1,237 @@
+{
+  "$defs": {
+    "Locator": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "PDF_PAGE",
+            "PDF_CELL",
+            "CSV_ROW",
+            "JSON_POINTER",
+            "TEXT_SPAN",
+            "DB_RECORD"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "page_index_1based": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Page Index 1Based"
+        },
+        "printed_page_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Printed Page Label"
+        },
+        "row_index_1based": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Row Index 1Based"
+        },
+        "column_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Column Name"
+        },
+        "json_pointer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Json Pointer"
+        },
+        "text_start": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Text Start"
+        },
+        "text_end": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Text End"
+        },
+        "table_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Table Id"
+        },
+        "cell_row": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cell Row"
+        },
+        "cell_column": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cell Column"
+        }
+      },
+      "required": [
+        "kind",
+        "page_index_1based",
+        "printed_page_label",
+        "row_index_1based",
+        "column_name",
+        "json_pointer",
+        "text_start",
+        "text_end",
+        "table_id",
+        "cell_row",
+        "cell_column"
+      ],
+      "title": "Locator",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Rich evidence passage with context, provenance, and qualifiers (CONTRACTS §6.1).",
+  "properties": {
+    "bundle_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Bundle Id",
+      "type": "string"
+    },
+    "primary_passage": {
+      "title": "Primary Passage",
+      "type": "string"
+    },
+    "provision_version_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Provision Version Id",
+      "type": "string"
+    },
+    "source_version_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Source Version Id",
+      "type": "string"
+    },
+    "legal_path": {
+      "title": "Legal Path",
+      "type": "string"
+    },
+    "locator": {
+      "$ref": "#/$defs/Locator"
+    },
+    "parents": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Parents",
+      "type": "array"
+    },
+    "footnotes": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Footnotes",
+      "type": "array"
+    },
+    "table_headers": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Table Headers",
+      "type": "array"
+    },
+    "applicable_amendments": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Applicable Amendments",
+      "type": "array"
+    },
+    "provenance": {
+      "additionalProperties": true,
+      "title": "Provenance",
+      "type": "object"
+    },
+    "applicability_qualifiers": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Applicability Qualifiers",
+      "type": "array"
+    }
+  },
+  "required": [
+    "bundle_id",
+    "primary_passage",
+    "provision_version_id",
+    "source_version_id",
+    "legal_path",
+    "locator"
+  ],
+  "title": "EvidenceBundle",
+  "type": "object"
+}

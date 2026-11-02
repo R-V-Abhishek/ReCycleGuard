@@ -1,0 +1,583 @@
+{
+  "packet_version": "a04-20261026",
+  "state": "REVIEW_REQUIRED",
+  "request": {
+    "case_root": "tests/fixtures/visible/case_001",
+    "r02_path": "tests/fixtures/visible/h04/acquired_originals/e-waste_rules_2022.pdf",
+    "r08_path": "tests/fixtures/visible/h01/acquired_originals/cpcb_faq_20240123.pdf",
+    "case_snapshot_id": "snapshot:cp1_case_candidate",
+    "corpus_snapshot_id": "snapshot:cp1_corpus_candidate",
+    "profile_version": "cp1-candidate-20261026"
+  },
+  "result": {
+    "contract_version": "1.1",
+    "operation_id": "operation:d986a187ff3545f6b7594f7156d59a9b",
+    "attempt_id": "attempt:d986a187ff3545f6b7594f7156d59a9b",
+    "status": "PARTIAL",
+    "output": {
+      "case_snapshot": {
+        "snapshot_id": "snapshot:cp1_case_candidate",
+        "snapshot_kind": "CASE",
+        "schema_version": "1.0",
+        "parent_snapshot_id": null,
+        "membership_blob": {
+          "sha256": "81b0befaa7bf0dfd48ee96144b20b120f712d6742b82f96c475eee590ce0b4a5",
+          "byte_length": 61449,
+          "media_type": "application/json"
+        },
+        "membership_digest": "81b0befaa7bf0dfd48ee96144b20b120f712d6742b82f96c475eee590ce0b4a5",
+        "coverage_blob": {
+          "sha256": "db5fa6c17f4b89e576c6763d9562dce55f573fbcaed56b5c8fed49a18758ddf1",
+          "byte_length": 14981,
+          "media_type": "application/json"
+        },
+        "created_at": "2026-10-26T03:03:04.247708Z",
+        "created_by": "service:local_c05",
+        "source_receipt_ids": [
+          "receipt:6de0ce5ba3774dbc94ef8ee864261fad",
+          "receipt:cc90cd0922d643d795bd395c1774d581",
+          "receipt:a9434d7603094aa7803a9758ccf8f774",
+          "receipt:8271a8f58b664b1880713c100422eabe",
+          "receipt:294b655712784acabe47a17c04403c98",
+          "receipt:4a138ddc226d4f7e9c457fa6363bd60c",
+          "receipt:8bd32c4c61aa4b53af627a604a6fc652",
+          "receipt:76d05513ae4a4ab6aba637c65288a59a",
+          "receipt:cb347f375dd34f93ad324df19a4d2dd0",
+          "receipt:c0f73551eec74de5b9e81144360f18d6",
+          "receipt:b4a6f86d020c4b64a51caa34eb2a97ef",
+          "receipt:21ef5ca2a6ec4d0f9e9ab18709e7cb62",
+          "receipt:4a5574382dcf4fca9281544503e31b92",
+          "receipt:f9f9b815f2944947be8d9d305da36fe6",
+          "receipt:0df1df83613145cba731558c5d20ef33",
+          "receipt:ef0ec82f873d4f2fbcedf7c26f215646",
+          "receipt:da26317dc0f645f0b8109f6ff4274635"
+        ],
+        "review_state": "DRAFT"
+      },
+      "corpus_snapshot": {
+        "snapshot_id": "snapshot:cp1_corpus_candidate",
+        "snapshot_kind": "CORPUS",
+        "schema_version": "1.0",
+        "parent_snapshot_id": null,
+        "membership_blob": {
+          "sha256": "5d261d400b05c22e1ab77c2de7dd11d384491ff783a227febccb5d51ff8be8bd",
+          "byte_length": 8689,
+          "media_type": "application/json"
+        },
+        "membership_digest": "5d261d400b05c22e1ab77c2de7dd11d384491ff783a227febccb5d51ff8be8bd",
+        "coverage_blob": {
+          "sha256": "5e08ab3c6624bf8fac0840d77761c763960074e62cdb9e4c5124ca7a39eb63bc",
+          "byte_length": 22391,
+          "media_type": "application/json"
+        },
+        "created_at": "2026-10-26T03:03:04.252208Z",
+        "created_by": "service:local_c05",
+        "source_receipt_ids": [
+          "receipt:r02_rules_2022_official_pdf",
+          "receipt:cpcb_faq_20240123_pdf"
+        ],
+        "review_state": "DRAFT"
+      },
+      "profile": {
+        "profile_id": "profile:producer_snapshot_v1",
+        "profile_version": "cp1-candidate-20261026",
+        "digest": "e048dac6ef0fb9bce24188dc069c67c62d94943ef22a44ae9b575c130bbe1e52"
+      },
+      "inventory_count": 17,
+      "extraction_count": 19,
+      "observation_count": 85,
+      "record_count": 10,
+      "normalization_quarantine_count": 24,
+      "issues": [
+        {
+          "issue_id": "issue:foundation_review_required",
+          "code": "UNAPPROVED_PROFILE",
+          "severity": "BLOCKING",
+          "message": "Corrected source/applicability and profile drafts require version-bound human review; CP1 not approved.",
+          "field_path": null,
+          "evidence_refs": [],
+          "retryable": false
+        },
+        {
+          "issue_id": "issue:1a1368bab463",
+          "code": "INVALID_SCHEMA",
+          "severity": "WARNING",
+          "message": "Normalization unresolved: No approved mapping for observation type JSON_OBJECT",
+          "field_path": null,
+          "evidence_refs": [],
+          "retryable": false
+        },
+        {
+          "issue_id": "issue:cd0f0fbab891",
+          "code": "INVALID_SCHEMA",
+          "severity": "WARNING",
+          "message": "Normalization unresolved: No approved mapping for observation type PDF_PAGE_TEXT",
+          "field_path": null,
+          "evidence_refs": [],
+          "retryable": false
+        },
+        {
+          "issue_id": "issue:9e09fa6f3866",
+          "code": "INVALID_SCHEMA",
+          "severity": "WARNING",
+          "message": "Normalization unresolved: No approved mapping for observation type CSV_RECORD",
+          "field_path": null,
+          "evidence_refs": [],
+          "retryable": false
+        },
+        {
+          "issue_id": "issue:30faec2ccd4f",
+          "code": "INVALID_SCHEMA",
+          "severity": "WARNING",
+          "message": "Normalization unresolved: No approved mapping for observation type CSV_RECORD",
+          "field_path": null,
+          "evidence_refs": [],
+          "retryable": false
+        },
+        {
+          "issue_id": "issue:b94e3eae4462",
+          "code": "INVALID_SCHEMA",
+          "severity": "WARNING",
+          "message": "Normalization unresolved: No approved mapping for observation type JSON_OBJECT",
+          "field_path": null,
+          "evidence_refs": [],
+          "retryable": false
+        },
+        {
+          "issue_id": "issue:7439ddcb7c02",
+          "code": "INVALID_SCHEMA",
+          "severity": "WARNING",
+          "message": "Normalization unresolved: No approved mapping for observation type JSON_OBJECT",
+          "field_path": null,
+          "evidence_refs": [],
+          "retryable": false
+        },
+        {
+          "issue_id": "issue:c3570c975bba",
+          "code": "INVALID_SCHEMA",
+          "severity": "WARNING",
+          "message": "Normalization unresolved: No approved mapping for observation type JSON_RECORD",
+          "field_path": null,
+          "evidence_refs": [],
+          "retryable": false
+        },
+        {
+          "issue_id": "issue:42bc4bddf5ac",
+          "code": "INVALID_SCHEMA",
+          "severity": "WARNING",
+          "message": "Normalization unresolved: No approved mapping for observation type JSON_RECORD",
+          "field_path": null,
+          "evidence_refs": [],
+          "retryable": false
+        },
+        {
+          "issue_id": "issue:27104fcf4999",
+          "code": "INVALID_SCHEMA",
+          "severity": "WARNING",
+          "message": "Normalization unresolved: No approved mapping for observation type JSON_RECORD",
+          "field_path": null,
+          "evidence_refs": [],
+          "retryable": false
+        },
+        {
+          "issue_id": "issue:8c3f2644121e",
+          "code": "INVALID_SCHEMA",
+          "severity": "WARNING",
+          "message": "Normalization unresolved: No approved mapping for observation type JSON_RECORD",
+          "field_path": null,
+          "evidence_refs": [],
+          "retryable": false
+        },
+        {
+          "issue_id": "issue:783cdad75f87",
+          "code": "INVALID_SCHEMA",
+          "severity": "WARNING",
+          "message": "Normalization unresolved: No approved mapping for observation type SyntheticSourceRow",
+          "field_path": null,
+          "evidence_refs": [],
+          "retryable": false
+        },
+        {
+          "issue_id": "issue:ac73c823b1fe",
+          "code": "INVALID_SCHEMA",
+          "severity": "WARNING",
+          "message": "Normalization unresolved: No approved mapping for observation type SyntheticSourceRow",
+          "field_path": null,
+          "evidence_refs": [],
+          "retryable": false
+        },
+        {
+          "issue_id": "issue:d3152b44e4e4",
+          "code": "INVALID_SCHEMA",
+          "severity": "WARNING",
+          "message": "Normalization unresolved: No approved mapping for observation type SyntheticSourceRow",
+          "field_path": null,
+          "evidence_refs": [],
+          "retryable": false
+        },
+        {
+          "issue_id": "issue:d597591b5909",
+          "code": "INVALID_SCHEMA",
+          "severity": "WARNING",
+          "message": "Normalization unresolved: No approved mapping for observation type SyntheticSourceRow",
+          "field_path": null,
+          "evidence_refs": [],
+          "retryable": false
+        },
+        {
+          "issue_id": "issue:96a36799b2bb",
+          "code": "INVALID_SCHEMA",
+          "severity": "WARNING",
+          "message": "Normalization unresolved: No approved mapping for observation type SyntheticSourceRow",
+          "field_path": null,
+          "evidence_refs": [],
+          "retryable": false
+        },
+        {
+          "issue_id": "issue:7b659a52931c",
+          "code": "INVALID_SCHEMA",
+          "severity": "WARNING",
+          "message": "Normalization unresolved: No approved mapping for observation type SyntheticSourceRow",
+          "field_path": null,
+          "evidence_refs": [],
+          "retryable": false
+        },
+        {
+          "issue_id": "issue:d25653c642bf",
+          "code": "INVALID_SCHEMA",
+          "severity": "WARNING",
+          "message": "Normalization unresolved: No approved mapping for observation type SyntheticSourceRow",
+          "field_path": null,
+          "evidence_refs": [],
+          "retryable": false
+        },
+        {
+          "issue_id": "issue:c17577625deb",
+          "code": "INVALID_SCHEMA",
+          "severity": "WARNING",
+          "message": "Normalization unresolved: No approved mapping for observation type SyntheticSourceRow",
+          "field_path": null,
+          "evidence_refs": [],
+          "retryable": false
+        },
+        {
+          "issue_id": "issue:6d0c598d4b66",
+          "code": "INVALID_SCHEMA",
+          "severity": "WARNING",
+          "message": "Normalization unresolved: No approved mapping for observation type JSON_RECORD",
+          "field_path": null,
+          "evidence_refs": [],
+          "retryable": false
+        },
+        {
+          "issue_id": "issue:8129bac0470f",
+          "code": "INVALID_SCHEMA",
+          "severity": "WARNING",
+          "message": "Normalization unresolved: No approved mapping for observation type JSON_RECORD",
+          "field_path": null,
+          "evidence_refs": [],
+          "retryable": false
+        },
+        {
+          "issue_id": "issue:76134083b595",
+          "code": "INVALID_SCHEMA",
+          "severity": "WARNING",
+          "message": "Normalization unresolved: No approved mapping for observation type JSON_RECORD",
+          "field_path": null,
+          "evidence_refs": [],
+          "retryable": false
+        },
+        {
+          "issue_id": "issue:7be989a40289",
+          "code": "INVALID_SCHEMA",
+          "severity": "WARNING",
+          "message": "Normalization unresolved: No approved mapping for observation type JSON_RECORD",
+          "field_path": null,
+          "evidence_refs": [],
+          "retryable": false
+        },
+        {
+          "issue_id": "issue:763eadef3667",
+          "code": "UNCONFIRMED_IDENTIFIER",
+          "severity": "WARNING",
+          "message": "Event unresolved: 'unit'",
+          "field_path": null,
+          "evidence_refs": [],
+          "retryable": false
+        },
+        {
+          "issue_id": "issue:9612c595b57e",
+          "code": "UNCONFIRMED_IDENTIFIER",
+          "severity": "WARNING",
+          "message": "Event unresolved: 'unit'",
+          "field_path": null,
+          "evidence_refs": [],
+          "retryable": false
+        }
+      ]
+    },
+    "output_blob": {
+      "sha256": "dbcc5839c9928183e0beb80b4d1c9cb5408d9bf61264bb70fa43f4bfb3d9c0fe",
+      "byte_length": 8020,
+      "media_type": "application/json"
+    },
+    "issues": [
+      {
+        "issue_id": "issue:foundation_review_required",
+        "code": "UNAPPROVED_PROFILE",
+        "severity": "BLOCKING",
+        "message": "Corrected source/applicability and profile drafts require version-bound human review; CP1 not approved.",
+        "field_path": null,
+        "evidence_refs": [],
+        "retryable": false
+      },
+      {
+        "issue_id": "issue:1a1368bab463",
+        "code": "INVALID_SCHEMA",
+        "severity": "WARNING",
+        "message": "Normalization unresolved: No approved mapping for observation type JSON_OBJECT",
+        "field_path": null,
+        "evidence_refs": [],
+        "retryable": false
+      },
+      {
+        "issue_id": "issue:cd0f0fbab891",
+        "code": "INVALID_SCHEMA",
+        "severity": "WARNING",
+        "message": "Normalization unresolved: No approved mapping for observation type PDF_PAGE_TEXT",
+        "field_path": null,
+        "evidence_refs": [],
+        "retryable": false
+      },
+      {
+        "issue_id": "issue:9e09fa6f3866",
+        "code": "INVALID_SCHEMA",
+        "severity": "WARNING",
+        "message": "Normalization unresolved: No approved mapping for observation type CSV_RECORD",
+        "field_path": null,
+        "evidence_refs": [],
+        "retryable": false
+      },
+      {
+        "issue_id": "issue:30faec2ccd4f",
+        "code": "INVALID_SCHEMA",
+        "severity": "WARNING",
+        "message": "Normalization unresolved: No approved mapping for observation type CSV_RECORD",
+        "field_path": null,
+        "evidence_refs": [],
+        "retryable": false
+      },
+      {
+        "issue_id": "issue:b94e3eae4462",
+        "code": "INVALID_SCHEMA",
+        "severity": "WARNING",
+        "message": "Normalization unresolved: No approved mapping for observation type JSON_OBJECT",
+        "field_path": null,
+        "evidence_refs": [],
+        "retryable": false
+      },
+      {
+        "issue_id": "issue:7439ddcb7c02",
+        "code": "INVALID_SCHEMA",
+        "severity": "WARNING",
+        "message": "Normalization unresolved: No approved mapping for observation type JSON_OBJECT",
+        "field_path": null,
+        "evidence_refs": [],
+        "retryable": false
+      },
+      {
+        "issue_id": "issue:c3570c975bba",
+        "code": "INVALID_SCHEMA",
+        "severity": "WARNING",
+        "message": "Normalization unresolved: No approved mapping for observation type JSON_RECORD",
+        "field_path": null,
+        "evidence_refs": [],
+        "retryable": false
+      },
+      {
+        "issue_id": "issue:42bc4bddf5ac",
+        "code": "INVALID_SCHEMA",
+        "severity": "WARNING",
+        "message": "Normalization unresolved: No approved mapping for observation type JSON_RECORD",
+        "field_path": null,
+        "evidence_refs": [],
+        "retryable": false
+      },
+      {
+        "issue_id": "issue:27104fcf4999",
+        "code": "INVALID_SCHEMA",
+        "severity": "WARNING",
+        "message": "Normalization unresolved: No approved mapping for observation type JSON_RECORD",
+        "field_path": null,
+        "evidence_refs": [],
+        "retryable": false
+      },
+      {
+        "issue_id": "issue:8c3f2644121e",
+        "code": "INVALID_SCHEMA",
+        "severity": "WARNING",
+        "message": "Normalization unresolved: No approved mapping for observation type JSON_RECORD",
+        "field_path": null,
+        "evidence_refs": [],
+        "retryable": false
+      },
+      {
+        "issue_id": "issue:783cdad75f87",
+        "code": "INVALID_SCHEMA",
+        "severity": "WARNING",
+        "message": "Normalization unresolved: No approved mapping for observation type SyntheticSourceRow",
+        "field_path": null,
+        "evidence_refs": [],
+        "retryable": false
+      },
+      {
+        "issue_id": "issue:ac73c823b1fe",
+        "code": "INVALID_SCHEMA",
+        "severity": "WARNING",
+        "message": "Normalization unresolved: No approved mapping for observation type SyntheticSourceRow",
+        "field_path": null,
+        "evidence_refs": [],
+        "retryable": false
+      },
+      {
+        "issue_id": "issue:d3152b44e4e4",
+        "code": "INVALID_SCHEMA",
+        "severity": "WARNING",
+        "message": "Normalization unresolved: No approved mapping for observation type SyntheticSourceRow",
+        "field_path": null,
+        "evidence_refs": [],
+        "retryable": false
+      },
+      {
+        "issue_id": "issue:d597591b5909",
+        "code": "INVALID_SCHEMA",
+        "severity": "WARNING",
+        "message": "Normalization unresolved: No approved mapping for observation type SyntheticSourceRow",
+        "field_path": null,
+        "evidence_refs": [],
+        "retryable": false
+      },
+      {
+        "issue_id": "issue:96a36799b2bb",
+        "code": "INVALID_SCHEMA",
+        "severity": "WARNING",
+        "message": "Normalization unresolved: No approved mapping for observation type SyntheticSourceRow",
+        "field_path": null,
+        "evidence_refs": [],
+        "retryable": false
+      },
+      {
+        "issue_id": "issue:7b659a52931c",
+        "code": "INVALID_SCHEMA",
+        "severity": "WARNING",
+        "message": "Normalization unresolved: No approved mapping for observation type SyntheticSourceRow",
+        "field_path": null,
+        "evidence_refs": [],
+        "retryable": false
+      },
+      {
+        "issue_id": "issue:d25653c642bf",
+        "code": "INVALID_SCHEMA",
+        "severity": "WARNING",
+        "message": "Normalization unresolved: No approved mapping for observation type SyntheticSourceRow",
+        "field_path": null,
+        "evidence_refs": [],
+        "retryable": false
+      },
+      {
+        "issue_id": "issue:c17577625deb",
+        "code": "INVALID_SCHEMA",
+        "severity": "WARNING",
+        "message": "Normalization unresolved: No approved mapping for observation type SyntheticSourceRow",
+        "field_path": null,
+        "evidence_refs": [],
+        "retryable": false
+      },
+      {
+        "issue_id": "issue:6d0c598d4b66",
+        "code": "INVALID_SCHEMA",
+        "severity": "WARNING",
+        "message": "Normalization unresolved: No approved mapping for observation type JSON_RECORD",
+        "field_path": null,
+        "evidence_refs": [],
+        "retryable": false
+      },
+      {
+        "issue_id": "issue:8129bac0470f",
+        "code": "INVALID_SCHEMA",
+        "severity": "WARNING",
+        "message": "Normalization unresolved: No approved mapping for observation type JSON_RECORD",
+        "field_path": null,
+        "evidence_refs": [],
+        "retryable": false
+      },
+      {
+        "issue_id": "issue:76134083b595",
+        "code": "INVALID_SCHEMA",
+        "severity": "WARNING",
+        "message": "Normalization unresolved: No approved mapping for observation type JSON_RECORD",
+        "field_path": null,
+        "evidence_refs": [],
+        "retryable": false
+      },
+      {
+        "issue_id": "issue:7be989a40289",
+        "code": "INVALID_SCHEMA",
+        "severity": "WARNING",
+        "message": "Normalization unresolved: No approved mapping for observation type JSON_RECORD",
+        "field_path": null,
+        "evidence_refs": [],
+        "retryable": false
+      },
+      {
+        "issue_id": "issue:763eadef3667",
+        "code": "UNCONFIRMED_IDENTIFIER",
+        "severity": "WARNING",
+        "message": "Event unresolved: 'unit'",
+        "field_path": null,
+        "evidence_refs": [],
+        "retryable": false
+      },
+      {
+        "issue_id": "issue:9612c595b57e",
+        "code": "UNCONFIRMED_IDENTIFIER",
+        "severity": "WARNING",
+        "message": "Event unresolved: 'unit'",
+        "field_path": null,
+        "evidence_refs": [],
+        "retryable": false
+      }
+    ],
+    "dependencies": [],
+    "audit_event_ids": [
+      "event:result_operation:d986a187ff3545f6b7594f7156d59a9b_intake_sources",
+      "event:result_operation:d986a187ff3545f6b7594f7156d59a9b_extraction_all",
+      "event:result_operation:d986a187ff3545f6b7594f7156d59a9b_normalization_case",
+      "event:result_operation:d986a187ff3545f6b7594f7156d59a9b"
+    ]
+  },
+  "source_captures": [
+    {
+      "source": "R02",
+      "url": "https://eprewaste.cpcb.gov.in/assets/PDF/e-waste_rules_2022.pdf",
+      "sha256": "d03f8744bc79d67a94b06e1020537e93d15572b0cf1d575cb32b76c89f30a5fb",
+      "byte_length": 1609623,
+      "pages": 38
+    },
+    {
+      "source": "R08",
+      "url": "https://eprewaste.cpcb.gov.in/assets/PDF/faqewaste.pdf",
+      "sha256": "30f56238fb7db53dd82f69d198be9a92e31d98ea5b21d2724eb7397641a80d16",
+      "byte_length": 167964,
+      "pages": 13
+    }
+  ],
+  "runtime_root": ".recycleguard/a04-candidate",
+  "four_person_acknowledgement": null,
+  "limitations": [
+    "Corrected source/profile proposals are DRAFT, not human approved.",
+    "Base-source applicability intervals and dated deadline register remain unresolved.",
+    "Case records preserve supplied assertions with REVIEW_REQUIRED or PENDING state.",
+    "No oracle or expected calculation inputs were imported. No compliance calculation was run."
+  ]
+}

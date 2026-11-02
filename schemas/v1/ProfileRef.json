@@ -1,0 +1,27 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "profile_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Profile Id",
+      "type": "string"
+    },
+    "profile_version": {
+      "minLength": 1,
+      "title": "Profile Version",
+      "type": "string"
+    },
+    "digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Digest",
+      "type": "string"
+    }
+  },
+  "required": [
+    "profile_id",
+    "profile_version",
+    "digest"
+  ],
+  "title": "ProfileRef",
+  "type": "object"
+}

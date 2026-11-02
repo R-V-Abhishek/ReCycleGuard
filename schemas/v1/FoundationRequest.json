@@ -1,0 +1,108 @@
+{
+  "$defs": {
+    "ProfileRef": {
+      "additionalProperties": false,
+      "properties": {
+        "profile_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Profile Id",
+          "type": "string"
+        },
+        "profile_version": {
+          "minLength": 1,
+          "title": "Profile Version",
+          "type": "string"
+        },
+        "digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "profile_id",
+        "profile_version",
+        "digest"
+      ],
+      "title": "ProfileRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "case_root": {
+      "title": "Case Root",
+      "type": "string"
+    },
+    "r02_path": {
+      "title": "R02 Path",
+      "type": "string"
+    },
+    "r08_path": {
+      "title": "R08 Path",
+      "type": "string"
+    },
+    "case_snapshot_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Case Snapshot Id",
+      "type": "string"
+    },
+    "corpus_snapshot_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Corpus Snapshot Id",
+      "type": "string"
+    },
+    "profile_version": {
+      "minLength": 1,
+      "title": "Profile Version",
+      "type": "string"
+    },
+    "expected_case_head": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Expected Case Head"
+    },
+    "expected_corpus_head": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Expected Corpus Head"
+    },
+    "expected_profile_head": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProfileRef"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    }
+  },
+  "required": [
+    "case_root",
+    "r02_path",
+    "r08_path",
+    "case_snapshot_id",
+    "corpus_snapshot_id",
+    "profile_version"
+  ],
+  "title": "FoundationRequest",
+  "type": "object"
+}

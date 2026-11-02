@@ -1,0 +1,47 @@
+{
+  "additionalProperties": false,
+  "description": "Asset-level rights and licensing decisions pursuant to Indian copyright law.",
+  "properties": {
+    "copyright_owner": {
+      "title": "Copyright Owner",
+      "type": "string"
+    },
+    "statutory_exception_sec52": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Statutory Exception Sec52"
+    },
+    "asset_rights_seed": {
+      "enum": [
+        "REVIEW_REQUIRED",
+        "ALLOW",
+        "DENY"
+      ],
+      "title": "Asset Rights Seed",
+      "type": "string"
+    },
+    "redistribution_allowed": {
+      "title": "Redistribution Allowed",
+      "type": "boolean"
+    },
+    "attribution_text": {
+      "title": "Attribution Text",
+      "type": "string"
+    }
+  },
+  "required": [
+    "copyright_owner",
+    "statutory_exception_sec52",
+    "asset_rights_seed",
+    "redistribution_allowed",
+    "attribution_text"
+  ],
+  "title": "RightsMetadata",
+  "type": "object"
+}

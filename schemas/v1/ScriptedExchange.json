@@ -1,0 +1,29 @@
+{
+  "$defs": {
+    "JsonValue": {}
+  },
+  "additionalProperties": false,
+  "properties": {
+    "phase": {
+      "enum": [
+        "PLAN",
+        "ASSESS"
+      ],
+      "title": "Phase",
+      "type": "string"
+    },
+    "response": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "Response",
+      "type": "object"
+    }
+  },
+  "required": [
+    "phase",
+    "response"
+  ],
+  "title": "ScriptedExchange",
+  "type": "object"
+}

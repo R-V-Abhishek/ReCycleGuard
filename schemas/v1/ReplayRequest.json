@@ -1,0 +1,36 @@
+{
+  "additionalProperties": false,
+  "description": "Request for offline artifact replay or deterministic recomputation (CONTRACTS §12).",
+  "properties": {
+    "bundle_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Bundle Id",
+      "type": "string"
+    },
+    "mode": {
+      "default": "ARTIFACT",
+      "enum": [
+        "ARTIFACT",
+        "RECOMPUTE",
+        "MODEL_RERUN"
+      ],
+      "title": "Mode",
+      "type": "string"
+    },
+    "dependency_environment_ref": {
+      "title": "Dependency Environment Ref",
+      "type": "string"
+    },
+    "access_scope_id": {
+      "title": "Access Scope Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "bundle_id",
+    "dependency_environment_ref",
+    "access_scope_id"
+  ],
+  "title": "ReplayRequest",
+  "type": "object"
+}

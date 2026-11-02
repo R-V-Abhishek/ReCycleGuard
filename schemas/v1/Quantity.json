@@ -1,0 +1,54 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "decimal": {
+      "title": "Decimal",
+      "type": "string"
+    },
+    "unit": {
+      "enum": [
+        "KG",
+        "TONNE",
+        "INR",
+        "UNIT_COUNT"
+      ],
+      "title": "Unit",
+      "type": "string"
+    },
+    "dimension": {
+      "enum": [
+        "METAL_MASS",
+        "EQUIPMENT_MASS",
+        "MONEY",
+        "COUNT"
+      ],
+      "title": "Dimension",
+      "type": "string"
+    },
+    "metal": {
+      "anyOf": [
+        {
+          "enum": [
+            "AU",
+            "CU",
+            "AL",
+            "FE"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Metal"
+    }
+  },
+  "required": [
+    "decimal",
+    "unit",
+    "dimension",
+    "metal"
+  ],
+  "title": "Quantity",
+  "type": "object"
+}

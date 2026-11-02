@@ -1,0 +1,149 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "enum": [
+        "PDF_PAGE",
+        "PDF_CELL",
+        "CSV_ROW",
+        "JSON_POINTER",
+        "TEXT_SPAN",
+        "DB_RECORD"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "page_index_1based": {
+      "anyOf": [
+        {
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Page Index 1Based"
+    },
+    "printed_page_label": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Printed Page Label"
+    },
+    "row_index_1based": {
+      "anyOf": [
+        {
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Row Index 1Based"
+    },
+    "column_name": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Column Name"
+    },
+    "json_pointer": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Json Pointer"
+    },
+    "text_start": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Text Start"
+    },
+    "text_end": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Text End"
+    },
+    "table_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Table Id"
+    },
+    "cell_row": {
+      "anyOf": [
+        {
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Cell Row"
+    },
+    "cell_column": {
+      "anyOf": [
+        {
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Cell Column"
+    }
+  },
+  "required": [
+    "kind",
+    "page_index_1based",
+    "printed_page_label",
+    "row_index_1based",
+    "column_name",
+    "json_pointer",
+    "text_start",
+    "text_end",
+    "table_id",
+    "cell_row",
+    "cell_column"
+  ],
+  "title": "Locator",
+  "type": "object"
+}

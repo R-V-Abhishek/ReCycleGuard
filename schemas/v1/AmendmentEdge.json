@@ -1,0 +1,285 @@
+{
+  "$defs": {
+    "EvidenceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "ref_kind": {
+          "enum": [
+            "ARTIFACT",
+            "OBSERVATION",
+            "RECORD",
+            "PROVISION",
+            "CALCULATION",
+            "FINDING"
+          ],
+          "title": "Ref Kind",
+          "type": "string"
+        },
+        "ref_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Ref Id",
+          "type": "string"
+        },
+        "artifact_revision_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Artifact Revision Id"
+        },
+        "locator": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Locator"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "ref_kind",
+        "ref_id",
+        "artifact_revision_id",
+        "locator"
+      ],
+      "title": "EvidenceRef",
+      "type": "object"
+    },
+    "Locator": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "PDF_PAGE",
+            "PDF_CELL",
+            "CSV_ROW",
+            "JSON_POINTER",
+            "TEXT_SPAN",
+            "DB_RECORD"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "page_index_1based": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Page Index 1Based"
+        },
+        "printed_page_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Printed Page Label"
+        },
+        "row_index_1based": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Row Index 1Based"
+        },
+        "column_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Column Name"
+        },
+        "json_pointer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Json Pointer"
+        },
+        "text_start": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Text Start"
+        },
+        "text_end": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Text End"
+        },
+        "table_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Table Id"
+        },
+        "cell_row": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cell Row"
+        },
+        "cell_column": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cell Column"
+        }
+      },
+      "required": [
+        "kind",
+        "page_index_1based",
+        "printed_page_label",
+        "row_index_1based",
+        "column_name",
+        "json_pointer",
+        "text_start",
+        "text_end",
+        "table_id",
+        "cell_row",
+        "cell_column"
+      ],
+      "title": "Locator",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Directed amendment relationship between two provision versions (CONTRACTS §4.3).\n\nRelation kinds:\n  AMENDS         — partial textual change\n  REPLACES       — full replacement of the prior provision\n  INSERTS        — new provision inserted at this point\n  RELAXES_DEADLINE — extends an existing deadline (requires extension order ref)\n  REFERENCES     — informational cross-reference only\n\nA link from the rule that *allows* extensions is not itself evidence that a\nparticular extension was issued — 'RELAXES_DEADLINE' requires extension_order_refs.",
+  "properties": {
+    "edge_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Edge Id",
+      "type": "string"
+    },
+    "from_provision_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "From Provision Id",
+      "type": "string"
+    },
+    "to_provision_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "To Provision Id",
+      "type": "string"
+    },
+    "relation": {
+      "enum": [
+        "AMENDS",
+        "REPLACES",
+        "INSERTS",
+        "RELAXES_DEADLINE",
+        "REFERENCES"
+      ],
+      "title": "Relation",
+      "type": "string"
+    },
+    "affected_scope": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Affected Scope"
+    },
+    "applicability_assertion_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Applicability Assertion Id"
+    },
+    "extension_order_refs": {
+      "items": {
+        "$ref": "#/$defs/EvidenceRef"
+      },
+      "title": "Extension Order Refs",
+      "type": "array"
+    },
+    "review_state": {
+      "default": "DRAFT",
+      "enum": [
+        "DRAFT",
+        "APPROVED",
+        "REJECTED"
+      ],
+      "title": "Review State",
+      "type": "string"
+    }
+  },
+  "required": [
+    "edge_id",
+    "from_provision_id",
+    "to_provision_id",
+    "relation"
+  ],
+  "title": "AmendmentEdge",
+  "type": "object"
+}

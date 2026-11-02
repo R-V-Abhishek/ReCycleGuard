@@ -2,7 +2,7 @@
 
 **Contract version:** 1.1 — corrected 22 October 2026.
 
-**Status:** Normative specification for implementation; no APIs, generated schemas or datasets are implied to exist yet.
+**Status:** Normative specification. A CP0 implementation subset is published under `src/recycleguard/contracts/` and `schemas/v1/`; other service implementations and acceptance gates are not implied. See [CP0 construction record](../checkpoints/checkpoint-0/README.md).
 
 **Final consistency review:** 22 October 2026.
 
@@ -87,7 +87,7 @@ Issue {
 
 `output_blob` contains the complete canonical output when present; `output` is its decoded bounded object or a typed page. Large results use `Page<T> = {items, total_count, next_cursor, full_result_blob}` with a stable snapshot-bound cursor. Tool/context truncation never truncates the archived full result. Partial success must enumerate every unresolved item and prohibit downstream consumers from treating it as complete.
 
-Errors include `INVALID_SCHEMA`, `ACCESS_DENIED`, `HASH_MISMATCH`, `MISSING_ARTIFACT`, `INCOMPLETE_COVERAGE`, `EXTRACTION_FAILED`, `UNCONFIRMED_IDENTIFIER`, `AMBIGUOUS_IDENTITY`, `AMBIGUOUS_EVENT`, `DIMENSION_MISMATCH`, `NUMERIC_PRECISION_EXCEEDED`, `EARLIER_LIABILITY_UNMET`, `LIABILITY_PRIORITY_UNRESOLVED`, `UNSUPPORTED_PROFILE`, `UNAPPROVED_PROFILE`, `APPLICABILITY_UNRESOLVED`, `RULE_CONFLICT`, `SOURCE_INCOMPLETE`, `STALE_SNAPSHOT`, `BUDGET_EXHAUSTED`, `CYCLE_DETECTED`, `PROVIDER_TIMEOUT`, `PROVIDER_INVALID_OUTPUT`, `AUDIT_UNAVAILABLE`, `CONCURRENT_MODIFICATION`, `STALE_REVIEW`, `EXPORT_RESTRICTED`, `PROHIBITED_VERDICT`, `CANCELLED` and `INTEGRITY_FAILED`.
+Errors include `INVALID_SCHEMA`, `ACCESS_DENIED`, `HASH_MISMATCH`, `MISSING_ARTIFACT`, `INCOMPLETE_COVERAGE`, `EXTRACTION_FAILED`, `UNCONFIRMED_IDENTIFIER`, `AMBIGUOUS_IDENTITY`, `AMBIGUOUS_EVENT`, `DIMENSION_MISMATCH`, `NUMERIC_PRECISION_EXCEEDED`, `EARLIER_LIABILITY_UNMET`, `LIABILITY_PRIORITY_UNRESOLVED`, `UNSUPPORTED_PROFILE`, `UNAPPROVED_PROFILE`, `APPLICABILITY_UNRESOLVED`, `RULE_CONFLICT`, `SOURCE_INCOMPLETE`, `STALE_SNAPSHOT`, `BUDGET_EXHAUSTED`, `CYCLE_DETECTED`, `PROVIDER_TIMEOUT`, `PROVIDER_INVALID_OUTPUT`, `AUDIT_UNAVAILABLE`, `CONCURRENT_MODIFICATION`, `STALE_REVIEW`, `EXPORT_RESTRICTED`, `PROHIBITED_VERDICT`, `CANCELLED`, `INTEGRITY_FAILED`, `OVER_ALLOCATION` and `UNSUPPORTED_FEATURE`.
 
 Domain unknowns are normally `PARTIAL` results with findings; process/integrity failures are `FAILED` or `REJECTED`. A model timeout with unknown provider completion may be `OUTCOME_UNKNOWN`. Do not use generic empty lists as failure fallbacks.
 
@@ -480,6 +480,31 @@ Supported amounts in v1 derive solely from supported allocations. AccountBalance
 
 `ledger_supported` equals `supported`; it is not another quantity to add. `portal_reported` references a compatible dated AccountBalanceObservation. `delta = portal_reported - ledger_supported` and the comparison reference preserves both views, scope and cut-offs. This differs from `signed_gap = required - ledger_supported`. Absent/incompatible portal evidence yields null portal/delta values, never zero. The priority and purchase-ceiling check results are archived in the calculation derivation with PASS/FAIL/UNKNOWN/NOT_EVALUATED states.
 
+### CP2 implemented baseline boundary
+
+`BaselineRequest = {snapshot: SnapshotRef, calculation: CalculationRequest}` resolves
+an approved CASE and its exact approved profile from server-side frozen membership.
+The audited dispatcher returns `ServiceResult<BaselineOutput>`, where
+`BaselineOutput = {calculation, report, verification}`. Its `output_blob` decodes to
+that complete typed output. The audit operation stores the full result envelope,
+including qualification issues, dependencies and calculation/report event IDs.
+
+`QuantityDisposition = {record_id, record_revision_id, record_type, state, quantity,
+allocated_bucket_id, reason, evidence_refs}` is published as a generated schema.
+The universe digest binds full record payloads; the calculation input digest also
+binds the profile and any explicit allocation-order input. Missing chronology is
+UNKNOWN, not inferred from transfer times or year-end totals.
+
+`RecordSupportReview = {target: SnapshotRef, reviewed_snapshot_id,
+approved_snapshot_id, assertions, reason}` is a trusted human handler. Each assertion
+pins `target_record_revision_id`, exact observation evidence refs and a reason.
+The implemented subset validates structured synthetic original certificate, event
+and allocation records separately. It creates new immutable revisions and retains
+old records. Other document formats require reviewed capability mappings. A payment,
+account total or completed transfer cannot stand in for an allocation assertion.
+The baseline rejects supported records without their committed human support review.
+These schemas and the report/verification shapes are checked in under `schemas/v1/`.
+
 ### 6.3 FindingRecord and structured claims
 
 `FindingRecord = {finding_id, finding_revision_id, case_version_id, bucket_ids, issue_type: FaultFamily, advisory_status, priority: HIGH | MEDIUM | LOW, priority_basis, portal_reported_value_ref, ledger_supported_value_ref, delta_value_ref, snapshot_comparison_ref, fact_refs, calculation_refs, provision_refs, evidence_assessments, hypotheses, abstention_reason: AbstentionReason | null, withheld_claim_scopes: string[], next_action, action_owner_ref, scope_limits, supersedes_finding_revision_id}`. Value refs point to BucketResult fields rather than copying unchecked numbers; nullable comparison fields follow BucketResult's null semantics.
@@ -561,6 +586,24 @@ The underlying `write_blob` primitive only writes/hashes bytes; it does not recu
 **Outputs:** Immutable snapshots with content digests, coverage and parent lineage. Reopening does not mutate an old snapshot or its approvals.
 
 **Side effects/dependencies:** C11 atomic publication and version checks. Corpus may contain incomplete notice leads labelled as such; they cannot automatically activate calculation rules. Profiles need explicit approval separate from corpus inclusion.
+
+**A03 executable boundary:** `CaseService` implements the publication calls using
+`SnapshotPublication` and the full-replacement `CaseReopen` (including reason).
+`SnapshotReview` creates a child approval/rejection. `ProfilePublication` accepts
+a strict `ProfileDefinition`; `ProfileReview` binds an exact ProfileRef and creates
+a new approved/rejected CalculationProfile revision. These calls return the common
+ServiceResult envelope. The executable policy subset and typed requests are
+published in `schemas/v1/`; existing CP0 models remain unchanged.
+
+Profile digest is SHA-256 of canonical JSON for all profile fields except `digest`.
+Source dependencies bind artifact revision IDs and their byte digests. Review
+references identify audited human operations. Purchase-ceiling activation requires
+a dedicated successful human `review.purchase_ceiling` intent whose payload is the
+canonical policy excluding `state` and `review_ref`; an unrelated approval is
+insufficient. A03 does not supply this specialized review command, source-content
+validation or calculation execution. H04/A04 provide the reviewed content and
+integrated membership. Local reviewer authentication is separate from statutory
+signatory authority. See the A03 checkpoint handoff for operational details.
 
 ### C06 — Index construction
 
@@ -922,3 +965,39 @@ Earlier research names describe capabilities, not extra privileged tools. The di
 | `reopen_findings` | C05 `reopen_case` plus C08 `compare_versions`; C09 creates superseding affected finding revisions in a new run. Old findings/reviews remain unchanged. |
 
 `ReturnReadinessComparison = {comparison_id, draft_revision_id, calculation_refs, bucket_deltas, section_dispositions: ReturnSectionDisposition[], deadline_refs, readiness: READY_WITHIN_CHECKED_SECTIONS | NOT_READY | READINESS_UNDETERMINED, scope_limits, issues}`. Excluded/unsupported applicable sections prevent a claim of whole-return readiness even when all numerical comparisons match.
+
+## CP0 boundary publication and integration conventions
+
+The A02 candidate publishes 50 generated schemas from the Pydantic models.
+Protocol remains 1.1; payload schemas are generation 1.0. Approval/freeze status
+and exact candidate digests are recorded under `docs/checkpoints/checkpoint-0/`.
+No acceptance is implied by this publication alone.
+
+- `SnapshotRef = {snapshot_id: ID, membership_digest: Digest}` and
+  `ProfileRef = {profile_id: ID, profile_version: nonempty string, digest: Digest}`
+  pin references; they do not publish/approve snapshots or profiles.
+- The CP0 prototype's `OperationIntent` wraps the complete CommandContext with
+  idempotency_key, event_type, payload BlobRef, input_refs and stream_id.
+  OperationResult has operation_id, attempt_id, service status, nullable payload,
+  output_refs and typed issue_codes. These are prototype handoff envelopes, not
+  the full C11 multi-attempt operation/recovery implementation.
+- CalculationValueRef has calculation_id, bucket_id and a named BucketResult
+  field. Recommendation has kind (INVESTIGATE, REQUEST_EVIDENCE, ESCALATE or
+  NO_FURTHER_ACTION), description and evidence_refs. Hypothesis has text,
+  support_state (SUPPORTED, QUALIFIED or UNSUPPORTED) and refs. These structures
+  represent advisory output, not executable permissions or official verdicts.
+- The supported normalized record subset is Entity, Registration, ObligationBucket,
+  Certificate, CertificateEvent, Allocation, AccountBalanceObservation and
+  CommercialRecord, plus the derived CreditLot boundary. Other record families,
+  complete profile policy, provider-specific output/usage/timing schemas and
+  adapter-specific raw/parsed payloads require coordinated schema publication
+  before integration; they are not silently accepted by a permissive fallback.
+- Required nulls preserve omission/unknown semantics. Runtime timestamps are
+  validated UTC RFC 3339 values. Original source time preserves its precision.
+  A negative common Quantity may represent an adjustment/gap, while certificate,
+  allocation and other nonnegative metal-mass fields reject negatives.
+
+The starter manifest is DRAFT and schema examples do not activate an approved
+profile. Pre-freeze fixture corrections are retained in Git history; no accepted
+snapshot or historical original has been rewritten. The exact source/fixture
+corrections and prototype API changes are documented in the construction record.

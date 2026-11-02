@@ -1,0 +1,1079 @@
+{
+  "$defs": {
+    "ApplicabilityProposal": {
+      "additionalProperties": false,
+      "properties": {
+        "assertion_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Assertion Id",
+          "type": "string"
+        },
+        "provision_version_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Provision Version Id",
+          "type": "string"
+        },
+        "interval": {
+          "$ref": "#/$defs/ReviewedInterval"
+        },
+        "affected_roles": {
+          "items": {
+            "enum": [
+              "PRODUCER",
+              "MANUFACTURER",
+              "RECYCLER",
+              "REFURBISHER"
+            ],
+            "type": "string"
+          },
+          "title": "Affected Roles",
+          "type": "array"
+        },
+        "category_scope": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Category Scope",
+          "type": "array"
+        },
+        "scope_notes": {
+          "title": "Scope Notes",
+          "type": "string"
+        }
+      },
+      "required": [
+        "assertion_id",
+        "provision_version_id",
+        "interval",
+        "affected_roles",
+        "category_scope",
+        "scope_notes"
+      ],
+      "title": "ApplicabilityProposal",
+      "type": "object"
+    },
+    "ArtifactRevision": {
+      "additionalProperties": false,
+      "properties": {
+        "artifact_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "artifact_revision_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Artifact Revision Id",
+          "type": "string"
+        },
+        "blob": {
+          "$ref": "#/$defs/BlobRef"
+        },
+        "original_filename": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Original Filename"
+        },
+        "source_kind": {
+          "enum": [
+            "GAZETTE",
+            "OFFICIAL_GUIDANCE",
+            "PORTAL_CAPTURE",
+            "COMPANY_RECORD",
+            "SYNTHETIC_RECORD",
+            "AGGREGATE_STATISTICS",
+            "RESEARCH_NOTE"
+          ],
+          "title": "Source Kind",
+          "type": "string"
+        },
+        "doc_type": {
+          "enum": [
+            "STATUTORY_INSTRUMENT",
+            "SOP",
+            "TECHNICAL_FRAMEWORK",
+            "FAQ",
+            "PORTAL_INSTRUCTION",
+            "NOTICE",
+            "REGISTRATION_CERTIFICATE",
+            "PORTAL_SNAPSHOT",
+            "PORTAL_EPR_CERTIFICATE",
+            "GST_INVOICE",
+            "ERP_CSV",
+            "CONTRACT",
+            "PURCHASE_ORDER",
+            "PAYMENT_RECORD",
+            "WEIGHT_TICKET",
+            "RECYCLING_ACKNOWLEDGMENT",
+            "DESTRUCTION_CERTIFICATE",
+            "AWARENESS_PROOF",
+            "RETURN_DRAFT",
+            "FILING_ACKNOWLEDGMENT",
+            "OTHER"
+          ],
+          "title": "Doc Type",
+          "type": "string"
+        },
+        "establishes": {
+          "items": {
+            "enum": [
+              "IDENTITY",
+              "REGISTRATION_COVERAGE",
+              "REPORTED_ACCOUNT_POSITION",
+              "CERTIFICATE_IDENTITY",
+              "TRANSFER_STAGE",
+              "LIABILITY_ALLOCATION",
+              "PAYMENT",
+              "PHYSICAL_MOVEMENT",
+              "DESTRUCTION",
+              "AWARENESS_ACTIVITY",
+              "FILING_RECEIPT",
+              "RULE_TEXT",
+              "CONTEXT_ONLY"
+            ],
+            "type": "string"
+          },
+          "title": "Establishes",
+          "type": "array"
+        },
+        "does_not_establish": {
+          "items": {
+            "enum": [
+              "IDENTITY",
+              "REGISTRATION_COVERAGE",
+              "REPORTED_ACCOUNT_POSITION",
+              "CERTIFICATE_IDENTITY",
+              "TRANSFER_STAGE",
+              "LIABILITY_ALLOCATION",
+              "PAYMENT",
+              "PHYSICAL_MOVEMENT",
+              "DESTRUCTION",
+              "AWARENESS_ACTIVITY",
+              "FILING_RECEIPT",
+              "RULE_TEXT",
+              "CONTEXT_ONLY"
+            ],
+            "type": "string"
+          },
+          "title": "Does Not Establish",
+          "type": "array"
+        },
+        "source_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Source Url"
+        },
+        "fetch_attempt_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Fetch Attempt Id"
+        },
+        "captured_at": {
+          "$ref": "#/$defs/TemporalValue"
+        },
+        "ingested_at": {
+          "title": "Ingested At",
+          "type": "string"
+        },
+        "access_policy_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Access Policy Id",
+          "type": "string"
+        },
+        "rights_decision_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Rights Decision Id",
+          "type": "string"
+        },
+        "synthetic": {
+          "title": "Synthetic",
+          "type": "boolean"
+        },
+        "derived_from": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Derived From",
+          "type": "array"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "artifact_revision_id",
+        "blob",
+        "original_filename",
+        "source_kind",
+        "doc_type",
+        "establishes",
+        "does_not_establish",
+        "source_url",
+        "fetch_attempt_id",
+        "captured_at",
+        "ingested_at",
+        "access_policy_id",
+        "rights_decision_id",
+        "synthetic",
+        "derived_from"
+      ],
+      "title": "ArtifactRevision",
+      "type": "object"
+    },
+    "AssetReceipt": {
+      "additionalProperties": false,
+      "properties": {
+        "receipt_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Receipt Id",
+          "type": "string"
+        },
+        "batch_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Batch Id",
+          "type": "string"
+        },
+        "declared_asset_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Declared Asset Id"
+        },
+        "supplied_path_or_url": {
+          "title": "Supplied Path Or Url",
+          "type": "string"
+        },
+        "intake_status": {
+          "enum": [
+            "RECEIVED",
+            "DECLARED_MISSING",
+            "REJECTED_ACCESS",
+            "FETCH_FAILED"
+          ],
+          "title": "Intake Status",
+          "type": "string"
+        },
+        "artifact_revision_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Artifact Revision Id"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Reason"
+        },
+        "received_at": {
+          "title": "Received At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "receipt_id",
+        "batch_id",
+        "declared_asset_id",
+        "supplied_path_or_url",
+        "intake_status",
+        "artifact_revision_id",
+        "reason",
+        "received_at"
+      ],
+      "title": "AssetReceipt",
+      "type": "object"
+    },
+    "BlobRef": {
+      "additionalProperties": false,
+      "properties": {
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "byte_length": {
+          "minimum": 0,
+          "title": "Byte Length",
+          "type": "integer"
+        },
+        "media_type": {
+          "minLength": 1,
+          "title": "Media Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sha256",
+        "byte_length",
+        "media_type"
+      ],
+      "title": "BlobRef",
+      "type": "object"
+    },
+    "EvidenceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "ref_kind": {
+          "enum": [
+            "ARTIFACT",
+            "OBSERVATION",
+            "RECORD",
+            "PROVISION",
+            "CALCULATION",
+            "FINDING"
+          ],
+          "title": "Ref Kind",
+          "type": "string"
+        },
+        "ref_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Ref Id",
+          "type": "string"
+        },
+        "artifact_revision_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Artifact Revision Id"
+        },
+        "locator": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Locator"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "ref_kind",
+        "ref_id",
+        "artifact_revision_id",
+        "locator"
+      ],
+      "title": "EvidenceRef",
+      "type": "object"
+    },
+    "Locator": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "PDF_PAGE",
+            "PDF_CELL",
+            "CSV_ROW",
+            "JSON_POINTER",
+            "TEXT_SPAN",
+            "DB_RECORD"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "page_index_1based": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Page Index 1Based"
+        },
+        "printed_page_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Printed Page Label"
+        },
+        "row_index_1based": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Row Index 1Based"
+        },
+        "column_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Column Name"
+        },
+        "json_pointer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Json Pointer"
+        },
+        "text_start": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Text Start"
+        },
+        "text_end": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Text End"
+        },
+        "table_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Table Id"
+        },
+        "cell_row": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cell Row"
+        },
+        "cell_column": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cell Column"
+        }
+      },
+      "required": [
+        "kind",
+        "page_index_1based",
+        "printed_page_label",
+        "row_index_1based",
+        "column_name",
+        "json_pointer",
+        "text_start",
+        "text_end",
+        "table_id",
+        "cell_row",
+        "cell_column"
+      ],
+      "title": "Locator",
+      "type": "object"
+    },
+    "ProvisionVersion": {
+      "additionalProperties": false,
+      "description": "Granular segment or rule within a reviewed source version (CONTRACTS §4.1).",
+      "properties": {
+        "provision_version_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Provision Version Id",
+          "type": "string"
+        },
+        "source_version_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Source Version Id",
+          "type": "string"
+        },
+        "parent_provision_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Parent Provision Id"
+        },
+        "locator": {
+          "$ref": "#/$defs/Locator"
+        },
+        "legal_path": {
+          "title": "Legal Path",
+          "type": "string"
+        },
+        "text_blob": {
+          "$ref": "#/$defs/BlobRef"
+        },
+        "regime": {
+          "title": "Regime",
+          "type": "string"
+        },
+        "role_scope": {
+          "enum": [
+            "GENERAL",
+            "SPECIFIC",
+            "UNKNOWN"
+          ],
+          "title": "Role Scope",
+          "type": "string"
+        },
+        "affected_roles": {
+          "items": {
+            "enum": [
+              "PRODUCER",
+              "MANUFACTURER",
+              "RECYCLER",
+              "REFURBISHER"
+            ],
+            "type": "string"
+          },
+          "title": "Affected Roles",
+          "type": "array"
+        },
+        "applicability_assertion_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Applicability Assertion Id"
+        },
+        "table_context_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Table Context Refs",
+          "type": "array"
+        },
+        "review_state": {
+          "enum": [
+            "DRAFT",
+            "APPROVED",
+            "REJECTED"
+          ],
+          "title": "Review State",
+          "type": "string"
+        }
+      },
+      "required": [
+        "provision_version_id",
+        "source_version_id",
+        "parent_provision_id",
+        "locator",
+        "legal_path",
+        "text_blob",
+        "regime",
+        "role_scope",
+        "affected_roles",
+        "applicability_assertion_id",
+        "table_context_refs",
+        "review_state"
+      ],
+      "title": "ProvisionVersion",
+      "type": "object"
+    },
+    "ReviewedInterval": {
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Start"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "End"
+        },
+        "end_open_ended": {
+          "title": "End Open Ended",
+          "type": "boolean"
+        },
+        "review_state": {
+          "enum": [
+            "DRAFT",
+            "APPROVED",
+            "REJECTED"
+          ],
+          "title": "Review State",
+          "type": "string"
+        },
+        "applicability_scope": {
+          "enum": [
+            "GENERAL",
+            "SPECIFIC",
+            "UNKNOWN"
+          ],
+          "title": "Applicability Scope",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "start",
+        "end",
+        "end_open_ended",
+        "review_state",
+        "applicability_scope",
+        "evidence_refs"
+      ],
+      "title": "ReviewedInterval",
+      "type": "object"
+    },
+    "RightsMetadata": {
+      "additionalProperties": false,
+      "description": "Asset-level rights and licensing decisions pursuant to Indian copyright law.",
+      "properties": {
+        "copyright_owner": {
+          "title": "Copyright Owner",
+          "type": "string"
+        },
+        "statutory_exception_sec52": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Statutory Exception Sec52"
+        },
+        "asset_rights_seed": {
+          "enum": [
+            "REVIEW_REQUIRED",
+            "ALLOW",
+            "DENY"
+          ],
+          "title": "Asset Rights Seed",
+          "type": "string"
+        },
+        "redistribution_allowed": {
+          "title": "Redistribution Allowed",
+          "type": "boolean"
+        },
+        "attribution_text": {
+          "title": "Attribution Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "copyright_owner",
+        "statutory_exception_sec52",
+        "asset_rights_seed",
+        "redistribution_allowed",
+        "attribution_text"
+      ],
+      "title": "RightsMetadata",
+      "type": "object"
+    },
+    "SourceLead": {
+      "additionalProperties": false,
+      "description": "Authoritative discovery lead for regulatory or operational sources (CONTRACTS §4.1).",
+      "properties": {
+        "source_lead_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Source Lead Id",
+          "type": "string"
+        },
+        "aliases": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Aliases",
+          "type": "array"
+        },
+        "official_url": {
+          "title": "Official Url",
+          "type": "string"
+        },
+        "discovery_evidence_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Discovery Evidence Refs",
+          "type": "array"
+        },
+        "source_class": {
+          "enum": [
+            "STATUTE",
+            "GAZETTE_RULE",
+            "ORDER",
+            "TECHNICAL_FRAMEWORK",
+            "SOP",
+            "PORTAL_INSTRUCTION",
+            "FAQ",
+            "NOTICE_LEAD",
+            "SUPPORTING_CONTEXT"
+          ],
+          "title": "Source Class",
+          "type": "string"
+        },
+        "regime": {
+          "title": "Regime",
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "DISCOVERED",
+            "FETCH_FAILED",
+            "ACQUIRED",
+            "EXTRACTED",
+            "REVIEW_REQUIRED",
+            "READY",
+            "EXCLUDED"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "acquired_artifact_revision_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Acquired Artifact Revision Id"
+        },
+        "rights_and_license": {
+          "$ref": "#/$defs/RightsMetadata"
+        }
+      },
+      "required": [
+        "source_lead_id",
+        "aliases",
+        "official_url",
+        "discovery_evidence_refs",
+        "source_class",
+        "regime",
+        "state",
+        "acquired_artifact_revision_id",
+        "rights_and_license"
+      ],
+      "title": "SourceLead",
+      "type": "object"
+    },
+    "SourceVersion": {
+      "additionalProperties": false,
+      "description": "Acquired and versioned primary instrument or operational publication (CONTRACTS §4.1).",
+      "properties": {
+        "source_version_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Source Version Id",
+          "type": "string"
+        },
+        "source_lead_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Source Lead Id",
+          "type": "string"
+        },
+        "artifact_revision_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Artifact Revision Id",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "issuer": {
+          "title": "Issuer",
+          "type": "string"
+        },
+        "notification_number": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Notification Number"
+        },
+        "notification_date": {
+          "$ref": "#/$defs/TemporalValue"
+        },
+        "publication_date": {
+          "$ref": "#/$defs/TemporalValue"
+        },
+        "commencement": {
+          "$ref": "#/$defs/TemporalValue"
+        },
+        "commencement_basis_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Commencement Basis Refs",
+          "type": "array"
+        },
+        "website_upload_date": {
+          "$ref": "#/$defs/TemporalValue"
+        },
+        "completeness": {
+          "enum": [
+            "COMPLETE_TEXT",
+            "PARTIAL_TEXT",
+            "HTML_SHELL",
+            "NOTICE_LEAD"
+          ],
+          "title": "Completeness",
+          "type": "string"
+        },
+        "review_state": {
+          "enum": [
+            "DRAFT",
+            "APPROVED",
+            "REJECTED"
+          ],
+          "title": "Review State",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_version_id",
+        "source_lead_id",
+        "artifact_revision_id",
+        "title",
+        "issuer",
+        "notification_number",
+        "notification_date",
+        "publication_date",
+        "commencement",
+        "commencement_basis_refs",
+        "website_upload_date",
+        "completeness",
+        "review_state"
+      ],
+      "title": "SourceVersion",
+      "type": "object"
+    },
+    "TemporalValue": {
+      "additionalProperties": false,
+      "properties": {
+        "raw": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Raw"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        },
+        "precision": {
+          "enum": [
+            "INSTANT",
+            "DATE",
+            "MONTH",
+            "YEAR",
+            "UNKNOWN"
+          ],
+          "title": "Precision",
+          "type": "string"
+        },
+        "timezone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Timezone"
+        },
+        "interpretation_status": {
+          "enum": [
+            "PARSED",
+            "REVIEWED",
+            "AMBIGUOUS",
+            "UNKNOWN"
+          ],
+          "title": "Interpretation Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "raw",
+        "value",
+        "precision",
+        "timezone",
+        "interpretation_status"
+      ],
+      "title": "TemporalValue",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "artifact_revisions": {
+      "items": {
+        "$ref": "#/$defs/ArtifactRevision"
+      },
+      "title": "Artifact Revisions",
+      "type": "array"
+    },
+    "receipts": {
+      "items": {
+        "$ref": "#/$defs/AssetReceipt"
+      },
+      "title": "Receipts",
+      "type": "array"
+    },
+    "leads": {
+      "items": {
+        "$ref": "#/$defs/SourceLead"
+      },
+      "title": "Leads",
+      "type": "array"
+    },
+    "source_versions": {
+      "items": {
+        "$ref": "#/$defs/SourceVersion"
+      },
+      "title": "Source Versions",
+      "type": "array"
+    },
+    "provisions": {
+      "items": {
+        "$ref": "#/$defs/ProvisionVersion"
+      },
+      "title": "Provisions",
+      "type": "array"
+    },
+    "applicability": {
+      "items": {
+        "$ref": "#/$defs/ApplicabilityProposal"
+      },
+      "title": "Applicability",
+      "type": "array"
+    }
+  },
+  "required": [
+    "artifact_revisions",
+    "receipts",
+    "leads",
+    "source_versions",
+    "provisions",
+    "applicability"
+  ],
+  "title": "SourceBatch",
+  "type": "object"
+}

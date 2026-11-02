@@ -1,0 +1,537 @@
+{
+  "$defs": {
+    "EvidenceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "ref_kind": {
+          "enum": [
+            "ARTIFACT",
+            "OBSERVATION",
+            "RECORD",
+            "PROVISION",
+            "CALCULATION",
+            "FINDING"
+          ],
+          "title": "Ref Kind",
+          "type": "string"
+        },
+        "ref_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Ref Id",
+          "type": "string"
+        },
+        "artifact_revision_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Artifact Revision Id"
+        },
+        "locator": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Locator"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "ref_kind",
+        "ref_id",
+        "artifact_revision_id",
+        "locator"
+      ],
+      "title": "EvidenceRef",
+      "type": "object"
+    },
+    "Locator": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "PDF_PAGE",
+            "PDF_CELL",
+            "CSV_ROW",
+            "JSON_POINTER",
+            "TEXT_SPAN",
+            "DB_RECORD"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "page_index_1based": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Page Index 1Based"
+        },
+        "printed_page_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Printed Page Label"
+        },
+        "row_index_1based": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Row Index 1Based"
+        },
+        "column_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Column Name"
+        },
+        "json_pointer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Json Pointer"
+        },
+        "text_start": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Text Start"
+        },
+        "text_end": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Text End"
+        },
+        "table_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Table Id"
+        },
+        "cell_row": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cell Row"
+        },
+        "cell_column": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cell Column"
+        }
+      },
+      "required": [
+        "kind",
+        "page_index_1based",
+        "printed_page_label",
+        "row_index_1based",
+        "column_name",
+        "json_pointer",
+        "text_start",
+        "text_end",
+        "table_id",
+        "cell_row",
+        "cell_column"
+      ],
+      "title": "Locator",
+      "type": "object"
+    },
+    "Quantity": {
+      "additionalProperties": false,
+      "properties": {
+        "decimal": {
+          "title": "Decimal",
+          "type": "string"
+        },
+        "unit": {
+          "enum": [
+            "KG",
+            "TONNE",
+            "INR",
+            "UNIT_COUNT"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "dimension": {
+          "enum": [
+            "METAL_MASS",
+            "EQUIPMENT_MASS",
+            "MONEY",
+            "COUNT"
+          ],
+          "title": "Dimension",
+          "type": "string"
+        },
+        "metal": {
+          "anyOf": [
+            {
+              "enum": [
+                "AU",
+                "CU",
+                "AL",
+                "FE"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Metal"
+        }
+      },
+      "required": [
+        "decimal",
+        "unit",
+        "dimension",
+        "metal"
+      ],
+      "title": "Quantity",
+      "type": "object"
+    },
+    "ReviewedInterval": {
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Start"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "End"
+        },
+        "end_open_ended": {
+          "title": "End Open Ended",
+          "type": "boolean"
+        },
+        "review_state": {
+          "enum": [
+            "DRAFT",
+            "APPROVED",
+            "REJECTED"
+          ],
+          "title": "Review State",
+          "type": "string"
+        },
+        "applicability_scope": {
+          "enum": [
+            "GENERAL",
+            "SPECIFIC",
+            "UNKNOWN"
+          ],
+          "title": "Applicability Scope",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "start",
+        "end",
+        "end_open_ended",
+        "review_state",
+        "applicability_scope",
+        "evidence_refs"
+      ],
+      "title": "ReviewedInterval",
+      "type": "object"
+    },
+    "TemporalValue": {
+      "additionalProperties": false,
+      "properties": {
+        "raw": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Raw"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        },
+        "precision": {
+          "enum": [
+            "INSTANT",
+            "DATE",
+            "MONTH",
+            "YEAR",
+            "UNKNOWN"
+          ],
+          "title": "Precision",
+          "type": "string"
+        },
+        "timezone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Timezone"
+        },
+        "interpretation_status": {
+          "enum": [
+            "PARSED",
+            "REVIEWED",
+            "AMBIGUOUS",
+            "UNKNOWN"
+          ],
+          "title": "Interpretation Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "raw",
+        "value",
+        "precision",
+        "timezone",
+        "interpretation_status"
+      ],
+      "title": "TemporalValue",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "record_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Record Id",
+      "type": "string"
+    },
+    "record_revision_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Record Revision Id",
+      "type": "string"
+    },
+    "case_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Case Id",
+      "type": "string"
+    },
+    "observation_refs": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Observation Refs",
+      "type": "array"
+    },
+    "derived_from_record_refs": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Derived From Record Refs",
+      "type": "array"
+    },
+    "validation_state": {
+      "enum": [
+        "VALID",
+        "REVIEW_REQUIRED",
+        "INVALID"
+      ],
+      "title": "Validation State",
+      "type": "string"
+    },
+    "created_by_operation_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Created By Operation Id",
+      "type": "string"
+    },
+    "supersedes_revision_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Supersedes Revision Id"
+    },
+    "record_type": {
+      "const": "Registration",
+      "title": "Record Type",
+      "type": "string"
+    },
+    "entity_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Entity Id",
+      "type": "string"
+    },
+    "registration_ref": {
+      "minLength": 1,
+      "title": "Registration Ref",
+      "type": "string"
+    },
+    "validity": {
+      "$ref": "#/$defs/ReviewedInterval"
+    },
+    "covered_eee_codes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Covered Eee Codes",
+      "type": "array"
+    },
+    "status_assertion": {
+      "title": "Status Assertion",
+      "type": "string"
+    },
+    "evidence_as_of": {
+      "$ref": "#/$defs/TemporalValue"
+    },
+    "facility_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Facility Id"
+    },
+    "capacity": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Quantity"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "consent_refs": {
+      "items": {
+        "$ref": "#/$defs/EvidenceRef"
+      },
+      "title": "Consent Refs",
+      "type": "array"
+    }
+  },
+  "required": [
+    "record_id",
+    "record_revision_id",
+    "case_id",
+    "observation_refs",
+    "derived_from_record_refs",
+    "validation_state",
+    "created_by_operation_id",
+    "supersedes_revision_id",
+    "record_type",
+    "entity_id",
+    "registration_ref",
+    "validity",
+    "covered_eee_codes",
+    "status_assertion",
+    "evidence_as_of"
+  ],
+  "title": "Registration",
+  "type": "object"
+}

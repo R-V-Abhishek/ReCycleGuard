@@ -1,0 +1,91 @@
+{
+  "calculation_id": "calculation:cp0_sample",
+  "case_version_id": "case_version:cp0_sample",
+  "profile_id": "profile:producer_snapshot_v1",
+  "tool_version": "cp0-interface-example",
+  "input_digest": "9a7cb00a90c4d9bb0e890b719cd2bcad1ae70b7c64ed81e86381c911d1c519c4",
+  "analyzed_input_membership_blob": {
+    "sha256": "9a7cb00a90c4d9bb0e890b719cd2bcad1ae70b7c64ed81e86381c911d1c519c4",
+    "byte_length": 23,
+    "media_type": "application/json"
+  },
+  "analyzed_bucket_ids": [
+    "bucket:prod_001_cu_2024_2025"
+  ],
+  "bucket_results": [
+    {
+      "bucket_id": "bucket:prod_001_cu_2024_2025",
+      "required": {
+        "decimal": "100.0000",
+        "dimension": "METAL_MASS",
+        "unit": "KG",
+        "metal": "CU"
+      },
+      "supported": {
+        "decimal": "55.0000",
+        "dimension": "METAL_MASS",
+        "unit": "KG",
+        "metal": "CU"
+      },
+      "signed_gap": {
+        "decimal": "45.0000",
+        "dimension": "METAL_MASS",
+        "unit": "KG",
+        "metal": "CU"
+      },
+      "shortfall": {
+        "decimal": "45.0000",
+        "dimension": "METAL_MASS",
+        "unit": "KG",
+        "metal": "CU"
+      },
+      "surplus": {
+        "decimal": "0.0000",
+        "dimension": "METAL_MASS",
+        "unit": "KG",
+        "metal": "CU"
+      },
+      "pending": {
+        "decimal": "25.0000",
+        "dimension": "METAL_MASS",
+        "unit": "KG",
+        "metal": "CU"
+      },
+      "portal_reported": null,
+      "ledger_supported": {
+        "decimal": "55.0000",
+        "dimension": "METAL_MASS",
+        "unit": "KG",
+        "metal": "CU"
+      },
+      "delta": null,
+      "snapshot_comparison_ref": null,
+      "allocation_ids": [
+        "alloc:001"
+      ],
+      "qualification_refs": []
+    }
+  ],
+  "quantity_dispositions_blob": {
+    "sha256": "9a7cb00a90c4d9bb0e890b719cd2bcad1ae70b7c64ed81e86381c911d1c519c4",
+    "byte_length": 23,
+    "media_type": "application/json"
+  },
+  "derivation_blob": {
+    "sha256": "9a7cb00a90c4d9bb0e890b719cd2bcad1ae70b7c64ed81e86381c911d1c519c4",
+    "byte_length": 23,
+    "media_type": "application/json"
+  },
+  "coverage": "QUALIFIED",
+  "issues": [
+    {
+      "issue_id": "issue:missing_history",
+      "code": "LIABILITY_PRIORITY_UNRESOLVED",
+      "severity": "BLOCKING",
+      "message": "Starter fixture does not establish complete historical allocation eligibility.",
+      "field_path": null,
+      "evidence_refs": [],
+      "retryable": false
+    }
+  ]
+}

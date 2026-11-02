@@ -1,0 +1,130 @@
+{
+  "$defs": {
+    "Quantity": {
+      "additionalProperties": false,
+      "properties": {
+        "decimal": {
+          "title": "Decimal",
+          "type": "string"
+        },
+        "unit": {
+          "enum": [
+            "KG",
+            "TONNE",
+            "INR",
+            "UNIT_COUNT"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "dimension": {
+          "enum": [
+            "METAL_MASS",
+            "EQUIPMENT_MASS",
+            "MONEY",
+            "COUNT"
+          ],
+          "title": "Dimension",
+          "type": "string"
+        },
+        "metal": {
+          "anyOf": [
+            {
+              "enum": [
+                "AU",
+                "CU",
+                "AL",
+                "FE"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Metal"
+        }
+      },
+      "required": [
+        "decimal",
+        "unit",
+        "dimension",
+        "metal"
+      ],
+      "title": "Quantity",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "bucket_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Bucket Id",
+      "type": "string"
+    },
+    "target": {
+      "$ref": "#/$defs/Quantity"
+    },
+    "adjustments": {
+      "items": {
+        "$ref": "#/$defs/Quantity"
+      },
+      "title": "Adjustments",
+      "type": "array"
+    },
+    "required": {
+      "$ref": "#/$defs/Quantity"
+    },
+    "supported_allocation_ids": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Supported Allocation Ids",
+      "type": "array"
+    },
+    "pending_allocation_ids": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Pending Allocation Ids",
+      "type": "array"
+    },
+    "pending_commercial_ids": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Pending Commercial Ids",
+      "type": "array"
+    },
+    "formula": {
+      "minLength": 1,
+      "title": "Formula",
+      "type": "string"
+    },
+    "coverage": {
+      "enum": [
+        "COMPLETE_WITHIN_SCOPE",
+        "QUALIFIED",
+        "BLOCKED"
+      ],
+      "title": "Coverage",
+      "type": "string"
+    }
+  },
+  "required": [
+    "bucket_id",
+    "target",
+    "adjustments",
+    "required",
+    "supported_allocation_ids",
+    "pending_allocation_ids",
+    "pending_commercial_ids",
+    "formula",
+    "coverage"
+  ],
+  "title": "BucketDerivation",
+  "type": "object"
+}

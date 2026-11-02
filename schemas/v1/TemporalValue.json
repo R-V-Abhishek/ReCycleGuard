@@ -1,0 +1,68 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "raw": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Raw"
+    },
+    "value": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Value"
+    },
+    "precision": {
+      "enum": [
+        "INSTANT",
+        "DATE",
+        "MONTH",
+        "YEAR",
+        "UNKNOWN"
+      ],
+      "title": "Precision",
+      "type": "string"
+    },
+    "timezone": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Timezone"
+    },
+    "interpretation_status": {
+      "enum": [
+        "PARSED",
+        "REVIEWED",
+        "AMBIGUOUS",
+        "UNKNOWN"
+      ],
+      "title": "Interpretation Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "raw",
+    "value",
+    "precision",
+    "timezone",
+    "interpretation_status"
+  ],
+  "title": "TemporalValue",
+  "type": "object"
+}

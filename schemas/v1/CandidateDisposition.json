@@ -1,0 +1,79 @@
+{
+  "additionalProperties": false,
+  "description": "Stage-specific candidate outcome during retrieval (CONTRACTS §6.1).",
+  "properties": {
+    "candidate_ref": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Candidate Ref",
+      "type": "string"
+    },
+    "disposition": {
+      "enum": [
+        "FILTERED_OUT",
+        "NOT_SCORED",
+        "OUTSIDE_ENGINE_WINDOW",
+        "SCORED",
+        "EXPANDED_CONTEXT",
+        "SELECTED",
+        "REJECTED_SUPPORT",
+        "OMITTED_CONTEXT_BUDGET"
+      ],
+      "title": "Disposition",
+      "type": "string"
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reason"
+    },
+    "operation_ref": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Operation Ref"
+    },
+    "score": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Score"
+    },
+    "rank": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Rank"
+    }
+  },
+  "required": [
+    "candidate_ref",
+    "disposition"
+  ],
+  "title": "CandidateDisposition",
+  "type": "object"
+}

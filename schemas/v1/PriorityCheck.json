@@ -1,0 +1,47 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "allocation_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Allocation Id",
+      "type": "string"
+    },
+    "bucket_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Bucket Id",
+      "type": "string"
+    },
+    "state": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNKNOWN",
+        "NOT_EVALUATED"
+      ],
+      "title": "State",
+      "type": "string"
+    },
+    "earlier_bucket_ids": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Earlier Bucket Ids",
+      "type": "array"
+    },
+    "reason": {
+      "minLength": 1,
+      "title": "Reason",
+      "type": "string"
+    }
+  },
+  "required": [
+    "allocation_id",
+    "bucket_id",
+    "state",
+    "earlier_bucket_ids",
+    "reason"
+  ],
+  "title": "PriorityCheck",
+  "type": "object"
+}

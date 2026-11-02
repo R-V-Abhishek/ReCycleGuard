@@ -1,0 +1,82 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "max_case_actions": {
+      "default": 64,
+      "minimum": 1,
+      "title": "Max Case Actions",
+      "type": "integer"
+    },
+    "max_model_calls": {
+      "default": 24,
+      "minimum": 1,
+      "title": "Max Model Calls",
+      "type": "integer"
+    },
+    "max_total_tokens": {
+      "default": 49152,
+      "minimum": 1,
+      "title": "Max Total Tokens",
+      "type": "integer"
+    },
+    "tokens_per_model_call": {
+      "default": 2048,
+      "minimum": 1,
+      "title": "Tokens Per Model Call",
+      "type": "integer"
+    },
+    "max_wall_seconds": {
+      "default": 300,
+      "minimum": 1,
+      "title": "Max Wall Seconds",
+      "type": "integer"
+    },
+    "tools_per_finding": {
+      "default": 8,
+      "maximum": 8,
+      "minimum": 1,
+      "title": "Tools Per Finding",
+      "type": "integer"
+    },
+    "reformulations_per_finding": {
+      "default": 2,
+      "maximum": 2,
+      "minimum": 0,
+      "title": "Reformulations Per Finding",
+      "type": "integer"
+    },
+    "retries_per_operation": {
+      "default": 1,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Retries Per Operation",
+      "type": "integer"
+    },
+    "report_repairs": {
+      "default": 1,
+      "maximum": 1,
+      "minimum": 0,
+      "title": "Report Repairs",
+      "type": "integer"
+    },
+    "preflight_actions": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Preflight Actions",
+      "type": "integer"
+    },
+    "verification_actions": {
+      "default": 2,
+      "minimum": 1,
+      "title": "Verification Actions",
+      "type": "integer"
+    },
+    "cost_ceiling_usd": {
+      "default": null,
+      "title": "Cost Ceiling Usd",
+      "type": "null"
+    }
+  },
+  "title": "BudgetLimits",
+  "type": "object"
+}

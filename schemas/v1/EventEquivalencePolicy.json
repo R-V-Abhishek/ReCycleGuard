@@ -1,0 +1,48 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "policy_version": {
+      "minLength": 1,
+      "title": "Policy Version",
+      "type": "string"
+    },
+    "required_exact_fields": {
+      "items": {
+        "enum": [
+          "CERTIFICATE_LOT",
+          "KIND_STAGE",
+          "TIME_VALUE_PRECISION_TIMEZONE",
+          "QUANTITY_DIMENSION_METAL",
+          "FROM_TO_PARTIES"
+        ],
+        "type": "string"
+      },
+      "title": "Required Exact Fields",
+      "type": "array"
+    },
+    "corroboration": {
+      "const": "EXTERNAL_ID_OR_COMPLETE_KEY_WITH_SOURCE_CONTINUITY",
+      "title": "Corroboration",
+      "type": "string"
+    },
+    "missing_or_conflicting_outcome": {
+      "const": "PENDING",
+      "title": "Missing Or Conflicting Outcome",
+      "type": "string"
+    },
+    "coarse_time_collision_outcome": {
+      "const": "PENDING",
+      "title": "Coarse Time Collision Outcome",
+      "type": "string"
+    }
+  },
+  "required": [
+    "policy_version",
+    "required_exact_fields",
+    "corroboration",
+    "missing_or_conflicting_outcome",
+    "coarse_time_collision_outcome"
+  ],
+  "title": "EventEquivalencePolicy",
+  "type": "object"
+}

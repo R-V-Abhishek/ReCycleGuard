@@ -4,6 +4,31 @@ Agentic AI for e-waste Extended Producer Responsibility (EPR) compliance reconci
 
 This mini-project supports a compliance officer in investigating discrepancies between a producer's obligations and supporting records. The planned scope covers one producer, one reporting period, limited equipment categories, structured records, and a curated regulatory corpus. Outputs are advisory and subject to human review.
 
+## Development and checkpoint verification
+
+```sh
+uv sync --locked
+uv run recycleguard doctor
+uv run pytest
+uv run scripts/export_schemas.py --check
+uv run scripts/verify_cp2.py --data-root .recycleguard/cp2-reproduction --output tmp/cp2-reproduction
+```
+
+CP1 is locked. CP2 integrates original-file intake, extraction, normalization,
+reviewed frozen inputs, deterministic reconciliation, an eight-section verified
+working paper and audited outcomes. Its synthetic baseline demonstrates 100 kg
+required, 55 supported, 45 gap and 25 pending after exact evidence-support review.
+Applicability and deadline limits remain explicit, so this result is qualified.
+See the [CP2 record](docs/checkpoints/checkpoint-2/README.md) for approval status,
+operating-system verification, member contributions and reproduction details.
+
+Use new, separate paths for each reproduction run. The fixture review identity is
+synthetic test data, not actual team approval. Hidden oracle data remains outside
+runtime. Local MLX inference dependencies are isolated from the base package;
+OCR selection remains separate. See [configuration](configs/README.md) for runtime
+roots and test-adapter guards, and the [checkpoint construction log](docs/checkpoints/README.md)
+for the preserved CP0/CP1 history.
+
 ## Current artifacts
 
 - [Project guidelines](PROJECT_GUIDELINES.md): course requirements, schedule, rubrics, and deliverables.
@@ -28,11 +53,25 @@ The initial research notes are dated 16 October 2026; the additional CPCB data/R
 
 - [System design](docs/design/SYSTEM_DESIGN.md): component architecture, online-source storage, synthetic dossier formats, reconciliation, retrieval, complete audit trails, recovery, and evaluation.
 - [Component contracts](docs/design/CONTRACTS.md): versioned input/output types, permissions, component interfaces, data/control flow, and integration acceptance criteria.
-- [Implementation plan](implementation%20plan.md): four-person ownership, seven-day build schedule, source acquisition and synthetic data, integration gates, second-week tuning/evaluation and publication artifacts. **Use its task dependency graphs, state register and checkpoint approvals to control all implementation work.** LLM gateway implementation and provider selection remain unplanned; real agent evaluation depends on that work becoming available.
+- [Implementation plan](implementation%20plan.md): four-person ownership, task dependencies, integration gates, evaluation and publication artifacts. **Use its task dependency graphs, state register and checkpoint approvals to control implementation.** U01 explores an explicitly configured local Qwen backend; native workflow compatibility is incomplete and development is paused. Real agent evaluation still requires the separate MG1 gate.
 
 The specifications were drafted on 18 October and corrected against the research review on 22 October 2026. They qualify tentative research assumptions and describe planned implementation.
 
-The repository currently contains planning documents; the agent implementation is forthcoming.
+The deterministic evidence and reporting pipeline is implemented. A06 adds the
+bounded graph, audit/checkpoint recovery and scripted-port budget tests. See the
+[A06 handoff](docs/checkpoints/checkpoint-3/a06.md). Real-service integration,
+human-review transitions and wider evaluation remain
+subsequent work. Reproduce the explicitly scripted trace with fresh paths:
+
+```sh
+uv run scripts/verify_a06.py --data-root .recycleguard/a06-reproduction --output tmp/a06-reproduction
+```
+
+For local model setup, exact weight/runtime pins, native smoke evidence and cleanup
+paths, see the [U01 local-model record](docs/checkpoints/model-gateway/README.md).
+The MLX inference environment is isolated from the application and Windows/Linux
+test dependencies. Model weights are ignored by Git. Local inference is explicitly
+selected; there is no silent replacement of scripted tests or provider fallback.
 
 ## Build the Review 2 design document
 
@@ -76,3 +115,20 @@ cp tmp/pdfs/PROJECT_CHARTER.pdf output/pdf/PROJECT_CHARTER.pdf
 | Vedantha Vinay Vernekar | 1BM23CD069 |
 
 Agentic AI (26CD7PEAAI), B.E. CSE (Data Science), VII Semester, BMSCE.
+
+### CP3 integrated investigation
+
+Real retrieval, domain tools, verified reports and authenticated review are integrated on
+`checkpoint-3`. C10 remains explicitly scripted for this offline checkpoint. See the
+[CP3 record](docs/checkpoints/checkpoint-3/README.md) for per-member work, limitations
+and reproducible CLI verification (`uv run scripts/verify_a07.py --data-root NEW_ROOT --output NEW_OUTPUT`).
+
+### Backend API (no frontend)
+
+The local-model branch and S07/H08 submissions are integrated on
+`codex/backend-api`. The HTTP API supports manifest-based dossier upload/selection,
+explicit evidence review, background investigation, exact prompt/tool traces,
+SSE, reports, integrity auditing and authenticated report decisions.
+See [API setup and endpoints](docs/api/README.md),
+[OpenAPI contract](docs/api/openapi.json) and the
+[future UI implementation plan](docs/api/UI_IMPLEMENTATION_PLAN.md).

@@ -1,0 +1,37 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "calculation_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Calculation Id",
+      "type": "string"
+    },
+    "bucket_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Bucket Id",
+      "type": "string"
+    },
+    "field": {
+      "enum": [
+        "required",
+        "supported",
+        "signed_gap",
+        "shortfall",
+        "surplus",
+        "pending",
+        "portal_reported",
+        "ledger_supported",
+        "delta"
+      ],
+      "title": "Field",
+      "type": "string"
+    }
+  },
+  "required": [
+    "calculation_id",
+    "bucket_id",
+    "field"
+  ],
+  "title": "CalculationValueRef",
+  "type": "object"
+}

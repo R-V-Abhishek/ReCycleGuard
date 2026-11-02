@@ -1,0 +1,39 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "priority_check": {
+      "const": "EARLIER_COMPATIBLE_AT_ALLOCATION_TIME",
+      "title": "Priority Check",
+      "type": "string"
+    },
+    "missing_history_outcome": {
+      "const": "LIABILITY_PRIORITY_UNRESOLVED",
+      "title": "Missing History Outcome",
+      "type": "string"
+    },
+    "prohibited_allocation_outcome": {
+      "const": "EARLIER_LIABILITY_UNMET",
+      "title": "Prohibited Allocation Outcome",
+      "type": "string"
+    },
+    "supported_basis": {
+      "const": "SUPPORTED_ALLOCATIONS_ONLY",
+      "title": "Supported Basis",
+      "type": "string"
+    },
+    "historical_buckets": {
+      "const": "SEPARATE",
+      "title": "Historical Buckets",
+      "type": "string"
+    }
+  },
+  "required": [
+    "priority_check",
+    "missing_history_outcome",
+    "prohibited_allocation_outcome",
+    "supported_basis",
+    "historical_buckets"
+  ],
+  "title": "AllocationPolicy",
+  "type": "object"
+}

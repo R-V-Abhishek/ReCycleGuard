@@ -1,0 +1,22 @@
+{
+  "additionalProperties": false,
+  "description": "Pinned reference; introduced by A02, not an implemented C05 lookup.",
+  "properties": {
+    "snapshot_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Snapshot Id",
+      "type": "string"
+    },
+    "membership_digest": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Membership Digest",
+      "type": "string"
+    }
+  },
+  "required": [
+    "snapshot_id",
+    "membership_digest"
+  ],
+  "title": "SnapshotRef",
+  "type": "object"
+}

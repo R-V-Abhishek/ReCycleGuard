@@ -1,0 +1,68 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "acknowledgment_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Acknowledgment Id",
+      "type": "string"
+    },
+    "artifact_revision_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Artifact Revision Id",
+      "type": "string"
+    },
+    "linked_case_version_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Linked Case Version Id",
+      "type": "string"
+    },
+    "linked_report_revision_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Linked Report Revision Id"
+    },
+    "claimed_external_reference": {
+      "title": "Claimed External Reference",
+      "type": "string"
+    },
+    "validation_state": {
+      "enum": [
+        "VALID",
+        "INVALID",
+        "PENDING_VERIFICATION"
+      ],
+      "title": "Validation State",
+      "type": "string"
+    },
+    "review_ref": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Review Ref"
+    }
+  },
+  "required": [
+    "acknowledgment_id",
+    "artifact_revision_id",
+    "linked_case_version_id",
+    "claimed_external_reference",
+    "validation_state"
+  ],
+  "title": "AcknowledgmentRecord",
+  "type": "object"
+}

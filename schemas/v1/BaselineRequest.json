@@ -1,0 +1,84 @@
+{
+  "$defs": {
+    "CalculationRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "case_version_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Case Version Id",
+          "type": "string"
+        },
+        "profile_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Profile Id",
+          "type": "string"
+        },
+        "bucket_ids": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "type": "string"
+          },
+          "title": "Bucket Ids",
+          "type": "array"
+        },
+        "expected_input_membership_digest": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Expected Input Membership Digest"
+        }
+      },
+      "required": [
+        "case_version_id",
+        "profile_id",
+        "bucket_ids",
+        "expected_input_membership_digest"
+      ],
+      "title": "CalculationRequest",
+      "type": "object"
+    },
+    "SnapshotRef": {
+      "additionalProperties": false,
+      "description": "Pinned reference; introduced by A02, not an implemented C05 lookup.",
+      "properties": {
+        "snapshot_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Snapshot Id",
+          "type": "string"
+        },
+        "membership_digest": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Membership Digest",
+          "type": "string"
+        }
+      },
+      "required": [
+        "snapshot_id",
+        "membership_digest"
+      ],
+      "title": "SnapshotRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "snapshot": {
+      "$ref": "#/$defs/SnapshotRef"
+    },
+    "calculation": {
+      "$ref": "#/$defs/CalculationRequest"
+    }
+  },
+  "required": [
+    "snapshot",
+    "calculation"
+  ],
+  "title": "BaselineRequest",
+  "type": "object"
+}

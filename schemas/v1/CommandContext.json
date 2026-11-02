@@ -1,0 +1,142 @@
+{
+  "$defs": {
+    "ActorRef": {
+      "additionalProperties": false,
+      "properties": {
+        "actor_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Actor Id",
+          "type": "string"
+        },
+        "actor_kind": {
+          "enum": [
+            "HUMAN",
+            "SERVICE",
+            "MODEL_PROPOSAL",
+            "EVALUATOR"
+          ],
+          "title": "Actor Kind",
+          "type": "string"
+        },
+        "authenticated_session_ref": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Authenticated Session Ref"
+        }
+      },
+      "required": [
+        "actor_id",
+        "actor_kind",
+        "authenticated_session_ref"
+      ],
+      "title": "ActorRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "contract_version": {
+      "const": "1.1",
+      "title": "Contract Version",
+      "type": "string"
+    },
+    "command_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Command Id",
+      "type": "string"
+    },
+    "operation_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Operation Id",
+      "type": "string"
+    },
+    "attempt_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Attempt Id",
+      "type": "string"
+    },
+    "idempotency_key": {
+      "minLength": 1,
+      "title": "Idempotency Key",
+      "type": "string"
+    },
+    "actor": {
+      "$ref": "#/$defs/ActorRef"
+    },
+    "case_version_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Case Version Id"
+    },
+    "run_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Run Id"
+    },
+    "turn_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Turn Id"
+    },
+    "correlation_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Correlation Id",
+      "type": "string"
+    },
+    "parent_operation_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Parent Operation Id"
+    }
+  },
+  "required": [
+    "contract_version",
+    "command_id",
+    "operation_id",
+    "attempt_id",
+    "idempotency_key",
+    "actor",
+    "case_version_id",
+    "run_id",
+    "turn_id",
+    "correlation_id",
+    "parent_operation_id"
+  ],
+  "title": "CommandContext",
+  "type": "object"
+}

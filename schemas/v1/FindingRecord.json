@@ -1,0 +1,548 @@
+{
+  "$defs": {
+    "CalculationValueRef": {
+      "additionalProperties": false,
+      "properties": {
+        "calculation_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Calculation Id",
+          "type": "string"
+        },
+        "bucket_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Bucket Id",
+          "type": "string"
+        },
+        "field": {
+          "enum": [
+            "required",
+            "supported",
+            "signed_gap",
+            "shortfall",
+            "surplus",
+            "pending",
+            "portal_reported",
+            "ledger_supported",
+            "delta"
+          ],
+          "title": "Field",
+          "type": "string"
+        }
+      },
+      "required": [
+        "calculation_id",
+        "bucket_id",
+        "field"
+      ],
+      "title": "CalculationValueRef",
+      "type": "object"
+    },
+    "EvidenceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "ref_kind": {
+          "enum": [
+            "ARTIFACT",
+            "OBSERVATION",
+            "RECORD",
+            "PROVISION",
+            "CALCULATION",
+            "FINDING"
+          ],
+          "title": "Ref Kind",
+          "type": "string"
+        },
+        "ref_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Ref Id",
+          "type": "string"
+        },
+        "artifact_revision_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Artifact Revision Id"
+        },
+        "locator": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Locator"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "ref_kind",
+        "ref_id",
+        "artifact_revision_id",
+        "locator"
+      ],
+      "title": "EvidenceRef",
+      "type": "object"
+    },
+    "Hypothesis": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "support_state": {
+          "enum": [
+            "SUPPORTED",
+            "QUALIFIED",
+            "UNSUPPORTED"
+          ],
+          "title": "Support State",
+          "type": "string"
+        },
+        "refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "text",
+        "support_state",
+        "refs"
+      ],
+      "title": "Hypothesis",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "Locator": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "PDF_PAGE",
+            "PDF_CELL",
+            "CSV_ROW",
+            "JSON_POINTER",
+            "TEXT_SPAN",
+            "DB_RECORD"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "page_index_1based": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Page Index 1Based"
+        },
+        "printed_page_label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Printed Page Label"
+        },
+        "row_index_1based": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Row Index 1Based"
+        },
+        "column_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Column Name"
+        },
+        "json_pointer": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Json Pointer"
+        },
+        "text_start": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Text Start"
+        },
+        "text_end": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Text End"
+        },
+        "table_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Table Id"
+        },
+        "cell_row": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cell Row"
+        },
+        "cell_column": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Cell Column"
+        }
+      },
+      "required": [
+        "kind",
+        "page_index_1based",
+        "printed_page_label",
+        "row_index_1based",
+        "column_name",
+        "json_pointer",
+        "text_start",
+        "text_end",
+        "table_id",
+        "cell_row",
+        "cell_column"
+      ],
+      "title": "Locator",
+      "type": "object"
+    },
+    "Recommendation": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "INVESTIGATE",
+            "REQUEST_EVIDENCE",
+            "ESCALATE",
+            "NO_FURTHER_ACTION"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "evidence_refs": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence Refs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind",
+        "description",
+        "evidence_refs"
+      ],
+      "title": "Recommendation",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "finding_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Finding Id",
+      "type": "string"
+    },
+    "finding_revision_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Finding Revision Id",
+      "type": "string"
+    },
+    "case_version_id": {
+      "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+      "title": "Case Version Id",
+      "type": "string"
+    },
+    "bucket_ids": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Bucket Ids",
+      "type": "array"
+    },
+    "issue_type": {
+      "enum": [
+        "F01_CLEAN_BASELINE",
+        "F02_OVERLAPPING_EXPORT",
+        "F03_MULTISTAGE_ID_REUSE",
+        "F04_UNIT_DIMENSION_MIX",
+        "F05_WRONG_ENTITY_ALIAS",
+        "F06_STALE_SNAPSHOT",
+        "F07_PAID_NO_TRANSFER",
+        "F08_PRIOR_ARREARS_DRAIN",
+        "F09_EXPIRED_CANCELLED",
+        "F10_CAPABILITY_MISMATCH",
+        "F11_WRONG_PERIOD_RULE",
+        "F12_UNSEEN_NOTICE_LEAD",
+        "F13_WEIGHT_BASIS_CONFLICT",
+        "F14_OUT_OF_SCOPE_REGIME",
+        "F15_EXTRACTION_PAGE_LOSS",
+        "F16_PROMPT_INJECTION"
+      ],
+      "title": "Issue Type",
+      "type": "string"
+    },
+    "advisory_status": {
+      "enum": [
+        "RECONCILED_WITHIN_SCOPE",
+        "DISCREPANCY_DETECTED",
+        "PENDING_VERIFICATION",
+        "REQUIRES_EXPERT_REVIEW"
+      ],
+      "title": "Advisory Status",
+      "type": "string"
+    },
+    "priority": {
+      "enum": [
+        "HIGH",
+        "MEDIUM",
+        "LOW"
+      ],
+      "title": "Priority",
+      "type": "string"
+    },
+    "priority_basis": {
+      "title": "Priority Basis",
+      "type": "string"
+    },
+    "portal_reported_value_ref": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CalculationValueRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "ledger_supported_value_ref": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CalculationValueRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "delta_value_ref": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CalculationValueRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "snapshot_comparison_ref": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Snapshot Comparison Ref"
+    },
+    "fact_refs": {
+      "items": {
+        "$ref": "#/$defs/EvidenceRef"
+      },
+      "title": "Fact Refs",
+      "type": "array"
+    },
+    "calculation_refs": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+        "type": "string"
+      },
+      "title": "Calculation Refs",
+      "type": "array"
+    },
+    "provision_refs": {
+      "items": {
+        "$ref": "#/$defs/EvidenceRef"
+      },
+      "title": "Provision Refs",
+      "type": "array"
+    },
+    "evidence_assessments": {
+      "items": {
+        "additionalProperties": {
+          "$ref": "#/$defs/JsonValue"
+        },
+        "type": "object"
+      },
+      "title": "Evidence Assessments",
+      "type": "array"
+    },
+    "hypotheses": {
+      "items": {
+        "$ref": "#/$defs/Hypothesis"
+      },
+      "title": "Hypotheses",
+      "type": "array"
+    },
+    "abstention_reason": {
+      "anyOf": [
+        {
+          "enum": [
+            "MISSING_EVIDENCE",
+            "MISSING_AUTHORITY",
+            "RULE_CONFLICT",
+            "TEMPORAL_UNCERTAINTY",
+            "UNSUPPORTED_FEATURE",
+            "INCOMPLETE_HISTORY",
+            "BUDGET_LIMIT"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Abstention Reason"
+    },
+    "withheld_claim_scopes": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Withheld Claim Scopes",
+      "type": "array"
+    },
+    "next_action": {
+      "$ref": "#/$defs/Recommendation"
+    },
+    "action_owner_ref": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Action Owner Ref"
+    },
+    "scope_limits": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Scope Limits",
+      "type": "array"
+    },
+    "supersedes_finding_revision_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Supersedes Finding Revision Id"
+    }
+  },
+  "required": [
+    "finding_id",
+    "finding_revision_id",
+    "case_version_id",
+    "bucket_ids",
+    "issue_type",
+    "advisory_status",
+    "priority",
+    "priority_basis",
+    "portal_reported_value_ref",
+    "ledger_supported_value_ref",
+    "delta_value_ref",
+    "snapshot_comparison_ref",
+    "fact_refs",
+    "calculation_refs",
+    "provision_refs",
+    "evidence_assessments",
+    "hypotheses",
+    "abstention_reason",
+    "withheld_claim_scopes",
+    "next_action",
+    "action_owner_ref",
+    "scope_limits",
+    "supersedes_finding_revision_id"
+  ],
+  "title": "FindingRecord",
+  "type": "object"
+}
