@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { BucketResult, InvestigationReport, ReviewDecisionKind, ReviewPacket } from "../api/types";
 import { Badge, ErrorBanner, IssueList, Mono, PasswordField, Qty, Section, TextField, Unavailable, useAction, useLoad } from "../components/common";
 import { EvidenceChips } from "../components/evidence";
+import { BucketDetails, ChecksTable, ClaimsBySection, ReportText, UnresolvedIssues } from "../components/reportParts";
 import { useHeader } from "../components/Shell";
 import { href, useClient } from "../state/session";
 
@@ -55,7 +56,7 @@ function Findings({ report, dossierId, onCalculation }: { report: InvestigationR
           {finding.hypotheses.length > 0 && (
             <>
               <h4>Hypotheses</h4>
-              <ul>{finding.hypotheses.map((h, i) => <li key={i}><Badge value={h.support_state} /> {h.text}</li>)}</ul>
+              <ul>{finding.hypotheses.map((h, i) => <li key={i}><Badge value={h.support_state} /> {h.text}{h.refs.length > 0 && <EvidenceChips refs={h.refs} dossierId={dossierId} onCalculation={onCalculation} />}</li>)}</ul>
             </>
           )}
           <h4>Facts</h4>
@@ -77,6 +78,7 @@ function Findings({ report, dossierId, onCalculation }: { report: InvestigationR
             <Badge value={finding.next_action.kind} /> {finding.next_action.description}{" "}
             <span className="muted small">Owner: {finding.action_owner_ref ?? "not recorded"}</span>
           </p>
+          {finding.next_action.evidence_refs.length > 0 && <EvidenceChips refs={finding.next_action.evidence_refs} dossierId={dossierId} onCalculation={onCalculation} />}
           {finding.scope_limits.length > 0 && (
             <>
               <h4>Scope limits</h4>
@@ -167,7 +169,9 @@ export function ReviewForm({ runId, report, canRequest, onDone }: { runId: strin
             <dt>Dependency digest</dt><dd><Mono>{packet.review_dependency_digest}</Mono></dd>
             <dt>Input snapshots</dt>
             <dd>{packet.input_snapshot_refs.map((ref) => <div key={ref.snapshot_id}><Mono>{ref.snapshot_id}</Mono> · <Mono>{ref.membership_digest}</Mono></div>)}</dd>
-            <dt>Unresolved issues</dt><dd>{packet.unresolved_issue_refs.length}</dd>
+            <dt>Unresolved issues ({packet.unresolved_issue_refs.length})</dt><dd><UnresolvedIssues ids={packet.unresolved_issue_refs} report={report} /></dd>
+            <dt>Proposed actions ({packet.proposed_action_refs.length})</dt>
+            <dd>{packet.proposed_action_refs.length ? packet.proposed_action_refs.map((id) => <div key={id}><Mono>{id}</Mono></div>) : <Unavailable label="none" />}</dd>
           </dl>
           <fieldset disabled={action.busy || stale}>
             <legend>Decision for this exact revision</legend>
@@ -236,9 +240,14 @@ export function Report({ runId }: { runId: string }) {
               <div key={calculation.calculation_id} id={`calc-${calculation.calculation_id}`}>
                 <p className="small"><Badge value={calculation.coverage} /> <Mono>{calculation.calculation_id}</Mono></p>
                 <BucketTable buckets={calculation.bucket_results} />
+                {calculation.bucket_results.map((bucket) => <BucketDetails key={bucket.bucket_id} bucket={bucket} dossierId={dossierId} />)}
                 <IssueList issues={calculation.issues} />
               </div>
             ))}
+          </Section>
+          <Section title="Report claims" aside={<span className="muted small">{body.report.claims.length} claims</span>}>
+            <p className="muted small">What the report asserts, with the backend's support status and its evidence. Open a reference to see the original.</p>
+            <ClaimsBySection report={body.report} dossierId={dossierId} onCalculation={scrollToCalculation} />
           </Section>
           <Section title="Findings"><Findings report={body} dossierId={dossierId} onCalculation={scrollToCalculation} /></Section>
           <Section title="Verifier" aside={<Badge value={body.verification.verdict} />}>
@@ -246,13 +255,16 @@ export function Report({ runId }: { runId: string }) {
             <IssueList issues={body.verification.issues} />
             <details>
               <summary>Checks ({body.verification.checks.length})</summary>
-              <pre className="block">{JSON.stringify(body.verification.checks, null, 2)}</pre>
+              <ChecksTable checks={body.verification.checks} />
             </details>
           </Section>
-          <details className="card">
-            <summary>Report text</summary>
-            <pre className="block">{body.report.rendered_markdown}</pre>
-          </details>
+          <Section title="Report text">
+            <ReportText markdown={body.report.rendered_markdown} />
+            <details>
+              <summary>Exact markdown source</summary>
+              <pre className="block">{body.report.rendered_markdown}</pre>
+            </details>
+          </Section>
           <ReviewForm key={`${runId}:${body.report.revision.report_revision_id}:${body.report.revision.review_dependency_digest}`} runId={runId} report={body} canRequest={state?.status === "AWAITING_REVIEW"} onDone={refresh} />
         </>
       )}
