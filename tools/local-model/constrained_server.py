@@ -29,7 +29,7 @@ def constraint_processor(matcher, tokenizer, prompt_length, stop_tokens):
         return tokenizer.decode([token])
 
     def process(tokens, logits):
-        generated = [int(token) for token in tokens[prompt_length:]]
+        generated = tokens[prompt_length:].tolist()
         text = tokenizer.decode(generated) if generated else ""
         ranked = mx.argsort(-logits, axis=-1).reshape(-1)[:_CANDIDATES].tolist()
         # Stop tokens may rank below the candidate cut, so they are always considered.
