@@ -173,6 +173,15 @@ def evaluation_budgets(config: LocalModelConfig) -> BudgetLimits:
     )
 
 
+def resolve_budgets(config: LocalModelConfig | None, requested: BudgetLimits | None):
+    """Model-backed runs use the frozen evaluation budget; only scripted tests may override."""
+    if config is None:
+        return BudgetLimits() if requested is None else requested
+    if requested is not None:
+        raise ValueError("model-backed runs use the frozen evaluation budget")
+    return evaluation_budgets(config)
+
+
 def experiment_variant(native, fixed_plan):
     if native is None:
         return "REAL_SERVICES_SCRIPTED_C10" if fixed_plan is None else "V1_FIXED_SCRIPTED_TEST"
