@@ -23,22 +23,36 @@ comes from reading llama.cpp's source, so expect the first start to need small f
 | Runtime | llama.cpp build `b12033`, CUDA image pinned by digest |
 | Everything pinned in | [deploy/model.env](../../../deploy/model.env) |
 
-Keep the clone inside the WSL filesystem, not `/mnt/c`. Everything below runs from the repository root in WSL.
+Clone on Windows and run everything from the repository root in **PowerShell**, with Docker Desktop running. The
+repository's `.gitattributes` keeps the files containers read on LF line endings, so no Git setting is needed. Trial data and
+weights live in Docker volumes, so the Windows folder does not slow the runs.
 
-```sh
-git fetch origin && git checkout cp-5_windows_model && git pull
-export COMPOSE_FILE=deploy/compose.yaml
+The two shell scripts need Git for Windows' `sh.exe`. `MSYS_NO_PATHCONV` stops it rewriting container paths such as
+`/export`; without it they print success and copy nothing.
+
+Set these in every new PowerShell window:
+
+```powershell
+$env:COMPOSE_FILE = "deploy/compose.yaml"
+$env:MSYS_NO_PATHCONV = "1"
+$sh = "$env:ProgramFiles\Git\bin\sh.exe"
 ```
 
-`benchmarks/hidden/` is git-ignored and holds evaluator answers. Copy it from the Mac or the Windows machine privately,
-never through Git, then:
+First time only:
 
-```sh
-scripts/docker/import-hidden.sh <path to benchmarks/hidden>
+```powershell
+git clone --branch cp-5_windows_model https://github.com/R-V-Abhishek/ReCycleGuard.git
+cd ReCycleGuard
+```
+
+`benchmarks/hidden/` is git-ignored and holds evaluator answers. Copy it into the clone privately, never through Git. It
+stays out of every image. Then:
+
+```powershell
+& $sh scripts/docker/import-hidden.sh benchmarks/hidden
 docker compose --profile setup --profile tools --profile build-only build
 docker compose --profile setup run --rm model-download     # about 10 GB
-docker compose --profile tools run --rm trials \
-  python scripts/configure_local_model.py --llama-cpp /models/provenance/qwen3.5-9b-q8_0
+docker compose --profile tools run --rm trials python scripts/configure_local_model.py --llama-cpp /models/provenance/qwen3.5-9b-q8_0
 docker compose up -d model
 docker compose logs -f model                               # wait for the server to report it is listening
 ```
@@ -46,11 +60,8 @@ docker compose logs -f model                               # wait for the server
 Confirm the GPU is really used: the log reports layers offloaded and `nvidia-smi` shows about 10 GB or more in use.
 Then probe from inside the model's network. It must pass and show prompt `u01_non_thinking_v7`:
 
-```sh
-docker run --rm --network container:recycleguard-model \
-  --volume recycleguard-model-provenance:/models/provenance:ro \
-  --entrypoint /opt/venv/bin/recycleguard recycleguard-investigator:local \
-  model probe --config /models/provenance/qwen3.5-9b-q8_0/local-model.json
+```powershell
+docker run --rm --network container:recycleguard-model --volume recycleguard-model-provenance:/models/provenance:ro --entrypoint /opt/venv/bin/recycleguard recycleguard-investigator:local model probe --config /models/provenance/qwen3.5-9b-q8_0/local-model.json
 ```
 
 ### If the first start fails
@@ -70,19 +81,17 @@ and do not loosen any check on the model's own output. Rebuild both `investigato
 
 Run this if you want to separate a Docker problem from a model problem. It labels its output as not evidence.
 
-```sh
+```powershell
 docker compose stop model
 docker compose --profile fixture up -d --no-deps fake-model
-docker compose --profile tools run --rm trials python scripts/run_trials.py \
-  docs/checkpoints/mg1/protocols/dry-run-all-variants.json /work/pipeline-check \
-  --config /models/provenance/fixture/local-model.json --docker
+docker compose --profile tools run --rm trials python scripts/run_trials.py docs/checkpoints/mg1/protocols/dry-run-all-variants.json /work/pipeline-check --config /models/provenance/fixture/local-model.json --docker
 docker compose --profile fixture rm -sf fake-model
 docker compose up -d model
 ```
 
 ## Full test suite: first run on this code
 
-```sh
+```powershell
 docker compose --profile tools run --rm test
 ```
 
@@ -92,22 +101,24 @@ It runs ruff, the schema and API checks, pytest and the UI checks, continuing pa
 
 Every run uses this command, with a new `<name>` per run:
 
-```sh
-docker compose --profile tools run --rm trials python scripts/run_trials.py \
-  docs/checkpoints/mg1/protocols/<protocol>.json /work/<name> \
-  --config /models/provenance/qwen3.5-9b-q8_0/local-model.json --docker
+```powershell
+docker compose --profile tools run --rm trials python scripts/run_trials.py docs/checkpoints/mg1/protocols/<protocol>.json /work/<name> --config /models/provenance/qwen3.5-9b-q8_0/local-model.json --docker
 ```
 
 Score and build tables for every trial output:
 
-```sh
-docker compose --profile tools run --rm trials sh -c '
-  python scripts/score_trials.py /work/<name> benchmarks/hidden/pilot-0.1/oracle tests/fixtures/visible /work/<name>-scores
-  python scripts/make_tables.py /work/<name> /work/<name>-scores /work/<name>-tables'
+```powershell
+docker compose --profile tools run --rm trials python scripts/score_trials.py /work/<name> benchmarks/hidden/pilot-0.1/oracle tests/fixtures/visible /work/<name>-scores
+docker compose --profile tools run --rm trials python scripts/make_tables.py /work/<name> /work/<name>-scores /work/<name>-tables
 ```
 
-To stop a schedule before its next trial, `touch /work/<name>/KILL` in a `trials` container. Rerunning the same command
-resumes. **Do not rebuild images while a schedule runs**: runs pin the source, and every trial uses the current image.
+To stop a schedule before its next trial, run this from a second window:
+
+```powershell
+docker compose --profile tools run --rm --no-deps trials touch /work/<name>/KILL
+```
+
+Remove that file the same way (`rm`), then rerun the same command to resume. **Do not rebuild images while a schedule runs**: runs pin the source, and every trial uses the current image.
 
 Run in order:
 
@@ -123,14 +134,14 @@ Run in order:
 
 **Constrained mode (C).** The server enforces the schema per request, and the flag records it in the pin:
 
-```sh
-docker compose --profile tools run --rm trials python scripts/configure_local_model.py \
-  --constrained --llama-cpp /models/provenance/qwen3.5-9b-q8_0
-CONSTRAINED=1 docker compose up -d --force-recreate model
+```powershell
+docker compose --profile tools run --rm trials python scripts/configure_local_model.py --constrained --llama-cpp /models/provenance/qwen3.5-9b-q8_0
+$env:CONSTRAINED = "1"
+docker compose up -d --force-recreate model
 ```
 
 Use `local-model-constrained.json` as `--config`. Report speed against B, choose one setup for all later runs and
-record why. Restart without `CONSTRAINED=1` to go back.
+record why. To go back, run `Remove-Item Env:CONSTRAINED` and recreate the model the same way.
 
 **Failures (F).** Each trial runs in a container labelled `recycleguard.trial=1`.
 
@@ -170,8 +181,8 @@ If 9B again produces no accepted finding on `tuning-16`, the next thing to try i
 `deploy/model.env` (repository, revision, file, quantization, tokenizer, slug), rebuild `model-download`, download and
 configure again. That is another new setup, and MG1 applies to whichever one is finally chosen.
 
-```sh
-scripts/docker/export-results.sh <name> docs/checkpoints/mg1/runs/pc
+```powershell
+& $sh scripts/docker/export-results.sh <name> docs/checkpoints/mg1/runs/pc
 ```
 
 This copies the ledger, results, protocol, backend label, scores, tables and isolation evidence. Bundles and data roots
@@ -180,8 +191,8 @@ weights, `.env`, tokens or anything from `benchmarks/hidden`. Do not mark MG1 ap
 
 ## Demo stack
 
-```sh
-export RECYCLEGUARD_API_TOKEN=<a long random value>
+```powershell
+$env:RECYCLEGUARD_API_TOKEN = "<a long random value>"
 docker compose --profile demo up -d
 ```
 
