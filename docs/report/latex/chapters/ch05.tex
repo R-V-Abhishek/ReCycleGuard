@@ -7,14 +7,15 @@
 Table~\ref{tab:concepts} maps each concept required by the course to the part of the system that
 demonstrates it and to the evidence a reviewer can inspect. A concept that is not demonstrated is marked as such.
 
-\begin{table}[H]
-\centering
-\caption{Coverage of the course concepts and where the evidence is}
-\label{tab:concepts}
-\small
-\begin{tabularx}{\linewidth}{@{}p{2.7cm} p{1.5cm} X X@{}}
+{\small
+\begin{longtable}{@{}p{2.9cm} p{1.9cm} p{4.9cm} p{4.2cm}@{}}
+\caption{Coverage of the course concepts and where the evidence is}\label{tab:concepts}\\
 \toprule
 \textbf{Concept} & \textbf{Tier} & \textbf{Demonstration in ReCycleGuard} & \textbf{Evidence} \\ \midrule
+\endfirsthead
+\toprule
+\textbf{Concept} & \textbf{Tier} & \textbf{Demonstration} & \textbf{Evidence} \\ \midrule
+\endhead
 Tool use & Mandatory & Six whitelisted tools; the reconciler runs exact decimal arithmetic and the model reads the result & Tool intent and result records in the audit trail; tool unit tests \\
 Agentic RAG & Mandatory & Graded BM25 retrieval, temporal filtering, bounded expansion, up to two reformulations and escalation & Retrieval attempts and grades in the trace; retrieval regression tests \\
 Planning and reasoning & Mandatory & Explicit PLAN and ASSESS phases, a stored plan before each action, and a stored assessment after it & Plan and assessment records per turn; run states in Figure~\ref{fig:states} \\
@@ -26,8 +27,7 @@ Human in the loop and guardrails & Bonus & Mandatory reviewer decision bound to 
 Durable workflow & Bonus & Turn-by-turn checkpointed graph; resume after a killed process without repeating a tool call & Resume test after \code{kill -9}; Section~\ref{sec:crash} \\
 Experimentation & Bonus & Controlled comparison of fixed and adaptive investigation with identical tools, corpus and budgets & Chapter~\ref{ch:exp} (held-out result pending) \\
 \bottomrule
-\end{tabularx}
-\end{table}
+\end{longtable}}
 
 \section{Evidence for Each Concept}
 
