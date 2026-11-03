@@ -1,5 +1,5 @@
 \documentclass[aspectratio=169,10pt]{beamer}
-\usetheme[hideallsubsections,right,width=2.1cm]{Goettingen}
+\usetheme{default}
 \usefonttheme{serif}
 \usepackage{booktabs,tabularx,array,tikz,pgfplots,xcolor,graphicx}
 \usetikzlibrary{arrows.meta,positioning,shapes.geometric}
@@ -11,17 +11,40 @@
 \definecolor{modelorange}{RGB}{200,110,20}
 \definecolor{humanred}{RGB}{160,40,40}
 \definecolor{pendingorange}{RGB}{180,90,0}
+\definecolor{gold}{RGB}{201,151,0}
+\definecolor{navy}{RGB}{0,31,77}
 \setbeamercolor{structure}{fg=bmsblue}
-\setbeamercolor{palette sidebar primary}{fg=white,bg=bmsblue}
-\setbeamercolor{palette sidebar secondary}{fg=white,bg=bmsblue}
-\setbeamercolor{palette sidebar tertiary}{fg=white,bg=bmsblue}
-\setbeamercolor{palette sidebar quaternary}{fg=white,bg=bmsblue}
-\setbeamercolor{title}{fg=bmsblue}
-\setbeamercolor{frametitle}{fg=bmsblue,bg=white}
+\setbeamercolor{palette primary}{fg=white,bg=navy}
+\setbeamercolor{palette secondary}{fg=white,bg=bmsblue}
+\setbeamercolor{palette tertiary}{fg=white,bg=bmsblue!85!black}
+\setbeamercolor{palette quaternary}{fg=white,bg=navy}
+\setbeamercolor{title}{fg=white,bg=bmsblue}
+\setbeamercolor{frametitle}{fg=white,bg=bmsblue}
 \setbeamercolor{block title}{fg=white,bg=bmsblue}
-\setbeamercolor{block body}{bg=bmsblue!6}
+\setbeamercolor{block body}{bg=bmsblue!7}
+\setbeamercolor{alerted text}{fg=gold!80!black}
+\setbeamercolor{item}{fg=gold!85!black}
+\setbeamercolor{itemize item}{fg=gold!85!black}
+\setbeamercolor{itemize subitem}{fg=bmsblue}
+\setbeamercolor{enumerate item}{fg=gold!85!black}
+\setbeamercolor{section in head/foot}{fg=white,bg=bmsblue}
+% Thin gold rule under the frame title and a navy band above the footline.
 \setbeamertemplate{navigation symbols}{}
-\setbeamertemplate{footline}[frame number]
+\setbeamerfont{frametitle}{size=\Large,series=\bfseries}
+\setbeamertemplate{frametitle}{%
+  \nointerlineskip
+  \begin{beamercolorbox}[wd=\paperwidth,ht=1.15cm,dp=0.35cm,leftskip=0.7cm,rightskip=0.7cm]{frametitle}
+    \usebeamerfont{frametitle}\insertframetitle\hfill{\normalfont\scriptsize\color{gold}\insertsection}
+  \end{beamercolorbox}
+  \nointerlineskip
+  {\color{gold}\rule{\paperwidth}{2.2pt}}
+  \vskip 0.25cm}
+\setbeamertemplate{footline}{%
+  \leavevmode
+  \begin{beamercolorbox}[wd=\paperwidth,ht=0.3cm,dp=0.25cm,leftskip=0.7cm,rightskip=0.7cm]{palette primary}
+    \scriptsize ReCycleGuard\hfill B.M.S. College of Engineering\hfill\insertframenumber{} / \inserttotalframenumber
+  \end{beamercolorbox}}
+\setbeamersize{text margin left=0.9cm,text margin right=0.9cm}
 
 \newcommand{\pending}[1]{{\color{pendingorange}\textbf{[#1: to be completed]}}}
 \newcommand{\code}[1]{\texttt{\small #1}}
@@ -38,9 +61,24 @@ Agentic AI (26CD7PEAAI), Final Review}
 
 \begin{document}
 
+{\setbeamercolor{background canvas}{bg=navy}
 \begin{frame}[plain]
-\titlepage
-\end{frame}
+\begin{tikzpicture}[remember picture,overlay]
+\fill[gold] ([yshift=-1.55cm]current page.north west) rectangle ([yshift=-1.63cm]current page.north east);
+\fill[gold] ([yshift=1.55cm]current page.south west) rectangle ([yshift=1.63cm]current page.south east);
+\node[anchor=north east,xshift=-0.6cm,yshift=-0.2cm] at (current page.north east) {\includegraphics[height=1.2cm]{logo.png}};
+\node[anchor=north west,xshift=0.6cm,yshift=-0.55cm,text=white] at (current page.north west) {\scriptsize B.M.S. College of Engineering \textbullet\ Department of CSE (Data Science)};
+\end{tikzpicture}
+\vfill
+\centering
+{\color{white}{\fontsize{34}{38}\selectfont\bfseries ReCycleGuard}\\[6pt]
+{\large An Agentic Assistant for Auditable E-Waste EPR Compliance Reconciliation}\\[4pt]
+{\color{gold}\rule{6cm}{1pt}}\\[8pt]
+{\small Agentic AI (26CD7PEAAI), Final Review, November 2026}\\[10pt]
+{\footnotesize 1BM23CD020 H Sampreeth Bhat \quad 1BM23CD047 R V Abhishek (Team Lead)\\
+1BM23CD063 Sushanth S \quad 1BM23CD069 Vedantha Vinay Vernekar}}
+\vfill\vspace{0.6cm}
+\end{frame}}
 
 \section{Problem}
 \begin{frame}{Problem and the decision supported}
@@ -192,8 +230,9 @@ Primary metric: supported case success. Human rubric: citation, dates, next acti
 \end{columns}
 \end{frame}
 
-\begin{frame}{Development reliability, prompt v9 (24 dossiers $\times$ V1, V2)}
+\begin{frame}{Development reliability, prompt v9}
 \small
+\textbf{24 development dossiers $\times$ V1 and V2, one repeat}\par\smallskip
 \begin{tabularx}{\linewidth}{@{}X c c@{}}
 \toprule
 \textbf{Criterion (threshold)} & \textbf{V1} & \textbf{V2} \\ \midrule
@@ -315,11 +354,13 @@ V2 $-$ V1 & \multicolumn{3}{c}{{\color{pendingorange}\textbf{pending}}} \\
 \medskip\small Every member is expected to explain the whole system.
 \end{frame}
 
+{\setbeamercolor{background canvas}{bg=navy}
 \begin{frame}[plain]
 \centering\vfill
-{\Large\color{bmsblue}Questions}\\[6pt]
-\small Repository: github.com/R-V-Abhishek/ReCycleGuard (branch \code{checkpoint-5})
+{\color{white}{\fontsize{30}{34}\selectfont\bfseries Questions}\\[8pt]
+{\color{gold}\rule{4cm}{1pt}}\\[8pt]
+{\small github.com/R-V-Abhishek/ReCycleGuard, branch \texttt{checkpoint-5}}}
 \vfill
-\end{frame}
+\end{frame}}
 
 \end{document}
