@@ -3,6 +3,7 @@
 import ast
 import hashlib
 import http.client
+import importlib.util
 import json
 import threading
 import time
@@ -17,11 +18,14 @@ from recycleguard.application import command_context
 from recycleguard.contracts.core import ActorRef
 from recycleguard.contracts.workflow import AssessmentProposal, PlanProposal
 from recycleguard.local_model import (
+    BUILTIN_PROMPT,
     CONSTRAINED_FLAG,
     LLAMA_SERVER_FLAGS,
     SERVER_FLAGS,
     LocalModelConfig,
     LocalModelPort,
+    PromptText,
+    llama_server_flags,
 )
 from recycleguard.model_port import ModelCallRequest
 from recycleguard.storage import BlobStore, canonical_json_bytes
@@ -287,16 +291,17 @@ def test_mlx_backend_still_accepts_only_its_pinned_model(server, tmp_path):
 
 
 def test_llama_flags_equal_the_copy_in_the_model_image():
-    source = (Path(__file__).parents[2] / "deploy/start_model.py").read_text("utf-8")
-    module = ast.parse(source)
-    values = {
-        target.id: ast.literal_eval(node.value)
-        for node in module.body
-        if isinstance(node, ast.Assign)
-        for target in node.targets
-        if target.id in {"FLAGS", "CONSTRAINED_FLAG"}
-    }
-    assert values == {"FLAGS": LLAMA_SERVER_FLAGS, "CONSTRAINED_FLAG": CONSTRAINED_FLAG}
+    path = Path(__file__).parents[2] / "deploy/start_model.py"
+    spec = importlib.util.spec_from_file_location("start_model", path)
+    image = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(image)  # stdlib only; main() is not called
+    assert image.FLAGS == LLAMA_SERVER_FLAGS == llama_server_flags(1)
+    assert image.CONSTRAINED_FLAG == CONSTRAINED_FLAG
+    for slots in range(1, 9):
+        assert image.flags(slots) == llama_server_flags(slots)
+    assert llama_server_flags(4)[:4] == ["--ctx-size", "131072", "--parallel", "4"]
+    with pytest.raises(ValueError):
+        llama_server_flags(9)
 
 
 def request(port, *, phase="PLAN", budget=16384, additional=None):
@@ -424,6 +429,79 @@ def test_constrained_mode_changes_the_pin_and_sends_the_schema(server, tmp_path)
     invoke(LocalModelPort(constrained, BlobStore(tmp_path / "constrained")))
     first, second = (json.loads(call[2]) for call in backend.calls)
     assert "response_schema" not in first and second["response_schema"]["required"]
+
+
+PROMPTS = Path(__file__).parents[2] / "docs/checkpoints/mg1/prompts"
+VARIANT = PromptText(
+    prompt_version="u01_test_variant",
+    system="Variant system. ",
+    phase_rules={"PLAN": "Variant plan. ", "ASSESS": "Variant assess. "},
+    retry_note="Variant retry. ",
+)
+
+
+def test_the_v7_prompt_file_is_the_built_in_text_and_keeps_its_pins(server, tmp_path):
+    text = PromptText.model_validate_json((PROMPTS / "u01_non_thinking_v7.json").read_bytes())
+    assert text == BUILTIN_PROMPT
+    plain = configuration(server, tmp_path)
+    fields = plain.model_dump(mode="json")
+    assert fields["prompt"] is None
+    del fields["prompt"]
+    assert plain.pin().digest == hashlib.sha256(canonical_json_bytes(fields)).hexdigest()
+    explicit = LocalModelConfig(**{**plain.model_dump(), "prompt": text})
+    assert explicit.prompt_pin() == plain.prompt_pin()
+
+
+def test_every_prompt_file_is_valid_and_named_by_its_version():
+    texts = {}
+    for path in sorted(PROMPTS.glob("*.json")):
+        text = PromptText.model_validate_json(path.read_bytes())
+        assert path.stem == text.prompt_version
+        texts[text.prompt_version] = text.model_dump_json(exclude={"prompt_version"})
+    assert len(set(texts.values())) == len(texts) > 1  # a new version always changes the text
+
+
+def test_a_prompt_variant_is_pinned_and_is_what_is_sent(server, tmp_path):
+    backend, _, _ = server
+    plain = configuration(server, tmp_path)
+    config = LocalModelConfig(
+        **{
+            **plain.model_dump(),
+            "prompt_template_id": "prompt:u01_test_variant",
+            "prompt_version": "u01_test_variant",
+            "prompt": VARIANT,
+        }
+    )
+    assert config.prompt_pin() != plain.prompt_pin() and config.pin() != plain.pin()
+    port = LocalModelPort(config, BlobStore(tmp_path / "blobs"))
+    actor = ActorRef(
+        actor_id="service:local_model_test", actor_kind="SERVICE", authenticated_session_ref=None
+    )
+    context = command_context(actor)
+    model_request = request(port)
+    for suffix in ("_0", "_1"):
+        result = port.invoke(
+            context.model_copy(update={"attempt_id": context.attempt_id + suffix}), model_request
+        )
+        assert result.status == "SUCCESS"
+    first, retry = (json.loads(call[2])["prompt"] for call in backend.calls)
+    assert first.startswith("<|im_start|>system\nVariant system. Variant plan. JSON Schema:")
+    assert BUILTIN_PROMPT.system not in first and "Variant retry. " in retry
+    # A run pinned to the built-in prompt is refused by a variant's backend, and the reverse.
+    stale = request(LocalModelPort(plain, BlobStore(tmp_path / "plain")))
+    assert invoke(port, stale).status == "REJECTED"
+
+
+def test_changed_prompt_text_needs_its_own_matching_version(server, tmp_path):
+    fields = configuration(server, tmp_path).model_dump()
+    changed = BUILTIN_PROMPT.model_copy(update={"system": "Other. "})
+    with pytest.raises(ValidationError, match="its own prompt version"):
+        LocalModelConfig(**{**fields, "prompt": changed})
+    renamed = changed.model_copy(update={"prompt_version": "u01_other"})
+    with pytest.raises(ValidationError, match="different prompt versions"):
+        LocalModelConfig(**{**fields, "prompt": renamed})
+    with pytest.raises(ValidationError, match="exactly PLAN and ASSESS"):
+        PromptText(prompt_version="x", system="s", phase_rules={"PLAN": "p"}, retry_note="r")
 
 
 def test_serve_script_starts_the_pinned_flags():

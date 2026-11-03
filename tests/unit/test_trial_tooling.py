@@ -581,6 +581,205 @@ def test_a_container_failing_inspection_never_starts(run_trials, tmp_path, monke
     assert calls[-1] == ["docker", "rm", "--force", "t"]
 
 
+def test_parallel_sessions_label_and_clean_up_only_their_own_containers(
+    run_trials, tmp_path, monkeypatch
+):
+    from recycleguard.isolated_runtime import trial_container_arguments, verify_trial_inspection
+
+    first = run_trials.session_id(run_trials.TRIAL_ROOT / "sweep-a")
+    assert first != run_trials.session_id(run_trials.TRIAL_ROOT / "sweep-b")
+    command = trial_container_arguments(
+        "t", "image", "none", "data", "s/trials/t0000/attempt-1", None, [], session=first
+    )
+    assert f"recycleguard.session={first}" in command
+    with pytest.raises(ValueError, match="session label"):
+        trial_container_arguments("t", "image", "none", "data", "s", None, [], session="x")
+
+    inspection = _inspection()
+    network, volumes = "container:recycleguard-model", {"trial", "provenance"}
+    problems = verify_trial_inspection(inspection, network, volumes, first)
+    assert any("session label" in problem for problem in problems)
+    inspection["Config"]["Labels"] = {"recycleguard.session": first}
+    assert verify_trial_inspection(inspection, network, volumes, first) == []
+
+    calls = []
+
+    def fake_run(command, **_):
+        calls.append(command)
+        return subprocess.CompletedProcess(command, 0, stdout="", stderr="")
+
+    monkeypatch.setattr(run_trials.subprocess, "run", fake_run)
+    run_trials.prepare_docker_session(run_trials.TRIAL_ROOT / "sweep-a")
+    listing = next(command for command in calls if "--all" in command)
+    assert f"label=recycleguard.session={first}" in listing
+    assert "label=recycleguard.trial=1" in listing
+
+
+@pytest.fixture
+def sweep(monkeypatch, tmp_path):
+    module = script("run_sweep")
+    monkeypatch.setattr(module, "WORK", tmp_path)
+    return module
+
+
+SWEEP = {
+    "sweep_version": "mg1-prompt-sweep",
+    "name": "sweep-t",
+    "protocol": "docs/checkpoints/mg1/protocols/tuning-16.json",
+    "model_root": "/models/provenance/m",
+    "slots": 2,
+    "prompts": ["u01_non_thinking_v7", "u01_non_thinking_v8a", "u01_non_thinking_v8b"],
+}
+
+
+def test_committed_sweeps_are_valid_and_never_touch_checking_cases(sweep):
+    for path in sorted((ROOT / "docs/checkpoints/mg1/sweeps").glob("*.json")):
+        loaded = sweep.load_sweep(path)
+        assert path.stem == loaded["name"]
+
+
+def test_a_sweep_refuses_checking_cases_unknown_prompts_and_bad_names(sweep, tmp_path):
+    def attempt(**change):
+        path = tmp_path / "s.json"
+        path.write_text(json.dumps({**SWEEP, **change}))
+        return sweep.load_sweep(path)
+
+    assert attempt()["slots"] == 2
+    with pytest.raises(SystemExit, match="checking case"):
+        attempt(protocol="docs/checkpoints/mg1/protocols/checking-8.json")
+    with pytest.raises(SystemExit, match="no prompt file"):
+        attempt(prompts=["u01_missing"])
+    with pytest.raises(SystemExit, match="distinct"):
+        attempt(prompts=["u01_non_thinking_v7", "u01_non_thinking_v7"])
+    with pytest.raises(SystemExit, match="lowercase"):
+        attempt(name="../escape")
+    with pytest.raises(SystemExit, match="slots"):
+        attempt(slots=9)
+
+
+class _Process:
+    def __init__(self, polls):
+        self.polls, self.done = polls, False
+
+    def poll(self):
+        code = self.polls.pop(0) if self.polls else 0
+        self.done = code is not None
+        return code
+
+
+def test_a_sweep_runs_at_most_slots_sessions_at_once(sweep, tmp_path):
+    folder = tmp_path / "sweep-t"
+    folder.mkdir()
+    started, processes = [], []
+
+    def launch(command, **_):
+        assert sum(not process.done for process in processes) < SWEEP["slots"]
+        assert "--docker" in command and "--config" in command
+        started.append(command)
+        processes.append(_Process([None, 0]))
+        return processes[-1]
+
+    configs = {prompt: Path(f"/c/{prompt}.json") for prompt in SWEEP["prompts"]}
+    codes = sweep.run_sessions(SWEEP, folder, configs, launch=launch, poll=0)
+    assert codes == dict.fromkeys(SWEEP["prompts"], 0)
+    assert [Path(command[3]).name for command in started] == [
+        f"sweep-t-{prompt}" for prompt in SWEEP["prompts"]
+    ]
+    assert (folder / "u01_non_thinking_v7.log").is_file()
+
+
+def test_a_sweep_kill_reaches_every_running_session_and_starts_no_more(sweep, tmp_path):
+    folder = tmp_path / "sweep-t"
+    folder.mkdir()
+    (folder / "KILL").touch()
+    configs = {prompt: Path(f"/c/{prompt}.json") for prompt in SWEEP["prompts"]}
+    assert sweep.run_sessions(SWEEP, folder, configs, launch=None, poll=0) == {}
+
+    (folder / "KILL").unlink()
+    started = []
+
+    def launch(command, **_):
+        started.append(command)
+        (folder / "KILL").touch()  # someone stops the sweep while the first sessions run
+        return _Process([None, None, 0])
+
+    sweep.run_sessions(SWEEP, folder, configs, launch=launch, poll=0)
+    assert len(started) == 2  # the third prompt never starts
+    for prompt in SWEEP["prompts"][:2]:
+        assert (tmp_path / f"sweep-t-{prompt}" / "KILL").is_file()
+    # Resuming after KILL is removed deletes only the KILL files the sweep itself created.
+    (folder / "KILL").unlink()
+    sweep.run_sessions(SWEEP, folder, configs, launch=lambda c, **_: _Process([0]), poll=0)
+    assert not (tmp_path / f"sweep-t-{SWEEP['prompts'][0]}" / "KILL").exists()
+
+
+def test_a_sweep_refuses_a_server_with_other_slots(sweep, tmp_path, monkeypatch):
+    import recycleguard.local_model as local_model
+    from recycleguard.local_model import llama_server_flags
+
+    model = tmp_path / "model"
+    model.mkdir()
+    config = tmp_path / "config.json"
+    config.write_text(json.dumps({"server_flags": llama_server_flags(2)}))
+    session = model / "server-session.json"
+    session.write_text(json.dumps({"server_flags": llama_server_flags(1)}))
+
+    class Config:
+        @staticmethod
+        def model_validate_json(raw):
+            return type("C", (), json.loads(raw))
+
+    monkeypatch.setattr(local_model, "LocalModelConfig", Config)
+    with pytest.raises(SystemExit, match="SLOTS"):
+        sweep.require_server({**SWEEP, "model_root": str(model)}, {"p": config})
+    session.write_text(json.dumps({"server_flags": llama_server_flags(2)}))
+    sweep.require_server({**SWEEP, "model_root": str(model)}, {"p": config})
+
+
+def test_the_comparison_copies_existing_tables_side_by_side(sweep, tmp_path):
+    tables = tmp_path / "tables"
+    tables.mkdir()
+    (tables / "t1_primary_success.csv").write_text(
+        "variant,scheduled,scored,successes,success_rate,ci95_low,ci95_high,preflight_blocks\n"
+        "ADAPTIVE,16,16,3,0.1875,0.05,0.4,0\nFIXED_RETRIEVAL,16,16,2,0.125,0.0,0.3,0\n"
+    )
+    (tables / "t3_proposals_rejected.csv").write_text(
+        "variant,reason,proposals\nADAPTIVE,AUTHORITY_TEXT,2\nADAPTIVE,UNCITED,1\n"
+    )
+    (tables / "t6_efficiency.csv").write_text(
+        "variant,trials_with_result,mean_model_calls,mean_tokens,mean_wall_seconds,"
+        "p50_wall_seconds,p95_wall_seconds,money\nADAPTIVE,16,4.5,9000,61.0,58.0,80.0,NA\n"
+    )
+    rows = list(csv_rows(sweep.compare({"u01_non_thinking_v8a": tables})))
+    assert [row["variant"] for row in rows] == ["ADAPTIVE", "FIXED_RETRIEVAL"]
+    adaptive = rows[0]
+    assert adaptive["prompt"] == "u01_non_thinking_v8a" and adaptive["successes"] == "3"
+    assert adaptive["proposals_rejected"] == "AUTHORITY_TEXT:2;UNCITED:1"
+    assert adaptive["mean_model_calls"] == "4.5" and adaptive["micro_f1"] == ""
+    assert list(rows[0]) == sweep.COMPARE_COLUMNS
+
+
+def csv_rows(text):
+    import csv
+    import io
+
+    return csv.DictReader(io.StringIO(text))
+
+
+def test_configuration_names_never_collide(tmp_path):
+    configure = script("configure_local_model")
+    names = {
+        configure.config_name(),
+        configure.config_name(constrained=True),
+        configure.config_name(cap=2),
+        configure.config_name(prompt="u01_non_thinking_v8a"),
+        configure.config_name(prompt="u01_non_thinking_v8a", slots=4),
+        configure.config_name(slots=4),
+    }
+    assert len(names) == 6
+    assert configure.config_name(prompt="u01_non_thinking_v7") == "local-model.json"
+
+
 def test_child_gives_test_adapters_only_to_controls_and_a_model_only_to_real_variants(tmp_path):
     child = script("trial_child")
     (tmp_path / "config.json").write_text("{}")

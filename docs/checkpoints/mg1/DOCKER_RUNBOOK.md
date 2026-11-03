@@ -140,6 +140,23 @@ docker compose --profile tools run --rm trials python scripts/configure_local_mo
 docker compose --profile tools run --rm trials python scripts/run_trials.py docs/checkpoints/mg1/protocols/forced-cap.json /work/forced-cap-2 --config /models/provenance/qwen3.5-9b-q8_0/local-model-forced-cap.json --docker
 ```
 
+**Prompt sweeps (B, faster).** Several prompt versions run at once on `tuning-16`, one session each, against one
+server with that many slots. A sweep file in `docs/checkpoints/mg1/sweeps/` lists the versions; each version is a file
+in `docs/checkpoints/mg1/prompts/`. Always keep v7 in the sweep as the baseline: several slots can shift outputs
+slightly, so compare versions only within one sweep.
+
+```powershell
+$env:SLOTS = "4"
+docker compose up -d --force-recreate model
+docker compose --profile tools run --rm trials python scripts/run_sweep.py docs/checkpoints/mg1/sweeps/sweep-v8.json
+& $sh scripts/docker/export-results.sh sweep-v8 docs/checkpoints/mg1/runs/pc
+```
+
+It writes the configurations, refuses a server with other slots, runs the sessions as `/work/sweep-v8-<version>`,
+scores them and prints `compare.csv`, one row per version and variant. To stop every session, touch
+`/work/sweep-v8/KILL`; remove it and rerun to resume. A new prompt needs a new version name, a new sweep name and
+`docker compose --profile tools build trials`. For later single runs, set `$env:SLOTS = "1"` and recreate the model.
+
 **Constrained mode (C).** The server enforces the schema per request, and the flag records it in the pin:
 
 ```powershell

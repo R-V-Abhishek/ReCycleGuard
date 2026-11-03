@@ -175,6 +175,17 @@
           "title": "Prompt Version",
           "type": "string"
         },
+        "prompt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PromptText"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "endpoint": {
           "default": "http://127.0.0.1:8080/v1/completions",
           "title": "Endpoint",
@@ -247,6 +258,49 @@
         "runtime_lock_digest"
       ],
       "title": "LocalModelConfig",
+      "type": "object"
+    },
+    "PromptText": {
+      "additionalProperties": false,
+      "description": "The whole text of one prompt version. A configuration carries it to the investigator.",
+      "properties": {
+        "prompt_version": {
+          "minLength": 1,
+          "title": "Prompt Version",
+          "type": "string"
+        },
+        "system": {
+          "minLength": 1,
+          "title": "System",
+          "type": "string"
+        },
+        "phase_rules": {
+          "additionalProperties": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "propertyNames": {
+            "enum": [
+              "PLAN",
+              "ASSESS"
+            ]
+          },
+          "title": "Phase Rules",
+          "type": "object"
+        },
+        "retry_note": {
+          "minLength": 1,
+          "title": "Retry Note",
+          "type": "string"
+        }
+      },
+      "required": [
+        "prompt_version",
+        "system",
+        "phase_rules",
+        "retry_note"
+      ],
+      "title": "PromptText",
       "type": "object"
     },
     "ScriptedExchange": {

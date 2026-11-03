@@ -3,14 +3,31 @@
 import json
 
 from recycleguard.contracts.core import BlobRef
-from recycleguard.contracts.workflow import ContextManifest
-from recycleguard.local_model import _PHASE_RULES, _SYSTEM
+from recycleguard.contracts.workflow import ConfigurationPin, ContextManifest
+from recycleguard.local_model import (
+    BUILTIN_PROMPT,
+    BUILTIN_PROMPT_VERSION,
+    LocalModelConfig,
+    PromptText,
+    prompt_digest,
+)
 from recycleguard.workflow.runner import CallRecord
 
 
-def trace_events(service, run_id, *, after=0):
+def _run_prompt(pin: ConfigurationPin, configured: LocalModelConfig | None) -> PromptText | None:
+    """The template text only when its pin matches the run's; otherwise none is shown."""
+    if configured is not None and configured.prompt_pin() == pin:
+        return configured.prompt_text()
+    if pin.digest == prompt_digest(BUILTIN_PROMPT_VERSION, BUILTIN_PROMPT):
+        return BUILTIN_PROMPT
+    return None
+
+
+def trace_events(service, run_id, *, after=0, configured: LocalModelConfig | None = None):
     service.store.load(run_id)  # verifies event hash chain and referenced bytes
-    model_backed = service.store.spec(run_id).execution_kind == "MODEL_BACKED"
+    spec = service.store.spec(run_id)
+    model_backed = spec.execution_kind == "MODEL_BACKED"
+    prompt = _run_prompt(spec.prompt, configured) if model_backed else None
     blobs, kernel = service.blobs, service.kernel
     output = []
     for event in kernel.list_stream_events(f"stream:{run_id}"):
@@ -32,7 +49,9 @@ def trace_events(service, run_id, *, after=0):
                 kind="PROMPT_PREPARED",
                 phase=manifest.phase,
                 request=request,
-                system_template=(_SYSTEM + _PHASE_RULES[manifest.phase]) if model_backed else None,
+                system_template=(
+                    None if prompt is None else prompt.system + prompt.phase_rules[manifest.phase]
+                ),
                 note=(
                     "Prepared context; exact sent wire prompt is retained after adapter completion."
                 ),

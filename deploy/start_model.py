@@ -11,19 +11,28 @@ WEIGHTS = Path("/models/weights")
 PROVENANCE = Path("/models/provenance")
 SERVER = "/app/llama-server"
 PORT = "8766"
-# Keep equal to recycleguard.local_model.LLAMA_SERVER_FLAGS and CONSTRAINED_FLAG.
-FLAGS = [
-    "--ctx-size",
-    "32768",
-    "--parallel",
-    "1",
-    "--n-gpu-layers",
-    "999",
-    "--n-predict",
-    "1024",
-    "--no-cache-prompt",
-]
+SLOT_CONTEXT = 32768
 CONSTRAINED_FLAG = "--constrained-json"
+
+
+def flags(slots=1):
+    """Keep equal to recycleguard.local_model.llama_server_flags and CONSTRAINED_FLAG."""
+    if not 1 <= slots <= 8:
+        raise SystemExit("SLOTS must be between 1 and 8.")
+    return [
+        "--ctx-size",
+        str(SLOT_CONTEXT * slots),
+        "--parallel",
+        str(slots),
+        "--n-gpu-layers",
+        "999",
+        "--n-predict",
+        "1024",
+        "--no-cache-prompt",
+    ]
+
+
+FLAGS = flags(1)
 
 
 def sha256(path):
@@ -51,13 +60,15 @@ def main():
         raise SystemExit("Model manifest names no GGUF file.")
     # The constrained mode is chosen per request; the flag only records it in the session and pin.
     constrained = os.environ.get("CONSTRAINED") == "1"
+    # Concurrent slots are for prompt sweeps; the slot count is in the flags, so in every pin.
+    server_flags = flags(int(os.environ.get("SLOTS") or "1"))
     session = {
         "started_at": datetime.now(UTC).isoformat().replace("+00:00", "Z"),
         "model_id": manifest["model_id"],
         "revision": manifest["revision"],
         "manifest_sha256": sha256(manifest_path),
         "runtime_lock_sha256": sha256(root / "runtime-lock.env"),
-        "server_flags": [*FLAGS, *([CONSTRAINED_FLAG] if constrained else [])],
+        "server_flags": [*server_flags, *([CONSTRAINED_FLAG] if constrained else [])],
     }
     (root / "server-session.json").write_text(json.dumps(session, indent=2) + "\n", "utf-8")
     sys.stdout.flush()
@@ -72,7 +83,7 @@ def main():
         "127.0.0.1",
         "--port",
         PORT,
-        *FLAGS,
+        *server_flags,
     ]
     os.execv(SERVER, command)
 

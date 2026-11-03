@@ -254,7 +254,12 @@ def child_command(launch, spec, attempt, budgets=None, output=None):
     )
 
 
-def container_command(launch, spec, attempt, budgets=None, root=TRIAL_ROOT):
+def session_id(output):
+    """Labels this coordinator's containers, so parallel sessions never remove each other's."""
+    return hashlib.sha256(output.resolve().as_posix().encode()).hexdigest()[:16]
+
+
+def container_command(launch, spec, attempt, budgets=None, root=TRIAL_ROOT, session=None):
     """``docker create`` for one trial, with the paths the investigator sees inside it."""
     from recycleguard.isolated_runtime import (
         TRIAL_NO_NETWORK,
@@ -283,11 +288,12 @@ def container_command(launch, spec, attempt, budgets=None, root=TRIAL_ROOT):
         subpath,
         None if control else PROVENANCE_VOLUME,
         arguments,
+        session=session,
     )
     return command, name, network, runtime
 
 
-def run_container(command, name, network, attempt, log):
+def run_container(command, name, network, attempt, log, session=None):
     """Create, check what Docker will start, then start. The container never outlives this call."""
     from recycleguard.isolated_runtime import verify_trial_inspection
 
@@ -310,7 +316,7 @@ def run_container(command, name, network, attempt, log):
             )
             expected = "container:" + json.loads(model.stdout)[0]["Id"]
         problems = verify_trial_inspection(
-            json.loads(inspected.stdout)[0], expected, {TRIAL_VOLUME, PROVENANCE_VOLUME}
+            json.loads(inspected.stdout)[0], expected, {TRIAL_VOLUME, PROVENANCE_VOLUME}, session
         )
         if problems:
             raise SystemExit("trial container refused: " + "; ".join(problems))
@@ -326,8 +332,11 @@ def run_container(command, name, network, attempt, log):
 
 
 def prepare_docker_session(output):
-    """A killed coordinator can leave a trial running. Evidence holds only this session's work."""
-    from recycleguard.isolated_runtime import TRIAL_LABEL
+    """A killed coordinator can leave a trial running. Evidence holds only this session's work.
+
+    Only this session's containers are removed: other sessions may be running beside it.
+    """
+    from recycleguard.isolated_runtime import TRIAL_LABEL, TRIAL_SESSION_KEY
 
     if not output.is_relative_to(TRIAL_ROOT):
         raise SystemExit(f"--docker output must be under {TRIAL_ROOT}, in the trial volume")
@@ -340,7 +349,16 @@ def prepare_docker_session(output):
     if running.stdout.strip():
         raise SystemExit("stop the demo API first: it shares the model's network with trials")
     stale = subprocess.run(
-        ["docker", "ps", "--all", "--quiet", "--filter", f"label={TRIAL_LABEL}"],
+        [
+            "docker",
+            "ps",
+            "--all",
+            "--quiet",
+            "--filter",
+            f"label={TRIAL_LABEL}",
+            "--filter",
+            f"label={TRIAL_SESSION_KEY}={session_id(output)}",
+        ],
         capture_output=True,
         text=True,
         check=True,
@@ -360,6 +378,7 @@ def seal(result_path, results):
 def trial_runner(output, launch, budgets=None):
     results = output / "results"
     results.mkdir(exist_ok=True)
+    session = session_id(output)
 
     def run(spec):
         trial_dir = output / "trials" / f"t{spec.position:04d}"
@@ -367,9 +386,11 @@ def trial_runner(output, launch, budgets=None):
         attempt = trial_dir / f"attempt-{sum(1 for _ in trial_dir.iterdir()) + 1}"
         attempt.mkdir()
         if launch.backend in CONTAINER_BACKENDS:
-            command, name, network, runtime = container_command(launch, spec, attempt, budgets)
+            command, name, network, runtime = container_command(
+                launch, spec, attempt, budgets, session=session
+            )
             with (attempt / "child.log").open("wb") as log:
-                done = run_container(command, name, network, attempt, log)
+                done = run_container(command, name, network, attempt, log, session)
         else:
             command, environment, runtime = child_command(launch, spec, attempt, budgets, output)
             with (attempt / "child.log").open("wb") as log:

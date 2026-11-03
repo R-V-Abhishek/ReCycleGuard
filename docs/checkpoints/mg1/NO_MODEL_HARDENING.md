@@ -58,3 +58,20 @@ Focused tests only, by agreement; the full suite was not run.
   grader's selected passages would be a behaviour change, so it was not made.
 - **R and the freeze** are undecided (`docs/evaluation/PROTOCOL.md` section 5).
 - **The 120 s call timeout** in the plan differs from the 180 s configured. Unchanged; reported in the handoff.
+
+## Prompt sweeps (3 November 2026)
+
+Prompt versions are now data in `docs/checkpoints/mg1/prompts/`, carried to the investigator inside the pinned
+configuration. v7 stays the built-in text, so its pins are unchanged. `scripts/run_sweep.py` runs several versions at
+once against one llama-server started with `SLOTS=N`; each trial container carries its session's label, so parallel
+coordinators never remove each other's containers.
+
+- **Limit to disclose:** batched decoding with several slots can change greedy outputs slightly against one slot. A
+  sweep therefore always includes v7, and versions are compared only inside one sweep. The chosen version gets one
+  confirming `tuning-16` run at one slot before `checking-8`.
+- A sweep refuses any protocol holding a `checking-8` case, and refuses to resume if a prompt file or configuration
+  changed since it started.
+- First versions: v8a (do not stop while an allowed check has not run), v8b (propose a finding, abstaining if support
+  is incomplete, whenever cited ids exist), v8c (both). Generic rules only; no gate was changed.
+- Checked on Windows: compile, `ruff check`, `ruff format --check`, schema export, and a load of every prompt file and
+  of variant configurations. **Tests were not run here, by agreement**; they run on the PC.

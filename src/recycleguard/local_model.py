@@ -116,21 +116,74 @@ MLX, LLAMA_CPP = "mlx", "llama_cpp"
 MLX_MODEL_ID = "mlx-community/Qwen3.5-9B-4bit"
 MLX_REVISION = "8b2b98c00a6b4d291155e4890773ca8f769aee53"
 MLX_RUNTIME = "0.32.2"
-# Keep equal to deploy/start_model.py; that image does not hold the application.
-LLAMA_SERVER_FLAGS = [
-    "--ctx-size",
-    "32768",
-    "--parallel",
-    "1",
-    "--n-gpu-layers",
-    "999",
-    "--n-predict",
-    "1024",
-    "--no-cache-prompt",
-]
+LLAMA_SLOT_CONTEXT = 32768
+
+
+def llama_server_flags(slots: int = 1) -> list[str]:
+    """Keep equal to deploy/start_model.py; that image does not hold the application.
+
+    llama-server divides ``--ctx-size`` between its slots, so each slot keeps the full context.
+    """
+    if not 1 <= slots <= 8:
+        raise ValueError("llama-server slots must be between 1 and 8")
+    return [
+        "--ctx-size",
+        str(LLAMA_SLOT_CONTEXT * slots),
+        "--parallel",
+        str(slots),
+        "--n-gpu-layers",
+        "999",
+        "--n-predict",
+        "1024",
+        "--no-cache-prompt",
+    ]
+
+
+LLAMA_SERVER_FLAGS = llama_server_flags(1)
 LLAMA_SEED = 0
 FIXTURE_MODEL_PREFIX = "fixture/"
 _RUNTIME_KEYS = {MLX: "mlx-lm", LLAMA_CPP: "llama.cpp"}
+BUILTIN_PROMPT_VERSION = "u01_non_thinking_v7"
+
+
+class PromptText(BoundaryModel):
+    """The whole text of one prompt version. A configuration carries it to the investigator."""
+
+    prompt_version: Nonempty
+    system: Nonempty
+    phase_rules: dict[Literal["PLAN", "ASSESS"], Nonempty]
+    retry_note: Nonempty
+
+    @model_validator(mode="after")
+    def both_phases(self):
+        if set(self.phase_rules) != {"PLAN", "ASSESS"}:
+            raise ValueError("a prompt needs rules for exactly PLAN and ASSESS")
+        return self
+
+
+BUILTIN_PROMPT = PromptText(
+    prompt_version=BUILTIN_PROMPT_VERSION,
+    system=_SYSTEM,
+    phase_rules=_PHASE_RULES,
+    retry_note=_RETRY_NOTE,
+)
+
+
+def prompt_digest(prompt_version: str, text: PromptText) -> str:
+    return hashlib.sha256(
+        canonical_json_bytes(
+            {
+                "version": prompt_version,
+                "system": text.system,
+                "phase_rules": text.phase_rules,
+                "retry_note": text.retry_note,
+                "format": "qwen-im-start/non-thinking/raw-completion",
+                "schemas": {
+                    phase: schema.model_json_schema() for phase, schema in _SCHEMAS.items()
+                },
+            }
+        )
+    ).hexdigest()
 
 
 class LocalModelConfig(BoundaryModel):
@@ -145,7 +198,9 @@ class LocalModelConfig(BoundaryModel):
     runtime_lock_digest: Digest
     runtime_version: Nonempty = MLX_RUNTIME
     prompt_template_id: ID = "prompt:u01_qwen_non_thinking_v7"
-    prompt_version: Nonempty = "u01_non_thinking_v7"
+    prompt_version: Nonempty = BUILTIN_PROMPT_VERSION
+    # None is the built-in v7 text. A variant's whole text is here, so the pin names it exactly.
+    prompt: PromptText | None = None
     endpoint: str = "http://127.0.0.1:8080/v1/completions"
     max_output_tokens: Annotated[int, Field(ge=1)] = 1024
     max_total_tokens: Annotated[int, Field(ge=1)] = 32768
@@ -187,31 +242,28 @@ class LocalModelConfig(BoundaryModel):
             raise ValueError("total token bound must leave room for the prompt")
         if self.weights_manifest_path.resolve().parent != self.model_path.resolve():
             raise ValueError("weights manifest must be inside the pinned model directory")
+        if self.prompt is not None:
+            if self.prompt.prompt_version != self.prompt_version:
+                raise ValueError("prompt text and configuration name different prompt versions")
+            if self.prompt_version == BUILTIN_PROMPT_VERSION and self.prompt != BUILTIN_PROMPT:
+                raise ValueError("changed prompt text needs its own prompt version")
         return self
 
     def pin(self) -> ConfigurationPin:
+        # A configuration without a prompt keeps the digest it had before variants existed.
+        fields = self.model_dump(mode="json", exclude={"prompt"} if self.prompt is None else None)
         return ConfigurationPin(
             configuration_id=self.configuration_id,
-            digest=hashlib.sha256(canonical_json_bytes(self.model_dump(mode="json"))).hexdigest(),
+            digest=hashlib.sha256(canonical_json_bytes(fields)).hexdigest(),
         )
+
+    def prompt_text(self) -> PromptText:
+        return BUILTIN_PROMPT if self.prompt is None else self.prompt
 
     def prompt_pin(self) -> ConfigurationPin:
         return ConfigurationPin(
             configuration_id=self.prompt_template_id,
-            digest=hashlib.sha256(
-                canonical_json_bytes(
-                    {
-                        "version": self.prompt_version,
-                        "system": _SYSTEM,
-                        "phase_rules": _PHASE_RULES,
-                        "retry_note": _RETRY_NOTE,
-                        "format": "qwen-im-start/non-thinking/raw-completion",
-                        "schemas": {
-                            phase: schema.model_json_schema() for phase, schema in _SCHEMAS.items()
-                        },
-                    }
-                )
-            ).hexdigest(),
+            digest=prompt_digest(self.prompt_version, self.prompt_text()),
         )
 
 
@@ -461,7 +513,8 @@ class LocalModelPort:
 
     def _retry_text(self, context):
         problem = self._retry_problems.get(context.operation_id)
-        return _RETRY_NOTE if problem is None else f"{_RETRY_NOTE}Problem found: {problem}. "
+        note = self.config.prompt_text().retry_note
+        return note if problem is None else f"{note}Problem found: {problem}. "
 
     def invoke(self, context, request):
         started = time.monotonic()
@@ -514,10 +567,11 @@ class LocalModelPort:
                 separators=(",", ":"),
             )
             content = content.replace("<", "\\u003c").replace(">", "\\u003e")
+            text = self.config.prompt_text()
             prompt = (
                 "<|im_start|>system\n"
-                + _SYSTEM
-                + _PHASE_RULES[payload.phase]
+                + text.system
+                + text.phase_rules[payload.phase]
                 + (self._retry_text(context) if _RETRY_ATTEMPT.search(context.attempt_id) else "")
                 + "JSON Schema: "
                 + json.dumps(schema.model_json_schema(), ensure_ascii=True, separators=(",", ":"))

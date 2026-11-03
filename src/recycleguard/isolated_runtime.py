@@ -9,6 +9,7 @@ This is a trusted-application sandbox, not protection against a hostile Docker h
 import importlib.util
 import json
 import os
+import re
 import shutil
 import socket
 import subprocess
@@ -84,6 +85,8 @@ _SECURITY_FLAGS = (
 )
 TRIAL_USER = 10001
 TRIAL_LABEL = "recycleguard.trial=1"
+# Parallel coordinators clean up only their own session's containers.
+TRIAL_SESSION_KEY = "recycleguard.session"
 TRIAL_NO_NETWORK = "none"
 API_PORT = 8000
 _TRIAL_MOUNT_MODES = {"/visible": True, "/program": True, "/runtime": False}
@@ -119,10 +122,13 @@ def trial_container_arguments(
     arguments: list[str],
     *,
     docker: str = "docker",
+    session: str | None = None,
 ) -> list[str]:
     """``docker create`` for one trial. Volumes only: evaluator data is simply never mounted."""
     if not image or image.startswith("-") or not name or name.startswith("-"):
         raise ValueError("trial container needs a name and an image")
+    if session is not None and not re.fullmatch(r"[0-9a-f]{16}", session):
+        raise ValueError("trial session label must be 16 hex characters")
     if "," in attempt_subpath or "\n" in attempt_subpath or ".." in attempt_subpath.split("/"):
         raise ValueError("attempt path cannot be used as a volume subpath")
     command = [
@@ -132,6 +138,7 @@ def trial_container_arguments(
         name,
         "--label",
         TRIAL_LABEL,
+        *([] if session is None else ["--label", f"{TRIAL_SESSION_KEY}={session}"]),
         *_SECURITY_FLAGS,
         "--network",
         network,
@@ -156,10 +163,14 @@ def trial_container_arguments(
     return [*command, image, *arguments]
 
 
-def verify_trial_inspection(inspection: dict, network: str, volumes: set[str]) -> list[str]:
+def verify_trial_inspection(
+    inspection: dict, network: str, volumes: set[str], session: str | None = None
+) -> list[str]:
     """Check what Docker will actually start, before it starts. Returns every problem found."""
     host, config = inspection["HostConfig"], inspection["Config"]
     problems = []
+    if session is not None and (config.get("Labels") or {}).get(TRIAL_SESSION_KEY) != session:
+        problems.append("container does not carry its session label")
     if host.get("Privileged"):
         problems.append("container is privileged")
     if not host.get("ReadonlyRootfs"):

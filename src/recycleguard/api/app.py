@@ -400,19 +400,20 @@ def create_app(options: ApiOptions):
     @app.get("/api/v1/agent", response_model=AgentResponse)
     def agent():
         from recycleguard.contracts.workflow import AssessmentProposal, PlanProposal
-        from recycleguard.local_model import _PHASE_RULES, _SYSTEM
+        from recycleguard.local_model import BUILTIN_PROMPT
 
         config = (
             None
             if options.model_config_path is None
             else LocalModelConfig.model_validate_json(options.model_config_path.read_bytes())
         )
+        text = BUILTIN_PROMPT if config is None else config.prompt_text()
         return {
             "configured": config is not None,
             "model_id": None if config is None else config.model_id,
             "prompt_pin": None if config is None else config.prompt_pin().model_dump(mode="json"),
-            "system_template": _SYSTEM,
-            "phase_rules": _PHASE_RULES,
+            "system_template": text.system,
+            "phase_rules": text.phase_rules,
             "response_schemas": {
                 "PLAN": PlanProposal.model_json_schema(),
                 "ASSESS": AssessmentProposal.model_json_schema(),
@@ -816,7 +817,12 @@ def create_app(options: ApiOptions):
         store.job(run_id)
         with local_application(settings) as (cases, _, cap):
             service = InvestigationService(cases, settings, capability=cap)
-            rows = trace_events(service, run_id, after=after)
+            configured = (
+                None
+                if options.model_config_path is None
+                else LocalModelConfig.model_validate_json(options.model_config_path.read_bytes())
+            )
+            rows = trace_events(service, run_id, after=after, configured=configured)
         return {
             "run_id": run_id,
             "events": rows,

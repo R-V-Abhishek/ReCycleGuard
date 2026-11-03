@@ -25,6 +25,7 @@ services:
     env_file: model.env
     environment:
       CONSTRAINED: ${CONSTRAINED:-0}
+      SLOTS: ${SLOTS:-1}
     networks: [backend]
     volumes:
       - model-weights:/models/weights:ro
