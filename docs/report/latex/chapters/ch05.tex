@@ -21,7 +21,7 @@ Agentic RAG & Mandatory & Graded BM25 retrieval, temporal filtering, bounded exp
 Planning and reasoning & Mandatory & Explicit PLAN and ASSESS phases, a stored plan before each action, and a stored assessment after it & Plan and assessment records per turn; run states in Figure~\ref{fig:states} \\
 Observability & Mandatory & Append-only event stream, exact prompt and reply per call, UI timeline, SSE stream & Audit export; trace screens (Chapter~\ref{ch:eval}) \\
 Evaluation & Mandatory & Independent oracle, exact-balance scoring, finding precision and recall, abstention accuracy, human rubric & Scorer and tables (Chapter~\ref{ch:eval}) \\
-Multi-agent collaboration & Bonus & Not demonstrated. A collector and auditor pair is described in the design as an optional experiment and was not built or evaluated & --- \\
+Multi-agent collaboration & Bonus & Not demonstrated. A collector and auditor pair is described in the design as an optional experiment and was not built or evaluated & None \\
 Memory & Bonus & Within a run only: persisted agent state and previous rejection reasons are passed back to the model. There is no memory across runs & Checkpointed state; prompt field \code{previous\_rejection} \\
 Human in the loop and guardrails & Bonus & Mandatory reviewer decision bound to digests; whitelist; bounded loops; finding gate; prompt-injection handling & Review service tests; gate rejections; budget enforcement test \\
 Durable workflow & Bonus & Turn-by-turn checkpointed graph; resume after a killed process without repeating a tool call & Resume test after \code{kill -9}; Section~\ref{sec:crash} \\
