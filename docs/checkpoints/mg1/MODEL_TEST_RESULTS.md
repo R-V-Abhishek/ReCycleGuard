@@ -216,7 +216,7 @@ V2 0. Mean wall V1 122 s, V2 67 s. 1 preflight block per variant. Timeouts 0.
 | --- | --- | --- |
 | Runs not failed | >= 90% | **48/48 = 100%** (V1 24/24, V2 24/24); outcomes: 44 reviewed, 4 preflight blocks (2 per variant) |
 | Schema-valid per logical call | >= 95% | **100%**: V1 132/132 (132 attempts), V2 43/43 (43 attempts) |
-| At least one correct model finding | >= 1 | **Met, narrowly**: 1 model finding accepted (V1), 16 proposals made, 14 rejected `AUTHORITY_TEXT`, 1 `UNKNOWN_EVIDENCE_REF`; V2 0 of 0 |
+| At least one correct model finding | >= 1 | **Not met**: 16 proposals made (V1), 14 rejected `AUTHORITY_TEXT`, 1 `UNKNOWN_EVIDENCE_REF`, 1 accepted; that accepted finding was a false positive (emitted F08 on `case_20cd8cfb68`, whose expected families are F04 and F10); V2 0 of 0. Same case and result in tuning-16 v9 |
 | V1 wall time | mean <= 120 s | **134 s: not met** (p50 143, p95 172) |
 | V2 wall time | mean <= 240 s, p95 <= 600 s | **62 s mean, p95 88 s: met** |
 | V2 minus V1 | - | mean wall -72 s; mean tokens 5,673 vs 17,449; success rate 2/24 vs 2/24 (difference 0.0) |
@@ -257,6 +257,6 @@ comparison was available (`baseline_compared: false`).
 ## Remaining MG1 gaps after v9
 
 Met: not failed (100%), schema-valid (100%), timeouts, OUTCOME_UNKNOWN, V2 wall time, forbidden actions, sandbox
-probes, crash and resume behaviour. Not met: V1 mean wall 134 s against 120 s. Weak: model findings (1 accepted
-across 48 trials); success 2/24 per variant. MG1 stays only conditionally approved by the lead; nothing here records
+probes, crash and resume behaviour. Not met: V1 mean wall 134 s against 120 s, and at least one correct model finding (the single
+accepted finding across 48 trials was a false positive). Weak: success 2/24 per variant, of which 1 is a correct preflight stop. MG1 stays only conditionally approved by the lead; nothing here records
 a teammate acknowledgement or a freeze.
