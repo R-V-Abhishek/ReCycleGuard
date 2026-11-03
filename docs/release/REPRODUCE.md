@@ -22,6 +22,8 @@ PYTHONPATH=. uv run scripts/score_trials.py <trial-output> <oracle-root> tests/f
 PYTHONPATH=. uv run scripts/make_tables.py <trial-output> <scores-dir> <tables-dir>
 ```
 The CSVs are byte-identical on every run. The report's tables are these files.
+To get LaTeX tabulars for the report from these CSVs, run
+`uv run scripts/tables_to_latex.py <tables-dir> <out-dir>` and `\input` the generated files; do not retype values.
 
 ## 3. Inspect a saved run
 Each real-model trial's request and response blobs are retained in its exported bundle:
