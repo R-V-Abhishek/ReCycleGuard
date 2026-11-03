@@ -1,0 +1,161 @@
+\documentclass[12pt,a4paper,oneside]{report}
+
+%-------------------- Page layout and fonts --------------------------
+\usepackage[a4paper,left=1.25in,right=1in,top=1in,bottom=1in,headheight=15pt]{geometry}
+% Font: LaTeX default Computer Modern (cmr) throughout --- do not load other font packages
+\usepackage{eso-pic}             % page border on front-matter pages
+\usepackage{setspace}
+\onehalfspacing
+\usepackage{microtype}
+
+%-------------------- Packages ---------------------------------------
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs,tabularx,multirow,longtable,array}
+\usepackage{float}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{enumitem}
+\usepackage[dvipsnames,table]{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit,backgrounds}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.17}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{listings}
+\usepackage[most]{tcolorbox}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{hyperref}
+\hypersetup{
+    bookmarksopen=true,
+    colorlinks=true,
+    citecolor=blue,
+    linkcolor=blue,
+    urlcolor=blue
+}
+
+%=====================================================================
+%  PROJECT DETAILS --- EDIT THIS BLOCK
+%=====================================================================
+\newcommand{\ProjectTitle}{ReCycleGuard: An Agentic Assistant for Auditable E-Waste EPR Compliance Reconciliation}
+% Short title for the page header (shorten if it does not fit on one line)
+\newcommand{\HeaderTitle}{ReCycleGuard: Agentic E-Waste EPR Reconciliation}
+\newcommand{\TeamNo}{\pendingtext{team number}}
+\newcommand{\AcademicYear}{2026--27}
+\newcommand{\SubmissionDate}{12 November 2026}
+% Team members: USN and Name (delete the 4th row in the tables if you have only 3 members)
+\newcommand{\USNa}{1BM23CD047}  \newcommand{\NameA}{R V Abhishek}
+\newcommand{\USNb}{1BM23CD020}  \newcommand{\NameB}{H Sampreeth Bhat}
+\newcommand{\USNc}{1BM23CD063}  \newcommand{\NameC}{Sushanth S}
+\newcommand{\USNd}{1BM23CD069}  \newcommand{\NameD}{Vedantha Vinay Vernekar}
+% Course lead
+\newcommand{\GuideName}{Dr. Kalyan Nagaraj}
+\newcommand{\GuideDesig}{Assistant Professor}
+
+%=====================================================================
+%  GUIDANCE SWITCH: set to \guidancefalse before final submission
+%=====================================================================
+\newif\ifguidance
+\guidancefalse
+
+%-------------------- Colours and boxes -------------------------------
+\definecolor{bmsblue}{RGB}{0,51,102}
+\definecolor{guidebg}{RGB}{232,240,252}
+\definecolor{dobg}{RGB}{230,245,233}
+\definecolor{dontbg}{RGB}{252,232,232}
+\definecolor{samplecol}{RGB}{40,55,80}
+
+% "What to write here" box
+\newcommand{\guide}[1]{%
+  \ifguidance
+  \begin{tcolorbox}[enhanced,breakable,colback=guidebg,colframe=bmsblue,
+    boxrule=0.6pt,arc=2pt,left=6pt,right=6pt,top=4pt,bottom=4pt,
+    fonttitle=\bfseries\small,title={What to write here},
+    before upper={\small\setstretch{1.1}}]
+  #1
+  \end{tcolorbox}
+  \fi}
+
+% Do / Don't box (two columns)
+\newcommand{\dodont}[2]{%
+  \ifguidance
+  \begin{tcolorbox}[enhanced,breakable,sidebyside,sidebyside align=top seam,
+    colback=dobg,colbacklower=dontbg,colframe=gray!60,boxrule=0.5pt,arc=2pt,
+    lefthand ratio=0.5,left=5pt,right=5pt,top=4pt,bottom=4pt,
+    fontupper=\small\setstretch{1.05},fontlower=\small\setstretch{1.05}]
+  \textbf{\textcolor{ForestGreen}{\checkmark\ Do}}
+  \begin{itemize}[leftmargin=12pt,itemsep=1pt,topsep=2pt]#1\end{itemize}
+  \tcblower
+  \textbf{\textcolor{BrickRed}{$\times$ Don't}}
+  \begin{itemize}[leftmargin=12pt,itemsep=1pt,topsep=2pt]#2\end{itemize}
+  \end{tcolorbox}
+  \fi}
+
+% Page budget note for each chapter
+\newcommand{\pagebudget}[1]{%
+  \ifguidance\noindent{\small\textcolor{bmsblue}{\textbf{Expected length:} #1 pages}}\par\medskip\fi}
+
+% Sample content marker (sample text is shown in dark slate colour)
+\newenvironment{sample}
+  {\par\noindent{\footnotesize\bfseries\textcolor{BrickRed}{[SAMPLE --- replace with your own content]}}\par\color{samplecol}}
+  {\par\medskip}
+
+%-------------------- Headers and footers ----------------------------
+% Main body (Chapter 1 onwards): project title right in header, CSE (Data Science) left and
+% page number right in footer, with double rules. Front matter: page border, page number only.
+% Double rules (thick + thin, 1.5pt apart), drawn with \hrule so no line spacing is inserted
+\newcommand{\DoubleHeadRule}{\vskip 2pt{\color{bmsblue}%
+  \hrule width\headwidth height 1.2pt\vskip 1.5pt\hrule width\headwidth height 0.4pt}\vskip -5.1pt}
+\newcommand{\DoubleFootRule}{\vskip-\footruleskip\vskip-3.1pt{\color{bmsblue}%
+  \hrule width\headwidth height 0.4pt\vskip 1.5pt\hrule width\headwidth height 1.2pt}\vskip\footruleskip}
+\fancypagestyle{mainbody}{%
+  \fancyhf{}%
+  \fancyhead[R]{\small\itshape\HeaderTitle}%
+  \fancyfoot[L]{\small CSE (Data Science)}%
+  \fancyfoot[R]{\small\thepage}%
+  \renewcommand{\headrulewidth}{1pt}\renewcommand{\footrulewidth}{1pt}%
+  \renewcommand{\headrule}{\DoubleHeadRule}\renewcommand{\footrule}{\DoubleFootRule}}
+\fancypagestyle{frontmatter}{%
+  \fancyhf{}\fancyfoot[C]{\small\thepage}%
+  \renewcommand{\headrulewidth}{0pt}\renewcommand{\footrulewidth}{0pt}%
+  \renewcommand{\headrule}{}\renewcommand{\footrule}{}}
+% Double page border (front matter only)
+\newcommand{\PageBorder}{%
+  \AddToShipoutPictureBG{\AtPageLowerLeft{%
+    \setlength{\unitlength}{1pt}%
+    \begin{tikzpicture}[remember picture,overlay]
+      \draw[bmsblue,line width=1.6pt] ([xshift=1.2cm,yshift=1.2cm]current page.south west)
+        rectangle ([xshift=-1.2cm,yshift=-1.2cm]current page.north east);
+      \draw[bmsblue,line width=0.5pt] ([xshift=1.35cm,yshift=1.35cm]current page.south west)
+        rectangle ([xshift=-1.35cm,yshift=-1.35cm]current page.north east);
+    \end{tikzpicture}}}}
+
+%-------------------- Chapter heading style --------------------------
+\titleformat{\chapter}[display]
+  {\normalfont\bfseries\centering}
+  {\Large\textcolor{bmsblue}{CHAPTER \thechapter}}{6pt}{\LARGE\MakeUppercase}
+\titlespacing*{\chapter}{0pt}{-10pt}{24pt}
+\titleformat{\section}{\normalfont\large\bfseries}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection}{0.6em}{}
+
+%-------------------- Code listing style -----------------------------
+\lstset{basicstyle=\ttfamily\footnotesize,breaklines=true,frame=single,
+  backgroundcolor=\color{gray!6},numbers=left,numberstyle=\tiny\color{gray},
+  keywordstyle=\color{bmsblue}\bfseries,commentstyle=\color{ForestGreen},
+  stringstyle=\color{BrickRed},showstringspaces=false,columns=fullflexible,keepspaces=true}
+
+
+%-------------------- Pending-work markers ----------------------------
+% Parts of the project that are not finished are marked in the text. Remove a marker only when the
+% content it announces has been written from measured results.
+\newcommand{\pendingtext}[1]{\textcolor{orange!80!black}{\textbf{[#1: to be completed]}}}
+\newcommand{\notmeasured}{\textcolor{orange!80!black}{\textbf{not yet measured}}}
+\newcommand{\pending}[1]{%
+  \begin{tcolorbox}[enhanced,breakable,colback=orange!8,colframe=orange!70!black,boxrule=0.6pt,
+    arc=2pt,left=6pt,right=6pt,top=4pt,bottom=4pt,fonttitle=\bfseries\small,
+    title={To be completed},before upper={\small\setstretch{1.1}}]
+  #1
+  \end{tcolorbox}}
+\newcommand{\code}[1]{\texttt{\small #1}}
+\newcommand{\nym}{\textcolor{orange!80!black}{\textbf{n.y.m.}}}

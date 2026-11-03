@@ -1,0 +1,141 @@
+\input{preamble}
+\begin{document}
+
+%=====================================================================
+%  TITLE PAGE
+%=====================================================================
+\pagenumbering{gobble}
+\PageBorder
+\pagestyle{frontmatter}
+\begin{titlepage}
+\centering
+\setstretch{1.2}
+{\large\bfseries B.M.S. COLLEGE OF ENGINEERING}\\[2pt]
+{\normalsize (Autonomous Institute, Affiliated to VTU, Belagavi)}\\[2pt]
+{\normalsize Bull Temple Road, Basavanagudi, Bengaluru -- 560019}\\[12pt]
+\includegraphics[width=3.2cm]{logo.png}\\[14pt]
+{\normalsize A Mini-Project Report on}\\[10pt]
+{\Large\bfseries\textcolor{bmsblue}{\ProjectTitle}}\\[14pt]
+{\normalsize Submitted as the Alternative Assessment Tool (AAT) for the course}\\[2pt]
+{\normalsize\bfseries Agentic AI (26CD7PEAAI)}\\[2pt]
+{\normalsize of}\\[2pt]
+{\normalsize\bfseries Bachelor of Engineering}\\[2pt]
+{\normalsize in}\\[2pt]
+{\normalsize\bfseries Computer Science and Engineering (Data Science)}\\[14pt]
+{\normalsize Submitted by (Team No.\ \TeamNo)}\\[6pt]
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{l@{\hspace{1.5cm}}l}
+\textbf{\USNa} & \textbf{\NameA} \\
+\textbf{\USNb} & \textbf{\NameB} \\
+\textbf{\USNc} & \textbf{\NameC} \\
+\textbf{\USNd} & \textbf{\NameD} \\
+\end{tabular}\\[16pt]
+{\normalsize Course Lead}\\[4pt]
+{\large\bfseries \GuideName}\\[2pt]
+{\normalsize \GuideDesig, Department of CSE (Data Science)}\\[2pt]
+{\normalsize B.M.S. College of Engineering, Bengaluru}\\[16pt]
+\vfill
+{\normalsize\bfseries Department of Computer Science and Engineering (Data Science)}\\[2pt]
+{\normalsize B.M.S. College of Engineering, Bengaluru}\\[2pt]
+{\normalsize Academic Year \AcademicYear}
+\end{titlepage}
+
+%=====================================================================
+%  FRONT MATTER
+%=====================================================================
+\pagenumbering{roman}
+\setcounter{page}{2}
+
+\chapter*{Certificate}
+\addcontentsline{toc}{chapter}{Certificate}
+\thispagestyle{frontmatter}
+\begin{center}
+\includegraphics[width=2.2cm]{logo.png}\\[6pt]
+{\bfseries B.M.S. College of Engineering, Bengaluru}\\
+Department of Computer Science and Engineering (Data Science)
+\end{center}
+\vspace{10pt}
+This is to certify that the mini-project entitled \textbf{``\ProjectTitle''} has been carried out by
+\NameA\ (\USNa), \NameB\ (\USNb), \NameC\ (\USNc) and \NameD\ (\USNd), bona fide students of
+B.M.S. College of Engineering, Bengaluru, as the Alternative Assessment Tool (AAT) for the evaluation
+of the course \textbf{Agentic AI (26CD7PEAAI)}, Semester VII, Bachelor of Engineering in Computer
+Science and Engineering (Data Science), during the academic year \AcademicYear. The work has been
+evaluated through the four project reviews prescribed for the course, and this report satisfies the
+requirements of the AAT component of the said course.
+
+\vspace{70pt}
+\noindent\hfill
+\begin{minipage}[t]{0.62\textwidth}\raggedleft
+\rule{6cm}{0.4pt}\\
+\textbf{\GuideName}\\
+Course Lead, Agentic AI (26CD7PEAAI)\\
+\GuideDesig, Dept. of CSE (Data Science)\\
+B.M.S. College of Engineering, Bengaluru\\[10pt]
+Date: \rule{3.5cm}{0.4pt}
+\end{minipage}
+
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+\thispagestyle{frontmatter}
+\input{chapters/abstract}
+
+\tableofcontents
+\listoffigures
+\addcontentsline{toc}{chapter}{List of Figures}
+\listoftables
+\addcontentsline{toc}{chapter}{List of Tables}
+
+\chapter*{List of Abbreviations}
+\addcontentsline{toc}{chapter}{List of Abbreviations}
+\thispagestyle{frontmatter}
+\begin{tabular}{@{}p{3.2cm}l@{}}
+AAT & Alternative Assessment Tool \\
+API & Application Programming Interface \\
+BM25 & Best Matching 25 (ranking function) \\
+CAS & Compare-and-Swap \\
+CPCB & Central Pollution Control Board \\
+CSV & Comma-Separated Values \\
+EEE & Electrical and Electronic Equipment \\
+EPR & Extended Producer Responsibility \\
+FTS5 & Full-Text Search, version 5 (SQLite extension) \\
+GSTIN & Goods and Services Tax Identification Number \\
+HITL & Human-in-the-Loop \\
+JSON & JavaScript Object Notation \\
+LLM & Large Language Model \\
+MG1 & Model Gate 1 (real-model readiness gate) \\
+MLX & Machine-learning array framework for Apple silicon \\
+MoEFCC & Ministry of Environment, Forest and Climate Change \\
+RAG & Retrieval-Augmented Generation \\
+ReAct & Reasoning and Acting \\
+SPCB & State Pollution Control Board \\
+SSE & Server-Sent Events \\
+UTR & Unique Transaction Reference \\
+V0, V1, V2, SC & Evaluation variants (Section~\ref{sec:variants}) \\
+\end{tabular}
+
+%=====================================================================
+%  MAIN BODY
+%=====================================================================
+\clearpage
+\ClearShipoutPictureBG
+\pagestyle{mainbody}
+\fancypagestyle{plain}{\pagestyle{mainbody}}
+\pagenumbering{arabic}
+
+\input{chapters/ch01}
+\input{chapters/ch02}
+\input{chapters/ch03}
+\input{chapters/ch04}
+\input{chapters/ch05}
+\input{chapters/ch06}
+\input{chapters/ch07}
+\input{chapters/ch08}
+\input{chapters/ch09}
+\input{chapters/ch10}
+
+\input{chapters/references}
+
+\appendix
+\input{chapters/appendices}
+
+\end{document}

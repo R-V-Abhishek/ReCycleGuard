@@ -1,0 +1,75 @@
+%---------------------------------------------------------------------
+\chapter{Agentic Concepts Demonstrated}
+\label{ch:concepts}
+%---------------------------------------------------------------------
+
+\section{Concept Coverage Matrix}
+Table~\ref{tab:concepts} maps each concept required by the course to the part of the system that
+demonstrates it and to the evidence a reviewer can inspect. A concept that is not demonstrated is marked as such.
+
+\begin{table}[H]
+\centering
+\caption{Coverage of the course concepts and where the evidence is}
+\label{tab:concepts}
+\small
+\begin{tabularx}{\linewidth}{@{}p{2.7cm} p{1.5cm} X X@{}}
+\toprule
+\textbf{Concept} & \textbf{Tier} & \textbf{Demonstration in ReCycleGuard} & \textbf{Evidence} \\ \midrule
+Tool use & Mandatory & Six whitelisted tools; the reconciler runs exact decimal arithmetic and the model reads the result & Tool intent and result records in the audit trail; tool unit tests \\
+Agentic RAG & Mandatory & Graded BM25 retrieval, temporal filtering, bounded expansion, up to two reformulations and escalation & Retrieval attempts and grades in the trace; retrieval regression tests \\
+Planning and reasoning & Mandatory & Explicit PLAN and ASSESS phases, a stored plan before each action, and a stored assessment after it & Plan and assessment records per turn; run states in Figure~\ref{fig:states} \\
+Observability & Mandatory & Append-only event stream, exact prompt and reply per call, UI timeline, SSE stream & Audit export; trace screens (Chapter~\ref{ch:eval}) \\
+Evaluation & Mandatory & Independent oracle, exact-balance scoring, finding precision and recall, abstention accuracy, human rubric & Scorer and tables (Chapter~\ref{ch:eval}) \\
+Multi-agent collaboration & Bonus & Not demonstrated. A collector and auditor pair is described in the design as an optional experiment and was not built or evaluated & --- \\
+Memory & Bonus & Within a run only: persisted agent state and previous rejection reasons are passed back to the model. There is no memory across runs & Checkpointed state; prompt field \code{previous\_rejection} \\
+Human in the loop and guardrails & Bonus & Mandatory reviewer decision bound to digests; whitelist; bounded loops; finding gate; prompt-injection handling & Review service tests; gate rejections; budget enforcement test \\
+Durable workflow & Bonus & Turn-by-turn checkpointed graph; resume after a killed process without repeating a tool call & Resume test after \code{kill -9}; Section~\ref{sec:crash} \\
+Experimentation & Bonus & Controlled comparison of fixed and adaptive investigation with identical tools, corpus and budgets & Chapter~\ref{ch:exp} (held-out result pending) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Evidence for Each Concept}
+
+\subsection{Tool Use}
+Each tool has a typed request, a handler and a result that carries identifiers the model may later cite. The
+reconciler tool shows the pattern most clearly. The model asks for \code{compute\_reconciliation} with
+optional bucket identifiers. Deterministic code computes the required, supported, gap and pending quantities
+with exact decimals, and the model receives a structured summary. The model is never asked to calculate. If it
+requests an operation outside the whitelist, the run stops with an expert-review outcome.
+
+\subsection{Agentic RAG}
+Retrieval is a tool that the agent chooses to use. The search tool returns scored passages with a grade for
+authority, temporal currency and relevance. A lookup tool resolves an exact legal path to a provision
+revision. When a grade is weak, the agent may reformulate the query at most twice for a finding. When
+authority or date is still in doubt, the finding is escalated, and the system states the doubt in the report
+and does not rely on the passage. Passages that are only leads cannot support a definitive statement.
+
+\subsection{Planning and Reasoning}
+The planning call returns a plan, with objective, hypotheses, proposed checks, expected evidence and
+stopping criteria, and either an action or a stop reason. The assessment call returns a verdict
+(supports, refutes, weak, no progress or unknown), a disposition and an optional revised plan. A plan record
+is stored before each action and an assessment record after it, and each turn manifest says whether the plan
+changed. The loop is therefore visible in the trace without storing private reasoning text.
+
+\subsection{Observability}
+Every model call stores the full request body and the full response, the token counts, the latency, the
+model revision and the weights digest. Every tool call stores its intent and result. The user interface shows
+a timeline of turns, the tool calls with their arguments and the model calls with their prompts, and the
+HTTP API streams events over SSE. The same records feed the evaluation tables, so the numbers in
+Chapter~\ref{ch:eval} are computed from the trace and are not entered by hand.
+
+\subsection{Evaluation}
+The evaluation has an independent reference for every case, a scorer in a separate process, an exact metric for
+the primary outcome, and a human rubric for what code cannot judge. Section~\ref{sec:metrics} gives the
+definitions.
+
+\subsection{Bonus Concepts}
+\textbf{Human-in-the-loop and guardrails.} The reviewer decision is bound to the exact report and input digests,
+so a changed report needs a new packet. The guardrails include the tool whitelist, the finding gate,
+the budget limits and the escape of markup characters in dossier text.
+\textbf{Durable workflow.} The graph commits one turn at a time to an append-only store with a
+compare-and-swap version. Section~\ref{sec:crash} reports a test in which the coordinator and its child were
+killed mid-trial and the trial was retried.
+\textbf{Experimentation.} The comparison of fixed and adaptive investigation is the planned experiment of
+Chapter~\ref{ch:exp}, and development-set prompt experiments are reported in Section~\ref{sec:promptdev}.

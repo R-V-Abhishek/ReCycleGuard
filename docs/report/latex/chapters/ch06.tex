@@ -1,0 +1,183 @@
+%---------------------------------------------------------------------
+\chapter{Implementation}
+\label{ch:impl}
+%---------------------------------------------------------------------
+
+\section{Technology Stack}
+The backend is a Python package, \code{recycleguard}, built with hatchling and managed with \code{uv}. Its
+public surfaces are a Typer command-line interface and a FastAPI application. Persistent state is held in
+SQLite databases and in a content-addressed blob store on disk. The agent workflow uses LangGraph
+\cite{langgraph} with its SQLite checkpointer. PDF text and layout are extracted with pdfplumber, and all
+boundary objects are Pydantic models, from which JSON schemas are exported and checked in. The model is
+served by MLX-LM \cite{mlxlm} on loopback and is called over HTTP. The browser interface is a React and
+TypeScript application built with Vite. Table~\ref{tab:env} lists the versions.
+
+Local inference dependencies are isolated in a separate project directory, so that the base package, its
+API and its tests stay portable and do not require MLX. The model server is started from that directory with
+a pinned set of flags, and its session record is hashed into the configuration pin.
+
+\section{Data Preparation and Indexing}
+\label{sec:dataprep}
+\subsection{Synthetic Dossier Generator}
+Dossiers are produced by a generator that builds a typed world model of firms, registrations, obligations,
+certificates, transfers and payments with exact decimal quantities, and then renders the visible files.
+Faults are injected by named recipes, one per fault family. The generator writes the visible dossier into
+Git for the development split and writes the hidden reference records into an evaluator root that is not
+shared with the investigator. Construction checks fail the build when splits share an entity, template,
+combination, timeline group or world identifier, when a visible name carries a family or seed word, or when a
+development and a held-out dossier are too similar (Section~\ref{sec:dataset}).
+
+\subsection{Corpus Indexing}
+The regulatory sources are acquired as originals, hashed and retained. Selected provisions are extracted with
+their physical page locators and attached to a source version and a reviewed temporal assertion. An FTS5 index is
+built over the provision text and is itself stored as an immutable, hashed artifact. A frozen-corpus audit
+verifies, before a run, that the pins of the corpus, profile and index match their stored bytes and that the
+audit ledger links hold. This audit reports a verified-integrity status only after those checks, and it states
+separately that integrity checking does not resolve legal applicability.
+
+\section{Core Agent Loop}
+\label{sec:loop}
+The workflow is a LangGraph state graph with one node per stage and a conditional edge from the start that
+routes to the node named by the current status. Every node ends the graph, so each call to the runner
+executes exactly one turn.
+
+\begin{lstlisting}[language=Python,caption={Graph definition (abridged from \code{workflow/runner.py})},label=lst:graph]
+builder = StateGraph(GraphInput)
+for name in ("preflight", "investigate", "draft", "verify", "sync"):
+    builder.add_node(name, self._node)
+    builder.add_edge(name, END)
+builder.add_conditional_edges(
+    START, lambda state: state["route"],
+    {name: name for name in ("preflight", "investigate", "draft", "verify", "sync")},
+)
+self.graph = builder.compile(checkpointer=self.checkpointer)
+\end{lstlisting}
+
+Within the \emph{investigate} node the loop is the following. It is written here as pseudocode that follows
+the implementation; the code adds the audit records and the error handling.
+
+\begin{algorithm}[H]
+\caption{One investigation turn}
+\label{alg:turn}
+\begin{algorithmic}[1]
+\State reserve the token budget for one model call; stop if any limit would be exceeded
+\State \textbf{PLAN}: send pending findings, allowed tools and prior observations to the model
+\State validate the reply against the plan schema; \textbf{retry once} on invalid output
+\If{the reply is a stop}
+    \State record the stop reason and move to drafting
+\Else
+    \State check that the operation is in the whitelist and that its fingerprint is new
+    \State store the plan record and the action; execute the tool; store the observation
+    \State \textbf{ASSESS}: send plan, action and observation to the model; validate the reply
+    \If{the disposition is resolve} \State mark the finding resolved (requires verdict supports)
+    \ElsIf{the disposition is abstain} \State mark the finding abstained with its reason
+    \Else \State keep the finding pending for the next turn
+    \EndIf
+    \State pass any finding proposal through the finding gate; retain rejections
+\EndIf
+\State commit the turn manifest with a compare-and-swap version
+\end{algorithmic}
+\end{algorithm}
+
+Two repair mechanisms were added after the first real-model runs. If an adaptive action names an observation
+identifier that is not in the case, the action is never dispatched or corrected. It is recorded as a rejected
+action, and the model is asked once more with the reason, at the cost of one call from the same budget. A second
+refusal fails the run. A model reply that fails validation is retried once with a note that the previous reply
+was invalid. Both repairs are counted in the evaluation tables so that a reader can see how often they were
+needed.
+
+\section{Tools and Function Definitions}
+\label{sec:tools}
+\begin{table}[H]
+\centering
+\caption{The six agent tools}
+\label{tab:tools}
+\small
+\begin{tabularx}{\linewidth}{@{}p{3.3cm} X X@{}}
+\toprule
+\textbf{Tool} & \textbf{Arguments} & \textbf{Result and purpose} \\ \midrule
+\code{inspect\_evidence} & Observation identifiers, or empty for a case summary & Parsed fields and exact locators of observations; marks the content as untrusted \\
+\code{lookup\_locator} & Source alias or version and a legal path & Verified provision text and metadata at an exact citation \\
+\code{trace\_certificate} & Certificate identifiers & Lifecycle (issued, transferred, cancelled, expired); detects reuse and capability mismatch \\
+\code{compute\_reconciliation} & Optional bucket identifiers & Required, supported, signed gap and pending quantity per bucket, in exact decimals \\
+\code{compare\_return} & Optional bucket identifiers & Compares portal-reported claims with ledger-supported balances \\
+\code{search\_rules} & Query and top-$k$ & BM25 passages with authority, temporal and relevance grades \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Every tool is read-only. The runner holds the whitelist, so a model cannot add a tool by naming it. The
+arguments are typed Pydantic models, which means an out-of-range identifier or a malformed argument is a
+validation failure before dispatch and not a runtime surprise.
+
+\section{Prompt Design}
+\label{sec:prompt}
+The system prompt tells the model that the user message is data and never instructions, that it must return a
+single JSON object matching the supplied schema, that it must choose operations only from the allowed tool
+names, and that it must abstain when the evidence does not support a conclusion. Each phase adds its own
+rules, and the JSON schema of the expected reply is appended to the prompt. The prompt is assembled in the
+ChatML format with an empty reasoning block pre-filled, so that the model replies directly with the JSON object
+and does not spend tokens on a visible chain of thought. Dossier text reaches the model as escaped JSON, with
+angle brackets written as Unicode escapes.
+
+The prompt went through nine versions. The versions after the first real-model run were changed one at a
+time, only in response to failures observed on development cases, and each version's results were kept
+(Section~\ref{sec:promptdev}). The full text of the final version is in Appendix~\ref{app:prompts}.
+
+\section{Guardrails and Loop Bounds}
+\begin{itemize}[itemsep=2pt]
+\item \textbf{Tool whitelist.} Six read-only operations; anything else ends the run in an expert-review state.
+\item \textbf{Budgets.} For real-model runs: 12 model calls, 600\,s wall time, and a token reservation per call
+      and in total, checked before dispatch. The budget is fixed for evaluation and cannot be overridden per run.
+      Scripted tests may override it.
+\item \textbf{Per-finding limits.} At most eight tool calls, two reformulations, one retry per operation and one
+      report repair for a finding or report.
+\item \textbf{Cycle detection.} A fingerprint of the finding, tool and arguments stops an exact repeat.
+\item \textbf{Finding gate.} Citations must be evidence of this run; the text may contain no digits, prohibited
+      claims or authority wording; and a clean finding requires a reconciliation from this run.
+\item \textbf{Prohibited outputs.} Legal determination of compliance, allegation of fraud or intent, and penalty
+      amounts are rejected by the report layer and counted as forbidden actions by the scorer.
+\item \textbf{Uncertain outcomes.} A call whose result is unknown after a failure is never retried blindly. The
+      attempt is retained and the run ends, because a repeated dispatch could duplicate a side effect.
+\item \textbf{Host sandbox.} Real-model trials run in a restricted host environment (Section~\ref{sec:sandbox}).
+\end{itemize}
+
+\section{Host Sandbox for Real-Model Runs}
+\label{sec:sandbox}
+The model cannot run inside the container sandbox used on Linux, because MLX needs the host GPU. Real-model
+trials therefore run the investigator from an installed wheel, in a fresh data root that holds only the visible
+case, under a macOS \code{sandbox-exec} profile. The profile denies reads outside the visible, runtime and
+virtual-environment paths and denies network access other than the loopback model endpoint. The environment
+is stripped. Before the investigator starts, the launcher records probes (list and read of forbidden paths,
+writes outside the root, a network connection, an import of evaluator code and an environment probe) and
+refuses to start if any probe is not denied. In every real-model run reported here, all probes were denied
+(Section~\ref{sec:reliab}). This is a host-level restriction and not a security proof, and the report
+discloses that the operating-system profile is a deprecated mechanism.
+
+\section{User Interface}
+The browser interface consumes the HTTP API and does not compute compliance figures. It has screens to
+connect to the API, to select a dossier, to start a run with a chosen variant, to follow an investigation as it
+proceeds, to read the report and to record a reviewer decision, and a readiness screen that summarises the
+state of the evidence and the checks. The investigation screen shows the sequence of turns with the plan,
+the tool call and its arguments, the observation, and the assessment, so that a viewer can watch the agent plan,
+act, observe and adapt.
+
+\pending{Screenshots of the interface for Appendix~\ref{app:traces} have not yet been captured.}
+
+\section{Repository Structure}
+\begin{lstlisting}[language={},numbers=none,caption={Repository layout (abridged)},label=lst:repo]
+src/recycleguard/         backend package
+  intake/ extraction/ normalization/   evidence in
+  storage/                             blob store, audit kernel
+  indexing/ retrieval/ knowledge/      FTS5 index, retrieval, corpus
+  domain/                              exact reconciler
+  workflow/                            LangGraph runner, store, gate
+  investigation.py local_model.py      tools and model gateway
+  reporting/ review/ exports/          report, verifier, review, bundle
+  api/                                 FastAPI application
+benchmarks/               generator, oracle, scorer, trial coordinator
+tools/local-model/        MLX server (separate, isolated dependencies)
+ui/                       React and TypeScript interface
+docs/                     design, contracts, evaluation protocol, checkpoints
+tests/                    unit, integration and fixture dossiers
+\end{lstlisting}

@@ -1,0 +1,221 @@
+%---------------------------------------------------------------------
+\chapter{Agent Design and Architecture}
+\label{ch:design}
+%---------------------------------------------------------------------
+
+\section{System Architecture}
+Figure~\ref{fig:arch} shows the architecture. The design separates four concerns that the failure modes of
+a compliance assistant make dangerous to mix: storing evidence, computing facts, deciding what to
+investigate, and deciding what to accept. Evidence is stored once, immutably and by digest. Facts are
+computed by deterministic code. The model decides only which check to run and how to read the result.
+A gate and a verifier decide what the system is willing to say, and a human decides the report.
+
+\begin{figure}[H]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[
+  box/.style={draw=bmsblue,fill=guidebg,rounded corners=2pt,minimum width=2.9cm,minimum height=1.0cm,
+              align=center,font=\footnotesize},
+  det/.style={draw=ForestGreen,fill=dobg,rounded corners=2pt,minimum width=2.9cm,minimum height=1.0cm,
+              align=center,font=\footnotesize},
+  llm/.style={draw=Orange,fill=Orange!12,rounded corners=2pt,minimum width=2.9cm,minimum height=1.0cm,
+              align=center,font=\footnotesize},
+  store/.style={draw=gray,fill=gray!10,cylinder,shape border rotate=90,aspect=0.2,minimum width=2.9cm,
+              minimum height=1.2cm,align=center,font=\footnotesize},
+  human/.style={draw=BrickRed,fill=dontbg,rounded corners=2pt,minimum width=2.9cm,minimum height=1.0cm,
+              align=center,font=\footnotesize},
+  arr/.style={-{Stealth[length=2mm]},thick},
+  lab/.style={font=\scriptsize,fill=white,inner sep=1pt}]
+% Row 1: evidence in
+\node[box] (files) at (0,0) {Dossier files\\PDF, CSV, JSON};
+\node[det] (intake) at (4.9,0) {Intake and\\extraction};
+\node[det] (norm) at (9.8,0) {Normalisation,\\frozen snapshots};
+\node[store] (blob) at (14.7,0) {Blob store,\\audit kernel};
+% Row 2: knowledge and facts
+\node[box] (corpus) at (0,-2.6) {Regulatory corpus\\Rules 2022, FAQ};
+\node[det] (index) at (4.9,-2.6) {FTS5 index,\\retrieval grader};
+\node[det] (tools) at (9.8,-2.6) {Audited read-only\\tools (6)};
+\node[det] (recon) at (14.7,-2.6) {Exact reconciler\\(decimals)};
+% Row 3: agent
+\node[det] (gate) at (0,-5.2) {Finding gate\\citations, digits, words};
+\node[llm] (model) at (4.9,-5.2) {Model gateway\\Qwen3.5-9B 4-bit};
+\node[det] (graph) at (9.8,-5.2) {LangGraph runner\\preflight, investigate,\\draft, verify};
+% Row 4: output
+\node[det] (report) at (4.9,-7.8) {Report builder\\and verifier};
+\node[human] (review) at (9.8,-7.8) {Human reviewer\\decision};
+\node[det] (export) at (14.7,-7.8) {Export, replay,\\evaluation};
+\draw[arr] (files) -- (intake);
+\draw[arr] (intake) -- (norm);
+\draw[arr] (norm) -- (blob);
+\draw[arr] (corpus) -- (index);
+\draw[arr] (index) -- node[lab,above]{provisions} (tools);
+\draw[arr] (recon) -- node[lab,above]{balances} (tools);
+\draw[arr] (norm.south east) -- node[lab,sloped,above]{snapshot} (recon.north west);
+\draw[arr] (graph) -- node[lab,right]{tool call} (tools);
+\draw[arr,<->] (graph) -- node[lab,above]{PLAN, ASSESS} (model);
+\draw[arr] (model) -- node[lab,above]{proposal} (gate);
+\draw[arr] (gate.south east) -- node[lab,sloped,above]{accepted} (report.north west);
+\draw[arr] (graph.south west) -- node[lab,sloped,above]{draft} (report.north east);
+\draw[arr] (report) -- node[lab,above]{to review} (review);
+\draw[arr] (review) -- node[lab,above]{bound decision} (export);
+\draw[arr,dashed] (blob.east) -- ++(1.0,0) |- node[lab,pos=0.25,right]{append-only events} (export.east);
+\end{tikzpicture}}
+\caption{Architecture of ReCycleGuard. Green boxes are deterministic, the orange box is the language
+model, the red box is the human decision, and the cylinder is durable evidence.}
+\label{fig:arch}
+\end{figure}
+
+\section{Component Description}
+
+\subsection{Intake, Extraction and Normalisation}
+Intake receives untrusted files, hashes their bytes, writes them to a content-addressed blob store and
+issues a receipt that records the outcome, including failures. Extractors turn PDF pages, CSV rows and JSON
+records into \emph{observations}, each with a precise locator. A PDF page with no extractable text is
+recorded as incomplete coverage and is not silently skipped. Normalisation maps units and entity aliases to
+canonical forms. A failure at any of these stages is retained as an outcome and never dropped, because
+a missing record is evidence in itself.
+
+\subsection{Snapshots and Calculation Profile}
+A case snapshot and a corpus snapshot are frozen with digests, and the calculation profile for the period is
+pinned. A run records the exact digests it used. An investigation therefore cannot see a later edit of the
+case, and a reviewer can tell which version of the evidence a report was built from.
+
+\subsection{Retrieval and Relevance Grader}
+The corpus is indexed with SQLite FTS5 and ranked with BM25. Retrieval proceeds in stages: eligibility
+filtering by regime, role and reviewed temporal assertions; candidate search; bounded expansion to parent
+headings, footnotes and amendment counterparts; grading; and at most two query reformulations per finding.
+The grader records authority, temporal applicability, direct support, completeness and contradiction
+independently. Passages whose applicability cannot be established are labelled as leads and cannot support a
+definitive statement. If retrieval is weak or contradictory, the system escalates to a human and does not
+guess.
+
+\subsection{Exact Reconciler}
+For each obligation bucket, defined by producer, liability year, metal and unit, the reconciler computes
+\begin{equation}
+\text{gap}_b = \text{required}_b - \text{supported}_b,
+\end{equation}
+where $\text{supported}_b$ is the sum of active allocations into bucket $b$ derived from the allocation
+ledger. Pending quantities are shown separately and are not subtracted. Metal gaps are never added into a
+legally meaningful total. A supplied portal balance is stored as a comparison-only observation, and the
+reconciler reports the delta between the portal figure and the ledger-supported figure instead of
+treating either as the truth. All values are decimal strings and the arithmetic is exact.
+
+\subsection{Tools}
+The model reaches the case only through six tools, listed in Table~\ref{tab:tools} in Chapter~\ref{ch:impl}.
+All are read-only. A request for any other operation aborts the run. Each call writes an intent record before
+it executes and a result record after it completes.
+
+\subsection{LangGraph Runner and Model Gateway}
+The runner is a LangGraph state graph with the nodes \emph{preflight}, \emph{investigate}, \emph{draft},
+\emph{verify} and \emph{sync}. Each call to the runner executes exactly one turn and commits it, so a process
+that is stopped mid-run resumes from the last committed turn without repeating a tool call. The model gateway
+is a client of the local MLX-LM server. It builds the prompt, sends one request, validates the reply against a
+JSON schema, and records the exact request and response, the token counts and the latency.
+
+\subsection{Finding Gate, Report Builder and Verifier}
+A model may attach one finding proposal to an assessment. The gate accepts it only if every citation is
+evidence that this run's tools returned, the text contains no digits and no prohibited or authority wording,
+and a ``clean'' finding is supported by a reconciliation from this run with nothing pending. Rejections are kept
+in the report with their reasons. The report builder assembles the structured report before any prose is
+rendered, and the verifier checks that citations exist and resolve, that the numbers agree with the
+calculations, and that the scope language is within bounds. After one failed repair the report is blocked.
+
+\subsection{Human Review, Export and Replay}
+The review service presents a packet to an authenticated reviewer and binds the decision to the exact report
+and input digests. Export produces a bundle of the complete audit trail, which a replay port can use to
+serve recorded model replies by request digest. A replay is not a new trial and is not evidence of model
+quality.
+
+\section{Selected Agentic Patterns and Justification}
+\label{sec:patterns}
+\begin{table}[H]
+\centering
+\caption{Patterns used, alternatives considered and the reason for the choice}
+\label{tab:patterns}
+\small
+\begin{tabularx}{\linewidth}{@{}p{3.1cm} X X@{}}
+\toprule
+\textbf{Pattern} & \textbf{How it is used} & \textbf{Reason and alternative rejected} \\ \midrule
+Plan and assess loop & The model proposes one check, a tool runs it, the model assesses the observation, and the loop continues, resolves or abstains. & Gives visible adaptation and a record of each step. Free-form ReAct was rejected because its steps are hard to bound and validate. \\
+Tool use & Six whitelisted read-only tools with typed arguments. & Keeps arithmetic and lookup out of the model. A code-execution tool was rejected as unbounded. \\
+Corrective retrieval & Graded BM25 retrieval with at most two reformulations and escalation. & Authority and date matter as much as relevance in legal text. Dense retrieval is optional in the design and is not part of the evaluated system. \\
+Model proposes, code disposes & The finding gate and the report verifier check every model-originated claim. & A small quantised model cannot be trusted to cite and calculate. Trusting model text was rejected. \\
+Bounded loops and budgets & Limits on calls, tokens, tool calls per finding, reformulations, retries and time. & Prevents runaway cost and cycles; identical repeated actions are stopped by a fingerprint check. \\
+Human in the loop & No report is final until a reviewer decides it. & The system is advisory by design. Autonomous approval was excluded. \\
+Deterministic preflight & Coverage and profile checks run before any model call. & Missing pages must stop the run before the model can guess around them. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Two investigation variants share the same tools, corpus and budgets, and they differ in who chooses the
+next check. In the fixed-retrieval variant (V1) a pre-declared sequence of checks runs and the model only
+assesses. In the adaptive variant (V2) the model chooses each check from the allowed tools. The comparison of
+the two is the experiment of Chapter~\ref{ch:exp}.
+
+\section{Control Flow and Agent State}
+\label{sec:flow}
+Figure~\ref{fig:states} shows the run states. The run starts with a deterministic preflight. If coverage is
+incomplete, for example because a page has no extractable text, the run stops in a blocked-input state before
+any model call. Otherwise the investigation alternates between a planning call and an assessment call.
+Each assessment ends with a disposition: continue, resolve or abstain. A resolve disposition requires the
+verdict to support the finding, and any other verdict forces continue or abstain. When no finding remains
+pending, or the plan stops with no new evidence, the run drafts a report. A failed verification returns
+once to drafting and then blocks the output.
+
+\begin{figure}[H]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[
+  st/.style={draw=bmsblue,fill=guidebg,rounded corners=3pt,minimum width=3.0cm,minimum height=0.9cm,
+             align=center,font=\footnotesize},
+  term/.style={draw=gray,fill=gray!10,rounded corners=3pt,minimum width=3.0cm,minimum height=0.9cm,
+             align=center,font=\footnotesize},
+  bad/.style={draw=BrickRed,fill=dontbg,rounded corners=3pt,minimum width=3.0cm,minimum height=0.9cm,
+             align=center,font=\footnotesize},
+  arr/.style={-{Stealth[length=2mm]},thick},
+  lab/.style={font=\scriptsize,fill=white,inner sep=1pt}]
+\node[st] (pre) at (0,0) {PREFLIGHT};
+\node[st] (inv) at (5.4,0) {INVESTIGATING\\(plan, act, assess)};
+\node[st] (dra) at (10.8,0) {DRAFTING};
+\node[st] (ver) at (16.2,0) {VERIFYING};
+\node[bad] (bin) at (0,-2.3) {BLOCKED\_INPUT};
+\node[bad] (bout) at (10.8,-2.3) {BLOCKED\_OUTPUT};
+\node[bad] (fail) at (5.4,-2.3) {FAILED};
+\node[st] (await) at (16.2,-2.3) {AWAITING\_REVIEW};
+\node[term] (done) at (16.2,-4.3) {COMPLETED\\(reviewer decides)};
+\draw[arr] (pre) -- node[lab,above]{coverage ok} (inv);
+\draw[arr] (inv) -- node[lab,above]{none pending} (dra);
+\draw[arr] (dra) -- (ver);
+\draw[arr] (pre) -- node[lab,right]{page missing} (bin);
+\draw[arr] (inv) -- node[lab,right]{budget, provider error} (fail);
+\draw[arr] (dra) -- node[lab,right]{blocked} (bout);
+\draw[arr] (ver) -- node[lab,right]{verified} (await);
+\draw[arr] (ver.north) -- ++(0,0.7) -| node[lab,pos=0.25,above]{repair once} (dra.north);
+\draw[arr] (ver.south west) -- node[lab,pos=0.55,above,sloped]{repairs exhausted} (bout.north east);
+\draw[arr] (await) -- (done);
+\draw[arr] (inv.north) -- ++(0,0.7) -| node[lab,pos=0.25,above]{continue} (inv.north east);
+\end{tikzpicture}}
+\caption{Run states of the investigation workflow}
+\label{fig:states}
+\end{figure}
+
+\textbf{Agent state.} The persisted state consists of the run identifier, a version number, the pinned
+snapshots and profile, the list of findings with their status, the budget usage, and the sequence of turn
+manifests. Every update uses compare-and-swap on the version number, so two writers cannot overwrite each
+other. The fingerprint of each proposed action, made of the finding, the tool and the arguments, is checked
+against earlier actions, and an exact repeat stops the run with a cycle outcome.
+
+\textbf{Budgets.} All real-model runs use one frozen budget: at most 12 model calls, 600\,s of wall time
+and a token reservation per call that is checked before dispatch. The same limits apply to both variants so
+that the comparison is fair.
+
+\section{Data Flow}
+\label{sec:dataflow}
+Evidence flows in one direction. Original bytes enter the blob store and are never changed. Extractors derive
+observations from them, normalisation derives canonical records, and the frozen snapshots collect those into
+a case version. The reconciler reads the snapshot and emits calculations. A tool call reads the snapshot or the
+index and returns a typed observation with identifiers. The model sees these identifiers and may cite only
+identifiers that appear in them. The gate and the verifier check each citation against the tool outputs of the
+same run. Finally the report, the review decision and the full event stream are stored as linked records.
+Nothing flows back from the model into the evidence: a model output can change a report only by passing
+through a typed proposal and the gate.

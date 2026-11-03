@@ -1,0 +1,262 @@
+%---------------------------------------------------------------------
+\chapter{Observability and Evaluation}
+\label{ch:eval}
+%---------------------------------------------------------------------
+
+\section{Tracing and Monitoring}
+Every run is recorded in an append-only audit kernel, and each stream is hash-linked, so that a gap or a
+change is detectable. For a model call the record holds the request body exactly as sent, the response exactly as
+received, the prompt and schema digests, the model revision and weights manifest digest, the token counts and
+the latency. When the server does not return usage counts the system estimates them from a byte bound and
+flags them as estimates. For a tool call it holds an intent record written before execution and a result record
+written after. For each turn it holds a manifest stating the plan, whether the plan changed, the stop reason and the
+budget used.
+
+The HTTP API exposes these records as a trace and as an SSE stream of events. The interface presents them as a
+timeline. The integrity of a finished run is checked by verifying the hash chain, and the evaluation tables
+report the number of trials whose chain verified. In the final development reliability run every one of the 48
+chains verified.
+
+\section{Evaluation Dataset}
+\label{sec:dataset}
+The benchmark \code{pilot-0.1} has 48 synthetic dossiers, one per fault family plus eight combinations in each
+of two splits: 24 development dossiers, which are in the repository and are used to tune and test the
+prompts, and 24 held-out dossiers, which are used only for the final comparison. Table~\ref{tab:families}
+lists the sixteen fault families. The splits are assigned before rendering and are disjoint in entity, template,
+combination and timeline group. A SHA-256 seal of the held-out file trees is committed so that a later change to
+the held-out data is detectable, and the held-out data is kept outside the repository.
+
+\begin{table}[H]
+\centering
+\caption{Fault families in the synthetic benchmark}
+\label{tab:families}
+\small
+\begin{tabularx}{\linewidth}{@{}l X@{}}
+\toprule
+\textbf{Family} & \textbf{Distortion injected into the dossier} \\ \midrule
+F01 clean baseline & No fault; the system must report no problem \\
+F02 overlapping export & Overlapping portal exports repeat a transfer event \\
+F03 multistage reuse & One certificate lot claimed across several transfers \\
+F04 unit dimension mix & Tonnes or grams mixed into kilogram statements \\
+F05 wrong entity alias & Invoice issued under an unregistered alias or mismatched GSTIN \\
+F06 stale snapshot & Portal snapshot taken before late transactions completed \\
+F07 paid, no transfer & Invoice paid with a UTR but the portal transfer never completed \\
+F08 prior arrears drain & Current-year credits used to clear earlier-year arrears \\
+F09 expired or cancelled & Cancelled or expired certificates claimed \\
+F10 capability mismatch & Recycler not registered for the metal of the credit \\
+F11 wrong period rule & An obsolete rule version cited for the liability year \\
+F12 unseen notice lead & A memo claims an extension without an amendment \\
+F13 weight basis conflict & Gross product weight used where a metal-specific weight applies \\
+F14 out-of-scope regime & Offsets from a regime outside the calculation profile \\
+F15 extraction page loss & A page missing or textless; expected outcome is a preflight stop \\
+F16 prompt injection & Override instruction placed in an invoice remark \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Each split also has eight combinations of two families. The expected result of each case, which comprises
+the balance of every bucket, the fault families that should be found and the claims that must be withheld, comes
+from the generator's world model and is stored in an evaluator root that the investigator never sees. The
+references are labelled \emph{independently validated}: they were recomputed from the visible bytes and
+inspected by a coding agent, and they were not hand-reviewed by a person. A human spot-check of the held-out
+numeric references is a separate attestation that has not been made \pendingtext{human spot-check of held-out references}.
+
+\section{Metrics and Evaluation Rubric}
+\label{sec:metrics}
+\textbf{Primary metric.} Supported case success is the number of successful eligible case-trials divided by
+all scheduled eligible case-trials. A trial succeeds only if the run reached the review state, every bucket is
+exact, the emitted finding families equal the expected families with no miss, extra or duplicate, every required
+scope is withheld, and no forbidden action occurred. Failures, timeouts and invalid model output count as
+unsuccessful. A preflight stop is correct only for a case whose sole expected family is page loss. Those cases
+never reach the model and cannot separate the variants, so results are reported with and without them.
+
+\textbf{Secondary metrics.} Exact reconciliation (a control, because the reconciler is deterministic in all
+variants); finding precision, recall and $F_1$, reported as not applicable when the denominator is zero;
+clean-case false positives; abstention accuracy; unsupported claims, defined as rejected model proposals
+excluding duplicates; forbidden-action attempts and executions; efficiency (model calls, tokens, latency,
+timeouts, with money recorded as not metered); and reliability across repeats.
+
+\textbf{Forbidden actions.} A run that promotes a pending payment to supported credit, issues a legal
+compliance verdict, alleges fraud or intent, or states a penalty amount is scored as a forbidden-action
+violation, and the composite score for that trial is zero.
+
+\textbf{Human rubric.} Three scorers who do not see which variant produced a report label each report for
+citation support, temporal correctness and next-action quality as pass, partial or fail. At least 20\% of items
+are scored twice, disputes go to a third scorer, and agreement is reported as raw agreement and Cohen's $\kappa$.
+Blinding is only partial, because the text of a report differs in a recognisable way between the variants.
+This limitation is disclosed. No language model acts as judge.
+
+\textbf{Independence.} Automatic scoring runs in a separate process with the evaluator root. The same person
+built the system, ran the trials and wrote the evaluator, which is a limitation that the blind human scoring
+reduces and does not remove.
+
+\section{Variants and Baselines}
+\label{sec:variants}
+\begin{table}[H]
+\centering
+\caption{Evaluation variants}
+\label{tab:variantdef}
+\small
+\begin{tabularx}{\linewidth}{@{}l X@{}}
+\toprule
+\textbf{Variant} & \textbf{Description} \\ \midrule
+V0 & Deterministic pipeline with no model. Reports only deterministic findings. \\
+SC & Scripted control: the workflow run with a scripted model port. Never reported as model performance. \\
+V1 & Fixed retrieval with the real model: a pre-declared sequence of checks runs, the model assesses and may propose findings, and the run may not stop early. \\
+V2 & Bounded adaptive investigation with the real model: the model chooses each check from the allowed tools. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+V0 and SC establish what the deterministic parts achieve without a model, so that any contribution of the
+model is measured against them. The primary comparison is V2 against V1 on the same cases, with the same tools,
+corpus and budget. V1 inspects a rule-selected sample of at most 20 observations, unsupported states first,
+and each report states how many it inspected, so that a reader can see that the two variants did not receive
+different amounts of evidence.
+
+\section{Results}
+\label{sec:results}
+
+\subsection{Held-Out Comparison}
+The held-out comparison of V1 and V2 on the 24 sealed dossiers has not been run. The protocol, the dataset
+and the scorer are ready; the run waits for a stable prompt and model setup.
+
+\begin{table}[H]
+\centering
+\caption{Primary result on held-out dossiers (Table T1 of the protocol); n.y.m.\ means not yet measured}
+\label{tab:t1}
+\small
+\begin{tabularx}{\linewidth}{@{}l c c c c c@{}}
+\toprule
+\textbf{Variant} & \textbf{Scheduled} & \textbf{Scored} & \textbf{Successes} & \textbf{Success rate} & \textbf{95\% interval} \\ \midrule
+V0 & \nym & \nym & \nym & \nym & \nym \\
+SC & \nym & \nym & \nym & \nym & \nym \\
+V1 & \nym & \nym & \nym & \nym & \nym \\
+V2 & \nym & \nym & \nym & \nym & \nym \\
+V2 $-$ V1 & \multicolumn{5}{c}{paired case-level bootstrap difference: \nym} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\pending{Fill Table~\ref{tab:t1} and add the other protocol tables from the generated CSV files and not by hand:
+exact reconciliation (T2), findings and abstention (T3), clean cases, unsupported claims and forbidden actions
+(T4), the human rubric with agreement (T5), efficiency (T6), reliability across repeats (T7) and the failure
+taxonomy (T8). Report the difference between V2 and V1 with and without the preflight cases, and the
+repeat count chosen when the protocol is frozen.}
+
+\subsection{Development-Set Reliability}
+\label{sec:reliab}
+Before any held-out run the setup is checked on the development dossiers against a set of gate criteria
+(Model Gate 1). The check is of the setup and makes no claim about quality on unseen cases. The final run used
+prompt version 9 on all 24 development dossiers in both variants (48 trials, 4\,700\,s, 508\,675 tokens).
+Table~\ref{tab:reliab} gives the measured values against the thresholds fixed in advance.
+
+\begin{table}[H]
+\centering
+\caption{Development reliability run with prompt v9: 24 dossiers $\times$ {V1, V2}, one repeat}
+\label{tab:reliab}
+\small
+\begin{tabularx}{\linewidth}{@{}X l l@{}}
+\toprule
+\textbf{Criterion (threshold)} & \textbf{V1} & \textbf{V2} \\ \midrule
+Runs not failed (at least 90\%) & 24/24 & 24/24 \\
+\quad reviewed / preflight stop & 22 / 2 & 22 / 2 \\
+Schema-valid per logical call (at least 95\%) & 132/132 & 43/43 \\
+Call timeouts (at most 5\%) & 0 & 0 \\
+Uncertain-outcome retries (0) & 0 & 0 \\
+Forbidden actions executed (0) & 0 of 24 & 0 of 24 \\
+Mean wall time (V1 at most 120\,s; V2 at most 240\,s) & 134\,s & 62\,s \\
+Median / 95th percentile wall time & 143 / 172\,s & 66 / 88\,s \\
+Mean model calls per run & 5.5 & 1.8 \\
+Mean tokens per run & 17\,449 & 5\,673 \\
+Model finding proposals made / accepted / accepted and correct & 16 / 1 / 0 & 0 / 0 / 0 \\
+Hash chain verified & 24/24 & 24/24 \\
+Sandbox probes denied & \multicolumn{2}{c}{1\,630 of 1\,630} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Two gate criteria are not met. The mean wall time of V1 is 134\,s against a threshold of 120\,s, so that
+threshold is not met on this machine. The criterion that the model produce at least one correct finding is also not met:
+the single accepted proposal was a false positive (Section~\ref{sec:devquality}). V1 makes more than three times as many model calls as V2 because it runs
+the fixed sequence of checks and assesses each one. A second set of repeated runs on three dossiers
+(18 trials) also produced no failure; the outcome of all repeats of each case-variant pair was the same for all
+six pairs, and none of the 18 trials succeeded on the primary measure.
+
+\subsection{Quality on Development Dossiers}
+\label{sec:devquality}
+Quality on the development dossiers is poor, and the report states it plainly. Table~\ref{tab:devquality}
+shows the scored outcome of the same 48 trials.
+
+\begin{table}[H]
+\centering
+\caption{Scored outcome on the development dossiers (prompt v9, 24 dossiers per variant)}
+\label{tab:devquality}
+\small
+\begin{tabularx}{\linewidth}{@{}X c c@{}}
+\toprule
+\textbf{Measure} & \textbf{V1} & \textbf{V2} \\ \midrule
+Primary success (all 24 / reviewed only) & 2 / 1 of 22 & 2 / 1 of 22 \\
+Exact buckets (reviewed trials) & 28 of 28 & 26 of 26 \\
+Findings: true positives / false positives / false negatives & 6 / 3 / 23 & 4 / 2 / 23 \\
+Micro precision / micro recall / micro $F_1$ & 0.67 / 0.21 / 0.32 & 0.67 / 0.15 / 0.24 \\
+Mean abstention accuracy & 0.55 & 0.52 \\
+Clean-baseline false positives & 0 of 1 & 0 of 1 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The reconciliation is exact in every case, as intended, because it is deterministic. The weakness is in
+the findings. Only three fault families were found in the development set: the wrong period rule (F11),
+the unseen notice lead (F12) and the out-of-scope regime (F14), which are found from deterministic rule and
+scope checks, because the adaptive variant, in which the model contributed no finding, found them too. The other
+families were missed. The model made 16 finding proposals across the V1 runs and one passed the gate, but that
+finding was a false positive: it named a prior-arrears fault on a dossier whose faults are a unit mix and a
+capability mismatch. No proposal was made on the prompt-injection dossier (F16) that acted on injected text, and no
+forbidden action was executed.
+
+\subsection{Crash and Server-Failure Behaviour}
+\label{sec:crash}
+Three failure tests were run on a three-dossier protocol with the real model.
+\begin{enumerate}[itemsep=2pt]
+\item The trial coordinator and its child process were stopped with \code{kill -9} during a trial. The ledger
+      recorded an interrupted trial. After the same command was run again the trial was attempted again in a
+      fresh root, no trial was lost, and all six trials finished.
+\item The model server process was stopped with \code{kill -9} during a model call. The trial ended failed with a
+      provider failure whose trace records a timeout and an uncertain outcome, and it contains a single
+      attempt: the call was not retried. The next three trials were recorded as infrastructure failures, and the
+      schedule stopped with an infrastructure-failure reason.
+\item After the server was restarted and the same command was run, the infrastructure failures ran again, the
+      terminal failed trial was not repeated, and the schedule completed.
+\end{enumerate}
+A first attempt at the second test stopped only the wrapper process and the real server survived, so it
+proved nothing and is not counted.
+
+\subsection{Controls}
+In a run of all four variants on two development dossiers, V0 and SC made no request to the model server
+(the server log showed none during their trials), and four canary runs at the start and end of the session
+had identical signatures, so no drift was observed.
+
+\section{Error Analysis}
+\label{sec:errors}
+\textbf{Why the model contributes little.} The scorer assigns most unsuccessful trials to the residual class
+labelled model reasoning, which means a reviewable report that did not match. The record shows three causes.
+\begin{enumerate}[itemsep=2pt]
+\item \emph{The model rarely proposes a finding.} In the early prompt versions the model answered
+      ``refutes'' in 108 of 152 assessments and never ``supports'', so it never proposed a finding. The cause
+      was a prompt that copied a refutation example and did not define what counts as a problem.
+\item \emph{When it proposes, the wording is rejected.} Of 16 proposals in the final run, 14 were rejected
+      because they contained a word on the authority list, such as a form of ``certificate''. The gate is correct
+      to refuse such text, and the prompt does not yet teach the model the substitutes.
+\item \emph{A cited identifier may be unknown.} One proposal cited an identifier that the run's tools had not
+      returned, and the gate rejected it.
+\end{enumerate}
+\textbf{Schema failures.} With early prompts, adaptive runs failed because the model named observation
+identifiers that did not exist in the case. The refused-action repair and a stricter prompt removed this in
+the final version. \textbf{Latency.} V1 is slow because it assesses every fixed check on a small model at about
+8.7 tokens per second; this is a property of the machine and not of the design, and a faster machine is expected
+to change the wall times but not the counts.
+
+\pending{An analysis of the held-out failures by the taxonomy (infrastructure, parser, tool, retrieval, model
+schema, model reasoning, verifier, budget, timeout, oracle) belongs here once the held-out run exists. The
+human rubric results and the inter-scorer agreement are also pending.}

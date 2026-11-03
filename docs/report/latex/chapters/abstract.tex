@@ -1,0 +1,22 @@
+Producers of electrical and electronic equipment in India must meet recycling obligations under the
+E-Waste (Management) Rules, 2022 by buying Extended Producer Responsibility (EPR) credits, and the
+compliance officer must show that the obligation, the certificates, the transfers, the payments and the
+portal balance agree. The supporting records are spread across PDFs, spreadsheets and portal exports and
+disagree in specific ways, so the officer must decide which discrepancy to investigate next and what
+evidence supports a corrective action. This report presents \emph{ReCycleGuard}, a local, human-reviewed
+assistant for that decision. A bounded LangGraph agent alternates between planning a check and assessing
+its result; it may call six audited, read-only tools, and every arithmetic result comes from deterministic
+exact-decimal code rather than from the model. Model-proposed findings are accepted only through a gate
+that checks citations, numbers and prohibited claims, and every run ends in a report that a human
+reviewer must decide. The system was built for a pinned 4-bit Qwen3.5-9B model served on the same machine,
+and it was evaluated on a synthetic benchmark of 48 dossiers covering 16 fault families. On the 24
+development dossiers, the final prompt completed 48 of 48 reliability runs without failure, with every
+model reply valid against its schema and every sandbox probe denied. The development runs also show a
+weakness: the model's single accepted finding in 48 runs was a false positive, and the fixed-retrieval variant averaged
+134\,s per run against a 120\,s target. The held-out comparison of fixed retrieval with adaptive
+investigation on 24 sealed dossiers is \pendingtext{held-out result}. The main limitations are the
+synthetic data, a two-source regulatory corpus and a single local model.
+
+\medskip
+\noindent\textbf{Keywords:} agentic AI, extended producer responsibility, e-waste, retrieval-augmented
+generation, plan-and-assess loop, human-in-the-loop, auditability.

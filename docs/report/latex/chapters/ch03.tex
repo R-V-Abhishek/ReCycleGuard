@@ -1,0 +1,129 @@
+%---------------------------------------------------------------------
+\chapter{Requirements and System Analysis}
+\label{ch:req}
+%---------------------------------------------------------------------
+
+\section{Stakeholders and Users}
+The primary user is the \textbf{compliance officer} of a producer firm, who owns the reconciliation and
+who must defend the producer's position. This user needs to know which discrepancy deserves attention
+first and why, with every figure tied to a record and every rule tied to a dated provision.
+The second user is the \textbf{reviewer}, who may be the same person or a senior colleague, and who must
+decide the report. The reviewer needs to see exactly what evidence and which calculation versions the
+report rests on, and needs a decision that is bound to that version, so that a later change to the report
+cannot be approved by an earlier decision.
+
+Secondary stakeholders are the \textbf{recyclers} whose certificates are examined, the \textbf{authorised
+signatory} of the producer who files the return, and the \textbf{auditors} or \textbf{regulators} who may
+later ask how a position was reached. None of these is a direct user of the prototype, but their needs
+explain the requirement for a complete audit trail and for a clear statement of what the system did not
+check.
+
+\section{Functional Requirements}
+\label{sec:fr}
+Each requirement is stated so that it can be tested, and each is implemented in the repository.
+\begin{description}[itemsep=2pt,font=\normalfont\bfseries,leftmargin=1.2cm,labelwidth=1cm]
+\item[FR1] The system shall accept a case dossier described by a manifest of documents and records and
+           shall record an intake outcome, including failures, for every file.
+\item[FR2] The system shall store each original file unchanged, content-addressed by its SHA-256 digest,
+           and shall never modify an original; corrections create linked revisions.
+\item[FR3] The system shall extract granular observations from PDF, CSV and JSON files, each with an exact
+           locator (page, row or JSON pointer), and shall distinguish missing, unknown, not applicable and zero.
+\item[FR4] The system shall normalise units and entity aliases and shall refuse to add quantities of
+           different dimensions or different metals.
+\item[FR5] The system shall freeze a case snapshot and a corpus snapshot with digests, and a run shall pin
+           the exact snapshots, calculation profile, index and prompt it used.
+\item[FR6] The system shall compute, for each obligation bucket, the required quantity, the supported
+           quantity, the signed gap and the pending quantity, using exact decimal arithmetic.
+\item[FR7] The system shall retrieve regulatory provisions from a dated corpus, filter them for
+           temporal applicability and authority, and report the source, version and locator of every
+           provision it relies on.
+\item[FR8] The system shall run a bounded investigation in which a model proposes a check, a tool executes
+           it, and the model assesses the observed result, until it resolves, abstains or stops.
+\item[FR9] The system shall accept a model-proposed finding only if it passes deterministic checks of its
+           citations, numbers and wording, and shall retain every rejected proposal with its reason.
+\item[FR10] The system shall build a structured report, verify its numbers and citations, and block the
+           report if verification fails after one repair.
+\item[FR11] The system shall present the report to an authenticated reviewer and shall bind the reviewer's
+           decision to the exact report and input versions.
+\item[FR12] The system shall write an append-only audit trail of every plan, model call, tool call,
+           observation and decision, and shall export a verifiable bundle from which a run can be replayed.
+\item[FR13] The system shall provide an evaluation harness that runs variants on dossiers, scores them
+           against an independent reference in a separate process, and produces tables with explicit
+           denominators.
+\end{description}
+
+\section{Non-Functional Requirements}
+\begin{description}[itemsep=2pt,font=\normalfont\bfseries,leftmargin=1.2cm,labelwidth=1cm]
+\item[NFR1] \textbf{Exactness.} No compliance quantity shall be computed with binary floating point, and no
+            quantity shall be produced by the model.
+\item[NFR2] \textbf{Auditability.} The intent of every external call shall be recorded before it is made, and
+            every attempt shall be retained, including failed and uncertain ones.
+\item[NFR3] \textbf{Safety.} The model shall have no write access, no shell, no arbitrary query and no
+            ability to approve evidence or impersonate a reviewer. Dossier and retrieved text shall be
+            treated as untrusted data.
+\item[NFR4] \textbf{Locality.} Dossier data and model calls shall stay on the machine; the model endpoint
+            shall be loopback only.
+\item[NFR5] \textbf{Boundedness.} Each run shall have fixed limits on model calls, tokens, tool calls per
+            finding, reformulations, retries and wall time, enforced before a call is dispatched.
+\item[NFR6] \textbf{Reproducibility.} Runs shall pin their inputs, and the portable parts of the system
+            shall be testable on Windows, Linux and macOS without the model.
+\item[NFR7] \textbf{Honesty.} Abstention, qualification and error outcomes shall be preserved and reported,
+            and undefined metrics shall be reported as not applicable and not as zero or one.
+\end{description}
+
+\section{Data Sources}
+\label{sec:data}
+Three kinds of data are used.
+
+\textbf{Synthetic dossiers.} The evaluation uses 48 fictional dossiers generated from a typed world model
+with exact decimal quantities (Section~\ref{sec:dataset}). Each dossier holds rendered PDFs (invoices and
+memos), CSV ledgers, and JSON records for entities, obligations, certificates, allocations, balances and
+registrations. All names and identifiers are fictional and every document is watermarked as synthetic.
+
+\textbf{Regulatory corpus.} Retrieval uses two source documents: the E-Waste (Management) Rules, 2022
+(38 physical pages) and the CPCB frequently-asked-questions document of 23 January 2024 (13 pages). The
+fixture corpus retains the pages for Rule~6(4) and Rule~15(1)--(3) of the Rules and the page of the FAQ on
+recycler capability. Both sources have a recorded rights state of \emph{review required}, and the release
+plan is to publish their identifiers and digests rather than the files. The small size of this corpus limits
+any claim about retrieval quality.
+
+\textbf{Calculation profile.} A profile declares the allowed metals, the target basis, the unsupported
+features and the state of the purchase ceiling of Rule~15(1), which stays disabled until its applicability
+is reviewed. An ordinary supplied target remains usable even when a refurbishment offset is unsupported.
+
+\section{Hardware and Software Requirements}
+\begin{table}[H]
+\centering
+\caption{Environment used for the development and the real-model runs}
+\label{tab:env}
+\small
+\begin{tabularx}{\linewidth}{@{}l X@{}}
+\toprule
+\textbf{Item} & \textbf{Value} \\ \midrule
+Machine & Apple silicon laptop, 16\,GB unified memory \\
+Model & \code{mlx-community/Qwen3.5-9B-4bit}, revision \code{8b2b98c}, MLX-LM 0.32.2, loopback port 8766 \\
+Generation speed & about 8.7 tokens per second (measured on this machine) \\
+Backend language & Python 3.11 or newer, managed with \code{uv} \\
+Main libraries & LangGraph 1.x with the SQLite checkpointer, FastAPI, Pydantic 2, pdfplumber, Typer, Uvicorn \\
+Storage & SQLite (application database, audit kernel, FTS5 index) and a content-addressed blob store \\
+Interface & React 19 with TypeScript and Vite, served against the HTTP API \\
+Quality tools & pytest (1230 tests collected), Ruff for linting and formatting \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Feasibility}
+\textbf{Technical.} All components run on one laptop. The model is the limiting component: at about
+8.7 tokens per second, a run that makes several calls takes one to three minutes. This is acceptable for
+an advisory working paper, and it is the reason the evaluation is sized in tens of dossiers and not hundreds.
+
+\textbf{Data.} Real producer data is not available and would raise confidentiality issues. Synthetic
+dossiers with an independent reference allow every claim to be scored. The cost is that synthetic data
+cannot show behaviour on real records, which Chapter~\ref{ch:limits} states.
+
+\textbf{Operational and financial.} The model is local, so the provider cost of every run is zero. The
+compute and energy used are not measured, and the report records them as not measured and not as zero.
+
+\textbf{Schedule.} The reviews fall on 16 October (charter), 24 October (design), 31 October and 7 November
+2026, with final artifacts due on 12 November 2026. The held-out evaluation depends on a stable prompt and
+model setup and is the part of the plan that is not complete in this report.

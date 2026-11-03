@@ -1,0 +1,111 @@
+%---------------------------------------------------------------------
+\chapter{Introduction}
+\label{ch:intro}
+%---------------------------------------------------------------------
+
+\section{Background}
+India generates large quantities of electrical and electronic waste, and the E-Waste (Management)
+Rules, 2022 \cite{ewaste2022}, notified under the Environment (Protection) Act, 1986, regulate how that
+waste is collected and recycled. The Rules place an Extended Producer Responsibility (EPR) on every
+producer of electrical and electronic equipment (EEE). A producer does not recycle its own products. It
+instead buys EPR certificates from registered recyclers, and each certificate represents recovered
+material of a given metal. The Central Pollution Control Board (CPCB) administers the mechanism through an
+online portal, on which registrations, obligations, certificate generation, certificate transfers and
+filed returns are recorded.
+
+For a compliance officer in a producer firm, the central question each period is whether the obligation
+for each metal has been met by credits that are genuinely usable. The answer is never a single number
+read from the portal. The obligation comes from the Rules and from the producer's declared sales. The
+credits come from certificates, which can be issued, transferred, cancelled or expired. A payment to a
+recycler is a commercial fact and is not itself a credit, because the credit exists only after the
+portal transfer is completed. A portal balance is a snapshot taken at one time and can be stale. Each
+of these facts lives in a different document or system, so the officer reconciles them by hand across
+invoices, bank records, ledger exports, portal statements and the text of the Rules.
+
+\section{Problem Statement}
+Manual reconciliation of EPR obligations is slow and error-prone, and the errors are of a specific kind.
+Overlapping exports count a transfer twice. Units are mixed between kilograms and tonnes. An invoice is
+issued under an entity alias that is not the registered recycler. A certificate that was cancelled or
+expired is still counted. A recycler registered for one metal issues credits for another. Credits in the
+current year are used to clear arrears from an earlier year. A memo is read as an official extension of a
+deadline although no amendment exists. An apparent shortfall can therefore come from a record error, from
+a pending transfer, from an inapplicable rule, or from a real unmet obligation, and each calls for a
+different action.
+
+The decision that this project supports is stated precisely:
+
+\begin{quote}
+\emph{Which discrepancy should the compliance officer investigate next, and what verification or
+corrective action does the evidence support?}
+\end{quote}
+
+The output is an advisory working paper for a human reviewer. It is not a regulatory filing, a legal
+certificate of compliance, a finding of fraud, or an assessment of a penalty, and the system is built
+so that it cannot produce those outputs.
+
+\section{Motivation and Why Agentic AI}
+A fixed script can recompute an obligation balance, and the project does exactly that with deterministic
+code. A script cannot decide what to look at next. When a gap appears, the useful next step depends on
+what is found. A gap with a pending transfer sends the officer to the transfer record. A gap with a
+certificate marked cancelled sends the officer to the certificate history. A rule that seems to apply
+sends the officer to the text of the Rules and to the question whether that version was in force for
+the period. The number of useful steps varies from case to case, and a stopping rule is needed when
+nothing new can be found.
+
+A single prompt to a language model has the opposite weakness. It can produce fluent text, but it cannot be
+trusted to calculate exactly, to cite a provision that really says what it claims, or to refuse to guess.
+For a compliance setting the cost of a confident but unsupported statement is high.
+
+An agent that plans a check, calls a tool, inspects the observed result and then revises or stops
+fits this problem. The design in this report keeps the useful part of the agent, which is the choice
+of the next check, and removes the parts that a language model should not own. Arithmetic, date handling
+and citation verification are deterministic. The model proposes, and bounded code decides what is accepted.
+The project therefore treats the model as an investigator with a narrow, audited interface and not as an
+oracle.
+
+\section{Objectives}
+The objectives of the project are the following.
+\begin{enumerate}[itemsep=2pt]
+\item Build a local agentic system that, for one producer and one reporting period, plans reconciliation
+      checks, calls audited tools, assesses each observation, and either continues, resolves or abstains
+      within fixed budgets.
+\item Keep every quantity exact: obligations, supported allocations and gaps are computed with decimal
+      arithmetic by deterministic tools and are never produced by the model.
+\item Ground regulatory statements in retrieved provisions with source, version and locator, and prefer
+      an explicit abstention to an unsupported claim.
+\item Record every plan, tool call, model call, observation and stop reason in an append-only audit trail
+      from which a run can be inspected and replayed.
+\item Require a human reviewer to decide each report, bound to the exact report and input versions.
+\item Evaluate the system on a synthetic benchmark with an independent reference, comparing fixed
+      retrieval with bounded adaptive investigation, and report honest results including negative ones.
+\end{enumerate}
+
+\section{Scope of the Project}
+\label{sec:scope}
+The scope is deliberately narrow so that the system can be finished and evaluated.
+\begin{itemize}[itemsep=2pt]
+\item \textbf{In scope:} one producer and one liability year per case; the metals copper, aluminium, iron
+      and gold as modelled in the calculation profile; structured and semi-structured evidence (PDF,
+      CSV, JSON); a curated regulatory corpus; synthetic dossiers; a local model served on the same machine;
+      a command-line interface, an HTTP API and a browser interface for review.
+\item \textbf{Out of scope:} live portal integration; regulatory filing; any legal determination of
+      compliance; inference of intent or fraud; calculation of compensation or penalties; credit trading;
+      real producer data; and cloud model providers. Solar photovoltaic waste and non-notified regimes are
+      outside the calculation profile, and the system is expected to say so rather than to compute them.
+\end{itemize}
+All dossiers are fictional and are watermarked as synthetic. No result in this report should be read as a
+statement about the behaviour of any real producer or recycler.
+
+\section{Organisation of the Report}
+Chapter~\ref{ch:lit} reviews existing practice and related technical work and states the gap.
+Chapter~\ref{ch:req} derives the requirements and the data. Chapter~\ref{ch:design} presents the
+architecture, components and agentic patterns. Chapter~\ref{ch:concepts} maps the project to the agentic
+concepts required by the course. Chapter~\ref{ch:impl} describes the implementation.
+Chapter~\ref{ch:eval} covers observability and evaluation, and Chapter~\ref{ch:exp} the controlled
+experiment. Chapter~\ref{ch:limits} discusses limitations, ethics and safety, and Chapter~\ref{ch:concl}
+concludes. The appendices give the contribution of each team member, run instructions, annotated traces
+and the prompts.
+
+\pending{Chapters~\ref{ch:eval} and~\ref{ch:exp} contain the held-out results. The held-out runs have not
+been made, so those tables are empty and are marked in place. Every number elsewhere in this report that is
+tagged as a development result comes from runs on the 24 development dossiers.}

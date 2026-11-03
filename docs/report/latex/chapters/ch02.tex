@@ -1,0 +1,128 @@
+%---------------------------------------------------------------------
+\chapter{Literature Survey and Existing Practice}
+\label{ch:lit}
+%---------------------------------------------------------------------
+
+\section{Existing Practice in the Sector}
+\label{sec:practice}
+The legal basis for the work is the E-Waste (Management) Rules, 2022 \cite{ewaste2022}, as amended in
+2023 and 2024. The Rules define producers, recyclers and refurbishers, set EPR targets by product
+category, and require quarterly and annual returns. CPCB publishes operating material alongside the Rules,
+including a registration procedure, a framework for certificate generation, guidance on certificate
+transfer and a set of frequently asked questions \cite{cpcbfaq2024}. Together these describe a documented
+process in which a producer registers, receives a target, buys certificates from registered recyclers, and
+files returns that state the credits used.
+
+The project did not interview a producer and did not use an authenticated portal account or a real
+company dossier. Statements in this report about how a compliance officer works are therefore a
+reconstruction from public instruments and CPCB's published instructions. They describe a reasonable
+workflow and not a claim about what every firm does. The domain research carried out for the project
+separates three kinds of statement: the regulatory basis, the documented portal procedure and the
+recommended operating practice.
+
+In that reconstruction, reconciliation is a manual comparison. The officer opens the obligation
+statement, the certificate list, the transfer ledger, the invoices and bank records of the period, and
+the portal balance, usually in spreadsheets, and checks that the quantities agree by metal. Three
+properties of the practice matter to the design.
+\begin{enumerate}[itemsep=2pt]
+\item \textbf{Different questions have different authorities.} What has legal force comes from the
+      Gazette and valid orders. What the portal records for the producer is the official account state.
+      What happened commercially is shown by invoices and payments. A payment alone does not establish a
+      usable credit, and a portal export does not rewrite the Rules.
+\item \textbf{Time matters.} Rules are amended, commence on stated dates and apply to a period. A
+      provision that was in force when a certificate was issued may differ from the text on the website
+      today, and a website upload date is not a commencement date.
+\item \textbf{Escalation, not resolution, is the right outcome for ambiguity.} Where interpretation or
+      official rectification is needed, the officer escalates through the authorised channel and does not
+      choose a source silently.
+\end{enumerate}
+These properties are why the system reports ``the supplied snapshot says $X$, the ledger supports $Y$,
+and the delta is $Z$'' and separates the quantity the portal reports from the quantity the ledger supports.
+
+\section{Related Technical Work}
+
+\subsection{Reasoning and Acting with Tools}
+Yao et al.~\cite{yao2023react} proposed ReAct, in which a language model interleaves reasoning traces with
+actions such as search queries so that it can gather information before answering. Schick et
+al.~\cite{schick2023toolformer} showed that a language model can learn when and how to call external
+tools. ReCycleGuard follows the same principle of acting through tools, but it replaces free-form
+interleaving by an explicit two-phase protocol. In a planning phase the model proposes one check or a
+stop, and in an assessment phase it judges the observed result. Each phase is a separate, schema-checked
+model call, so that every step can be recorded, validated and bounded.
+
+\subsection{Retrieval-Augmented Generation}
+Lewis et al.~\cite{lewis2020rag} introduced retrieval-augmented generation (RAG), which conditions
+generation on retrieved passages. Later work made retrieval adaptive. Self-RAG~\cite{asai2024selfrag}
+learns to decide when to retrieve and to critique its own output, and corrective RAG~\cite{yan2024crag}
+grades the retrieved documents and falls back to other retrieval when they are weak. ReCycleGuard uses a
+lexical ranking function, BM25~\cite{robertson2009bm25}, through SQLite full-text search
+\cite{sqlitefts5}, and then grades each retrieved provision for authority, temporal applicability and
+direct support. The grading follows the corrective pattern, and it adds a legal-specific concern that the
+general methods do not address: a passage may be relevant to the question and still not be in force for the
+period in question.
+
+\subsection{Reflection and Multi-Agent Collaboration}
+Reflexion~\cite{shinn2023reflexion} improves agents through verbal self-feedback across attempts, and
+AutoGen~\cite{wu2023autogen} provides a framework in which several specialised agents converse to complete
+a task. Wang et al.~\cite{wang2024survey} categorise such systems by profile, memory, planning and action
+modules. The project keeps a single investigator and a deterministic verifier. A second agent that acts as
+an auditor of the collector is listed as an optional experiment in the design, but it is not part of the
+evaluated system.
+
+\subsection{Safety of Tool-Using Language Models}
+A system that reads untrusted documents is exposed to indirect prompt injection, in which instructions hidden
+in retrieved or supplied content are followed by the model. Greshake et al.~\cite{greshake2023indirect}
+describe this class of attack on applications that integrate language models with external data. Invoice
+remarks and memos in a compliance dossier are exactly such content. The project therefore treats all dossier
+and retrieved text as data, escapes markup characters in prompts, restricts the model to a whitelist of
+read-only tools, and includes a fault family in the benchmark that inserts an override instruction into an
+invoice remark.
+
+\subsection{Evaluation of LLM-Based Systems}
+Zheng et al.~\cite{zheng2023judge} studied the use of strong language models as judges and noted position
+and verbosity bias. For this project the primary measures are computed by deterministic scoring against
+an independent reference. The quality of citations, the correctness of dates and the usefulness of the next
+action are judged by human scorers who do not see which variant produced a report, and no language model acts
+as a judge.
+
+\subsection{The Model Used}
+The model is Qwen3.5-9B quantised to 4 bits for MLX \cite{qwen35mlx}, a recent member of the Qwen
+family \cite{qwen3report}, served locally by MLX-LM \cite{mlxlm}. A local model keeps dossier data on the
+machine, which matters for compliance records. The choice has a cost that the evaluation reports: a small
+quantised model on consumer hardware is slow and is less reliable in following a long structured prompt than
+a large hosted model.
+
+\section{Comparative Summary}
+Table~\ref{tab:litcompare} compares the approaches discussed above with the proposed system. The last row is
+the project. A tick is given only where the work has the feature as part of its stated method.
+
+\begin{table}[H]
+\centering
+\caption{Comparison of related approaches with the proposed system}
+\label{tab:litcompare}
+\small
+\begin{tabularx}{\linewidth}{@{}p{3.1cm} X c c c c@{}}
+\toprule
+\textbf{Work} & \textbf{Key idea} & \textbf{Tools} & \textbf{Adapt.\ RAG} & \textbf{Exact calc.} & \textbf{HITL} \\
+\midrule
+ReAct~\cite{yao2023react} & Interleaved reasoning and acting & \checkmark & -- & -- & -- \\
+Toolformer~\cite{schick2023toolformer} & Model learns to call tools & \checkmark & -- & -- & -- \\
+RAG~\cite{lewis2020rag} & Retrieval-conditioned generation & -- & -- & -- & -- \\
+Self-RAG~\cite{asai2024selfrag} & Learned retrieval and self-critique & -- & \checkmark & -- & -- \\
+CRAG~\cite{yan2024crag} & Retrieval grading and fallback & -- & \checkmark & -- & -- \\
+Manual reconciliation & Officer compares records by hand & -- & -- & -- & \checkmark \\
+\textbf{ReCycleGuard (this work)} & Bounded plan-and-assess loop over audited tools; gated model output & \checkmark & \checkmark & \checkmark & \checkmark \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Research Gap}
+The general methods above show how a language model can use tools and retrieval, but they do not give
+the guarantees that EPR reconciliation needs: exact quantities, version-aware citation, a record of every
+step and an enforced boundary between what the model may propose and what code may decide. Manual practice
+has the human judgement but not the repeatability. No system reviewed here combines grounded retrieval over a
+dated regulatory corpus, deterministic reconciliation, a bounded and audited agent loop and mandatory human
+review in a single traceable workflow for this domain. The search behind this statement covered the
+technical literature cited in this chapter and public CPCB material; it was not a systematic survey, and
+the claim is limited to that search. This project addresses the gap and measures how much of the
+investigation the model actually contributes.

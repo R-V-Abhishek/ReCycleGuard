@@ -1,0 +1,44 @@
+%---------------------------------------------------------------------
+\chapter{Conclusion and Future Work}
+\label{ch:concl}
+%---------------------------------------------------------------------
+
+\section{Conclusion}
+This project built ReCycleGuard, a local and auditable agentic assistant for EPR reconciliation in the
+Indian e-waste setting. Its central design choice is a strict division of labour. Deterministic code owns
+every quantity, every date check and every citation check. A bounded agent loop owns the choice of the
+next check and the reading of the result. A gate and a verifier decide what the system is willing to say,
+and a human reviewer decides the report. The system implements the mandatory agentic concepts of the course
+(tool use, agentic retrieval, an explicit planning and assessment loop, tracing and evaluation) and three of the
+five bonus concepts (human in the loop with guardrails, a durable workflow, and an experiment whose design is
+ready and whose held-out run is pending), while multi-agent collaboration and cross-run memory were not built.
+
+The engineering evidence on the development dossiers is solid. With the final prompt, 48 of 48 reliability runs
+finished without failure, every model reply was valid against its schema, no call timed out, no forbidden
+action occurred, every sandbox probe was denied, and the system survived the killing of its coordinator and of
+its model server with correct, non-duplicating recovery. The quality evidence is weak. Reconciliation was
+exact in every case because it is deterministic, but the system found few of the injected fault families, most
+of them by deterministic checks, and the model's one accepted finding was wrong. The adaptive variant used about a
+third of the model calls of the fixed variant and was no more successful on the development dossiers.
+
+\pending{The headline result of the experiment, the held-out comparison of the fixed and the adaptive variant on
+24 sealed dossiers with the human rubric, is not available. The conclusion about whether adaptive
+investigation is worth its cost will be written once it is.}
+
+\section{Future Work}
+\begin{enumerate}[itemsep=3pt]
+\item \textbf{Improve the model's contribution.} Teach the prompt the substitutes for the words on the
+      authority list, as 14 of 16 proposals were rejected for that reason, and tune on a faster runtime with a
+      larger model before the held-out run.
+\item \textbf{Run the held-out experiment} with a frozen configuration, the chosen number of repeats, the blind
+      human rubric and the paired analysis.
+\item \textbf{Use independent data.} Have dossiers written by someone other than the system's builder, and
+      validate the reference answers by hand.
+\item \textbf{Widen the corpus} to the amendments, the operating procedures and the CPCB guidance, and evaluate
+      retrieval on its own.
+\item \textbf{Test collaboration.} Build the optional collector and auditor roles on the same dispatcher and
+      measure whether they add anything.
+\item \textbf{Study real records} under a confidentiality agreement, with a producer's compliance team, to
+      find the fault types that the synthetic families miss.
+\item \textbf{Measure cost.} Record compute and energy per run so that cost can be compared across runtimes.
+\end{enumerate}

@@ -1,0 +1,83 @@
+%---------------------------------------------------------------------
+\chapter{Limitations, Ethics and Safety}
+\label{ch:limits}
+%---------------------------------------------------------------------
+
+\section{Limitations}
+\begin{itemize}[itemsep=3pt]
+\item \textbf{Synthetic data.} All dossiers are generated. They cannot show how the system behaves on real
+      producer records, which are messier and are not covered by the fault families. The benchmark has 24
+      held-out cases, which makes the result a pilot and not a statistically powered study.
+\item \textbf{Limited internal separation.} The generator templates and seeds are in the repository, so anyone
+      with the code can regenerate the held-out dossiers. This is not an external or double-blind benchmark. The
+      splits are disjoint in entity, template and combination, but they come from one generator.
+\item \textbf{One builder, runner and evaluator.} The same person built the system, ran the trials and
+      wrote the evaluator. Blind teammate scoring and a separate scorer process reduce this conflict and do not remove it.
+\item \textbf{Reference status.} The reference answers are independently recomputed and inspected by a coding agent.
+      No person has hand-reviewed them.
+\item \textbf{Small corpus.} Retrieval uses two sources, the Rules of 2022 and one FAQ. No conclusion about the
+      quality of retrieval on a larger legal corpus is justified.
+\item \textbf{A single small model.} The system was developed against one 4-bit quantised model on an Apple
+      silicon laptop. The wall times in this report are properties of that machine. Decoding is greedy but
+      not seeded, and identical runs were not guaranteed to be identical. The behaviour on another runtime or a
+      larger model has not been measured, and the prompt that was tuned here may not transfer.
+\item \textbf{Weak model contribution.} On the development dossiers the model's findings were mostly rejected
+      by the gate, and the only accepted finding was wrong (Section~\ref{sec:devquality}). The system's
+      detections come mainly from deterministic checks.
+\item \textbf{Partial blinding.} The text of a report reveals the variant to a careful reader, so human scoring
+      is only partly blind.
+\item \textbf{Sandbox.} The host sandbox relies on an operating-system mechanism that is deprecated, and it
+      protects a single laptop, not a deployment. A file target in the sandbox probes receives a read probe
+      and no list probe, because a regular file cannot be listed.
+\item \textbf{Scope.} One producer, one period, four metals, no live portal data, no filing, no legal conclusion,
+      and no monetary cost or energy measurement (both recorded as not measured).
+\end{itemize}
+
+\section{Failure Modes and Guardrails}
+\begin{table}[H]
+\centering
+\caption{Failure modes and the guardrail for each}
+\label{tab:failures}
+\small
+\begin{tabularx}{\linewidth}{@{}p{3.6cm} X X@{}}
+\toprule
+\textbf{Failure mode} & \textbf{Guardrail} & \textbf{Residual risk} \\ \midrule
+Model invents an identifier or citation & Identifiers are validated against the case and the run's tool outputs; the gate rejects unknown references & A plausible but wrong claim that cites a real identifier \\
+Model calculates or states a number & Numbers are rejected from model text; the verifier checks every figure against a calculation & Numbers written in words are not caught by the digit check \\
+Prompt injection in an invoice remark & Text is data, markup is escaped, the tool list is fixed and read-only, and a benchmark family tests it & Novel injection forms that the family does not cover \\
+Runaway loop or cost & Budgets, per-finding limits, cycle fingerprint, wall-time limit & Budgets are tuned to this model's speed \\
+Crash or restart mid-run & Turn-by-turn commit; resume without repeating a tool & A crash inside a single turn repeats that turn \\
+Uncertain model-call outcome & Intent recorded first, no blind retry, attempts retained & The run fails and needs a human restart \\
+Stale or inapplicable rule & Temporal filter and grade; unresolved applicability is escalated & Small reviewed corpus of dated assertions \\
+Overstated conclusion & The report layer rejects compliance verdicts, fraud allegations and penalty amounts & Reviewer misreads an advisory status as official \\
+Missing page or unreadable scan & Preflight blocks the run before the model & Poor extraction that still yields some text \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Ethical and Responsible-Use Considerations}
+\textbf{Advisory use only.} The report is a working paper. It is not a certificate, a filing or a determination.
+The statuses used (reconciled, discrepancy detected, pending verification, requires expert review) are
+the project's own labels and are not official classifications. The reviewer, not the system, owns the
+conclusion.
+
+\textbf{Accountability.} A decision is bound to the exact report and the exact inputs. A report that changes
+needs a new decision. The audit trail keeps what the system saw and did, including what it did not use.
+
+\textbf{Privacy and confidentiality.} The model and the data stay on the machine. The model endpoint accepts
+only loopback connections. Secrets such as the API token, reviewer passwords and environment files are kept out of
+the repository, the logs and the prompts.
+
+\textbf{Fairness to named parties.} A discrepancy is not an accusation. The system must not infer intent or
+allege fraud, and it must not suggest that a named recycler or producer acted wrongly beyond what the records show.
+All firms in the evaluation are fictional.
+
+\textbf{Rights.} The two regulatory sources have an unresolved redistribution state. The release lists their
+titles, digests and where to obtain them and does not include the files, unless permission is obtained.
+
+\textbf{Honest reporting.} The report states negative and unfinished results as such. In particular, it
+reports that the model added little on the development dossiers, that the setup missed one reliability threshold,
+and that the held-out experiment has not been run.
+
+\textbf{Use of AI assistance.} AI coding assistants were used in building the system and in drafting
+documentation. The authors reviewed the code and the text, and they are responsible for them.
