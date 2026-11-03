@@ -10,6 +10,10 @@ docker compose run --rm --no-deps --entrypoint sh --volume "$destination:/export
     set -eu
     export_one() {
         cd /work
+        if [ ! -d \$1 ]; then
+            echo \"skipped \$1: not run yet\"
+            return 0
+        fi
         mkdir -p /export/\$1
         for item in ledger.jsonl results protocol.json backend.txt summary.json \
             sweep.json sessions configs.json compare.csv compare.json; do
