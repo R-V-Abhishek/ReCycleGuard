@@ -82,7 +82,7 @@ and do not loosen any check on the model's own output. Rebuild both `investigato
 Run this if you want to separate a Docker problem from a model problem. It labels its output as not evidence.
 
 ```powershell
-docker compose stop model
+docker compose rm -sf model                                 # frees the name; volumes are kept
 docker compose --profile fixture up -d --no-deps fake-model
 docker compose --profile tools run --rm trials python scripts/run_trials.py docs/checkpoints/mg1/protocols/dry-run-all-variants.json /work/pipeline-check --config /models/provenance/fixture/local-model.json --docker
 docker compose --profile fixture rm -sf fake-model
@@ -131,6 +131,14 @@ Run in order:
 | E. Reliability | `reliability`, then `repeats` | No prompt change after D. |
 | F. Failures | `smoke`, new name | See below. |
 | G. Controls | `dry-run-all-variants` | V0 and SC must make no model call. Any `canaries.drifted` entry is a result to report, not a failure to fix. |
+
+**Forced cap (after A).** Real-model runs refuse per-run budget overrides, so the cap comes from its own pinned
+configuration. Each run must stop at 2 model calls or fewer with no third dispatch:
+
+```powershell
+docker compose --profile tools run --rm trials python scripts/configure_local_model.py --forced-cap 2 --llama-cpp /models/provenance/qwen3.5-9b-q8_0
+docker compose --profile tools run --rm trials python scripts/run_trials.py docs/checkpoints/mg1/protocols/forced-cap.json /work/forced-cap-2 --config /models/provenance/qwen3.5-9b-q8_0/local-model-forced-cap.json --docker
+```
 
 **Constrained mode (C).** The server enforces the schema per request, and the flag records it in the pin:
 

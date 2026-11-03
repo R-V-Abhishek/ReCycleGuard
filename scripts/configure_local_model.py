@@ -2,6 +2,7 @@
 
 ``--constrained`` writes a separate configuration whose pin records the constrained server mode.
 ``--llama-cpp <model-root>`` configures the Docker backend from what ``model-download`` recorded.
+``--forced-cap N`` writes a separate configuration capped at N model calls, for the MG1 cap check.
 """
 
 import hashlib
@@ -72,14 +73,25 @@ def main():
     arguments = sys.argv[1:]
     constrained = "--constrained" in arguments
     arguments = [argument for argument in arguments if argument != "--constrained"]
+    cap = None
+    if "--forced-cap" in arguments:
+        index = arguments.index("--forced-cap")
+        cap = int(arguments[index + 1])
+        del arguments[index : index + 2]
     name = "local-model-constrained.json" if constrained else "local-model.json"
+    if cap is not None:
+        name = name.replace(".json", "-forced-cap.json")
     if len(arguments) == 2 and arguments[0] == "--llama-cpp":
         model = Path(arguments[1])
         config, target = llama_cpp_config(model, constrained), model / name
     elif not arguments:
         config, target = mlx_config(constrained), ROOT / ".recycleguard" / name
     else:
-        raise SystemExit("usage: configure_local_model.py [--constrained] [--llama-cpp <root>]")
+        raise SystemExit(
+            "usage: configure_local_model.py [--constrained] [--forced-cap N] [--llama-cpp <root>]"
+        )
+    if cap is not None:
+        config = LocalModelConfig.model_validate({**config.model_dump(), "max_model_calls": cap})
     target.write_text(config.model_dump_json(indent=2) + "\n", encoding="utf-8")
     print(f"Wrote explicit local backend configuration: {target}")
 

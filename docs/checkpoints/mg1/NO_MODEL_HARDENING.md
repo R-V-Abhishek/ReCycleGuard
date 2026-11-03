@@ -50,10 +50,10 @@ Focused tests only, by agreement; the full suite was not run.
 
 ## Open decisions
 
-- **`AUTHORITY_TEXT` rejects the word "certificate".** The pattern `certif\w+` was meant to catch claims of
-  certification, but also matches the domain's own noun; 2 of the 20 v5 rejections were this. The check was
-  left as it is, as agreed, and prompt v7 tells the model to say "credit record". Narrowing it to `certify`,
-  `certified` and `certification` is a decision for Sushanth and Abhishek.
+- **`AUTHORITY_TEXT` rejected the word "certificate". Decided 3 November 2026.** The pattern `certif\w+` also matched the
+  domain's own noun: 2 of the 20 v5 rejections, and all 3 proposals on the PC's `tuning-16` v7 run. Sushanth and Abhishek
+  agreed to narrow it to the verb forms and "certification" (`certify`, `certifies`, `certified`, `certifying`,
+  `certification(s)`). Claims of certification are still rejected; "certificate" is not.
 - **Model findings cannot cite rule passages.** A search result gives no evidence reference to cite. Allowing the
   grader's selected passages would be a behaviour change, so it was not made.
 - **R and the freeze** are undecided (`docs/evaluation/PROTOCOL.md` section 5).

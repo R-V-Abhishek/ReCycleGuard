@@ -150,6 +150,9 @@ class LocalModelConfig(BoundaryModel):
     max_output_tokens: Annotated[int, Field(ge=1)] = 1024
     max_total_tokens: Annotated[int, Field(ge=1)] = 32768
     timeout_seconds: Annotated[float, Field(gt=0, le=300)] = 120.0
+    # Lowered only by the forced-cap configuration. It is in the pin, so it can never be confused
+    # with an evaluation run, and it can never be raised above the evaluation cap.
+    max_model_calls: Annotated[int, Field(ge=1, le=12)] = 12
     stop_sequences: list[str] = ["<|im_end|>", "<|endoftext|>"]
     server_flags: list[str] = SERVER_FLAGS
 

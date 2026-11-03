@@ -167,11 +167,14 @@ def pin(name, value):
 
 
 def evaluation_budgets(config: LocalModelConfig) -> BudgetLimits:
-    """The one budget for V1 and V2 real-model runs. Reservations, not expected use."""
+    """The one budget for V1 and V2 real-model runs. Reservations, not expected use.
+
+    Only a separately pinned configuration can lower the call cap, for the forced-cap check.
+    """
     return BudgetLimits(
         tokens_per_model_call=config.max_total_tokens,
         max_total_tokens=config.max_total_tokens * 12,
-        max_model_calls=12,
+        max_model_calls=config.max_model_calls,
         max_wall_seconds=600,
     )
 

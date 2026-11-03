@@ -89,6 +89,34 @@ def test_unsupported_proposals_are_rejected_and_retained(changes, reason):
     assert rejected[0].proposal == proposal(**changes)
 
 
+@pytest.mark.parametrize(
+    "basis",
+    [
+        "The recycler certified the transfer.",
+        "This is a certification of compliance.",
+        "We certify the credit balance.",
+        "Certifying this record is complete.",
+    ],
+)
+def test_claims_of_certification_are_still_authority_text(basis):
+    accepted, rejected = gate(proposal(basis=basis))
+    assert not accepted
+    assert [item.reason for item in rejected] == ["AUTHORITY_TEXT"]
+
+
+@pytest.mark.parametrize(
+    "basis",
+    [
+        "Payment was recorded but no certificate transfer followed.",
+        "The certificates named in the allocation were never transferred.",
+    ],
+)
+def test_the_noun_certificate_is_not_a_claim_of_authority(basis):
+    (finding,), rejected = gate(proposal(basis=basis))
+    assert not rejected
+    assert finding.issue_type == "F07_PAID_NO_TRANSFER"
+
+
 def test_deterministic_finding_wins_and_duplicates_are_not_counted_twice():
     accepted, rejected = gate(proposal(), deterministic={"F07_PAID_NO_TRANSFER"})
     assert not accepted and rejected[0].reason == "DUPLICATE_ISSUE_TYPE"

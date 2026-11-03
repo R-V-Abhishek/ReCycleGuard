@@ -24,8 +24,11 @@ _ABSTAINING = {"PENDING_VERIFICATION", "REQUIRES_EXPERT_REVIEW"}
 _MAX_TEXT = 400
 _DIGIT = re.compile(r"\d")
 # Authority or instruction wording, for example copied from an injected dossier document.
+# "Certificate" is the domain's own noun for an EPR credit record, so only the verb forms and
+# "certification" count as a claim of authority.
 _AUTHORITY = re.compile(
-    r"\b(?:approved?|certif\w+|ignore\s+(?:all|any|previous|prior)|instructions?)\b",
+    r"\b(?:approved?|certif(?:y|ies|ied|ying|ications?)|ignore\s+(?:all|any|previous|prior)"
+    r"|instructions?)\b",
     re.IGNORECASE,
 )
 
