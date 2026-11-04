@@ -330,6 +330,9 @@ def test_actual_s06_pdf_claims_become_scoped_findings_without_quantity_mutation(
         findings = env.service._findings(env.spec)
         selected = [f for f in findings if f.issue_type == issue_type]
         assert selected, [(f.issue_type, f.priority_basis) for f in findings]
+        # The scorer counts a second finding of one family as a duplicate.
+        assert len(selected) == 1
+        assert len({f.issue_type for f in findings}) == len(findings)
         for finding in selected:
             assert finding.advisory_status == "REQUIRES_EXPERT_REVIEW"
             assert finding.abstention_reason == reason

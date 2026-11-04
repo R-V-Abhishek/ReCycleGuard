@@ -20,7 +20,7 @@ docker compose run --rm --no-deps --entrypoint sh --volume "$destination:/export
             [ ! -e \$1/\$item ] || cp -R \$1/\$item /export/\$1/
         done
         find \$1 -maxdepth 1 -name '*.log' -exec cp {} /export/\$1/ \;
-        for extra in scores tables; do
+        for extra in scores tables reasoning; do
             [ ! -d \$1-\$extra ] || cp -R \$1-\$extra /export/
         done
         [ -d \$1/trials ] || return 0

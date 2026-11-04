@@ -851,3 +851,122 @@ def test_new_tooling_files_stay_outside_the_investigator_import_path():
         for alias in node.names
     }
     assert not any(name.split(".")[0] in {"benchmarks", "tests"} for name in imported)
+
+
+SECRET_EVIDENCE = "dossier text that must never be sealed"
+
+
+def trace_events():
+    decision = {
+        "decision": "Supported allocations calculated",
+        "evidence_data_json": '{"buckets":[],"issues":[{"code":"STALE_SNAPSHOT","severity":'
+        + f'"WARNING","message":"{SECRET_EVIDENCE}"',
+        "evidence_truncated": True,
+    }
+    assess = {
+        "phase": "ASSESS",
+        "action": {"allowed_operation": "compute_reconciliation"},
+        "observation": {
+            "stage_output": {
+                "disposition": "QUALIFIED",
+                "evidence_ref_ids": [],
+                "calculation_ids": ["calc:1"],
+                "concise_decision": decision,
+            }
+        },
+    }
+    reply = {
+        "verdict": "WEAK",
+        "disposition": "ABSTAIN",
+        "next_check_or_stop": "stop",
+        "weak_result_or_mistake": "x" * 900,
+        "finding_proposal": {
+            "issue_type": "F06_STALE_SNAPSHOT",
+            "advisory_status": "PENDING_VERIFICATION",
+            "evidence_ref_ids": ["calc:1"],
+            "abstention_reason": "TEMPORAL_UNCERTAINTY",
+            "withheld_claim_scopes": ["stale_portal_statement"],
+            "basis": "Portal statement predates ledger events.",
+        },
+    }
+    transport = {
+        "request_body_utf8": json.dumps({"prompt": SECRET_EVIDENCE}),
+        "response_body_utf8": json.dumps(
+            {
+                "choices": [{"finish_reason": "length", "text": "{}"}],
+                "usage": {"prompt_tokens": 900, "completion_tokens": 1024},
+            }
+        ),
+        "elapsed_seconds": 12.5,
+    }
+    return [
+        {"kind": "PROMPT_PREPARED", "phase": "PLAN", "request": {"phase": "PLAN"}},
+        {"kind": "PROMPT_PREPARED", "phase": "ASSESS", "request": assess},
+        {
+            "kind": "MODEL_RESULT",
+            "operation_id": "operation:assess",
+            "attempt_id": "attempt:0",
+            "status": "SUCCESS",
+            "issues": [],
+            "response": {"validated_output_or_null": reply},
+            "provider_trace": transport,
+        },
+    ]
+
+
+def test_the_decision_trace_records_what_was_shown_and_why_without_evidence_text():
+    child = script("trial_child")
+    rows = child.decision_trace(trace_events())
+    assert len(rows) == 1
+    shown, reply = rows[0]["shown"], rows[0]["reply"]
+    assert shown["tool"] == "compute_reconciliation" and shown["evidence_truncated"]
+    assert shown["visible_issue_codes"] == ["STALE_SNAPSHOT"]
+    assert shown["citable_calculation_ids"] == 1 and shown["citable_evidence_ids"] == 0
+    assert reply["proposal"]["issue_type"] == "F06_STALE_SNAPSHOT"
+    assert len(reply["weak_result_or_mistake"]) == 300
+    assert rows[0]["transport"]["finish_reason"] == "length"
+    assert SECRET_EVIDENCE not in json.dumps(rows)
+    exact = child.model_calls(trace_events())
+    assert SECRET_EVIDENCE in exact[0]["request_body_utf8"]  # kept in the runtime folder only
+
+
+def test_the_funnel_assigns_each_miss_to_the_stage_where_it_was_lost():
+    funnel = script("funnel")
+    shown = [{"shown": {"visible_issue_codes": ["STALE_SNAPSHOT"]}, "reply": {"proposal": None}}]
+    proposed = [{"shown": {}, "reply": {"proposal": {"issue_type": "F06_STALE_SNAPSHOT"}}}]
+    family = "F06_STALE_SNAPSHOT"
+    assert funnel.stage(family, set(), proposed, {family: {"DIGITS_IN_TEXT"}})[0] == "S5_REJECTED"
+    assert funnel.stage(family, set(), proposed, {})[0] == "S6_PROPOSED_LOST"
+    assert funnel.stage(family, set(), shown, {})[0] == "S4_SHOWN_NOT_PROPOSED"
+    assert funnel.stage(family, {"STALE_SNAPSHOT"}, [], {})[0] == "S3_COMPUTED_NOT_SHOWN"
+    assert funnel.stage(family, {"STALE_SNAPSHOT"}, None, {})[0] == "S3_COMPUTED_NO_TRACE"
+    assert funnel.stage(family, set(), [], {})[0] == "S1_NOT_COMPUTED"
+    assert funnel.stage("F16_PROMPT_INJECTION", set(), [], {})[0] == "S0_JUDGEMENT_ONLY"
+
+
+def test_the_replay_opens_thinking_only_on_recorded_prompts_and_labels_it(tmp_path):
+    replay = script("replay_reasoning")
+    runtime = tmp_path / "s" / "trials" / "t0001" / "attempt-1" / "runtime"
+    runtime.mkdir(parents=True)
+    (runtime / "result.json").write_text(
+        json.dumps({"case_id": "case_x", "requested_variant": "ADAPTIVE"})
+    )
+    prompt = "<|im_start|>system\nASSESS rules: ...<|im_start|>assistant\n" + replay.CLOSED_THINK
+    calls = [
+        {
+            "operation_id": "operation:assess",
+            "request_body_utf8": json.dumps({"prompt": prompt, "json_schema": {}, "stop": []}),
+            "response_body_utf8": None,
+        },
+        {
+            "operation_id": "operation:plan",
+            "request_body_utf8": json.dumps({"prompt": "PLAN rules: x" + replay.CLOSED_THINK}),
+            "response_body_utf8": None,
+        },
+    ]
+    (runtime / "model-calls.jsonl").write_text("".join(json.dumps(c) + "\n" for c in calls))
+    work = replay.jobs(tmp_path / "s", ["case_x|ADAPTIVE|r1"], "ASSESS", 10)
+    assert [item["key"]["operation_id"] for item in work] == ["operation:assess"]
+    job = work[0]["job"]
+    assert job["prompt"].endswith("assistant\n<think>\n") and "json_schema" not in job["body"]
+    assert replay.LABEL == "DIAGNOSTIC_NOT_EVIDENCE"

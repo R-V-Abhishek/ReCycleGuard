@@ -50,6 +50,7 @@ from recycleguard.reporting.baseline import (
     VerificationResult,
     inspection_limitation,
 )
+from recycleguard.reporting.calculation_findings import calculation_findings, load_derivation
 from recycleguard.retrieval.service import RetrievalService
 from recycleguard.review.service import ReviewService
 from recycleguard.storage import canonical_json_bytes
@@ -548,37 +549,50 @@ class InvestigationService:
                 "gold_offset_credits",
             ),
         }
-        findings = []
+        # One finding per family: several claims of one kind are one finding citing all of them.
+        grouped = {}
         for claim in claims:
-            issue_type, reason, withheld = classifications[claim.kind]
+            grouped.setdefault(claim.kind, []).append(claim)
+        findings = []
+        for kind, group in grouped.items():
+            issue_type, reason, withheld = classifications[kind]
+            first = group[0]
+            refs = list(
+                {ref.ref_id: ref for claim in group for ref in claim.evidence_refs}.values()
+            )
             findings.append(
                 FindingRecord(
-                    finding_id=claim.finding_id,
-                    finding_revision_id=f"finding_revision:{digest(claim.model_dump(mode='json'))[:24]}",
+                    finding_id=first.finding_id,
+                    finding_revision_id=(
+                        "finding_revision:"
+                        f"{digest([claim.model_dump(mode='json') for claim in group])[:24]}"
+                    ),
                     case_version_id=spec.case_snapshot.snapshot_id,
                     bucket_ids=[],
                     issue_type=issue_type,
                     advisory_status="REQUIRES_EXPERT_REVIEW",
                     priority="HIGH",
-                    priority_basis=claim.summary,
+                    priority_basis=first.summary,
                     portal_reported_value_ref=None,
                     ledger_supported_value_ref=None,
                     delta_value_ref=None,
                     snapshot_comparison_ref=None,
-                    fact_refs=claim.evidence_refs,
+                    fact_refs=refs,
                     calculation_refs=[],
                     provision_refs=[],
-                    evidence_assessments=[{"outcome": claim.outcome, "scope": claim.scope}],
+                    evidence_assessments=[
+                        {"outcome": claim.outcome, "scope": claim.scope} for claim in group
+                    ],
                     hypotheses=[],
                     abstention_reason=reason,
                     withheld_claim_scopes=[withheld],
                     next_action=Recommendation(
                         kind="REQUEST_EVIDENCE",
-                        description=claim.summary,
-                        evidence_refs=claim.evidence_refs,
+                        description=first.summary,
+                        evidence_refs=refs,
                     ),
                     action_owner_ref=None,
-                    scope_limits=[claim.scope],
+                    scope_limits=list(dict.fromkeys(claim.scope for claim in group)),
                     supersedes_finding_revision_id=None,
                 )
             )
@@ -995,7 +1009,10 @@ class InvestigationService:
         def draft(context, _spec):
             baseline = self._baseline(context, spec)
             calculated = baseline.output.calculation
-            findings = self._findings(spec)
+            # Facts the reconciliation already established are findings without the model.
+            findings = self._findings(spec) + calculation_findings(
+                calculated, load_derivation(calculated, self.blobs)
+            )
             accepted, rejected, inspected = self._gated_findings(spec, calculated, findings)
             findings = findings + accepted
             refs = [

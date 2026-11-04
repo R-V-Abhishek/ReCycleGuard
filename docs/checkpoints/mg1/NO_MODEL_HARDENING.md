@@ -75,3 +75,64 @@ coordinators never remove each other's containers.
   is incomplete, whenever cited ids exist), v8c (both). Generic rules only; no gate was changed.
 - Checked on Windows: compile, `ruff check`, `ruff format --check`, schema export, and a load of every prompt file and
   of variant configurations. **Tests were not run here, by agreement**; they run on the PC.
+
+## Deterministic findings and the decision trace (4 November 2026)
+
+Branch `cp-5_findings_fix`. `cp-5_windows_model` stays as it was for the report, holding the `sweep-v8` results.
+
+**Evidence.** In `sweep-v8` on `tuning-16`, no prompt version beat v7. Every variant reached 2/16 or less, and
+v8c's 10 accepted V1 findings were all false positives. The misses were then split by whether the
+reconciliation had computed a signal for the missed family:
+
+- 55 of 138 missed families had a signal in the report. The calculation had established the fact, and the run
+  turned it into a finding only if the model proposed it.
+- 83 of 138 had no computed signal. These are judgement families, or signals not computed.
+- 19 trials failed only because of duplicate F14 findings. Each unsupported-offset claim became its own finding
+  (case `189b1c`, F1 0.9, `duplicate_count` above 0).
+
+Only F11, F12 and F14 were emitted without the model.
+
+**Changes.**
+
+- **Duplicates.** Claim checks of one kind now produce one finding citing every matching claim, not one finding
+  per claim.
+- **Findings from computed checks.** New `reporting/calculation_findings.py` turns structured reconciliation checks
+  into findings, at most one per family, with source `DETERMINISTIC_CALCULATION`. It reads the stored derivation's
+  checks, not issue codes alone, because one code can mean several things: `DIMENSION_MISMATCH` also marks a wrong
+  metal.
+
+  | Family | Emitted when | Status |
+  | --- | --- | --- |
+  | F04 | a BLOCKING `DIMENSION_MISMATCH` issue | discrepancy |
+  | F05 | entity eligibility FAIL | discrepancy |
+  | F06 | a `STALE_SNAPSHOT` issue | withheld: `TEMPORAL_UNCERTAINTY`, `stale_portal_statement` |
+  | F08 | an earlier-liability priority check FAIL or UNKNOWN | discrepancy; withheld (`INCOMPLETE_HISTORY`) if any check is UNKNOWN |
+  | F09 | a lifecycle allocation check FAIL | discrepancy |
+  | F10 | a capability check FAIL, or registration eligibility FAIL | discrepancy |
+
+  UNKNOWN entity, lifecycle and capability states give no finding. The existing gate still applies: a
+  deterministic finding takes its family, and a model proposal for that family is rejected as a duplicate.
+- **Decision trace.** Each result now holds `decisions`, one row per model call. A row records what was shown
+  (tool, citable id counts, whether the evidence was cut at 6000 characters, the issue codes still visible) and the
+  reply (verdict, proposal summary, stop reason, `finish_reason`, tokens), with no evidence text.
+  `runtime/model-calls.jsonl` keeps the exact request and response bodies in the volume. It is not sealed and not
+  exported.
+- **Funnel.** `scripts/funnel.py` assigns each miss to a stage, from `S5_REJECTED` down to `S0_JUDGEMENT_ONLY`, and
+  labels each false positive with its source. Its signal table is evaluator-side only. Run on `sweep-v8` v8b
+  (before the trace existed), each variant shows FALSE_POSITIVE 2, S0 3, S1 6 and S3_COMPUTED_NO_TRACE 6.
+- **Reasoning replay.** `scripts/replay_reasoning.py` resends recorded prompts with thinking open. Its output is
+  labelled `DIAGNOSTIC_NOT_EVIDENCE`; it is never scored and never changes a run.
+
+**To disclose.**
+
+- The detectors raise V0, V1 and V2 alike, since none of them uses the model. After this change, V2 minus V1
+  measures the model on the judgement families only.
+- The detectors were checked against `tuning-16` only. `checking-8` stays the honest check of whether they
+  generalise.
+- No citation, digit, authority or prohibited-claim check was changed. No prompt was changed.
+
+**Waiting for funnel evidence.** These changes are decided only after a traced run shows where misses are lost:
+evidence truncation, the observation window, stopping early, and the 1024-token output cap.
+
+Checked on Windows: compile, `ruff check`, `ruff format --check`, `sh -n` on the export script, schema export check,
+and imports. **Tests were not run here, by agreement.**

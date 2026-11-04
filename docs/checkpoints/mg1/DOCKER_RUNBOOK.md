@@ -157,6 +157,40 @@ scores them and prints `compare.csv`, one row per version and variant. To stop e
 `/work/sweep-v8/KILL`; remove it and rerun to resume. A new prompt needs a new version name, a new sweep name and
 `docker compose --profile tools build trials`. For later single runs, set `$env:SLOTS = "1"` and recreate the model.
 
+**Why a family was missed.** Every trial result now holds a `decisions` list. For each model call it records what
+was shown (tool, citable id counts, whether the evidence was cut, the issue codes still visible) and what came back
+(verdict, proposal, stop reason, `finish_reason`, tokens). It holds no evidence text. The exact prompts and replies
+stay in the attempt's `runtime/model-calls.jsonl`, which remains in the volume and is never exported. The funnel puts
+each missed family at the stage where it was lost. A sweep writes it on its own; for a single run, after scoring:
+
+```powershell
+docker compose --profile tools run --rm trials python scripts/funnel.py /work/<name> /work/<name>-scores /work/<name>-tables/funnel.csv
+```
+
+| Stage | Meaning |
+| --- | --- |
+| `S5_REJECTED` | The model proposed it and the gate refused it; the reason is in `detail`. |
+| `S6_PROPOSED_LOST` | The model proposed it, the gate did not refuse it, and it is still missing. |
+| `S4_SHOWN_NOT_PROPOSED` | A signal for it was visible to the model, and the model did not propose it. |
+| `S3_COMPUTED_NOT_SHOWN` | The report holds a signal for it, but nothing shown to the model did. |
+| `S1_NOT_COMPUTED` | The family has a deterministic signal, and this run computed none. |
+| `S0_JUDGEMENT_ONLY` | No deterministic signal exists; only the model can find it. |
+| `FALSE_POSITIVE` | A family the oracle does not expect; `detail` says whether it came from the model, the calculation or the claim check. |
+
+To read how the model reasons on the calls behind one stage, replay them with thinking switched on, after the run
+has finished and with the model still up. Each recorded prompt is resent unchanged except that the think block is
+opened:
+
+```powershell
+docker compose --profile tools run --rm trials python scripts/replay_reasoning.py /work/<name> --from-funnel /work/<name>-tables/funnel.csv --stage S4_SHOWN_NOT_PROPOSED --limit 20
+```
+
+Output goes to `/work/<name>-reasoning/replays.jsonl`, and `export-results.sh` copies it. Every row is labelled
+`DIAGNOSTIC_NOT_EVIDENCE`: it is never scored and never changes a run. Thinking-mode reasoning explains a
+thinking-mode answer, so read it as a strong hint about how the model reads the evidence, not as a record of the
+original decision. The file holds model text only, never prompts, but the reasoning can quote dossier evidence: read
+it before committing it.
+
 **Constrained mode (C).** The server enforces the schema per request, and the flag records it in the pin:
 
 ```powershell

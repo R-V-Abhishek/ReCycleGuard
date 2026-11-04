@@ -181,6 +181,7 @@ def score(output):
     for command in (
         [sys.executable, str(SCRIPTS / "score_trials.py"), output, ORACLE, VISIBLE, scores],
         [sys.executable, str(SCRIPTS / "make_tables.py"), output, scores, tables],
+        [sys.executable, str(SCRIPTS / "funnel.py"), output, scores, tables / "funnel.csv"],
     ):
         done = subprocess.run([str(part) for part in command], check=False)
         if done.returncode != 0:

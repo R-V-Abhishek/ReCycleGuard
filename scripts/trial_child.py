@@ -7,6 +7,7 @@ is synthetic: its decisions are test scaffolding, never team approvals.
 
 import argparse
 import json
+import re
 import secrets
 import time
 from pathlib import Path
@@ -124,6 +125,135 @@ def call_summary(events):
         if event["event_type"] == "graph.action_rejected.result":
             rejected.append(event["operation_id"])
     return calls, rejected
+
+
+_CODE = re.compile(r'"code":\s*"([A-Z][A-Z0-9_]+)"')
+_TEXT_LIMIT = 300
+
+
+def _text(value):
+    return None if value is None else str(value)[:_TEXT_LIMIT]
+
+
+def _shown(request):
+    """What the model was shown: counts, flags and issue codes, never the evidence itself."""
+    if request.get("phase") == "PLAN":
+        return {
+            "pending_findings": len(request.get("pending_findings") or []),
+            "inspectable_observations": len(request.get("inspectable_observation_ids") or []),
+            "inspectable_total": request.get("inspectable_observations_total"),
+            "prior_observations": len(request.get("prior_stage_observations") or []),
+            "previous_plans": len(request.get("previous_plans") or []),
+            "previous_rejection": "previous_rejection" in request,
+        }
+    stage = (request.get("observation") or {}).get("stage_output") or {}
+    decision = stage.get("concise_decision")
+    evidence = decision.get("evidence_data") if isinstance(decision, dict) else None
+    raw = decision.get("evidence_data_json") if isinstance(decision, dict) else None
+    # Cut evidence stays a JSON string; search it as sent, not re-escaped.
+    text = json.dumps(evidence) if evidence is not None else (raw or "")
+    return {
+        "tool": (request.get("action") or {}).get("allowed_operation"),
+        "disposition": stage.get("disposition"),
+        "citable_evidence_ids": len(stage.get("evidence_ref_ids") or []),
+        "evidence_refs_total": stage.get("evidence_refs_total"),
+        "citable_calculation_ids": len(stage.get("calculation_ids") or []),
+        "evidence_truncated": bool(
+            isinstance(decision, dict) and decision.get("evidence_truncated")
+        ),
+        "evidence_chars": len(json.dumps(evidence)) if evidence is not None else len(raw or ""),
+        "evidence_keys": sorted(evidence) if isinstance(evidence, dict) else None,
+        "visible_issue_codes": sorted(set(_CODE.findall(text))),
+    }
+
+
+def _reply(response):
+    output = (response or {}).get("validated_output_or_null")
+    if not isinstance(output, dict):
+        return None
+    if "verdict" in output:
+        proposal = output.get("finding_proposal") or None
+        return {
+            "verdict": output.get("verdict"),
+            "disposition": output.get("disposition"),
+            "next_check_or_stop": _text(output.get("next_check_or_stop")),
+            "weak_result_or_mistake": _text(output.get("weak_result_or_mistake")),
+            "proposal": None
+            if proposal is None
+            else {
+                "issue_type": proposal.get("issue_type"),
+                "advisory_status": proposal.get("advisory_status"),
+                "cited_ids": len(proposal.get("evidence_ref_ids") or []),
+                "abstention_reason": proposal.get("abstention_reason"),
+                "withheld_claim_scopes": proposal.get("withheld_claim_scopes"),
+                "basis": _text(proposal.get("basis")),
+            },
+        }
+    plan, action = output.get("plan") or {}, output.get("action") or None
+    return {
+        "objective": _text(plan.get("objective")),
+        "hypotheses": [_text(h) for h in (plan.get("hypotheses") or [])[:5]],
+        "proposed_checks": (plan.get("proposed_checks") or [])[:8],
+        "operation": None if action is None else action.get("allowed_operation"),
+        "argument_keys": None if action is None else sorted(action.get("typed_arguments") or {}),
+        "concise_reason": None if action is None else _text(action.get("concise_reason")),
+        "stop_reason": output.get("stop_reason"),
+    }
+
+
+def _transport(trace):
+    """Finish reason and token counts from the provider's own reply."""
+    try:
+        body = json.loads((trace or {}).get("response_body_utf8") or "")
+    except ValueError:
+        return {"finish_reason": None, "prompt_tokens": None, "completion_tokens": None}
+    choice = (body.get("choices") or [{}])[0]
+    usage = body.get("usage") or {}
+    return {
+        "finish_reason": choice.get("finish_reason"),
+        "prompt_tokens": usage.get("prompt_tokens"),
+        "completion_tokens": usage.get("completion_tokens"),
+        "elapsed_seconds": (trace or {}).get("elapsed_seconds"),
+    }
+
+
+def decision_trace(events):
+    """Per model call: what it was shown, what it replied and why it said so, in its own words.
+
+    The model's short text fields are kept, capped; tool evidence and prompts are not. The exact
+    transport stays in the runtime folder (``model-calls.jsonl``) and is never sealed or exported.
+    """
+    rows, shown = [], None
+    for event in events:
+        if event.get("kind") == "PROMPT_PREPARED":
+            shown = {"phase": event.get("phase"), **_shown(event.get("request") or {})}
+        elif event.get("kind") == "MODEL_RESULT":
+            rows.append(
+                {
+                    "operation_id": event["operation_id"],
+                    "attempt_id": event.get("attempt_id"),
+                    "status": event.get("status"),
+                    "issue_codes": sorted({issue["code"] for issue in event.get("issues") or []}),
+                    "shown": shown,
+                    "reply": _reply(event.get("response")),
+                    "transport": _transport(event.get("provider_trace")),
+                }
+            )
+    return rows
+
+
+def model_calls(events):
+    """Exact request and reply bodies, kept beside the trial for diagnostic replay only."""
+    return [
+        {
+            "operation_id": event["operation_id"],
+            "attempt_id": event.get("attempt_id"),
+            "request_body_utf8": (event.get("provider_trace") or {}).get("request_body_utf8"),
+            "response_body_utf8": (event.get("provider_trace") or {}).get("response_body_utf8"),
+        }
+        for event in events
+        if event.get("kind") == "MODEL_RESULT" and event.get("provider_trace")
+    ]
 
 
 def supported_assertions(evidence):
@@ -280,6 +410,7 @@ def main():
             "budget": state["budget"],
             "report": None,
             "calls": None,
+            "decisions": None,
             "rejected_actions": None,
             # The trace endpoint verifies the run's whole audit hash chain before it answers.
             "audit_chain": "UNVERIFIED",
@@ -289,8 +420,13 @@ def main():
             result["report"] = response.json()
         response = client.get(f"{BASE}/runs/{run_id}/trace")
         if response.status_code == 200:
-            result["calls"], result["rejected_actions"] = call_summary(response.json()["events"])
+            events = response.json()["events"]
+            result["calls"], result["rejected_actions"] = call_summary(events)
+            result["decisions"] = decision_trace(events)
             result["audit_chain"] = "VERIFIED"
+            with (arguments.runtime / "model-calls.jsonl").open("w", encoding="utf-8") as stream:
+                for call_record in model_calls(events):
+                    stream.write(json.dumps(call_record, sort_keys=True) + "\n")
     (arguments.runtime / "result.json").write_text(
         json.dumps(result, sort_keys=True, indent=1) + "\n", "utf-8"
     )
