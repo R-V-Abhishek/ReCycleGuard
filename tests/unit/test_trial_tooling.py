@@ -970,3 +970,39 @@ def test_the_replay_opens_thinking_only_on_recorded_prompts_and_labels_it(tmp_pa
     job = work[0]["job"]
     assert job["prompt"].endswith("assistant\n<think>\n") and "json_schema" not in job["body"]
     assert replay.LABEL == "DIAGNOSTIC_NOT_EVIDENCE"
+
+
+def test_the_census_counts_records_and_check_states_without_their_contents(tmp_path):
+    from recycleguard.storage import BlobStore
+
+    child = script("trial_child")
+    blobs = BlobStore(tmp_path)
+
+    def put(value):
+        return blobs.put(json.dumps(value).encode(), "application/json").model_dump(mode="json")
+
+    calculation = {
+        "analyzed_input_membership_blob": put(
+            {"members": [{"record_type": "Allocation"}, {"record_type": "Certificate"}]}
+        ),
+        "quantity_dispositions_blob": put([{"record_type": "Allocation", "state": "EXCLUDED"}]),
+        "derivation_blob": put(
+            {
+                "allocation_checks": [{"rule": "LIFECYCLE", "state": "UNKNOWN", "code": None}],
+                "priority_checks": [{"state": "PASS"}],
+                "eligibility": [
+                    {"condition": "LIFECYCLE", "testability": "TESTABLE", "state": "UNKNOWN"}
+                ],
+            }
+        ),
+    }
+    found = child.census(tmp_path, {"report": {"calculations": [calculation]}})
+    assert found == {
+        "records": {"Allocation": 1, "Certificate": 1},
+        "dispositions": {"Allocation:EXCLUDED": 1},
+        "allocation_checks": {"LIFECYCLE:UNKNOWN:None": 1},
+        "priority_checks": {"PASS": 1},
+        "eligibility": {"LIFECYCLE:TESTABLE:UNKNOWN": 1},
+    }
+    broken = child.census(tmp_path, {"report": {"calculations": [{}]}})
+    assert list(broken) == ["error"]

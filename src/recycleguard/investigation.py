@@ -531,7 +531,9 @@ class InvestigationService:
         years = [r.liability_year for r in universe.records if r.record_type == "ObligationBucket"]
         if not years:
             return []
-        claims = inspect_regulatory_claims(self._observations(spec), reporting_period=max(years))
+        claims = inspect_regulatory_claims(
+            self._observations(spec), reporting_period=max(years), case_periods=years
+        )
         classifications = {
             "OLD_RULE_PERIOD": (
                 "F11_WRONG_PERIOD_RULE",
@@ -1010,8 +1012,11 @@ class InvestigationService:
             baseline = self._baseline(context, spec)
             calculated = baseline.output.calculation
             # Facts the reconciliation already established are findings without the model.
+            universe = universe_from_membership(
+                spec.case_snapshot.snapshot_id, self._membership(spec)
+            )
             findings = self._findings(spec) + calculation_findings(
-                calculated, load_derivation(calculated, self.blobs)
+                calculated, load_derivation(calculated, self.blobs), universe
             )
             accepted, rejected, inspected = self._gated_findings(spec, calculated, findings)
             findings = findings + accepted

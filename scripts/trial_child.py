@@ -256,6 +256,51 @@ def model_calls(events):
     ]
 
 
+def census(root, report):
+    """Record kinds and check states behind each calculation: counts only, no record contents.
+
+    It shows why a deterministic family did or did not fire: whether the records it needs were
+    extracted at all, and what state each reconciliation check reached.
+    """
+    from collections import Counter
+
+    from recycleguard.contracts.core import BlobRef
+    from recycleguard.storage import BlobStore
+
+    try:
+        blobs = BlobStore(root)
+
+        def load(ref):
+            return json.loads(blobs.get(BlobRef.model_validate(ref)))
+
+        records, dispositions, checks, priority, eligibility = (Counter() for _ in range(5))
+        for calculation in ((report or {}).get("report") or {}).get("calculations") or []:
+            membership = load(calculation["analyzed_input_membership_blob"])
+            records.update(member["record_type"] for member in membership["members"])
+            dispositions.update(
+                f"{item['record_type']}:{item['state']}"
+                for item in load(calculation["quantity_dispositions_blob"])
+            )
+            derivation = load(calculation["derivation_blob"])
+            checks.update(
+                f"{c['rule']}:{c['state']}:{c.get('code')}" for c in derivation["allocation_checks"]
+            )
+            priority.update(c["state"] for c in derivation["priority_checks"])
+            eligibility.update(
+                f"{o['condition']}:{o['testability']}:{o['state']}"
+                for o in derivation["eligibility"]
+            )
+        return {
+            "records": dict(sorted(records.items())),
+            "dispositions": dict(sorted(dispositions.items())),
+            "allocation_checks": dict(sorted(checks.items())),
+            "priority_checks": dict(sorted(priority.items())),
+            "eligibility": dict(sorted(eligibility.items())),
+        }
+    except Exception as exc:  # diagnostic only: never fail a trial over it
+        return {"error": f"{type(exc).__name__}: {exc}"[:300]}
+
+
 def supported_assertions(evidence):
     observations = {o["observation_id"]: o for o in evidence["observations"]}
     assertions = []
@@ -411,6 +456,7 @@ def main():
             "report": None,
             "calls": None,
             "decisions": None,
+            "census": None,
             "rejected_actions": None,
             # The trace endpoint verifies the run's whole audit hash chain before it answers.
             "audit_chain": "UNVERIFIED",
@@ -418,6 +464,7 @@ def main():
         response = client.get(f"{BASE}/runs/{run_id}/report")
         if response.status_code == 200:
             result["report"] = response.json()
+            result["census"] = census(arguments.runtime / "root", result["report"])
         response = client.get(f"{BASE}/runs/{run_id}/trace")
         if response.status_code == 200:
             events = response.json()["events"]

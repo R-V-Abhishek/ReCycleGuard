@@ -96,3 +96,19 @@ def test_actual_visible_s06_pdf_claims():
     assert "UNVERIFIED_EXTENSION" in kinds
     assert "UNSUPPORTED_REFURBISHMENT_OFFSET" in kinds
     assert all(f.evidence_refs and f.evidence_refs[0].ref_kind == "OBSERVATION" for f in findings)
+
+
+def test_an_earlier_period_the_case_holds_a_liability_for_is_not_a_wrong_period_rule():
+    text = "Earlier liability FY2023-24 under the applicable rules remains unmet"
+    claims = inspect_regulatory_claims([observation(text)], "2024-2025")
+    assert [c.kind for c in claims] == ["OLD_RULE_PERIOD"]
+    own = inspect_regulatory_claims(
+        [observation(text)], "2024-2025", case_periods=["2023-2024", "2024-2025"]
+    )
+    assert own == []
+    rule_2016 = inspect_regulatory_claims(
+        [observation("Filed under the 2016 rules for FY2023-24")],
+        "2024-2025",
+        case_periods=["2023-2024", "2024-2025"],
+    )
+    assert [c.kind for c in rule_2016] == ["OLD_RULE_PERIOD"]

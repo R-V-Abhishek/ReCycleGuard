@@ -177,6 +177,10 @@ docker compose --profile tools run --rm trials python scripts/funnel.py /work/<n
 | `S0_JUDGEMENT_ONLY` | No deterministic signal exists; only the model can find it. |
 | `FALSE_POSITIVE` | A family the oracle does not expect; `detail` says whether it came from the model, the calculation or the claim check. |
 
+The `records` and `checks` columns come from the trial's `census`. They show which record types the case produced
+and what state each reconciliation check reached, so a family that never fires can be traced to missing records or
+to a check that stayed UNKNOWN.
+
 To read how the model reasons on the calls behind one stage, replay them with thinking switched on, after the run
 has finished and with the model still up. Each recorded prompt is resent unchanged except that the think block is
 opened:

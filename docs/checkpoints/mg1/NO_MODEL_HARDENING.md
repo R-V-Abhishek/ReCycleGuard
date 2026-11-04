@@ -136,3 +136,35 @@ evidence truncation, the observation window, stopping early, and the 1024-token 
 
 Checked on Windows: compile, `ruff check`, `ruff format --check`, `sh -n` on the export script, schema export check,
 and imports. **Tests were not run here, by agreement.**
+
+### Follow-up after `tuning-16-v7-calc`
+
+That run (v7, one slot) reached 5/16 for both variants, up from 2/16, with micro F1 0.55 against 0.37/0.38. Every
+gain came from deterministic findings; the model contributed none. 11 of the 25 remaining misses had no computed
+signal at all. Three causes, each confirmed in the code:
+
+- **The domain checks never ran.** `domain/checks.py` holds the allowlisted checks for weight basis, credit events,
+  capability and identity, but no model tool or pipeline step called them. The reconciliation tests lifecycle and
+  capability only on allocations that survived earlier checks. `calculation_findings` now also sweeps every
+  allocation of the analyzed buckets, and every product mapping and sales record:
+
+  | Family | New signal | Status |
+  | --- | --- | --- |
+  | F05 | a transfer recipient that is not the bucket producer and not shown to be the same party | discrepancy |
+  | F09 | a credit-event check FAIL; or terminal evidence that cannot be dated or ordered (also from the reconciliation's own UNKNOWN lifecycle checks) | discrepancy; withheld (`undated_history`) if any is unresolved |
+  | F10 | a capability check FAIL on any allocation, including one excluded for another reason | discrepancy |
+  | F13 | two weight bases for one product in force together, or sales mass disagreeing with them | withheld (`weight_basis_selection`) |
+
+- **F04.** Every reconciliation `DIMENSION_MISMATCH` now counts, not only a BLOCKING one. Metal is a dimension of a
+  quantity here, so a wrong metal is also a dimension mix, per F04's definition. The planned split of the allocation
+  condition is therefore not needed.
+- **F11 false positive.** The period check compared a cited period with the latest bucket year only. A case with an
+  earlier liability year flagged its own earlier period. A period the case holds a bucket for is no longer flagged;
+  a 2016-rules citation still is.
+
+Each trial result now also holds a `census`: counts of record types, quantity dispositions, allocation checks,
+priority checks and eligibility states, with no record contents. `funnel.csv` shows it per miss, so a family that
+still does not fire shows whether its records were extracted at all.
+
+The scopes chosen for F09 and F13 match the public withheld-scope list. They were checked against `tuning-16`
+results only; `checking-8` stays the check of whether these rules generalise. They raise V0, V1 and V2 alike.

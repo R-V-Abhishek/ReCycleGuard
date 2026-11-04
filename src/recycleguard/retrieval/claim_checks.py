@@ -54,15 +54,18 @@ def _period(value: str) -> str | None:
 
 
 def inspect_regulatory_claims(
-    observations: list[Observation], reporting_period: str
+    observations: list[Observation], reporting_period: str, case_periods=()
 ) -> list[RegulatoryClaimFinding]:
     """Inspect supplied, approved-case observations; references retain exact original locators.
 
     This detects claims requiring investigation, never certifies the legal authority
     of a dossier assertion. Callers retain responsibility for case-membership approval.
+    A cited period the case itself holds an obligation for (``case_periods``, such as an
+    earlier liability year) is that period's own record, not a wrong-period rule citation.
     """
     findings = []
     target = _period(reporting_period)
+    own = {target} | {_period(period) for period in case_periods}
     for observation in observations:
         text = json.dumps(
             {"raw": observation.raw_fields, "parsed": observation.parsed_fields}, ensure_ascii=False
@@ -73,7 +76,7 @@ def inspect_regulatory_claims(
         if old_rule or (
             cited is not None
             and target is not None
-            and cited != target
+            and cited not in own
             and any(term in text for term in ("rule", "regulat", "applicab"))
         ):
             kinds.append(

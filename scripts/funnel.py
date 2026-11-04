@@ -46,6 +46,8 @@ COLUMNS = [
     "truncated_evidence_calls",
     "length_stops",
     "stop_reason",
+    "records",
+    "checks",
 ]
 
 
@@ -59,6 +61,10 @@ def _codes(value, found):
         for item in value:
             _codes(item, found)
     return found
+
+
+def _compact(counts):
+    return "" if not counts else ";".join(f"{key}={value}" for key, value in counts.items())
 
 
 def _source(finding):
@@ -124,6 +130,14 @@ def rows_for(result, score):
         if decisions is None
         else sum((d.get("transport") or {}).get("finish_reason") == "length" for d in decisions),
         "stop_reason": result.get("stop_reason"),
+        # What the deterministic checks had to work with, when the trial recorded it.
+        "records": _compact((result.get("census") or {}).get("records")),
+        "checks": _compact(
+            {
+                **((result.get("census") or {}).get("allocation_checks") or {}),
+                **((result.get("census") or {}).get("eligibility") or {}),
+            }
+        ),
     }
     expected = set(score.get("expected_families") or [])
     emitted = set(score.get("emitted_families") or [])
