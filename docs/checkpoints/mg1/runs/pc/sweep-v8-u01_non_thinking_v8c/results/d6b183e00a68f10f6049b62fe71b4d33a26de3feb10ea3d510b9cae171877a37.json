@@ -1,0 +1,61 @@
+{
+ "audit_chain": "VERIFIED",
+ "budget": {
+  "actions": 3,
+  "cost_known_calls": 0,
+  "finding_actions": {},
+  "finding_reformulations": {},
+  "model_calls": 2,
+  "observed_cost_usd": null,
+  "observed_tokens": 5072,
+  "preflight_actions": 1,
+  "report_repairs": 0,
+  "reserved_tokens": 65536,
+  "retries": 1,
+  "tool_calls": 0,
+  "usage_known_calls": 2,
+  "verification_actions": 0
+ },
+ "calls": [
+  {
+   "event_type": "graph.stage.preflight.result",
+   "issue_codes": [],
+   "kind": "STAGE",
+   "operation_id": "operation:run:be537a5c56a9435996e84864cc9aac06:turn_2:preflight",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.plan.result",
+   "issue_codes": [
+    "PROVIDER_INVALID_OUTPUT"
+   ],
+   "kind": "MODEL",
+   "operation_id": "operation:run:be537a5c56a9435996e84864cc9aac06:turn_3:plan",
+   "status": "FAILED"
+  },
+  {
+   "event_type": "graph.model.plan.result",
+   "issue_codes": [
+    "PROVIDER_INVALID_OUTPUT"
+   ],
+   "kind": "MODEL",
+   "operation_id": "operation:run:be537a5c56a9435996e84864cc9aac06:turn_3:plan",
+   "status": "FAILED"
+  }
+ ],
+ "case_id": "case_7267189b1c",
+ "experiment_variant": "V2_ADAPTIVE_REAL_MODEL",
+ "job": {
+  "cancel_requested": 0,
+  "detail": "FAILED",
+  "dossier_id": "dossier:308a646d6bdb46e5a262eb42e79f9571",
+  "run_id": "run:be537a5c56a9435996e84864cc9aac06",
+  "status": "STOPPED"
+ },
+ "rejected_actions": [],
+ "report": null,
+ "requested_variant": "ADAPTIVE",
+ "run_id": "run:be537a5c56a9435996e84864cc9aac06",
+ "status": "FAILED",
+ "stop_reason": "PROVIDER_FAILURE"
+}
