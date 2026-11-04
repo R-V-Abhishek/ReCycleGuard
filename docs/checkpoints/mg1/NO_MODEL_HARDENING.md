@@ -176,3 +176,38 @@ it always inspects the dossier once (so directive text, F16, can be seen when no
 only after that inspection; its undecided fallback names a family (F07 when a quantity is pending, otherwise F02)
 instead of leaving the model to guess; and it tells the model that a rule search, which the fixed plan still runs,
 never yields a finding. Both versions follow the public family definitions and were written from `tuning-16` misses.
+
+### Prompt failure analysis and v12 (sweep-v12)
+
+`sweep-v11` (three slots): v7 9/16 V2 and 8/16 V1, micro F1 0.79 and 0.76; v10 9 and 2 (V1 had 11 F07 false
+positives); v11 8 and 5 (7 F07 false positives). The decision traces give the exact failure conditions:
+
+- **v10 and v11 anchored on F07.** V1 proposed F07 after `trace_certificate` whenever it showed `AMBIGUOUS_EVENT`. That
+  issue appears in 10 of 16 cases, because any pending event assertion raises it. Both prompts also gave F07 as
+  their worked example. v10 V2 proposed F01 after every reconciliation (11 of 16), mostly with an invalid status.
+- **v7 V2 stops after one check.** 15 of 16 trials inspected 10 observations, abstained and stopped; the mean was 1.9
+  calls. v7's only stop instruction is its refutation example.
+- **v7 V1 sees problems it cannot name.** It answered SUPPORTS and RESOLVE with no proposal 8 times. v7 lists the
+  family names only through the schema enum and never defines them.
+
+What a prompt cannot reach on `tuning-16`, from the code:
+
+- **F16:** `inspect_evidence` shows 16 whitelisted structured fields, never document text, so injected text is
+  invisible to the model.
+- **F07 payments:** the inspection shortlist holds only certificate, event and allocation records, never commercial
+  ones.
+- **F01:** after the deterministic fixes, the clean case and the F03 and F16 cases all show only
+  `APPLICABILITY_UNRESOLVED`. An F01 rule cannot tell them apart, which is why v10's F01 proposals were wrong.
+- **F04 on `b182` and F10 on `fb68`:** deterministic, but the census shows the records the checks need are absent.
+
+The prompt headroom is therefore F02, F03 and part of F07: at most three families per variant. v12 tests four
+single-change ablations of v7, so `sweep-v12` attributes each effect:
+
+| Version | Change from v7 | Targets |
+| --- | --- | --- |
+| v12a | check order (reconcile, trace, inspect) and continue while checks remain | V2 stopping after one check |
+| v12b | public definitions of F02, F03 and F07 tied to visible records, the pending scope, and a list of signals that identify no family | unnamed problems; F07 anchoring |
+| v12c | v12a and v12b | both |
+| v12d | v12c, and SUPPORTS only with a proposal | SUPPORTS with nothing behind it |
+
+None of them has a worked example naming a family. v7 stays the baseline in the same sweep.
