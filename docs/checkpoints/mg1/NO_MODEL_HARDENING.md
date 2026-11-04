@@ -168,3 +168,11 @@ still does not fire shows whether its records were extracted at all.
 
 The scopes chosen for F09 and F13 match the public withheld-scope list. They were checked against `tuning-16`
 results only; `checking-8` stays the check of whether these rules generalise. They raise V0, V1 and V2 alike.
+
+### Prompt v11 (sweep-v11)
+
+v11 is v10 with four corrections, compared with v7 and v10 in `sweep-v11` (three slots, `tuning-16`, on the code above):
+it always inspects the dossier once (so directive text, F16, can be seen when nothing is pending); it proposes F01
+only after that inspection; its undecided fallback names a family (F07 when a quantity is pending, otherwise F02)
+instead of leaving the model to guess; and it tells the model that a rule search, which the fixed plan still runs,
+never yields a finding. Both versions follow the public family definitions and were written from `tuning-16` misses.
