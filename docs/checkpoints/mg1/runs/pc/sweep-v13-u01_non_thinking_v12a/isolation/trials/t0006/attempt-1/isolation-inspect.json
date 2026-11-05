@@ -1,0 +1,297 @@
+[
+    {
+        "Id": "34e18881e45e6c50f0cbf59bf94dbf68e7a342c88e2d8ddbfef6c6b0584c095d",
+        "Created": "2026-11-05T03:42:58.88994856Z",
+        "Path": "/opt/venv/bin/python",
+        "Args": [
+            "-I",
+            "/program/trial_child.py",
+            "--case",
+            "case_55681578c8",
+            "--variant",
+            "FIXED_RETRIEVAL",
+            "--visible",
+            "/visible",
+            "--runtime",
+            "/runtime",
+            "--container",
+            "--config",
+            "/models/provenance/qwen3.5-9b-q8_0/local-model-u01_non_thinking_v12a-s3.json"
+        ],
+        "State": {
+            "Status": "created",
+            "Running": false,
+            "Paused": false,
+            "Restarting": false,
+            "OOMKilled": false,
+            "Dead": false,
+            "Pid": 0,
+            "ExitCode": 0,
+            "Error": "",
+            "StartedAt": "0001-01-01T00:00:00Z",
+            "FinishedAt": "0001-01-01T00:00:00Z"
+        },
+        "Image": "sha256:333da9d3417a515b98dadf05031a05a308ec40c64a0cad521e00b8084f893885",
+        "ResolvConfPath": "",
+        "HostnamePath": "",
+        "HostsPath": "",
+        "LogPath": "",
+        "Name": "/recycleguard-trial-0c2609ace65f29a9",
+        "RestartCount": 0,
+        "Driver": "overlayfs",
+        "Platform": "linux",
+        "MountLabel": "",
+        "ProcessLabel": "",
+        "AppArmorProfile": "",
+        "ExecIDs": null,
+        "HostConfig": {
+            "Binds": null,
+            "ContainerIDFile": "",
+            "LogConfig": {
+                "Type": "json-file",
+                "Config": {}
+            },
+            "NetworkMode": "container:95ccbeef0f01b40efa17854c7ff3bde189509c0c57dc3e8f75cc3ea995831bee",
+            "PortBindings": {},
+            "RestartPolicy": {
+                "Name": "no",
+                "MaximumRetryCount": 0
+            },
+            "AutoRemove": false,
+            "VolumeDriver": "",
+            "VolumesFrom": null,
+            "ConsoleSize": [
+                0,
+                0
+            ],
+            "CapAdd": null,
+            "CapDrop": [
+                "ALL"
+            ],
+            "CgroupnsMode": "private",
+            "Dns": [],
+            "DnsOptions": [],
+            "DnsSearch": [],
+            "ExtraHosts": null,
+            "GroupAdd": null,
+            "IpcMode": "private",
+            "Cgroup": "",
+            "Links": null,
+            "OomScoreAdj": 0,
+            "PidMode": "",
+            "Privileged": false,
+            "PublishAllPorts": false,
+            "ReadonlyRootfs": true,
+            "SecurityOpt": [
+                "no-new-privileges"
+            ],
+            "Tmpfs": {
+                "/tmp": "rw,noexec,nosuid,size=256m"
+            },
+            "UTSMode": "",
+            "UsernsMode": "",
+            "ShmSize": 67108864,
+            "Runtime": "runc",
+            "Isolation": "",
+            "CpuShares": 0,
+            "Memory": 8589934592,
+            "NanoCpus": 8000000000,
+            "CgroupParent": "",
+            "BlkioWeight": 0,
+            "BlkioWeightDevice": [],
+            "BlkioDeviceReadBps": [],
+            "BlkioDeviceWriteBps": [],
+            "BlkioDeviceReadIOps": [],
+            "BlkioDeviceWriteIOps": [],
+            "CpuPeriod": 0,
+            "CpuQuota": 0,
+            "CpuRealtimePeriod": 0,
+            "CpuRealtimeRuntime": 0,
+            "CpusetCpus": "",
+            "CpusetMems": "",
+            "Devices": [],
+            "DeviceCgroupRules": null,
+            "DeviceRequests": null,
+            "MemoryReservation": 0,
+            "MemorySwap": 17179869184,
+            "MemorySwappiness": null,
+            "OomKillDisable": false,
+            "PidsLimit": 512,
+            "Ulimits": [],
+            "CpuCount": 0,
+            "CpuPercent": 0,
+            "IOMaximumIOps": 0,
+            "IOMaximumBandwidth": 0,
+            "Mounts": [
+                {
+                    "Type": "volume",
+                    "Source": "recycleguard-trial-data",
+                    "Target": "/visible",
+                    "ReadOnly": true,
+                    "VolumeOptions": {
+                        "Subpath": "sweep-v13-u01_non_thinking_v12a/trials/t0006/attempt-1/visible",
+                        "DriverConfig": {}
+                    }
+                },
+                {
+                    "Type": "volume",
+                    "Source": "recycleguard-trial-data",
+                    "Target": "/program",
+                    "ReadOnly": true,
+                    "VolumeOptions": {
+                        "Subpath": "sweep-v13-u01_non_thinking_v12a/trials/t0006/attempt-1/program",
+                        "DriverConfig": {}
+                    }
+                },
+                {
+                    "Type": "volume",
+                    "Source": "recycleguard-trial-data",
+                    "Target": "/runtime",
+                    "VolumeOptions": {
+                        "Subpath": "sweep-v13-u01_non_thinking_v12a/trials/t0006/attempt-1/runtime",
+                        "DriverConfig": {}
+                    }
+                },
+                {
+                    "Type": "volume",
+                    "Source": "recycleguard-model-provenance",
+                    "Target": "/models/provenance",
+                    "ReadOnly": true
+                }
+            ],
+            "MaskedPaths": [
+                "/proc/acpi",
+                "/proc/asound",
+                "/proc/interrupts",
+                "/proc/kcore",
+                "/proc/keys",
+                "/proc/latency_stats",
+                "/proc/sched_debug",
+                "/proc/scsi",
+                "/proc/timer_list",
+                "/proc/timer_stats",
+                "/sys/devices/virtual/powercap",
+                "/sys/firmware"
+            ],
+            "ReadonlyPaths": [
+                "/proc/bus",
+                "/proc/fs",
+                "/proc/irq",
+                "/proc/sys",
+                "/proc/sysrq-trigger"
+            ]
+        },
+        "GraphDriver": {
+            "Data": null,
+            "Name": "overlayfs"
+        },
+        "Mounts": [
+            {
+                "Type": "volume",
+                "Name": "recycleguard-trial-data",
+                "Source": "/var/lib/docker/volumes/recycleguard-trial-data/_data",
+                "Destination": "/visible",
+                "Driver": "local",
+                "Mode": "z",
+                "RW": false,
+                "Propagation": ""
+            },
+            {
+                "Type": "volume",
+                "Name": "recycleguard-trial-data",
+                "Source": "/var/lib/docker/volumes/recycleguard-trial-data/_data",
+                "Destination": "/program",
+                "Driver": "local",
+                "Mode": "z",
+                "RW": false,
+                "Propagation": ""
+            },
+            {
+                "Type": "volume",
+                "Name": "recycleguard-trial-data",
+                "Source": "/var/lib/docker/volumes/recycleguard-trial-data/_data",
+                "Destination": "/runtime",
+                "Driver": "local",
+                "Mode": "z",
+                "RW": true,
+                "Propagation": ""
+            },
+            {
+                "Type": "volume",
+                "Name": "recycleguard-model-provenance",
+                "Source": "/var/lib/docker/volumes/recycleguard-model-provenance/_data",
+                "Destination": "/models/provenance",
+                "Driver": "local",
+                "Mode": "z",
+                "RW": false,
+                "Propagation": ""
+            }
+        ],
+        "Config": {
+            "Hostname": "34e18881e45e",
+            "Domainname": "",
+            "User": "10001:10001",
+            "AttachStdin": false,
+            "AttachStdout": true,
+            "AttachStderr": true,
+            "Tty": false,
+            "OpenStdin": false,
+            "StdinOnce": false,
+            "Env": [
+                "PATH=/opt/venv/bin:/usr/local/bin:/usr/bin:/bin",
+                "LANG=C.UTF-8",
+                "GPG_KEY=7169605F62C751356D054A26A821E680E5FA6305",
+                "PYTHON_VERSION=3.12.16",
+                "PYTHON_SHA256=b5796915dc45ff745cfb4e990a7e7c93d6f546328a102ce31448d69ebc37575c",
+                "PYTHONDONTWRITEBYTECODE=1",
+                "PYTHONUNBUFFERED=1",
+                "HOME=/runtime",
+                "TMPDIR=/tmp"
+            ],
+            "Cmd": [
+                "-I",
+                "/program/trial_child.py",
+                "--case",
+                "case_55681578c8",
+                "--variant",
+                "FIXED_RETRIEVAL",
+                "--visible",
+                "/visible",
+                "--runtime",
+                "/runtime",
+                "--container",
+                "--config",
+                "/models/provenance/qwen3.5-9b-q8_0/local-model-u01_non_thinking_v12a-s3.json"
+            ],
+            "Image": "recycleguard-investigator:local",
+            "Volumes": null,
+            "WorkingDir": "/tmp",
+            "Entrypoint": [
+                "/opt/venv/bin/python"
+            ],
+            "Labels": {
+                "com.docker.compose.project": "recycleguard",
+                "com.docker.compose.service": "investigator",
+                "com.docker.compose.version": "5.1.2",
+                "recycleguard.session": "904a6e1cc03f34cf",
+                "recycleguard.trial": "1"
+            },
+            "StopTimeout": 1
+        },
+        "NetworkSettings": {
+            "SandboxID": "",
+            "SandboxKey": "",
+            "Ports": {},
+            "Networks": {}
+        },
+        "ImageManifestDescriptor": {
+            "mediaType": "application/vnd.oci.image.manifest.v1+json",
+            "digest": "sha256:f3b5a04c3a58640bc200f293e4b3dc7a2f6051f15e96078c7759199613f80b82",
+            "size": 1622,
+            "platform": {
+                "architecture": "amd64",
+                "os": "linux"
+            }
+        }
+    }
+]

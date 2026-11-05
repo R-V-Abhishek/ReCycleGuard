@@ -1,0 +1,210 @@
+{
+ "audit_chain": "VERIFIED",
+ "budget": {
+  "actions": 6,
+  "cost_known_calls": 0,
+  "finding_actions": {
+   "finding:b182565abf1b4cd1bd50ac0b481c2400": 1
+  },
+  "finding_reformulations": {},
+  "model_calls": 4,
+  "observed_cost_usd": null,
+  "observed_tokens": 12218,
+  "preflight_actions": 1,
+  "report_repairs": 0,
+  "reserved_tokens": 131072,
+  "retries": 1,
+  "tool_calls": 1,
+  "usage_known_calls": 4,
+  "verification_actions": 0
+ },
+ "calls": [
+  {
+   "event_type": "graph.stage.preflight.result",
+   "issue_codes": [],
+   "kind": "STAGE",
+   "operation_id": "operation:run:b182565abf1b4cd1bd50ac0b481c2400:turn_2:preflight",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.plan.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:b182565abf1b4cd1bd50ac0b481c2400:turn_3:plan",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.tool.tool.result",
+   "issue_codes": [],
+   "kind": "TOOL",
+   "operation_id": "operation:run:b182565abf1b4cd1bd50ac0b481c2400:turn_3:tool",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.assess.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:b182565abf1b4cd1bd50ac0b481c2400:turn_3:assess",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.plan.result",
+   "issue_codes": [
+    "PROVIDER_INVALID_OUTPUT"
+   ],
+   "kind": "MODEL",
+   "operation_id": "operation:run:b182565abf1b4cd1bd50ac0b481c2400:turn_4:plan",
+   "status": "FAILED"
+  },
+  {
+   "event_type": "graph.model.plan.result",
+   "issue_codes": [
+    "PROVIDER_INVALID_OUTPUT"
+   ],
+   "kind": "MODEL",
+   "operation_id": "operation:run:b182565abf1b4cd1bd50ac0b481c2400:turn_4:plan",
+   "status": "FAILED"
+  }
+ ],
+ "case_id": "case_aad24faea7",
+ "census": null,
+ "decisions": [
+  {
+   "attempt_id": "attempt:run:b182565abf1b4cd1bd50ac0b481c2400:turn_3:plan_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:b182565abf1b4cd1bd50ac0b481c2400:turn_3:plan",
+   "reply": {
+    "argument_keys": [],
+    "concise_reason": "Prior stage observations indicate a qualified calculation (calc:abc00114c998f2d9abd691a2) was performed. Running compute_reconciliation first is required per PLAN rules before inspecting evidence.",
+    "hypotheses": [
+     "The dossier contains evidence observations that may support or refute allocation gap claims.",
+     "Prior calculations (calc:abc00114c998f2d9abd691a2) may have qualified findings that require re-evaluation."
+    ],
+    "objective": "Assess supported allocation gaps and evidence qualifications in the frozen dossier.",
+    "operation": "compute_reconciliation",
+    "proposed_checks": [
+     "compute_reconciliation",
+     "inspect_evidence"
+    ],
+    "stop_reason": null
+   },
+   "shown": {
+    "inspectable_observations": 8,
+    "inspectable_total": 58,
+    "pending_findings": 1,
+    "phase": "PLAN",
+    "previous_plans": 0,
+    "previous_rejection": false,
+    "prior_observations": 1
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 367,
+    "elapsed_seconds": 8.469521687016822,
+    "finish_reason": "stop",
+    "prompt_tokens": 2274
+   }
+  },
+  {
+   "attempt_id": "attempt:run:b182565abf1b4cd1bd50ac0b481c2400:turn_3:assess_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:b182565abf1b4cd1bd50ac0b481c2400:turn_3:assess",
+   "reply": {
+    "disposition": "CONTINUE",
+    "next_check_or_stop": "continue",
+    "proposal": null,
+    "verdict": "WEAK",
+    "weak_result_or_mistake": null
+   },
+   "shown": {
+    "citable_calculation_ids": 1,
+    "citable_evidence_ids": 0,
+    "disposition": "QUALIFIED",
+    "evidence_chars": 1561,
+    "evidence_keys": [
+     "bucket_count",
+     "buckets",
+     "calculation_id",
+     "coverage",
+     "issues"
+    ],
+    "evidence_refs_total": 0,
+    "evidence_truncated": false,
+    "phase": "ASSESS",
+    "tool": "compute_reconciliation",
+    "visible_issue_codes": [
+     "APPLICABILITY_UNRESOLVED"
+    ]
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 42,
+    "elapsed_seconds": 1.9941826489812229,
+    "finish_reason": "stop",
+    "prompt_tokens": 2625
+   }
+  },
+  {
+   "attempt_id": "attempt:run:b182565abf1b4cd1bd50ac0b481c2400:turn_4:plan_0",
+   "issue_codes": [
+    "PROVIDER_INVALID_OUTPUT"
+   ],
+   "operation_id": "operation:run:b182565abf1b4cd1bd50ac0b481c2400:turn_4:plan",
+   "reply": null,
+   "shown": {
+    "inspectable_observations": 8,
+    "inspectable_total": 58,
+    "pending_findings": 1,
+    "phase": "PLAN",
+    "previous_plans": 1,
+    "previous_rejection": false,
+    "prior_observations": 2
+   },
+   "status": "FAILED",
+   "transport": {
+    "completion_tokens": 157,
+    "elapsed_seconds": 3.7610863500158302,
+    "finish_reason": "stop",
+    "prompt_tokens": 3280
+   }
+  },
+  {
+   "attempt_id": "attempt:run:b182565abf1b4cd1bd50ac0b481c2400:turn_4:plan_1",
+   "issue_codes": [
+    "PROVIDER_INVALID_OUTPUT"
+   ],
+   "operation_id": "operation:run:b182565abf1b4cd1bd50ac0b481c2400:turn_4:plan",
+   "reply": null,
+   "shown": {
+    "inspectable_observations": 8,
+    "inspectable_total": 58,
+    "pending_findings": 1,
+    "phase": "PLAN",
+    "previous_plans": 1,
+    "previous_rejection": false,
+    "prior_observations": 2
+   },
+   "status": "FAILED",
+   "transport": {
+    "completion_tokens": 157,
+    "elapsed_seconds": 3.860894901008578,
+    "finish_reason": "stop",
+    "prompt_tokens": 3316
+   }
+  }
+ ],
+ "experiment_variant": "V2_ADAPTIVE_REAL_MODEL",
+ "job": {
+  "cancel_requested": 0,
+  "detail": "FAILED",
+  "dossier_id": "dossier:b674a40539bb48e5bd4c023f73c5b4ea",
+  "run_id": "run:b182565abf1b4cd1bd50ac0b481c2400",
+  "status": "STOPPED"
+ },
+ "rejected_actions": [],
+ "report": null,
+ "requested_variant": "ADAPTIVE",
+ "run_id": "run:b182565abf1b4cd1bd50ac0b481c2400",
+ "status": "FAILED",
+ "stop_reason": "PROVIDER_FAILURE"
+}

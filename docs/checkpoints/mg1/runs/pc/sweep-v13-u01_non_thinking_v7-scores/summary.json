@@ -1,0 +1,68 @@
+{
+  "backend": "LOCAL_MODEL_DOCKER",
+  "not_scored": 0,
+  "by_variant": {
+    "ADAPTIVE": {
+      "scheduled": 32,
+      "scored": 32,
+      "successes": 17,
+      "success_rate": 0.53125,
+      "success_interval_95": [
+        0.28125,
+        0.75
+      ],
+      "preflight_blocks": 2
+    },
+    "FIXED_RETRIEVAL": {
+      "scheduled": 32,
+      "scored": 32,
+      "successes": 17,
+      "success_rate": 0.53125,
+      "success_interval_95": [
+        0.28125,
+        0.75
+      ],
+      "preflight_blocks": 2
+    }
+  },
+  "v2_minus_v1": {
+    "cases": 16,
+    "excluded_unpaired_cases": 0,
+    "difference": 0.0,
+    "interval_95": [
+      0.0,
+      0.0
+    ]
+  },
+  "v2_minus_v1_without_preflight_blocks": {
+    "cases": 15,
+    "excluded_unpaired_cases": 0,
+    "difference": 0.0,
+    "interval_95": [
+      0.0,
+      0.0
+    ]
+  },
+  "v1_minus_sc": {
+    "cases": 0,
+    "excluded_unpaired_cases": 16,
+    "difference": null,
+    "interval_95": null
+  },
+  "v2_minus_sc": {
+    "cases": 0,
+    "excluded_unpaired_cases": 16,
+    "difference": null,
+    "interval_95": null
+  },
+  "failure_classes": {
+    "model-reasoning": 25,
+    "model-schema": 5
+  },
+  "canaries": {
+    "checked": 0,
+    "drifted": [],
+    "signatures": {},
+    "baseline_compared": false
+  }
+}
