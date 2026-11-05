@@ -406,7 +406,7 @@ Use the same `FaultFamily` enum in generator configuration/CorruptionRecord, `Fi
 | F07_PAID_NO_TRANSFER | Commercial payment or intermediate stage without completed supported transfer/allocation. |
 | F08_PRIOR_ARREARS_DRAIN | Earlier liability and allocation priority. |
 | F09_EXPIRED_CANCELLED | Expired/cancelled instruments or unresolved lifecycle evidence. |
-| F10_CAPABILITY_MISMATCH | Recycler capability, independently of metal compatibility. |
+| F10_CAPABILITY_MISMATCH | Recycler capability, or a credit of another metal allocated; each is checked on its own evidence. |
 | F11_WRONG_PERIOD_RULE | Wrong period/regime or superseded interpretation. |
 | F12_UNSEEN_NOTICE_LEAD | Missing signed authority. |
 | F13_WEIGHT_BASIS_CONFLICT | Incompatible approved/product/packaging weight basis. |

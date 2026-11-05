@@ -9,6 +9,7 @@ import pytest
 from benchmarks.evaluation.trials import Coordinator, Ledger, TrialOutcome, build_schedule
 from recycleguard.application import command_context
 from recycleguard.investigation import evaluation_budgets
+from recycleguard.reporting.baseline import MODEL_LOOP_LIMITATION
 from recycleguard.storage import BlobStore
 from tests.integration.test_a05_baseline import approved_foundation as approved_foundation
 from tests.integration.test_model_investigation import native as native
@@ -43,9 +44,14 @@ def test_malformed_wire_reply_is_retried_once_and_then_recorded(native, monkeypa
     backend = native[5]
     backend.mode = "invalid_wire"
     spec, state, _, _ = run(native, monkeypatch, lambda _: assess().output)
-    assert state.status == "FAILED" and state.budget.retries == 1
+    assert state.stop_reason == "PROVIDER_FAILURE" and state.budget.retries == 1
     assert len(posts(backend)) == 2
     assert trace_issue_codes(native[0], spec) == {"PROVIDER_INVALID_OUTPUT"}
+    # The known-invalid reply ends the investigation, not the run: the deterministic report
+    # is still drafted and says why.
+    assert state.status == "AWAITING_REVIEW"
+    report = native[0].latest_report(spec.run_id).report
+    assert MODEL_LOOP_LIMITATION in [claim.template_or_text for claim in report.claims]
 
 
 def test_full_disk_during_a_call_never_redispatches_on_resume(native, monkeypatch):

@@ -101,6 +101,10 @@ PROHIBITED_CLAIM = re.compile(
     re.IGNORECASE,
 )
 _INSPECTION_LIMITATION = re.compile(r"Inspected \d+ of \d+ dossier observations\.")
+MODEL_LOOP_LIMITATION = (
+    "The model investigation ended on invalid model output; the findings are deterministic "
+    "checks and the model proposals gated before it ended."
+)
 
 
 def inspection_limitation(inspected: int, total: int) -> str:
@@ -108,11 +112,15 @@ def inspection_limitation(inspected: int, total: int) -> str:
 
 
 def inspection_limitations(report: "BaselineReport") -> list[str]:
-    """The one report-carried limitation a rebuild keeps; it can only qualify a report."""
+    """The report-carried limitations a rebuild keeps; each can only qualify a report."""
     return [
         claim.template_or_text
         for claim in report.claims
-        if claim.kind == "LIMITATION" and _INSPECTION_LIMITATION.fullmatch(claim.template_or_text)
+        if claim.kind == "LIMITATION"
+        and (
+            _INSPECTION_LIMITATION.fullmatch(claim.template_or_text)
+            or claim.template_or_text == MODEL_LOOP_LIMITATION
+        )
     ]
 
 

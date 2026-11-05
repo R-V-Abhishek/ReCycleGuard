@@ -35,7 +35,7 @@ def proposal(**changes):
     return FindingProposal(**(values | changes))
 
 
-def gate(*proposals, clean=False, deterministic=()):
+def gate(*proposals, clean=False, deterministic=(), contradicted=()):
     return gate_finding_proposals(
         proposals,
         allowed_refs=ALLOWED,
@@ -43,6 +43,7 @@ def gate(*proposals, clean=False, deterministic=()):
         reconciliation_settled=clean,
         case_version_id=CASE,
         calculation_ids={"calculation:one"},
+        contradicted_issue_types=contradicted,
     )
 
 
@@ -122,6 +123,22 @@ def test_deterministic_finding_wins_and_duplicates_are_not_counted_twice():
     assert not accepted and rejected[0].reason == "DUPLICATE_ISSUE_TYPE"
     accepted, rejected = gate(proposal(), proposal(basis="Same family in other words."))
     assert len(accepted) == 1 and rejected[0].reason == "DUPLICATE_ISSUE_TYPE"
+
+
+def test_a_family_whose_complete_check_found_nothing_cannot_be_asserted_by_the_model():
+    accepted, rejected = gate(proposal(), contradicted={"F07_PAID_NO_TRANSFER"})
+    assert not accepted and rejected[0].reason == "CONTRADICTED_BY_CALCULATION"
+    # The rejected proposal is retained as proposed, not rewritten.
+    assert rejected[0].proposal == proposal()
+    # Other families are unaffected, and a computed finding of the family is a duplicate instead.
+    (finding,), _ = gate(
+        proposal(issue_type="F05_WRONG_ENTITY_ALIAS"), contradicted={"F07_PAID_NO_TRANSFER"}
+    )
+    assert finding.issue_type == "F05_WRONG_ENTITY_ALIAS"
+    _, rejected = gate(
+        proposal(), deterministic={"F07_PAID_NO_TRANSFER"}, contradicted={"F07_PAID_NO_TRANSFER"}
+    )
+    assert rejected[0].reason == "DUPLICATE_ISSUE_TYPE"
 
 
 def clean_proposal():

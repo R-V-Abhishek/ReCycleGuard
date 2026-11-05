@@ -110,6 +110,22 @@ class WorkflowStop(ValueError):
         self.reason, self.status = reason, status
 
 
+def _provider_stop(kind, record) -> WorkflowStop:
+    """A known-invalid model reply, after its retry, ends the investigation but not the run.
+
+    The report is still drafted from the deterministic findings and the proposals already
+    gated; the failed attempts stay in the trace and nothing is retried. Any other failure,
+    including an outcome the provider may have acted on, still fails the run.
+    """
+    invalid = (
+        kind == "model"
+        and record is not None
+        and record.status == "FAILED"
+        and any(issue.code == "PROVIDER_INVALID_OUTPUT" for issue in record.issues)
+    )
+    return WorkflowStop("PROVIDER_FAILURE", status="DRAFTING" if invalid else "FAILED")
+
+
 class WorkflowRunner:
     def __init__(
         self,
@@ -686,7 +702,7 @@ class WorkflowRunner:
                         cap,
                     )
                 return terminal, logical.operation_id
-            raise WorkflowStop("PROVIDER_FAILURE", status="FAILED")
+            raise _provider_stop(kind, terminal)
         for attempt in range(spec.budgets.retries_per_operation + 1):
             ctx = logical.model_copy(update={"attempt_id": f"{logical.attempt_id}_{attempt}"})
             old = self.kernel.connection.execute(
@@ -854,7 +870,7 @@ class WorkflowRunner:
                 return record, ctx.operation_id
             if record.status != "FAILED" or not any(i.retryable for i in record.issues):
                 break
-        raise WorkflowStop("PROVIDER_FAILURE", status="FAILED")
+        raise _provider_stop(kind, record)
 
     def _usage(self, root, spec, name, attempt_id, record, cap):
         suffix = f"usage_{name}_{attempt_id.rsplit('_', 1)[1]}"
@@ -1150,7 +1166,8 @@ class WorkflowRunner:
             ),
             capability=cap,
         )
-        raise WorkflowStop("PROVIDER_FAILURE", status="FAILED")
+        # Two unrunnable plans: nothing ran, and the report is still drafted without the model.
+        raise WorkflowStop("PROVIDER_FAILURE")
 
     def _investigate(self, root, spec, initial, cap):
         fixed = self.fixed_checks is not None

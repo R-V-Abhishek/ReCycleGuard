@@ -24,8 +24,8 @@ from collections import Counter
 from pathlib import Path
 
 SIGNALS = {
+    # A shared certificate raises no issue code: legitimate tranches are not a fault signal.
     "F02_OVERLAPPING_EXPORT": {"AMBIGUOUS_EVENT"},
-    "F03_MULTISTAGE_ID_REUSE": {"AMBIGUOUS_EVENT"},
     "F04_UNIT_DIMENSION_MIX": {"DIMENSION_MISMATCH"},
     "F05_WRONG_ENTITY_ALIAS": {"AMBIGUOUS_IDENTITY"},
     "F06_STALE_SNAPSHOT": {"STALE_SNAPSHOT"},

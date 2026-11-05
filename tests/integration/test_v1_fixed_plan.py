@@ -73,6 +73,16 @@ def proposal(evidence_ref_ids, **changes):
     } | changes
 
 
+def alias_proposal(evidence_ref_ids):
+    """A family no deterministic check computes on this dossier, so only the gate decides it."""
+    return proposal(
+        evidence_ref_ids,
+        issue_type="F05_WRONG_ENTITY_ALIAS",
+        basis="The transfer counterparty may be an alias not shown to be the producer.",
+        next_action_text="Request the registration record for the counterparty.",
+    )
+
+
 def assess_with(payload_proposal):
     return assess(verdict="WEAK", disposition="CONTINUE").output | {
         "finding_proposal": payload_proposal
@@ -128,18 +138,18 @@ def test_gated_proposal_reaches_the_report_and_changes_it(native, monkeypatch):
     def respond(payload):
         stage = payload["observation"]["stage_output"]
         if stage["calculation_ids"]:
-            return assess_with(proposal(stage["calculation_ids"]))
+            return assess_with(alias_proposal(stage["calculation_ids"]))
         return assess(verdict="UNKNOWN", disposition="CONTINUE").output
 
     spec, state, _, _ = run(native, monkeypatch, respond)
     assert state.status == "AWAITING_REVIEW"
     current = service.latest_report(spec.run_id)
-    finding = next(f for f in current.findings if f.issue_type == "F07_PAID_NO_TRANSFER")
+    finding = next(f for f in current.findings if f.issue_type == "F05_WRONG_ENTITY_ALIAS")
     assert finding.evidence_assessments == [{"source": "MODEL_PROPOSAL"}]
     assert current.verification.verdict == "QUALIFIED"
     assert not current.rejected_finding_proposals
     text = current.report.rendered_markdown
-    assert "F07_PAID_NO_TRANSFER" in text and "passed the evidence gate" in text
+    assert "F05_WRONG_ENTITY_ALIAS" in text and "passed the evidence gate" in text
     assert "dossier observations." in text
 
 
@@ -160,8 +170,30 @@ def test_fabricated_citation_is_retained_as_a_rejection_not_a_finding(native, mo
     spec, state, _, _ = run(native, monkeypatch, lambda _: fabricated)
     assert state.status == "AWAITING_REVIEW"
     current = service.latest_report(spec.run_id)
-    assert all(f.issue_type != "F07_PAID_NO_TRANSFER" for f in current.findings)
+    assert not any(
+        f.evidence_assessments == [{"source": "MODEL_PROPOSAL"}] for f in current.findings
+    )
     assert {item.reason for item in current.rejected_finding_proposals} == {"UNKNOWN_EVIDENCE_REF"}
+
+
+def test_a_model_claim_of_a_computed_family_is_a_duplicate_not_a_second_finding(
+    native, monkeypatch
+):
+    service = native[0]
+
+    def respond(payload):
+        stage = payload["observation"]["stage_output"]
+        if stage["calculation_ids"]:
+            return assess_with(proposal(stage["calculation_ids"]))
+        return assess(verdict="UNKNOWN", disposition="CONTINUE").output
+
+    spec, _, _, _ = run(native, monkeypatch, respond)
+    current = service.latest_report(spec.run_id)
+    # The unlinked invoice is pending credit the reconciliation computed, so F07 is deterministic.
+    (paid,) = [f for f in current.findings if f.issue_type == "F07_PAID_NO_TRANSFER"]
+    assert paid.evidence_assessments[0]["source"] == "DETERMINISTIC_CALCULATION"
+    assert paid.withheld_claim_scopes == ["pending_untransferred_credits"]
+    assert {item.reason for item in current.rejected_finding_proposals} == {"DUPLICATE_ISSUE_TYPE"}
 
 
 def test_adaptive_run_also_uses_the_gate(native, monkeypatch):
@@ -174,13 +206,13 @@ def test_adaptive_run_also_uses_the_gate(native, monkeypatch):
             return check
         stage = payload["observation"]["stage_output"]
         return assess(verdict="UNKNOWN", disposition="ABSTAIN").output | {
-            "finding_proposal": proposal(stage["calculation_ids"])
+            "finding_proposal": alias_proposal(stage["calculation_ids"])
         }
 
     spec, _, phases, _ = run(native, monkeypatch, respond, fixed=False)
     assert spec.experiment_variant == "V2_ADAPTIVE_REAL_MODEL" and "PLAN" in phases
     issue_types = {f.issue_type for f in service.latest_report(spec.run_id).findings}
-    assert "F07_PAID_NO_TRANSFER" in issue_types
+    assert "F05_WRONG_ENTITY_ALIAS" in issue_types
 
 
 def inspect_plan(observation_ids):
@@ -218,12 +250,15 @@ def test_invented_observation_id_asks_the_model_again_and_never_dispatches(nativ
     assert [item["model_call"] for item in rejected_actions(native[0], spec)] == ["plan"]
 
 
-def test_invented_id_after_the_repair_fails_without_correcting_the_model(native, monkeypatch):
+def test_invented_id_after_the_repair_stops_without_correcting_the_model(native, monkeypatch):
     def respond(payload):
         return inspect_plan(["obs:invented"])
 
     spec, state, _, operations = run(native, monkeypatch, respond, fixed=False)
-    assert state.status == "FAILED" and state.budget.tool_calls == 0 and not operations
+    # Nothing ran and nothing was corrected; the report is drafted without the model.
+    assert state.status == "AWAITING_REVIEW" and state.stop_reason == "PROVIDER_FAILURE"
+    assert state.budget.tool_calls == 0 and not operations
+    assert native[0].latest_report(spec.run_id).report is not None
     assert [item["model_call"] for item in rejected_actions(native[0], spec)] == [
         "plan",
         "plan_repair",

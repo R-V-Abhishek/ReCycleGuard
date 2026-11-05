@@ -44,13 +44,20 @@ from recycleguard.indexing.fts_index import FTS5Index
 from recycleguard.local_model import LocalModelConfig, LocalModelPort
 from recycleguard.model_port import ModelCallResult
 from recycleguard.reporting.baseline import (
+    MODEL_LOOP_LIMITATION,
     BaselineReport,
     BaselineReportBuilder,
     ReportVerifier,
     VerificationResult,
     inspection_limitation,
 )
-from recycleguard.reporting.calculation_findings import calculation_findings, load_derivation
+from recycleguard.reporting.calculation_findings import (
+    DETERMINISTIC_SOURCE,
+    calculation_findings,
+    contradicted_families,
+    load_derivation,
+    settled_without_finding,
+)
 from recycleguard.retrieval.service import RetrievalService
 from recycleguard.review.service import ReviewService
 from recycleguard.storage import canonical_json_bytes
@@ -550,6 +557,8 @@ class InvestigationService:
                 "UNSUPPORTED_FEATURE",
                 "gold_offset_credits",
             ),
+            # Hostile text withholds no claim: it is reported, and it changed nothing.
+            "INSTRUCTION_TEXT": ("F16_PROMPT_INJECTION", None, None),
         }
         # One finding per family: several claims of one kind are one finding citing all of them.
         grouped = {}
@@ -587,9 +596,9 @@ class InvestigationService:
                     ],
                     hypotheses=[],
                     abstention_reason=reason,
-                    withheld_claim_scopes=[withheld],
+                    withheld_claim_scopes=[] if withheld is None else [withheld],
                     next_action=Recommendation(
-                        kind="REQUEST_EVIDENCE",
+                        kind="REQUEST_EVIDENCE" if withheld is not None else "INVESTIGATE",
                         description=first.summary,
                         evidence_refs=refs,
                     ),
@@ -630,7 +639,7 @@ class InvestigationService:
                     )
         return allowed, calculation_ids, inspected, proposals
 
-    def _gated_findings(self, spec, calculation, deterministic):
+    def _gated_findings(self, spec, calculation, deterministic, contradicted=()):
         allowed, calculation_ids, inspected, proposals = self._run_evidence(spec)
         accepted, rejected = gate_finding_proposals(
             proposals,
@@ -639,8 +648,56 @@ class InvestigationService:
             reconciliation_settled=reconciliation_settled(calculation, calculation_ids),
             case_version_id=spec.case_snapshot.snapshot_id,
             calculation_ids={calculation.calculation_id},
+            contradicted_issue_types=contradicted,
         )
         return accepted, rejected, len(inspected)
+
+    @staticmethod
+    def _clean_finding(calculation):
+        """No check of any source found a fault over a settled reconciliation; not 'target met'."""
+        return FindingRecord(
+            finding_id=f"finding:clean_{calculation.calculation_id.split(':', 1)[-1]}",
+            finding_revision_id=(
+                f"finding_revision:clean_{digest(calculation.model_dump(mode='json'))[:24]}"
+            ),
+            case_version_id=calculation.case_version_id,
+            bucket_ids=[],
+            issue_type="F01_CLEAN_BASELINE",
+            advisory_status="RECONCILED_WITHIN_SCOPE",
+            priority="LOW",
+            priority_basis=(
+                "Every deterministic check ran over the pinned records; none found a fault."
+            ),
+            portal_reported_value_ref=None,
+            ledger_supported_value_ref=None,
+            delta_value_ref=None,
+            snapshot_comparison_ref=None,
+            fact_refs=[
+                EvidenceRef(
+                    ref_kind="CALCULATION",
+                    ref_id=calculation.calculation_id,
+                    artifact_revision_id=None,
+                    locator=None,
+                )
+            ],
+            calculation_refs=[calculation.calculation_id],
+            provision_refs=[],
+            evidence_assessments=[{"source": DETERMINISTIC_SOURCE, "signals": ["NO_FINDING"]}],
+            hypotheses=[],
+            abstention_reason=None,
+            withheld_claim_scopes=[],
+            next_action=Recommendation(
+                kind="NO_FURTHER_ACTION",
+                description="A reviewer confirms the scope of the checks before relying on it.",
+                evidence_refs=[],
+            ),
+            action_owner_ref=None,
+            scope_limits=[
+                "No check raised a finding; this does not establish that the target was met "
+                "or certify the case."
+            ],
+            supersedes_finding_revision_id=None,
+        )
 
     def latest_report(self, run_id):
         self.store.load(run_id)  # verifies complete run audit chain before interpreting outputs
@@ -1015,11 +1072,19 @@ class InvestigationService:
             universe = universe_from_membership(
                 spec.case_snapshot.snapshot_id, self._membership(spec)
             )
-            findings = self._findings(spec) + calculation_findings(
-                calculated, load_derivation(calculated, self.blobs), universe
+            computed = calculation_findings(
+                calculated,
+                load_derivation(calculated, self.blobs),
+                universe,
+                self._observations(spec),
             )
-            accepted, rejected, inspected = self._gated_findings(spec, calculated, findings)
+            findings = self._findings(spec) + computed
+            accepted, rejected, inspected = self._gated_findings(
+                spec, calculated, findings, contradicted_families(computed, universe)
+            )
             findings = findings + accepted
+            if not findings and settled_without_finding(calculated):
+                findings = [self._clean_finding(calculated)]
             refs = [
                 ref for finding in findings for ref in finding.fact_refs + finding.provision_refs
             ]
@@ -1052,7 +1117,10 @@ class InvestigationService:
                 findings=findings,
                 run_id=spec.run_id,
                 coverage_ref=coverage_ref,
-                limitations=[inspection_limitation(inspected, len(self._observations(spec)))],
+                limitations=[
+                    inspection_limitation(inspected, len(self._observations(spec))),
+                    *([MODEL_LOOP_LIMITATION] if state.stop_reason == "PROVIDER_FAILURE" else []),
+                ],
             )
             verified = ReportVerifier().verify(
                 report,

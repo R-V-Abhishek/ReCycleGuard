@@ -43,6 +43,7 @@ RejectionReason = Literal[
     "INVALID_STATUS",
     "INVALID_ABSTENTION",
     "DUPLICATE_ISSUE_TYPE",
+    "CONTRADICTED_BY_CALCULATION",
 ]
 
 
@@ -141,14 +142,18 @@ def gate_finding_proposals(
     reconciliation_settled: bool,
     case_version_id: str,
     calculation_ids: Iterable[str] = (),
+    contradicted_issue_types: Iterable[str] = (),
 ) -> tuple[list[FindingRecord], list[RejectedFindingProposal]]:
     """Accept at most one finding per family. Deterministic findings always win a family.
 
-    A clean claim is checked last: it needs a reconciliation from this run with nothing pending
-    and no other finding, whichever order the model proposed them in. It means no fault was found.
-    It does not mean the target was met; a shortfall stays in the reconciliation.
+    A family whose complete deterministic check ran and found nothing is contradicted: the
+    model cannot assert it against the computed facts. A clean claim is checked last: it needs
+    a reconciliation from this run with nothing pending and no other finding, whichever order
+    the model proposed them in. It means no fault was found. It does not mean the target was
+    met; a shortfall stays in the reconciliation.
     """
     taken = set(deterministic_issue_types)
+    contradicted = set(contradicted_issue_types) - taken
     calculations = set(calculation_ids)
     accepted: list[FindingRecord] = []
     rejected: list[RejectedFindingProposal] = []
@@ -157,6 +162,8 @@ def gate_finding_proposals(
         reason = _rejection(proposal, allowed_refs)
         if reason is None and proposal.issue_type in taken:
             reason = "DUPLICATE_ISSUE_TYPE"
+        if reason is None and proposal.issue_type in contradicted:
+            reason = "CONTRADICTED_BY_CALCULATION"
         if (
             reason is None
             and proposal.issue_type == _CLEAN
