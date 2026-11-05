@@ -16,6 +16,7 @@ thinking closed. Output: <session>-reasoning/replays.jsonl and a short summary o
 
 import argparse
 import csv
+import hashlib
 import json
 import subprocess
 import sys
@@ -55,13 +56,23 @@ def phase_of(prompt):
 
 
 def attempts(session):
-    """Latest attempt of each trial that recorded its model calls, keyed by case and variant."""
+    """Model calls of each trial's sealed attempt, keyed by trial id through the ledger.
+
+    The ledger names each trial's sealed result by the SHA-256 of its result.json, so repeats of
+    one case stay apart.
+    """
+    sealed = {}
+    for line in (session / "ledger.jsonl").read_text("utf-8").splitlines():
+        row = json.loads(line) if line.strip() else None
+        if row and row.get("result_digest"):
+            sealed[row["result_digest"]] = row["trial_id"]
     found = {}
     for runtime in sorted(session.glob("trials/t*/attempt-*/runtime")):
         result, calls = runtime / "result.json", runtime / "model-calls.jsonl"
         if result.is_file() and calls.is_file():
-            data = json.loads(result.read_text("utf-8"))
-            found[(data["case_id"], data["requested_variant"])] = calls
+            trial = sealed.get(hashlib.sha256(result.read_bytes()).hexdigest())
+            if trial is not None:
+                found[trial] = calls
     return found
 
 
@@ -79,8 +90,7 @@ def jobs(session, trials, phase, limit):
     by_trial = attempts(session)
     out = []
     for trial in trials:
-        case, variant, *_ = trial.split("|")
-        path = by_trial.get((case, variant))
+        path = by_trial.get(trial)
         if path is None:
             print(f"no recorded calls for {trial} (run before the decision trace existed?)")
             continue

@@ -946,11 +946,19 @@ def test_the_funnel_assigns_each_miss_to_the_stage_where_it_was_lost():
 
 def test_the_replay_opens_thinking_only_on_recorded_prompts_and_labels_it(tmp_path):
     replay = script("replay_reasoning")
-    runtime = tmp_path / "s" / "trials" / "t0001" / "attempt-1" / "runtime"
-    runtime.mkdir(parents=True)
-    (runtime / "result.json").write_text(
-        json.dumps({"case_id": "case_x", "requested_variant": "ADAPTIVE"})
-    )
+    session = tmp_path / "s"
+    ledger = []
+    for position, repeat in ((1, "r1"), (2, "r2")):
+        runtime = session / "trials" / f"t{position:04d}" / "attempt-1" / "runtime"
+        runtime.mkdir(parents=True)
+        raw = json.dumps({"case_id": "case_x", "requested_variant": "ADAPTIVE", "r": repeat})
+        (runtime / "result.json").write_bytes(raw.encode())
+        digest = hashlib.sha256(raw.encode()).hexdigest()
+        ledger.append({"trial_id": f"case_x|ADAPTIVE|{repeat}", "result_digest": digest})
+    (session / "ledger.jsonl").write_text("".join(json.dumps(row) + "\n" for row in ledger))
+    # Repeats of one case are told apart by the sealed result digest, never merged.
+    assert set(replay.attempts(session)) == {"case_x|ADAPTIVE|r1", "case_x|ADAPTIVE|r2"}
+    runtime = session / "trials" / "t0001" / "attempt-1" / "runtime"
     prompt = "<|im_start|>system\nASSESS rules: ...<|im_start|>assistant\n" + replay.CLOSED_THINK
     calls = [
         {
@@ -1006,3 +1014,22 @@ def test_the_census_counts_records_and_check_states_without_their_contents(tmp_p
     }
     broken = child.census(tmp_path, {"report": {"calculations": [{}]}})
     assert list(broken) == ["error"]
+
+
+def test_the_funnel_reads_each_repeat_through_the_ledger(tmp_path):
+    funnel = script("funnel")
+    (tmp_path / "results").mkdir()
+    ledger = [{"trial_id": "case_x|ADAPTIVE|r1", "status": "STARTED"}]
+    for repeat in ("r1", "r2"):
+        raw = json.dumps({"case_id": "case_x", "requested_variant": "ADAPTIVE", "r": repeat})
+        digest = hashlib.sha256(raw.encode()).hexdigest()
+        (tmp_path / "results" / f"{digest}.json").write_text(raw)
+        ledger.append(
+            {"trial_id": f"case_x|ADAPTIVE|{repeat}", "status": "OK", "result_digest": digest}
+        )
+    (tmp_path / "ledger.jsonl").write_text("".join(json.dumps(row) + "\n" for row in ledger))
+    found = funnel.results_by_trial(tmp_path)
+    assert {trial: result["r"] for trial, result in found.items()} == {
+        "case_x|ADAPTIVE|r1": "r1",
+        "case_x|ADAPTIVE|r2": "r2",
+    }

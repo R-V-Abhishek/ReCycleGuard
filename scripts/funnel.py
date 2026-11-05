@@ -153,20 +153,33 @@ def rows_for(result, score):
     return out
 
 
+def results_by_trial(output):
+    """Each trial's last finished result, found through the ledger as the scorer finds it.
+
+    A result does not record its repeat, so keying by case and variant would merge repeats.
+    """
+    digests = {}
+    for line in (output / "ledger.jsonl").read_text("utf-8").splitlines():
+        row = json.loads(line) if line.strip() else None
+        if row and row.get("status") != "STARTED" and row.get("result_digest"):
+            digests[row["trial_id"]] = row["result_digest"]
+    return {
+        trial: json.loads((output / "results" / f"{digest}.json").read_text("utf-8"))
+        for trial, digest in digests.items()
+    }
+
+
 def main(argv):
     if len(argv) != 3:
         raise SystemExit(__doc__)
     output, scores_dir, target = (Path(value) for value in argv)
-    results = {}
-    for path in sorted((output / "results").glob("*.json")):
-        result = json.loads(path.read_text("utf-8"))
-        results[(result["case_id"], result["requested_variant"])] = result
+    results = results_by_trial(output)
     rows = []
     for line in (scores_dir / "scores.jsonl").read_text("utf-8").splitlines():
         score = json.loads(line) if line else None
         if not score or score.get("basis") != "REVIEWED" or "expected_families" not in score:
             continue
-        result = results.get((score["case_id"], score["variant"]))
+        result = results.get(score["trial_id"])
         if result is not None:
             rows.extend(rows_for(result, score))
     buffer = io.StringIO()

@@ -211,3 +211,29 @@ single-change ablations of v7, so `sweep-v12` attributes each effect:
 | v12d | v12c, and SUPPORTS only with a proposal | SUPPORTS with nothing behind it |
 
 None of them has a worked example naming a family. v7 stays the baseline in the same sweep.
+
+### sweep-v12 outcome and sweep-v13
+
+`sweep-v12` (five slots, `tuning-16`):
+
+| Version | V2 successes / F1 | V1 successes / F1 | V1 false positives |
+| --- | --- | --- | --- |
+| v7 | 9 / 0.79 | 8 / 0.76 | 1 |
+| v12a | 9 / 0.81 | 8 / 0.80 | 1 |
+| v12b | 9 / 0.79 | 5 / 0.82 | 0 |
+| v12c | 8 / 0.77 | 6 / 0.70 | 4 |
+| v12d | 6 / 0.70 | 2 / 0.59 | 11 |
+
+- **The family definitions are dropped.** With them, the model matches the definitions to almost any case. v12c and
+  v12d proposed F02 wherever an event was pending, as v10 did with F07. With v12b, 11 V1 trials ended in
+  `PROVIDER_FAILURE` after replies failed validation.
+- **v12a is safe but below the adoption bar.** It added no false positive. Its V1 proposed F07 on `13b4` correctly,
+  the first accepted model finding that matched the oracle. V2 averaged 4.0 calls instead of 2.1. `13b4` still
+  failed because the proposal did not withhold `pending_untransferred_credits`.
+- **v12e is v12a plus one rule:** an F07 or F02 proposal withholds `pending_untransferred_credits`. The rule shapes
+  proposals; it asks for none.
+
+`sweep-v13` runs v7, v12a and v12e with two repeats each (`tuning-16-r2`, three slots). That shows whether a one-case
+difference holds across repeats. The funnel and the reasoning replay now resolve each trial through the ledger, so
+repeats of one case stay apart. v7 stays the default until a version gains a success in both repeats with no added
+false positive. The winner then gets one confirming run at one slot before `checking-8`.
