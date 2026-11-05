@@ -1,0 +1,292 @@
+{
+ "audit_chain": "VERIFIED",
+ "budget": {
+  "actions": 10,
+  "cost_known_calls": 0,
+  "finding_actions": {
+   "finding:a0b1e64c80914041917f390138780dc2": 4
+  },
+  "finding_reformulations": {
+   "finding:a0b1e64c80914041917f390138780dc2": 2
+  },
+  "model_calls": 5,
+  "observed_cost_usd": null,
+  "observed_tokens": 14899,
+  "preflight_actions": 1,
+  "report_repairs": 0,
+  "reserved_tokens": 163840,
+  "retries": 1,
+  "tool_calls": 4,
+  "usage_known_calls": 5,
+  "verification_actions": 0
+ },
+ "calls": [
+  {
+   "event_type": "graph.stage.preflight.result",
+   "issue_codes": [],
+   "kind": "STAGE",
+   "operation_id": "operation:run:a0b1e64c80914041917f390138780dc2:turn_2:preflight",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.tool.tool.result",
+   "issue_codes": [],
+   "kind": "TOOL",
+   "operation_id": "operation:run:a0b1e64c80914041917f390138780dc2:turn_3:tool",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.assess.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:a0b1e64c80914041917f390138780dc2:turn_3:assess",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.tool.tool.result",
+   "issue_codes": [],
+   "kind": "TOOL",
+   "operation_id": "operation:run:a0b1e64c80914041917f390138780dc2:turn_4:tool",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.assess.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:a0b1e64c80914041917f390138780dc2:turn_4:assess",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.tool.tool.result",
+   "issue_codes": [],
+   "kind": "TOOL",
+   "operation_id": "operation:run:a0b1e64c80914041917f390138780dc2:turn_5:tool",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.assess.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:a0b1e64c80914041917f390138780dc2:turn_5:assess",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.tool.tool.result",
+   "issue_codes": [],
+   "kind": "TOOL",
+   "operation_id": "operation:run:a0b1e64c80914041917f390138780dc2:turn_6:tool",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.assess.result",
+   "issue_codes": [
+    "PROVIDER_INVALID_OUTPUT"
+   ],
+   "kind": "MODEL",
+   "operation_id": "operation:run:a0b1e64c80914041917f390138780dc2:turn_6:assess",
+   "status": "FAILED"
+  },
+  {
+   "event_type": "graph.model.assess.result",
+   "issue_codes": [
+    "PROVIDER_INVALID_OUTPUT"
+   ],
+   "kind": "MODEL",
+   "operation_id": "operation:run:a0b1e64c80914041917f390138780dc2:turn_6:assess",
+   "status": "FAILED"
+  }
+ ],
+ "case_id": "case_20cd8cfb68",
+ "census": null,
+ "decisions": [
+  {
+   "attempt_id": "attempt:run:a0b1e64c80914041917f390138780dc2:turn_3:assess_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:a0b1e64c80914041917f390138780dc2:turn_3:assess",
+   "reply": {
+    "disposition": "CONTINUE",
+    "next_check_or_stop": "continue",
+    "proposal": null,
+    "verdict": "UNKNOWN",
+    "weak_result_or_mistake": null
+   },
+   "shown": {
+    "citable_calculation_ids": 0,
+    "citable_evidence_ids": 0,
+    "disposition": "QUALIFIED",
+    "evidence_chars": 6000,
+    "evidence_keys": null,
+    "evidence_refs_total": 0,
+    "evidence_truncated": true,
+    "phase": "ASSESS",
+    "tool": "search_rules",
+    "visible_issue_codes": []
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 41,
+    "elapsed_seconds": 2.167176789007499,
+    "finish_reason": "stop",
+    "prompt_tokens": 4056
+   }
+  },
+  {
+   "attempt_id": "attempt:run:a0b1e64c80914041917f390138780dc2:turn_4:assess_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:a0b1e64c80914041917f390138780dc2:turn_4:assess",
+   "reply": {
+    "disposition": "ABSTAIN",
+    "next_check_or_stop": "stop",
+    "proposal": null,
+    "verdict": "UNKNOWN",
+    "weak_result_or_mistake": null
+   },
+   "shown": {
+    "citable_calculation_ids": 0,
+    "citable_evidence_ids": 0,
+    "disposition": "QUALIFIED",
+    "evidence_chars": 116,
+    "evidence_keys": [
+     "attempt_id",
+     "grading_assessments",
+     "passages",
+     "selected_refs"
+    ],
+    "evidence_refs_total": 0,
+    "evidence_truncated": false,
+    "phase": "ASSESS",
+    "tool": "search_rules",
+    "visible_issue_codes": []
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 42,
+    "elapsed_seconds": 2.879005317998235,
+    "finish_reason": "stop",
+    "prompt_tokens": 2139
+   }
+  },
+  {
+   "attempt_id": "attempt:run:a0b1e64c80914041917f390138780dc2:turn_5:assess_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:a0b1e64c80914041917f390138780dc2:turn_5:assess",
+   "reply": {
+    "disposition": "ABSTAIN",
+    "next_check_or_stop": "stop",
+    "proposal": null,
+    "verdict": "UNKNOWN",
+    "weak_result_or_mistake": null
+   },
+   "shown": {
+    "citable_calculation_ids": 0,
+    "citable_evidence_ids": 0,
+    "disposition": "QUALIFIED",
+    "evidence_chars": 116,
+    "evidence_keys": [
+     "attempt_id",
+     "grading_assessments",
+     "passages",
+     "selected_refs"
+    ],
+    "evidence_refs_total": 0,
+    "evidence_truncated": false,
+    "phase": "ASSESS",
+    "tool": "search_rules",
+    "visible_issue_codes": []
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 42,
+    "elapsed_seconds": 5.86908068099001,
+    "finish_reason": "stop",
+    "prompt_tokens": 2141
+   }
+  },
+  {
+   "attempt_id": "attempt:run:a0b1e64c80914041917f390138780dc2:turn_6:assess_0",
+   "issue_codes": [
+    "PROVIDER_INVALID_OUTPUT"
+   ],
+   "operation_id": "operation:run:a0b1e64c80914041917f390138780dc2:turn_6:assess",
+   "reply": null,
+   "shown": {
+    "citable_calculation_ids": 1,
+    "citable_evidence_ids": 0,
+    "disposition": "QUALIFIED",
+    "evidence_chars": 3107,
+    "evidence_keys": [
+     "bucket_count",
+     "buckets",
+     "calculation_id",
+     "coverage",
+     "issues"
+    ],
+    "evidence_refs_total": 0,
+    "evidence_truncated": false,
+    "phase": "ASSESS",
+    "tool": "compute_reconciliation",
+    "visible_issue_codes": [
+     "APPLICABILITY_UNRESOLVED",
+     "DIMENSION_MISMATCH"
+    ]
+   },
+   "status": "FAILED",
+   "transport": {
+    "completion_tokens": 100,
+    "elapsed_seconds": 5.861395696003456,
+    "finish_reason": "stop",
+    "prompt_tokens": 3085
+   }
+  },
+  {
+   "attempt_id": "attempt:run:a0b1e64c80914041917f390138780dc2:turn_6:assess_1",
+   "issue_codes": [
+    "PROVIDER_INVALID_OUTPUT"
+   ],
+   "operation_id": "operation:run:a0b1e64c80914041917f390138780dc2:turn_6:assess",
+   "reply": null,
+   "shown": {
+    "citable_calculation_ids": 1,
+    "citable_evidence_ids": 0,
+    "disposition": "QUALIFIED",
+    "evidence_chars": 3107,
+    "evidence_keys": [
+     "bucket_count",
+     "buckets",
+     "calculation_id",
+     "coverage",
+     "issues"
+    ],
+    "evidence_refs_total": 0,
+    "evidence_truncated": false,
+    "phase": "ASSESS",
+    "tool": "compute_reconciliation",
+    "visible_issue_codes": [
+     "APPLICABILITY_UNRESOLVED",
+     "DIMENSION_MISMATCH"
+    ]
+   },
+   "status": "FAILED",
+   "transport": {
+    "completion_tokens": 105,
+    "elapsed_seconds": 7.031480746998568,
+    "finish_reason": "stop",
+    "prompt_tokens": 3148
+   }
+  }
+ ],
+ "experiment_variant": "V1_FIXED_RETRIEVAL_REAL_MODEL",
+ "job": {
+  "cancel_requested": 0,
+  "detail": "FAILED",
+  "dossier_id": "dossier:def50b675d1e45fe81c7e058a51d0ce5",
+  "run_id": "run:a0b1e64c80914041917f390138780dc2",
+  "status": "STOPPED"
+ },
+ "rejected_actions": [],
+ "report": null,
+ "requested_variant": "FIXED_RETRIEVAL",
+ "run_id": "run:a0b1e64c80914041917f390138780dc2",
+ "status": "FAILED",
+ "stop_reason": "PROVIDER_FAILURE"
+}

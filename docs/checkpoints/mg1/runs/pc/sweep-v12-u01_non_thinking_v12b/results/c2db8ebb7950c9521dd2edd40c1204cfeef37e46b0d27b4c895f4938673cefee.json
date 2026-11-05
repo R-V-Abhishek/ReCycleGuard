@@ -1,0 +1,345 @@
+{
+ "audit_chain": "VERIFIED",
+ "budget": {
+  "actions": 12,
+  "cost_known_calls": 0,
+  "finding_actions": {
+   "finding:e42b8febb6774b7f9298041646cef108": 5
+  },
+  "finding_reformulations": {
+   "finding:e42b8febb6774b7f9298041646cef108": 2
+  },
+  "model_calls": 6,
+  "observed_cost_usd": null,
+  "observed_tokens": 18410,
+  "preflight_actions": 1,
+  "report_repairs": 0,
+  "reserved_tokens": 196608,
+  "retries": 1,
+  "tool_calls": 5,
+  "usage_known_calls": 6,
+  "verification_actions": 0
+ },
+ "calls": [
+  {
+   "event_type": "graph.stage.preflight.result",
+   "issue_codes": [],
+   "kind": "STAGE",
+   "operation_id": "operation:run:e42b8febb6774b7f9298041646cef108:turn_2:preflight",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.tool.tool.result",
+   "issue_codes": [],
+   "kind": "TOOL",
+   "operation_id": "operation:run:e42b8febb6774b7f9298041646cef108:turn_3:tool",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.assess.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:e42b8febb6774b7f9298041646cef108:turn_3:assess",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.tool.tool.result",
+   "issue_codes": [],
+   "kind": "TOOL",
+   "operation_id": "operation:run:e42b8febb6774b7f9298041646cef108:turn_4:tool",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.assess.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:e42b8febb6774b7f9298041646cef108:turn_4:assess",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.tool.tool.result",
+   "issue_codes": [],
+   "kind": "TOOL",
+   "operation_id": "operation:run:e42b8febb6774b7f9298041646cef108:turn_5:tool",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.assess.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:e42b8febb6774b7f9298041646cef108:turn_5:assess",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.tool.tool.result",
+   "issue_codes": [],
+   "kind": "TOOL",
+   "operation_id": "operation:run:e42b8febb6774b7f9298041646cef108:turn_6:tool",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.assess.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:e42b8febb6774b7f9298041646cef108:turn_6:assess",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.tool.tool.result",
+   "issue_codes": [],
+   "kind": "TOOL",
+   "operation_id": "operation:run:e42b8febb6774b7f9298041646cef108:turn_7:tool",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.assess.result",
+   "issue_codes": [
+    "PROVIDER_INVALID_OUTPUT"
+   ],
+   "kind": "MODEL",
+   "operation_id": "operation:run:e42b8febb6774b7f9298041646cef108:turn_7:assess",
+   "status": "FAILED"
+  },
+  {
+   "event_type": "graph.model.assess.result",
+   "issue_codes": [
+    "PROVIDER_INVALID_OUTPUT"
+   ],
+   "kind": "MODEL",
+   "operation_id": "operation:run:e42b8febb6774b7f9298041646cef108:turn_7:assess",
+   "status": "FAILED"
+  }
+ ],
+ "case_id": "case_aad24faea7",
+ "census": null,
+ "decisions": [
+  {
+   "attempt_id": "attempt:run:e42b8febb6774b7f9298041646cef108:turn_3:assess_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:e42b8febb6774b7f9298041646cef108:turn_3:assess",
+   "reply": {
+    "disposition": "CONTINUE",
+    "next_check_or_stop": "continue",
+    "proposal": null,
+    "verdict": "UNKNOWN",
+    "weak_result_or_mistake": null
+   },
+   "shown": {
+    "citable_calculation_ids": 0,
+    "citable_evidence_ids": 0,
+    "disposition": "QUALIFIED",
+    "evidence_chars": 6000,
+    "evidence_keys": null,
+    "evidence_refs_total": 0,
+    "evidence_truncated": true,
+    "phase": "ASSESS",
+    "tool": "search_rules",
+    "visible_issue_codes": []
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 41,
+    "elapsed_seconds": 6.926251042998047,
+    "finish_reason": "stop",
+    "prompt_tokens": 4046
+   }
+  },
+  {
+   "attempt_id": "attempt:run:e42b8febb6774b7f9298041646cef108:turn_4:assess_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:e42b8febb6774b7f9298041646cef108:turn_4:assess",
+   "reply": {
+    "disposition": "ABSTAIN",
+    "next_check_or_stop": "stop",
+    "proposal": null,
+    "verdict": "UNKNOWN",
+    "weak_result_or_mistake": null
+   },
+   "shown": {
+    "citable_calculation_ids": 0,
+    "citable_evidence_ids": 0,
+    "disposition": "QUALIFIED",
+    "evidence_chars": 116,
+    "evidence_keys": [
+     "attempt_id",
+     "grading_assessments",
+     "passages",
+     "selected_refs"
+    ],
+    "evidence_refs_total": 0,
+    "evidence_truncated": false,
+    "phase": "ASSESS",
+    "tool": "search_rules",
+    "visible_issue_codes": []
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 42,
+    "elapsed_seconds": 4.7281147980102105,
+    "finish_reason": "stop",
+    "prompt_tokens": 2133
+   }
+  },
+  {
+   "attempt_id": "attempt:run:e42b8febb6774b7f9298041646cef108:turn_5:assess_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:e42b8febb6774b7f9298041646cef108:turn_5:assess",
+   "reply": {
+    "disposition": "ABSTAIN",
+    "next_check_or_stop": "stop",
+    "proposal": null,
+    "verdict": "UNKNOWN",
+    "weak_result_or_mistake": null
+   },
+   "shown": {
+    "citable_calculation_ids": 0,
+    "citable_evidence_ids": 0,
+    "disposition": "QUALIFIED",
+    "evidence_chars": 116,
+    "evidence_keys": [
+     "attempt_id",
+     "grading_assessments",
+     "passages",
+     "selected_refs"
+    ],
+    "evidence_refs_total": 0,
+    "evidence_truncated": false,
+    "phase": "ASSESS",
+    "tool": "search_rules",
+    "visible_issue_codes": []
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 42,
+    "elapsed_seconds": 2.540040002000751,
+    "finish_reason": "stop",
+    "prompt_tokens": 2133
+   }
+  },
+  {
+   "attempt_id": "attempt:run:e42b8febb6774b7f9298041646cef108:turn_6:assess_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:e42b8febb6774b7f9298041646cef108:turn_6:assess",
+   "reply": {
+    "disposition": "ABSTAIN",
+    "next_check_or_stop": "stop",
+    "proposal": null,
+    "verdict": "WEAK",
+    "weak_result_or_mistake": null
+   },
+   "shown": {
+    "citable_calculation_ids": 1,
+    "citable_evidence_ids": 0,
+    "disposition": "QUALIFIED",
+    "evidence_chars": 1561,
+    "evidence_keys": [
+     "bucket_count",
+     "buckets",
+     "calculation_id",
+     "coverage",
+     "issues"
+    ],
+    "evidence_refs_total": 0,
+    "evidence_truncated": false,
+    "phase": "ASSESS",
+    "tool": "compute_reconciliation",
+    "visible_issue_codes": [
+     "APPLICABILITY_UNRESOLVED"
+    ]
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 43,
+    "elapsed_seconds": 2.9196138809929835,
+    "finish_reason": "stop",
+    "prompt_tokens": 2570
+   }
+  },
+  {
+   "attempt_id": "attempt:run:e42b8febb6774b7f9298041646cef108:turn_7:assess_0",
+   "issue_codes": [
+    "PROVIDER_INVALID_OUTPUT"
+   ],
+   "operation_id": "operation:run:e42b8febb6774b7f9298041646cef108:turn_7:assess",
+   "reply": null,
+   "shown": {
+    "citable_calculation_ids": 0,
+    "citable_evidence_ids": 8,
+    "disposition": "QUALIFIED",
+    "evidence_chars": 3529,
+    "evidence_keys": [
+     "check_id",
+     "check_kind",
+     "input_membership_blob",
+     "issues",
+     "results",
+     "tool_version"
+    ],
+    "evidence_refs_total": 8,
+    "evidence_truncated": false,
+    "phase": "ASSESS",
+    "tool": "trace_certificate",
+    "visible_issue_codes": [
+     "AMBIGUOUS_EVENT"
+    ]
+   },
+   "status": "FAILED",
+   "transport": {
+    "completion_tokens": 228,
+    "elapsed_seconds": 9.953967585999635,
+    "finish_reason": "stop",
+    "prompt_tokens": 3420
+   }
+  },
+  {
+   "attempt_id": "attempt:run:e42b8febb6774b7f9298041646cef108:turn_7:assess_1",
+   "issue_codes": [
+    "PROVIDER_INVALID_OUTPUT"
+   ],
+   "operation_id": "operation:run:e42b8febb6774b7f9298041646cef108:turn_7:assess",
+   "reply": null,
+   "shown": {
+    "citable_calculation_ids": 0,
+    "citable_evidence_ids": 8,
+    "disposition": "QUALIFIED",
+    "evidence_chars": 3529,
+    "evidence_keys": [
+     "check_id",
+     "check_kind",
+     "input_membership_blob",
+     "issues",
+     "results",
+     "tool_version"
+    ],
+    "evidence_refs_total": 8,
+    "evidence_truncated": false,
+    "phase": "ASSESS",
+    "tool": "trace_certificate",
+    "visible_issue_codes": [
+     "AMBIGUOUS_EVENT"
+    ]
+   },
+   "status": "FAILED",
+   "transport": {
+    "completion_tokens": 229,
+    "elapsed_seconds": 9.118550882005366,
+    "finish_reason": "stop",
+    "prompt_tokens": 3483
+   }
+  }
+ ],
+ "experiment_variant": "V1_FIXED_RETRIEVAL_REAL_MODEL",
+ "job": {
+  "cancel_requested": 0,
+  "detail": "FAILED",
+  "dossier_id": "dossier:996a3f9959cd4ca8a982ee7c5f65ff47",
+  "run_id": "run:e42b8febb6774b7f9298041646cef108",
+  "status": "STOPPED"
+ },
+ "rejected_actions": [],
+ "report": null,
+ "requested_variant": "FIXED_RETRIEVAL",
+ "run_id": "run:e42b8febb6774b7f9298041646cef108",
+ "status": "FAILED",
+ "stop_reason": "PROVIDER_FAILURE"
+}
