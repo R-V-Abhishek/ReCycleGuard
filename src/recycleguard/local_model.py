@@ -169,7 +169,12 @@ BUILTIN_PROMPT = PromptText(
 )
 
 
-def prompt_digest(prompt_version: str, text: PromptText) -> str:
+CLOSED_THINK = "<think>\n\n</think>\n\n"
+OPEN_THINK = "<think>\n"
+END_THINK = "</think>"
+
+
+def prompt_digest(prompt_version: str, text: PromptText, thinking: bool = False) -> str:
     return hashlib.sha256(
         canonical_json_bytes(
             {
@@ -177,7 +182,9 @@ def prompt_digest(prompt_version: str, text: PromptText) -> str:
                 "system": text.system,
                 "phase_rules": text.phase_rules,
                 "retry_note": text.retry_note,
-                "format": "qwen-im-start/non-thinking/raw-completion",
+                "format": "qwen-im-start/thinking-two-step/raw-completion"
+                if thinking
+                else "qwen-im-start/non-thinking/raw-completion",
                 "schemas": {
                     phase: schema.model_json_schema() for phase, schema in _SCHEMAS.items()
                 },
@@ -210,6 +217,9 @@ class LocalModelConfig(BoundaryModel):
     max_model_calls: Annotated[int, Field(ge=1, le=12)] = 12
     stop_sequences: list[str] = ["<|im_end|>", "<|endoftext|>"]
     server_flags: list[str] = SERVER_FLAGS
+    # Each call first lets the model reason in its think block, then asks for the answer. Only
+    # the answer is parsed; the reasoning is kept in the call trace. v7 never thinks.
+    thinking: bool = False
 
     @model_validator(mode="after")
     def local_endpoint_and_paths(self):
@@ -247,11 +257,18 @@ class LocalModelConfig(BoundaryModel):
                 raise ValueError("prompt text and configuration name different prompt versions")
             if self.prompt_version == BUILTIN_PROMPT_VERSION and self.prompt != BUILTIN_PROMPT:
                 raise ValueError("changed prompt text needs its own prompt version")
+        if self.thinking and self.prompt is None:
+            raise ValueError("thinking needs its own prompt version; v7 never thinks")
+        if self.thinking and 2 * self.max_output_tokens >= self.max_total_tokens:
+            raise ValueError("total token bound must leave room for reasoning and the answer")
         return self
 
     def pin(self) -> ConfigurationPin:
-        # A configuration without a prompt keeps the digest it had before variants existed.
-        fields = self.model_dump(mode="json", exclude={"prompt"} if self.prompt is None else None)
+        # Fields added after a configuration existed are left out at their defaults, so it keeps
+        # the digest it had: no prompt text (v7) and no thinking.
+        exclude = {"prompt"} if self.prompt is None else set()
+        exclude |= set() if self.thinking else {"thinking"}
+        fields = self.model_dump(mode="json", exclude=exclude or None)
         return ConfigurationPin(
             configuration_id=self.configuration_id,
             digest=hashlib.sha256(canonical_json_bytes(fields)).hexdigest(),
@@ -263,7 +280,7 @@ class LocalModelConfig(BoundaryModel):
     def prompt_pin(self) -> ConfigurationPin:
         return ConfigurationPin(
             configuration_id=self.prompt_template_id,
-            digest=prompt_digest(self.prompt_version, self.prompt_text()),
+            digest=prompt_digest(self.prompt_version, self.prompt_text(), self.thinking),
         )
 
 
@@ -516,6 +533,74 @@ class LocalModelPort:
         note = self.config.prompt_text().retry_note
         return note if problem is None else f"{note}Problem found: {problem}. "
 
+    def _body(self, prompt, schema, *, stop=(), constrained=True):
+        fields = self._backend_fields(schema)
+        if not constrained:  # free reasoning text is never held to the answer schema
+            fields = {
+                k: v for k, v in fields.items() if k not in {"json_schema", "response_schema"}
+            }
+        return canonical_json_bytes(
+            {
+                "model": str(self.config.model_path.resolve()),
+                "prompt": prompt,
+                "max_tokens": self.config.max_output_tokens,
+                "temperature": 0.0,
+                "stream": False,
+                "stop": [*stop, *self.config.stop_sequences],
+                **fields,
+            }
+        )
+
+    def _send(self, body, record):
+        """POST one completion and record its exact exchange in ``record``."""
+        response_status, headers, raw = self._http("POST", "/v1/completions", body)
+        record.update(response_status=response_status, response_headers=[list(h) for h in headers])
+        record["response_body_blob"] = self.blobs.put(raw, "application/octet-stream").model_dump(
+            mode="json"
+        )
+        record["response_body_utf8"] = raw.decode("utf-8")
+        if response_status != 200 or len(raw) > _MAX_RESPONSE_BYTES:
+            raise ValueError(f"local backend HTTP status/size is invalid: {response_status}")
+        return (
+            _LlamaCompletion if self.config.backend == LLAMA_CPP else _Completion
+        ).model_validate_json(raw)
+
+    def _check(self, completion, allowance):
+        if completion.model != str(self.config.model_path.resolve()):
+            raise ValueError("backend response model differs from the requested local path")
+        if not completion.system_fingerprint.startswith(self.config.runtime_version + "-"):
+            raise ValueError("backend runtime fingerprint differs from the pinned runtime")
+        usage = completion.usage
+        if usage.prompt_tokens + usage.completion_tokens != usage.total_tokens:
+            raise ValueError("backend usage totals disagree")
+        if (
+            usage.completion_tokens > self.config.max_output_tokens
+            or usage.total_tokens > allowance
+        ):
+            raise ValueError("backend exceeded the reserved token allowance")
+
+    def _think(self, prompt, schema, allowance, trace):
+        """Let the model reason in its think block; return the prompt that asks for the answer.
+
+        The reasoning is recorded in the trace and never parsed. Reasoning cut at the output cap
+        is closed and used as it stands; the cut is recorded.
+        """
+        opened = prompt.removesuffix(CLOSED_THINK) + OPEN_THINK
+        body = self._body(opened, schema, stop=[END_THINK], constrained=False)
+        record = trace["thinking"] = {"request_body_utf8": body.decode("utf-8")}
+        completion = self._send(body, record)
+        self._check(completion, allowance)
+        reasoning = completion.choices[0].text
+        record.update(
+            finish_reason=completion.choices[0].finish_reason,
+            completion_tokens=completion.usage.completion_tokens,
+        )
+        return opened + reasoning + "\n" + END_THINK + "\n\n"
+
+    @staticmethod
+    def _dispatched(trace):
+        return trace["request_body_utf8"] is not None or "thinking" in trace
+
     def invoke(self, context, request):
         started = time.monotonic()
         trace = {
@@ -577,58 +662,28 @@ class LocalModelPort:
                 + json.dumps(schema.model_json_schema(), ensure_ascii=True, separators=(",", ":"))
                 + "<|im_end|>\n<|im_start|>user\n"
                 + content
-                + "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"
+                + "<|im_end|>\n<|im_start|>assistant\n"
+                + CLOSED_THINK
             )
             # The pinned tokenizer is byte-level BPE: every ordinary UTF-8 byte can
             # be represented by at most one token. Special markers only reduce this bound.
+            # A thinking call reserves room for its reasoning as well as its answer.
             allowance = min(payload.max_total_tokens, self.config.max_total_tokens)
-            if len(prompt.encode("utf-8")) + self.config.max_output_tokens > allowance:
+            outputs = 2 if self.config.thinking else 1
+            if len(prompt.encode("utf-8")) + outputs * self.config.max_output_tokens > allowance:
                 status, code, message = (
                     "REJECTED",
                     "BUDGET_EXHAUSTED",
                     "prompt byte bound exceeds the reserved call allowance",
                 )
             else:
-                body = canonical_json_bytes(
-                    {
-                        "model": str(self.config.model_path.resolve()),
-                        "prompt": prompt,
-                        "max_tokens": self.config.max_output_tokens,
-                        "temperature": 0.0,
-                        "stream": False,
-                        "stop": self.config.stop_sequences,
-                        **self._backend_fields(schema),
-                    }
-                )
+                if self.config.thinking:
+                    prompt = self._think(prompt, schema, allowance, trace)
+                body = self._body(prompt, schema)
                 trace["request_body_utf8"] = body.decode("utf-8")
-                response_status, headers, raw = self._http("POST", "/v1/completions", body)
-                trace.update(
-                    response_status=response_status, response_headers=[list(h) for h in headers]
-                )
-                trace["response_body_blob"] = self.blobs.put(
-                    raw, "application/octet-stream"
-                ).model_dump(mode="json")
-                trace["response_body_utf8"] = raw.decode("utf-8")
-                if response_status != 200 or len(raw) > _MAX_RESPONSE_BYTES:
-                    raise ValueError(
-                        f"local backend HTTP status/size is invalid: {response_status}"
-                    )
-                completion = (
-                    _LlamaCompletion if self.config.backend == LLAMA_CPP else _Completion
-                ).model_validate_json(raw)
+                completion = self._send(body, trace)
                 model_text = completion.choices[0].text
-                if completion.model != str(self.config.model_path.resolve()):
-                    raise ValueError("backend response model differs from the requested local path")
-                if not completion.system_fingerprint.startswith(self.config.runtime_version + "-"):
-                    raise ValueError("backend runtime fingerprint differs from the pinned runtime")
-                usage = completion.usage
-                if usage.prompt_tokens + usage.completion_tokens != usage.total_tokens:
-                    raise ValueError("backend usage totals disagree")
-                if (
-                    usage.completion_tokens > self.config.max_output_tokens
-                    or usage.total_tokens > allowance
-                ):
-                    raise ValueError("backend exceeded the reserved token allowance")
+                self._check(completion, allowance)
                 if completion.choices[0].finish_reason != "stop":
                     raise ValueError("backend output stopped at its length limit")
                 # Keep only what the model sent: an omitted optional key must still equal the
@@ -646,12 +701,12 @@ class LocalModelPort:
             status, code, message = "FAILED", "PROVIDER_TIMEOUT", str(exc)
             retryable = True
         except (http.client.HTTPException, OSError) as exc:
-            if trace["request_body_utf8"] is None:
+            if not self._dispatched(trace):
                 status, code, message = "REJECTED", "MISSING_ARTIFACT", str(exc)
             else:
                 status, code, message = "OUTCOME_UNKNOWN", "PROVIDER_TIMEOUT", str(exc)
         except (ValueError, UnicodeError) as exc:
-            if trace["request_body_utf8"] is None:
+            if not self._dispatched(trace):
                 status, code, message = "REJECTED", "INVALID_SCHEMA", str(exc)
             else:
                 status, code, message = "FAILED", "PROVIDER_INVALID_OUTPUT", str(exc)

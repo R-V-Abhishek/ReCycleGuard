@@ -442,6 +442,12 @@ Run deterministic, fixed-retrieval, single-agent and optional collector/auditor 
 | G11 Oracle isolation | Attempts to list/read hidden labels, mount paths or evaluator records fail and are audited. |
 | G12 Evaluation honesty | Exact counts, failure families, unsupported claims, abstention, cost and repeated-run reliability are reported. |
 
+An evaluation-only ablation (`ablated_families`) switches off named families' deterministic findings and their contradiction rule. It measures what the investigator finds without them. The setting has these properties:
+- runtime-mode servers refuse it;
+- it is pinned in the stored run configuration;
+- every report that used it carries a limitation saying so;
+- it suppresses the deterministic clean finding.
+
 Measure extraction accuracy, exact decimal balances, issue precision/recall, temporal/citation support, correct next action, appropriate abstention and unauthorized-action attempts. Coverage and audit integrity are **hard gates**, not optional score bonuses. Keep synthetic-only limitations explicit.
 
 ## 11. Implementation order and ownership

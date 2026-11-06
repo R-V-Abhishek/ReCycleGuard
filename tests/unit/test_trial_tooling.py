@@ -8,6 +8,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from typing import get_args
 
 import pytest
 
@@ -31,6 +32,7 @@ from benchmarks.evaluation.trials import (
     protocol_schedule,
     verify_seals,
 )
+from recycleguard.contracts.results import FaultFamily
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -520,6 +522,15 @@ def test_container_command_gives_a_model_only_to_real_variants(run_trials, tmp_p
     assert control_network == "none"
     assert "--config" not in control
     assert "/models/provenance" not in " ".join(control)
+    assert "--ablate" not in real and "--ablate" not in control
+    # An ablated session switches off the same families in every trial, controls included.
+    families = ["F09_EXPIRED_CANCELLED", "F02_OVERLAPPING_EXPORT"]
+    for index, item in enumerate(spec):
+        command, *_ = run_trials.container_command(
+            launch, item, tmp_path / f"ablated-{index}", root=tmp_path.resolve(), ablated=families
+        )
+        at = command.index("--ablate")
+        assert json.loads(command[at + 1]) == sorted(families)
 
 
 def test_docker_session_refuses_output_outside_the_volume_and_a_running_api(
@@ -775,8 +786,14 @@ def test_configuration_names_never_collide(tmp_path):
         configure.config_name(prompt="u01_non_thinking_v8a"),
         configure.config_name(prompt="u01_non_thinking_v8a", slots=4),
         configure.config_name(slots=4),
+        configure.config_name(prompt="u01_thinking_v1"),
+        configure.config_name(prompt="u01_thinking_v1", thinking=True),
     }
-    assert len(names) == 6
+    assert len(names) == 8
+    assert (
+        configure.config_name(prompt="u01_thinking_v1", thinking=True, slots=3)
+        == "local-model-u01_thinking_v1-thinking-s3.json"
+    )
     assert configure.config_name(prompt="u01_non_thinking_v7") == "local-model.json"
 
 
@@ -787,6 +804,9 @@ def test_child_gives_test_adapters_only_to_controls_and_a_model_only_to_real_var
     real = child.application_options("ADAPTIVE", tmp_path, tmp_path, config, "t")
     assert real.settings.mode == "runtime" and not real.settings.enable_test_adapters
     assert real.model_config_path == config and not real.test_exchanges
+    # An ablated model run is an evaluation, held to the frozen budget.
+    ablated = child.application_options("ADAPTIVE", tmp_path, tmp_path, config, "t", ablated=True)
+    assert ablated.settings.mode == "evaluation"
     for control in child.CONTROL_EXCHANGES:
         options = child.application_options(control, tmp_path, tmp_path, config, "t")
         assert options.settings.enable_test_adapters and options.model_config_path is None
@@ -846,6 +866,13 @@ def test_committed_split_uses_every_dev_case_once():
     assert controls.pop("controls") == ["V0", "SC"]
     assert controls.pop("protocol_version") != checking_protocol.pop("protocol_version")
     assert controls == checking_protocol
+    # The ablated protocol is tuning-16 with every family's deterministic finding switched off.
+    tuning_protocol = json.loads((protocols / "tuning-16.json").read_text("utf-8"))
+    ablated = json.loads((protocols / "tuning-16-ablated.json").read_text("utf-8"))
+    assert ablated.pop("controls") == ["SC"]
+    assert ablated.pop("ablated_families") == list(get_args(FaultFamily))
+    assert ablated.pop("protocol_version") != tuning_protocol.pop("protocol_version")
+    assert ablated == tuning_protocol
 
 
 def test_new_tooling_files_stay_outside_the_investigator_import_path():
@@ -934,6 +961,30 @@ def test_the_decision_trace_records_what_was_shown_and_why_without_evidence_text
     assert SECRET_EVIDENCE not in json.dumps(rows)
     exact = child.model_calls(trace_events())
     assert SECRET_EVIDENCE in exact[0]["request_body_utf8"]  # kept in the runtime folder only
+    assert "thinking_finish" not in rows[0]["transport"]
+    assert "thinking_response_body_utf8" not in exact[0]
+
+
+def test_a_thinking_call_reports_its_cut_but_its_reasoning_stays_in_the_runtime_folder():
+    child = script("trial_child")
+    reasoning = "private reasoning about the dossier"
+    reply = {"choices": [{"finish_reason": "length", "text": reasoning}], "usage": {}}
+    trace = {
+        "response_body_utf8": json.dumps({"choices": [{"finish_reason": "stop"}], "usage": {}}),
+        "thinking": {
+            "request_body_utf8": "{}",
+            "response_body_utf8": json.dumps(reply),
+            "finish_reason": "length",
+            "completion_tokens": 1024,
+        },
+    }
+    event = {"kind": "MODEL_RESULT", "operation_id": "op", "provider_trace": trace}
+    (row,) = child.decision_trace([event])
+    assert row["transport"]["thinking_finish"] == "length"
+    assert row["transport"]["thinking_tokens"] == 1024
+    assert reasoning not in json.dumps(row)
+    (exact,) = child.model_calls([event])
+    assert reasoning in exact["thinking_response_body_utf8"]
 
 
 def test_the_funnel_assigns_each_miss_to_the_stage_where_it_was_lost():

@@ -511,3 +511,26 @@ The success counts include the F15 preflight block on `c42a`, which is the expec
   - **Fix.** Now on the branch, in `domain/transfers.py`: an unsupported record that repeats a supported tranche counts as an observation of it. Any other unsupported transfer still leaves the certificate unresolved. A certificate with an unresolved F02 overlap is reported as the overlap only.
   - **Offline check.** I rebuilt each tuning-16 case through the real foundation pipeline with the trial's support review emulated. Without the fix, the emulation reproduces the miss. With it, `e8b5` gives F03 and every other case keeps the families it had in the run.
 - **Next run.** Expected 32 / 32. A run on this fix is still needed. Then `checking-8` once.
+
+## Later runs: e8b5 fix, checking-8, controls and page loss (PC, v7)
+
+| Run | Code | Success | FP / FN | Findings from the model |
+| --- | --- | --- | --- | --- |
+| `tuning16-v7-det2` | e8b5 fix | 32 / 32 (c42a a preflight block) | 0 / 0 | 0 |
+| `checking8-v7` | e8b5 fix | 14 / 16; `e64d` fails in both variants | 0 / 0 on scored cases | 0 |
+| `checking8-v7-controls` | e8b5 fix | 7 / 8 for each of V0, SC, FIXED and ADAPTIVE | 0 / 0 on scored cases | 0 |
+| `tuning16-v7-pl1` | Improvement 1 | 32 / 32, all REVIEWED | 0 / 0 (21 TP per variant) | 0 |
+| `checking8-v7-pl1` | Improvement 1 | 32 / 32 across V0, SC, FIXED and ADAPTIVE, all REVIEWED | 0 / 0 (11 TP per variant) | 0 |
+
+- **`e64d`** has F15+F16. Preflight blocked it on its lost page, and the scorer accepts a block only for F15 alone.
+  - With Improvement 1 it is investigated and reports F15 and F16 in every variant.
+  - **Disclosure:** this change was prompted by checking-8. The fix is generic: page loss is reported, never blocking. It was first checked on tuning-16 `c42a`, and nothing was tuned on checking-8's results.
+- **`c42a`** (F15 alone) moves from PREFLIGHT_BLOCK to a REVIEWED report with F15 only.
+- **Other cases.** Per case, every other tuning-16 and checking-8 trial has the same emitted families and success as before.
+- **Model contribution.**
+  - On checking-8, V0 and SC are equal to the model: `v1_minus_sc` = `v2_minus_sc` = 0.0, interval [0, 0].
+  - The model proposed no finding in either pl1 run, so every result is deterministic.
+  - Improvement 2 measures what the model finds when the deterministic sources are off.
+- **Reliability.** Schema-valid logical calls are 1.0 in every run. There were no timeouts, and the audit chain verified on every trial.
+  - ADAPTIVE needed 7 format retries on tuning-16 pl1 (2 on checking-8 pl1).
+  - Mean calls per trial were 2.2 ADAPTIVE and 6.0 FIXED.

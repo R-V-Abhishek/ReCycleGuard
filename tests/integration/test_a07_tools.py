@@ -6,6 +6,7 @@ import shutil
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
+from typing import get_args
 
 import pytest
 
@@ -16,6 +17,7 @@ from recycleguard.config import Settings
 from recycleguard.contracts.artifacts import SnapshotRef
 from recycleguard.contracts.checks import StructuredCheckResult
 from recycleguard.contracts.core import ServiceResult
+from recycleguard.contracts.results import FaultFamily
 from recycleguard.contracts.retrieval import RetrievalAttempt
 from recycleguard.extraction import extract_pdf_pages
 from recycleguard.indexing.corpus import load_corpus
@@ -76,12 +78,12 @@ def investigation(tmp_path, approved_foundation):
     settings = Settings(data_root=root, mode="test", enable_test_adapters=True)
 
     @contextmanager
-    def create():
+    def create(ablated=()):
         with local_application(settings) as (cases, context, capability):
             case = cases.snapshots.catalog.get_snapshot("snapshot:case_approved")
             corpus = cases.snapshots.catalog.get_snapshot("snapshot:corpus_approved")
             request = InvestigationRequest(
-                run_id="run:a07_real_services",
+                run_id="run:a07_real_services" + ("_ablated" if ablated else ""),
                 case_snapshot=SnapshotRef(
                     snapshot_id=case.snapshot_id, membership_digest=case.membership_digest
                 ),
@@ -90,6 +92,7 @@ def investigation(tmp_path, approved_foundation):
                 ),
                 finding_ids=["finding:one"],
                 scripted_exchanges=[_exchange(step) for step in _steps()],
+                ablated_families=list(ablated),
             )
             service = InvestigationService(cases, settings, capability=capability)
             spec = service.prepare(context, request)
@@ -137,6 +140,70 @@ def test_real_search_reformulation_reconciliation_and_verified_report(investigat
         assert len({ref for turn in turns for ref in turn.retrieval_attempt_ids}) == 2
         calculated_ids = {ref for turn in turns for ref in turn.calculation_ids}
         assert {c.calculation_id for c in report.report.calculations} <= calculated_ids
+
+
+def _drive(env):
+    state = env.runner.start_run(env.context, env.spec, capability=env.capability)
+    for _ in range(15):
+        if state.status in {"AWAITING_REVIEW", "FAILED", "BLOCKED_INPUT", "BLOCKED_OUTPUT"}:
+            break
+        state = env.runner.advance(
+            command_context(env.context.actor),
+            state.run_id,
+            state.version,
+            capability=env.capability,
+        )
+    return state
+
+
+def _limitations(report):
+    return [c.template_or_text for c in report.report.claims if c.kind == "LIMITATION"]
+
+
+def test_ablation_switches_off_deterministic_findings_and_says_so(investigation):
+    every = list(get_args(FaultFamily))
+    with investigation() as env:
+        state = _drive(env)
+        stored = json.loads(env.service.blobs.get(env.spec.runtime_configuration))
+        # A default run's stored configuration is byte-for-byte what it was before ablation.
+        assert "ablated_families" not in stored
+        default = env.service.latest_report(state.run_id)
+        assert not any("switched off" in text for text in _limitations(default))
+    with investigation(ablated=every) as env:
+        state = _drive(env)
+        assert state.status == "AWAITING_REVIEW"
+        assert env.service.configuration(env.spec).ablated_families == every
+        report = env.service.latest_report(state.run_id)
+        # The scripted control proposes nothing, so with every source off nothing is reported,
+        # and a settled reconciliation is not passed off as a clean case.
+        assert report.findings == []
+        assert report.verification.verdict in {"PASS", "QUALIFIED"}
+        assert f"Deterministic checks for {len(every)} fault families" in " ".join(
+            _limitations(report)
+        )
+
+
+def test_ablation_is_refused_outside_evaluation_and_test_modes(tmp_path, approved_foundation):
+    root = tmp_path / "data"
+    shutil.copytree(approved_foundation, root, ignore=shutil.ignore_patterns("reviewer.json"))
+    with local_application(Settings(data_root=root)) as (cases, context, capability):
+        case = cases.snapshots.catalog.get_snapshot("snapshot:case_approved")
+        corpus = cases.snapshots.catalog.get_snapshot("snapshot:corpus_approved")
+        request = InvestigationRequest(
+            run_id="run:a07_ablation_refused",
+            case_snapshot=SnapshotRef(
+                snapshot_id=case.snapshot_id, membership_digest=case.membership_digest
+            ),
+            corpus_snapshot=SnapshotRef(
+                snapshot_id=corpus.snapshot_id, membership_digest=corpus.membership_digest
+            ),
+            finding_ids=["finding:one"],
+            scripted_exchanges=[_exchange(step) for step in _steps()],
+            ablated_families=["F09_EXPIRED_CANCELLED"],
+        )
+        service = InvestigationService(cases, Settings(data_root=root), capability=capability)
+        with pytest.raises(ValueError, match="evaluation setting"):
+            service.prepare(context, request)
 
 
 def test_read_tools_return_original_provenance_and_real_calculations(investigation):

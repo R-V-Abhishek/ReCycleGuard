@@ -15,6 +15,8 @@ Protocol: {"protocol_version": "...", "case_ids": ["case_..."], "repeats": 1,
 "variants": ["FIXED_RETRIEVAL", "ADAPTIVE"], "wall_seconds": 25200, "tokens": 2000000}
 Optional: "controls": ["V0", "SC"] (one deterministic run per case) and "canaries": ["case_..."]
 (development cases run at both ends of the session, compared by score_trials and never scored).
+Optional, evaluation only: "ablated_families": ["F02_...", ...] switches off those families'
+deterministic findings in every trial of the session, controls included.
 """
 
 import argparse
@@ -214,9 +216,15 @@ def require_separate_grants(reads, forbidden):
                 raise SystemExit(f"sandbox read grant {grant} overlaps evaluator path {path}")
 
 
-def child_command(launch, spec, attempt, budgets=None, output=None):
+def _ablation(ablated):
+    """The same switch reaches every variant, controls included, so SC stays the zero line."""
+    return ["--ablate", json.dumps(sorted(ablated))] if ablated else []
+
+
+def child_command(launch, spec, attempt, budgets=None, output=None, ablated=None):
     visible, runtime, program = prepare_attempt(spec, attempt, launch.fixtures)
     arguments = [] if budgets is None else ["--budgets", json.dumps(budgets)]
+    arguments += _ablation(ablated)
     arguments += [
         "--case",
         spec.case_id,
@@ -259,7 +267,9 @@ def session_id(output):
     return hashlib.sha256(output.resolve().as_posix().encode()).hexdigest()[:16]
 
 
-def container_command(launch, spec, attempt, budgets=None, root=TRIAL_ROOT, session=None):
+def container_command(
+    launch, spec, attempt, budgets=None, root=TRIAL_ROOT, session=None, ablated=None
+):
     """``docker create`` for one trial, with the paths the investigator sees inside it."""
     from recycleguard.isolated_runtime import (
         TRIAL_NO_NETWORK,
@@ -273,6 +283,7 @@ def container_command(launch, spec, attempt, budgets=None, root=TRIAL_ROOT, sess
     control = spec.variant in CONTROLS
     arguments = ["-I", f"/program/{program.name}"]
     arguments += [] if budgets is None else ["--budgets", json.dumps(budgets)]
+    arguments += _ablation(ablated)
     arguments += ["--case", spec.case_id, "--variant", spec.variant]
     arguments += ["--visible", "/visible", "--runtime", "/runtime", "--container"]
     if not control:
@@ -375,7 +386,7 @@ def seal(result_path, results):
     return digest, json.loads(raw)
 
 
-def trial_runner(output, launch, budgets=None):
+def trial_runner(output, launch, budgets=None, ablated=None):
     results = output / "results"
     results.mkdir(exist_ok=True)
     session = session_id(output)
@@ -387,12 +398,14 @@ def trial_runner(output, launch, budgets=None):
         attempt.mkdir()
         if launch.backend in CONTAINER_BACKENDS:
             command, name, network, runtime = container_command(
-                launch, spec, attempt, budgets, session=session
+                launch, spec, attempt, budgets, session=session, ablated=ablated
             )
             with (attempt / "child.log").open("wb") as log:
                 done = run_container(command, name, network, attempt, log, session)
         else:
-            command, environment, runtime = child_command(launch, spec, attempt, budgets, output)
+            command, environment, runtime = child_command(
+                launch, spec, attempt, budgets, output, ablated=ablated
+            )
             with (attempt / "child.log").open("wb") as log:
                 done = subprocess.run(
                     command,
@@ -446,7 +459,7 @@ def coordinate(protocol_path, output, launch, *, held_out=None):
     summary = Coordinator(
         schedule,
         Ledger(output / "ledger.jsonl"),
-        trial_runner(output, launch, protocol.get("budgets")),
+        trial_runner(output, launch, protocol.get("budgets"), protocol.get("ablated_families")),
         output / "KILL",
         Caps(wall_seconds=protocol["wall_seconds"], tokens=protocol["tokens"]),
     ).run()

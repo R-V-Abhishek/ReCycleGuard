@@ -561,6 +561,21 @@ def contradicted_families(findings: Iterable[FindingRecord], universe: Universe 
     return set(COMPLETE_FAMILIES - {finding.issue_type for finding in findings})
 
 
+def ablate(
+    findings: Iterable[FindingRecord], contradicted: Iterable[str], ablated: Iterable[str]
+) -> tuple[list[FindingRecord], set]:
+    """Evaluation only: switch off the deterministic findings of the ablated families.
+
+    Their findings are dropped, and the model may claim them: the sweep never ran for them, so
+    it contradicts nothing. Every other gate check still applies to the model's claim.
+    """
+    off = set(ablated)
+    return (
+        [finding for finding in findings if finding.issue_type not in off],
+        set(contradicted) - off,
+    )
+
+
 def settled_without_finding(calculation: CalculationResult) -> bool:
     """Every analyzed bucket has nothing pending and no issue is above WARNING."""
     return (

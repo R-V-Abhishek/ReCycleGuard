@@ -20,7 +20,12 @@ from recycleguard.contracts.core import (
     ServiceResult,
 )
 from recycleguard.contracts.extraction import CoverageItem, ExtractionResult, Observation
-from recycleguard.contracts.results import CalculationRequest, FindingRecord, Recommendation
+from recycleguard.contracts.results import (
+    CalculationRequest,
+    FaultFamily,
+    FindingRecord,
+    Recommendation,
+)
 from recycleguard.contracts.retrieval import (
     EvidenceBundle,
     IndexManifest,
@@ -49,10 +54,12 @@ from recycleguard.reporting.baseline import (
     BaselineReportBuilder,
     ReportVerifier,
     VerificationResult,
+    ablation_limitation,
     inspection_limitation,
 )
 from recycleguard.reporting.calculation_findings import (
     DETERMINISTIC_SOURCE,
+    ablate,
     calculation_findings,
     contradicted_families,
     load_derivation,
@@ -103,11 +110,16 @@ class InvestigationRequest(BoundaryModel):
     fixed_plan: FixedPlan | None = None
     budgets: BudgetLimits = Field(default_factory=BudgetLimits)
     parent_run_id: ID | None = None
+    # Evaluation only: families whose deterministic findings are switched off, to measure what
+    # the model finds without them. Pinned in the stored configuration and named in the report.
+    ablated_families: list[FaultFamily] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def exactly_one_backend(self):
         if bool(self.scripted_exchanges) == (self.local_model_config is not None):
             raise ValueError("choose exactly one scripted sequence or local model configuration")
+        if len(set(self.ablated_families)) != len(self.ablated_families):
+            raise ValueError("ablated families must be unique")
         return self
 
 
@@ -117,6 +129,7 @@ class InvestigationConfiguration(BoundaryModel):
     local_model_config: LocalModelConfig | None = None
     fixed_plan: FixedPlan | None = None
     adapter_version: str = "a07-real-services-1"
+    ablated_families: list[FaultFamily] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def exactly_one_backend(self):
@@ -291,6 +304,8 @@ class InvestigationService:
 
     def prepare(self, context, request: InvestigationRequest):
         native = request.local_model_config
+        if request.ablated_families and self.settings.mode not in {"evaluation", "test"}:
+            raise ValueError("ablated families are an evaluation setting; runtime runs keep them")
         if native is None and (
             self.settings.mode != "test" or not self.settings.enable_test_adapters
         ):
@@ -322,9 +337,16 @@ class InvestigationService:
             scripted_exchanges=request.scripted_exchanges,
             local_model_config=native,
             fixed_plan=request.fixed_plan,
+            ablated_families=request.ablated_families,
         )
+        # An unablated configuration keeps the bytes, and so the digest, it had before ablation.
         configuration_ref = self.blobs.put(
-            canonical_json_bytes(configuration.model_dump(mode="json")),
+            canonical_json_bytes(
+                configuration.model_dump(
+                    mode="json",
+                    exclude=None if configuration.ablated_families else {"ablated_families"},
+                )
+            ),
             "application/json",
         )
         script = [step.model_dump(mode="json") for step in request.scripted_exchanges]
@@ -1094,12 +1116,19 @@ class InvestigationService:
                 universe,
                 self._observations(spec),
             )
-            findings = self._findings(spec) + self._coverage_findings(spec) + computed
+            ablated = self.configuration(spec).ablated_families
+            findings, contradicted = ablate(
+                self._findings(spec) + self._coverage_findings(spec) + computed,
+                contradicted_families(computed, universe),
+                ablated,
+            )
             accepted, rejected, inspected = self._gated_findings(
-                spec, calculated, findings, contradicted_families(computed, universe)
+                spec, calculated, findings, contradicted
             )
             findings = findings + accepted
-            if not findings and settled_without_finding(calculated):
+            # Under ablation a settled reconciliation is no evidence of a clean case: the checks
+            # that would have found a fault did not run. Only a gated model claim can say clean.
+            if not findings and not ablated and settled_without_finding(calculated):
                 findings = [self._clean_finding(calculated)]
             refs = [
                 ref for finding in findings for ref in finding.fact_refs + finding.provision_refs
@@ -1136,6 +1165,7 @@ class InvestigationService:
                 limitations=[
                     inspection_limitation(inspected, len(self._observations(spec))),
                     *([MODEL_LOOP_LIMITATION] if state.stop_reason == "PROVIDER_FAILURE" else []),
+                    *([ablation_limitation(len(ablated))] if ablated else []),
                 ],
             )
             verified = ReportVerifier().verify(

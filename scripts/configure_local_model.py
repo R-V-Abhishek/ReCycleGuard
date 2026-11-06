@@ -5,6 +5,7 @@
 ``--forced-cap N`` writes a separate configuration capped at N model calls, for the MG1 cap check.
 ``--prompt <version>`` uses ``docs/checkpoints/mg1/prompts/<version>.json`` instead of v7.
 ``--slots N`` (llama.cpp only) pins a server started with ``SLOTS=N``, for prompt sweeps.
+``--thinking`` (needs ``--prompt``) lets each call reason in its think block before it answers.
 """
 
 import hashlib
@@ -27,7 +28,7 @@ PROMPTS = ROOT / "docs/checkpoints/mg1/prompts"
 LLAMA_ENDPOINT = "http://127.0.0.1:8766/v1/completions"
 USAGE = (
     "usage: configure_local_model.py [--constrained] [--forced-cap N] [--prompt <version>] "
-    "[--slots N] [--llama-cpp <root>]"
+    "[--thinking] [--slots N] [--llama-cpp <root>]"
 )
 
 
@@ -78,19 +79,22 @@ def mlx_config(constrained):
     )
 
 
-def config_name(*, constrained=False, cap=None, prompt=None, slots=1):
+def config_name(*, constrained=False, cap=None, prompt=None, slots=1, thinking=False):
     """Every option changes the name, so no configuration overwrites another."""
     name = "local-model-constrained" if constrained else "local-model"
     name += "-forced-cap" if cap is not None else ""
     name += f"-{prompt}" if prompt not in (None, BUILTIN_PROMPT_VERSION) else ""
+    name += "-thinking" if thinking else ""
     name += f"-s{slots}" if slots != 1 else ""
     return name + ".json"
 
 
-def with_options(config, *, cap=None, prompt=None):
+def with_options(config, *, cap=None, prompt=None, thinking=False):
     fields = config.model_dump()
     if cap is not None:
         fields["max_model_calls"] = cap
+    if thinking:
+        fields["thinking"] = True
     if prompt not in (None, BUILTIN_PROMPT_VERSION):
         # v7 stays the built-in text, so its configurations keep their usual pins.
         text = PromptText.model_validate_json((PROMPTS / f"{prompt}.json").read_bytes())
@@ -102,9 +106,13 @@ def with_options(config, *, cap=None, prompt=None):
     return LocalModelConfig.model_validate(fields)
 
 
-def write_llama_cpp(model, *, constrained=False, cap=None, prompt=None, slots=1):
-    config = with_options(llama_cpp_config(model, constrained, slots), cap=cap, prompt=prompt)
-    target = model / config_name(constrained=constrained, cap=cap, prompt=prompt, slots=slots)
+def write_llama_cpp(model, *, constrained=False, cap=None, prompt=None, slots=1, thinking=False):
+    config = with_options(
+        llama_cpp_config(model, constrained, slots), cap=cap, prompt=prompt, thinking=thinking
+    )
+    target = model / config_name(
+        constrained=constrained, cap=cap, prompt=prompt, slots=slots, thinking=thinking
+    )
     target.write_text(config.model_dump_json(indent=2) + "\n", encoding="utf-8")
     return target
 
@@ -123,19 +131,29 @@ def take(arguments, flag):
 def main():
     arguments = sys.argv[1:]
     constrained = "--constrained" in arguments
-    arguments = [argument for argument in arguments if argument != "--constrained"]
+    thinking = "--thinking" in arguments
+    arguments = [a for a in arguments if a not in {"--constrained", "--thinking"}]
     cap = take(arguments, "--forced-cap")
     cap = None if cap is None else int(cap)
     prompt = take(arguments, "--prompt")
     slots = int(take(arguments, "--slots") or "1")
+    if thinking and prompt in (None, BUILTIN_PROMPT_VERSION):
+        raise SystemExit("--thinking needs --prompt <version>; v7 never thinks")
     if len(arguments) == 2 and arguments[0] == "--llama-cpp":
         target = write_llama_cpp(
-            Path(arguments[1]), constrained=constrained, cap=cap, prompt=prompt, slots=slots
+            Path(arguments[1]),
+            constrained=constrained,
+            cap=cap,
+            prompt=prompt,
+            slots=slots,
+            thinking=thinking,
         )
     elif not arguments and slots == 1:
-        config = with_options(mlx_config(constrained), cap=cap, prompt=prompt)
+        config = with_options(mlx_config(constrained), cap=cap, prompt=prompt, thinking=thinking)
         target = (
-            ROOT / ".recycleguard" / config_name(constrained=constrained, cap=cap, prompt=prompt)
+            ROOT
+            / ".recycleguard"
+            / config_name(constrained=constrained, cap=cap, prompt=prompt, thinking=thinking)
         )
         target.write_text(config.model_dump_json(indent=2) + "\n", encoding="utf-8")
     else:

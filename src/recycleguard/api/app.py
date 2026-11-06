@@ -32,6 +32,7 @@ from recycleguard.contracts.foundation import (
     FoundationRequest,
     FoundationResult,
 )
+from recycleguard.contracts.results import FaultFamily
 from recycleguard.contracts.review import ReviewDecision, ReviewPacket
 from recycleguard.contracts.workflow import BudgetLimits, PlanProposal, RunState
 from recycleguard.foundation import FoundationService
@@ -120,6 +121,8 @@ class RunRequest(BoundaryModel):
     mode: Literal["MODEL_BACKED", "SCRIPTED_TEST"] = "MODEL_BACKED"
     variant: Literal["ADAPTIVE", "FIXED_RETRIEVAL"] = "ADAPTIVE"
     budgets: BudgetLimits | None = None
+    # Evaluation only; a runtime-mode server rejects it. Empty keeps every deterministic check.
+    ablated_families: list[FaultFamily] = Field(default_factory=list)
 
 
 class DecisionRequest(BoundaryModel):
@@ -750,6 +753,7 @@ def create_app(options: ApiOptions):
                             if body.variant == "FIXED_RETRIEVAL"
                             else None,
                             budgets=budgets,
+                            ablated_families=body.ablated_families,
                         ),
                     )
                     runner = service.runner(spec)

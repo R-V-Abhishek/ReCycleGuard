@@ -107,8 +107,21 @@ MODEL_LOOP_LIMITATION = (
 )
 
 
+_ABLATION_LIMITATION = re.compile(
+    r"Deterministic checks for \d+ fault families were switched off for an evaluation; "
+    r"findings in those families come only from the model\."
+)
+
+
 def inspection_limitation(inspected: int, total: int) -> str:
     return f"Inspected {inspected} of {total} dossier observations."
+
+
+def ablation_limitation(families: int) -> str:
+    return (
+        f"Deterministic checks for {families} fault families were switched off for an "
+        "evaluation; findings in those families come only from the model."
+    )
 
 
 def inspection_limitations(report: "BaselineReport") -> list[str]:
@@ -119,6 +132,7 @@ def inspection_limitations(report: "BaselineReport") -> list[str]:
         if claim.kind == "LIMITATION"
         and (
             _INSPECTION_LIMITATION.fullmatch(claim.template_or_text)
+            or _ABLATION_LIMITATION.fullmatch(claim.template_or_text)
             or claim.template_or_text == MODEL_LOOP_LIMITATION
         )
     ]

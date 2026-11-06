@@ -23,9 +23,9 @@ where it can add value, and measure that value. This file keeps the work from dr
 
 - [x] Plan approved
 - [x] Implemented. The offline sweep gives `c42a` F15 alone; the other 15 tuning cases are unchanged.
-- [ ] Required tests pass (PC)
-- [ ] PC runs done: `tuning16-v7-pl1`, `checking8-v7-pl1`
-- [ ] Results recorded in `FAILURE_ANALYSIS.md`
+- [ ] Required tests pass (PC). No test log was committed with the runs; record the pytest output here.
+- [x] PC runs done: `tuning16-v7-pl1` 32/32 and `checking8-v7-pl1` 32/32 (V0, SC, FIXED, ADAPTIVE).
+- [x] Results recorded in `FAILURE_ANALYSIS.md`.
 
 **Goal.** A dossier with a lost or missing page is reported as F15 and still investigated, so every
 other fault in it is found.
@@ -59,10 +59,13 @@ other fault in it is found.
 
 ## 2. Rule ablation: what the model finds when a rule is off (v7 vs a thinking prompt)
 
-- [ ] Plan approved
-- [ ] Implemented
+- [x] Plan approved
+- [x] Implemented.
+  - The offline probe of tuning-16 with every family off leaves no deterministic finding and no contradiction on any case.
+  - Five settled cases would otherwise have received a false deterministic F01.
+  - Non-thinking pins and the v7 prompt digest are unchanged.
 - [ ] Required tests pass (PC)
-- [ ] PC runs done
+- [ ] PC runs done: `tuning16-v7-abl1`, `tuning16-think-abl1`, `tuning16-think-pl1`
 - [ ] Results recorded
 
 **Goal.** Measure, per fault family, how often the model finds the fault when that family's
@@ -84,6 +87,16 @@ scorer.
 - Default (unablated) runs are unchanged.
 
 **Measurement.** The recovery rate per family, model minus SC, with intervals.
+
+**Decisions (plan approved).**
+- **One condition:** all families are switched off at once, in one protocol (`tuning-16-ablated.json`) that serves both prompts.
+- **No deterministic clean finding** under ablation; the gate's safety checks all stay.
+- **Tool outputs are unchanged.** Results are reported in two groups:
+  - *signal* families, where a tool shows a matching issue code;
+  - *judgement* families (F01, F03, F07, F11, F12, F14, F16), where none exists.
+- **Thinking makes two requests within one model call:** think up to 1024 tokens, then answer up to 1024. The server and v7 pins are unchanged.
+- **The thinking prompt** is v7 with one sentence changed.
+- **Intervals:** per-family n is 1–2, so there are no per-family intervals. Aggregate success uses the existing paired bootstrap against SC.
 
 ## 3. Reviewer brief: speed up the compliance review
 

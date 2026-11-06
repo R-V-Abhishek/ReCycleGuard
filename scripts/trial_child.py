@@ -66,8 +66,11 @@ CONTROL_EXCHANGES = {
 }
 
 
-def application_options(variant, runtime, visible, config, token):
-    """Test adapters exist only for controls, and a control never receives a model config."""
+def application_options(variant, runtime, visible, config, token, ablated=False):
+    """Test adapters exist only for controls, and a control never receives a model config.
+
+    An ablated model run is an evaluation: the server holds it to the frozen budget.
+    """
     from recycleguard.api import ApiOptions
     from recycleguard.config import Settings
     from recycleguard.investigation import ScriptedExchange
@@ -83,7 +86,11 @@ def application_options(variant, runtime, visible, config, token):
         if config is None:
             raise ValueError("a real-model variant needs its model configuration")
         return ApiOptions(
-            settings=Settings(data_root=runtime / "root"), model_config_path=config, **shared
+            settings=Settings(
+                data_root=runtime / "root", mode="evaluation" if ablated else "runtime"
+            ),
+            model_config_path=config,
+            **shared,
         )
     if variant not in CONTROL_EXCHANGES:
         raise ValueError(f"unknown variant: {variant}")
@@ -209,11 +216,21 @@ def _transport(trace):
         return {"finish_reason": None, "prompt_tokens": None, "completion_tokens": None}
     choice = (body.get("choices") or [{}])[0]
     usage = body.get("usage") or {}
+    thinking = (trace or {}).get("thinking")
     return {
         "finish_reason": choice.get("finish_reason"),
         "prompt_tokens": usage.get("prompt_tokens"),
         "completion_tokens": usage.get("completion_tokens"),
         "elapsed_seconds": (trace or {}).get("elapsed_seconds"),
+        # A thinking call reasons first; its reasoning text stays in model-calls.jsonl only.
+        **(
+            {}
+            if thinking is None
+            else {
+                "thinking_finish": thinking.get("finish_reason"),
+                "thinking_tokens": thinking.get("completion_tokens"),
+            }
+        ),
     }
 
 
@@ -242,6 +259,17 @@ def decision_trace(events):
     return rows
 
 
+def _reasoning(trace):
+    """The thinking request's exact exchange, when the call thought before answering."""
+    thinking = (trace or {}).get("thinking")
+    if thinking is None:
+        return {}
+    return {
+        "thinking_request_body_utf8": thinking.get("request_body_utf8"),
+        "thinking_response_body_utf8": thinking.get("response_body_utf8"),
+    }
+
+
 def model_calls(events):
     """Exact request and reply bodies, kept beside the trial for diagnostic replay only."""
     return [
@@ -250,6 +278,7 @@ def model_calls(events):
             "attempt_id": event.get("attempt_id"),
             "request_body_utf8": (event.get("provider_trace") or {}).get("request_body_utf8"),
             "response_body_utf8": (event.get("provider_trace") or {}).get("response_body_utf8"),
+            **_reasoning(event.get("provider_trace")),
         }
         for event in events
         if event.get("kind") == "MODEL_RESULT" and event.get("provider_trace")
@@ -377,11 +406,13 @@ def prepare_dossier(call, fixture, password):
     return dossier
 
 
-def run_variant(call, dossier, variant, deadline_seconds=600, budgets=None):
+def run_variant(call, dossier, variant, deadline_seconds=600, budgets=None, ablated=None):
     """Start one run and wait for its job to end; returns (run_id, view)."""
     body = {"dossier_id": dossier, **trial_body(variant)}
     if budgets is not None:
         body["budgets"] = budgets
+    if ablated:
+        body["ablated_families"] = ablated
     run_id = call("POST", "/runs", body, 202)["run_id"]
     deadline = time.monotonic() + deadline_seconds
     while True:
@@ -404,6 +435,7 @@ def main():
     parser.add_argument("--sandboxed", action="store_true")
     parser.add_argument("--container", action="store_true")
     parser.add_argument("--budgets", type=json.loads)
+    parser.add_argument("--ablate", type=json.loads, help="JSON list of families switched off")
     arguments = parser.parse_args()
 
     if arguments.container:
@@ -434,7 +466,12 @@ def main():
     password, token = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
     app = create_app(
         application_options(
-            arguments.variant, arguments.runtime, arguments.visible, arguments.config, token
+            arguments.variant,
+            arguments.runtime,
+            arguments.visible,
+            arguments.config,
+            token,
+            ablated=bool(arguments.ablate),
         )
     )
     with TestClient(app) as client:
@@ -442,7 +479,9 @@ def main():
         call = caller(client)
         call("POST", "/reviewer", {"actor_id": "human:trial_fixture", "password": password}, 201)
         dossier = prepare_dossier(call, arguments.case, password)
-        run_id, view = run_variant(call, dossier, arguments.variant, budgets=arguments.budgets)
+        run_id, view = run_variant(
+            call, dossier, arguments.variant, budgets=arguments.budgets, ablated=arguments.ablate
+        )
         state = view["state"]
         result = {
             "case_id": arguments.case,
