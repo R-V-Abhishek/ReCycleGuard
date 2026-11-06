@@ -491,3 +491,23 @@ Verification on the laptop was static only:
 - read-only probes of the new rules over c08 builder universes and case_001.
 
 The unit and integration tests, the full suite and the confirming run are for the PC. Report every result two ways: deterministic-only success (`t3_model_influence`) next to full success.
+
+## Confirming run `tuning16-v7-det1` (PC, v7, 1 slot, 32 trials)
+
+| | Earlier v7 (3 sessions, 128 trials) | `tuning16-v7-det1` |
+| --- | --- | --- |
+| Primary success | 69 / 128 (53.9%) | 30 / 32 (93.8%), 15 / 16 per variant |
+| False positives / negatives | 3 / 56 | 2 / 2 |
+| Missing withheld scopes | 16 trials | 0 |
+| Exact bucket numbers | all | all |
+| Findings from the model | 3 | 0 of 40; one proposal, rejected for digits |
+| Mean model calls (ADAPTIVE / FIXED) | 2.44 / 5.63 | 2.38 / 5.75 |
+
+The success counts include the F15 preflight block on `c42a`, which is the expected outcome.
+
+- **Deterministic-only.** The model added no finding, so the success is deterministic-only. The earlier v7 sweep also had a model share of 0 of 13, so the gain is the engine, not the model.
+- **Remaining failure.** `e8b5` fails in both variants: F03 is missed and F01 is emitted.
+  - **Cause.** The ledger CSV adds an unsupported copy of each portal transfer, with the same external reference and quantity and a DATE time. The shared-instrument check refused any certificate holding an unsupported transfer.
+  - **Fix.** Now on the branch, in `domain/transfers.py`: an unsupported record that repeats a supported tranche counts as an observation of it. Any other unsupported transfer still leaves the certificate unresolved. A certificate with an unresolved F02 overlap is reported as the overlap only.
+  - **Offline check.** I rebuilt each tuning-16 case through the real foundation pipeline with the trial's support review emulated. Without the fix, the emulation reproduces the miss. With it, `e8b5` gives F03 and every other case keeps the families it had in the run.
+- **Next run.** Expected 32 / 32. A run on this fix is still needed. Then `checking-8` once.

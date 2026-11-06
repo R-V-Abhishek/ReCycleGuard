@@ -2,8 +2,9 @@
 
 An overlapping copy is two transfers of one lot with the same exact quantity, metal and recipient
 whose recorded times can denote the same moment, at least one of them unsupported. A shared
-instrument is several supported transfers of one certificate at distinct, ordered times. The two
-are disjoint by construction: overlapping times can never be distinct tranches.
+instrument is several supported transfers of one certificate at distinct, ordered times. The
+supported transfers of the two never coincide: overlapping times can never be distinct tranches.
+A certificate with an overlap that is still unresolved is reported as the overlap only.
 """
 
 from itertools import combinations
@@ -45,14 +46,42 @@ def overlapping_transfers(universe: Universe) -> list[tuple[CertificateEvent, Ce
     return pairs
 
 
+def _repeats(copy: CertificateEvent, transfer: CertificateEvent) -> bool:
+    """An unsupported record is another observation of a supported transfer, not a new one.
+
+    It must carry the same exact quantity and metal, name no other recipient, and either repeat
+    the transfer's external reference or have a time that can denote the same moment.
+    """
+    if (to_kg(copy.quantity), copy.quantity.metal) != (
+        to_kg(transfer.quantity),
+        transfer.quantity.metal,
+    ):
+        return False
+    if None not in (copy.to_entity_id, transfer.to_entity_id) and (
+        copy.to_entity_id != transfer.to_entity_id
+    ):
+        return False
+    if copy.external_event_ref and copy.external_event_ref == transfer.external_event_ref:
+        return True
+    spans = span(copy.event_time), span(transfer.event_time)
+    return None not in spans and span_before(*spans) is None
+
+
 def shared_instrument_transfers(universe: Universe) -> dict[str, list[CertificateEvent]]:
-    """Certificates whose several supported transfers are distinct events at ordered times."""
+    """Certificates whose several supported transfers are distinct events at ordered times.
+
+    Unsupported records that repeat one of those transfers (an export row of a portal transfer)
+    are set aside as observations of it. Any other unsupported transfer leaves the certificate
+    unresolved, so it is not reported.
+    """
     groups: dict[str, list[CertificateEvent]] = {}
     for event in _transfers(universe):
         groups.setdefault(event.certificate_id, []).append(event)
     shared = {}
-    for certificate_id, group in sorted(groups.items()):
-        if len(group) < 2 or any(e.assertion_state != "SUPPORTED" for e in group):
+    for certificate_id, all_events in sorted(groups.items()):
+        group = [e for e in all_events if e.assertion_state == "SUPPORTED"]
+        others = [e for e in all_events if e.assertion_state != "SUPPORTED"]
+        if len(group) < 2 or not all(any(_repeats(o, e) for e in group) for o in others):
             continue
         references = [e.external_event_ref for e in group if e.external_event_ref]
         if len(set(references)) != len(references):

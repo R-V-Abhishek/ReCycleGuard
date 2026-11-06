@@ -400,6 +400,7 @@ def _shared_instruments(signals: _Signals, derivation: Derivation, universe: Uni
     lots = {lot.credit_lot_id: lot for lot in derivation.lots}
     pending = {a for b in derivation.buckets for a in b.pending_allocation_ids}
     allocations = [a for a in universe.active(Allocation) if a.state != "REJECTED"]
+    overlapping = set()
     for left, right in overlapping_transfers(universe):
         copies = [e for e in (left, right) if e.assertion_state != "SUPPORTED"]
         held = [a for a in allocations if a.event_id in {e.event_id for e in copies}]
@@ -407,6 +408,7 @@ def _shared_instruments(signals: _Signals, derivation: Derivation, universe: Uni
         if (lot is not None and lot.conservation in {"UNKNOWN", "FAIL"}) or any(
             a.allocation_id in pending for a in held
         ):
+            overlapping |= {left.certificate_id, right.certificate_id}
             signals.add(
                 "F02_OVERLAPPING_EXPORT",
                 {"events": [left.event_id, right.event_id], "check": "CANDIDATE_OVERLAP"},
@@ -414,6 +416,9 @@ def _shared_instruments(signals: _Signals, derivation: Derivation, universe: Uni
                 settled=False,
             )
     for certificate_id, group in shared_instrument_transfers(universe).items():
+        # An unresolved overlap on the certificate is reported as that, not as distinct tranches.
+        if certificate_id in overlapping:
+            continue
         checked = [lots.get(e.credit_lot_id) for e in group if e.credit_lot_id]
         if checked and all(lot is not None and lot.conservation == "PASS" for lot in checked):
             signals.add(

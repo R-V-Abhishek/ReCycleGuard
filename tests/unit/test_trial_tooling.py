@@ -840,6 +840,12 @@ def test_committed_split_uses_every_dev_case_once():
     every = json.loads((protocols / "reliability.json").read_text("utf-8"))["case_ids"]
     assert len(tuning) == 16 and len(checking) == 8
     assert sorted(tuning + checking) == sorted(every)
+    # The controls protocol is the same check plus the model-free baselines, nothing else.
+    checking_protocol = json.loads((protocols / "checking-8.json").read_text("utf-8"))
+    controls = json.loads((protocols / "checking-8-controls.json").read_text("utf-8"))
+    assert controls.pop("controls") == ["V0", "SC"]
+    assert controls.pop("protocol_version") != checking_protocol.pop("protocol_version")
+    assert controls == checking_protocol
 
 
 def test_new_tooling_files_stay_outside_the_investigator_import_path():
@@ -953,6 +959,8 @@ def test_the_replay_opens_thinking_only_on_recorded_prompts_and_labels_it(tmp_pa
         runtime.mkdir(parents=True)
         raw = json.dumps({"case_id": "case_x", "requested_variant": "ADAPTIVE", "r": repeat})
         (runtime / "result.json").write_bytes(raw.encode())
+        # An attempt counts only once it has a model-call record, as a real trial does.
+        (runtime / "model-calls.jsonl").write_text("")
         digest = hashlib.sha256(raw.encode()).hexdigest()
         ledger.append({"trial_id": f"case_x|ADAPTIVE|{repeat}", "result_digest": digest})
     (session / "ledger.jsonl").write_text("".join(json.dumps(row) + "\n" for row in ledger))
