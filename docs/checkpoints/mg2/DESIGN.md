@@ -36,7 +36,7 @@ Architecture is the only variable. A "no lift" result is a valid result.
   `tests/unit/test_trial_tooling.py::test_the_replay_opens_thinking_only_on_recorded_prompts_and_labels_it`.
   `scripts/replay_reasoning.py::attempts` requires `model-calls.jsonl` next to `result.json`; the test writes only `result.json`.
   This is a test/tooling mismatch in the branch's latest commit, unrelated to the agents. Not fixed here (R3); logged.
-  Integration tests: see the section "Baseline" below once recorded.
+  Integration tests (`tests --ignore=tests/unit`): 493 passed.
 
 ## Architecture
 
@@ -57,7 +57,7 @@ observations ──► [text selector, deterministic] ──► Reader (agent 1,
 ### Agent 1: Reader (quarantined)
 - Sees raw text of selected observations in chunks. No tools, no finding access, no calculation access.
 - Output: `list[Claim]`, `Claim = {kind: ClaimKind, observation_ref, span_start, span_end}`; `kind` is a closed enum from public family definitions.
-- Verifier (deterministic): the observation must exist and be in the chunk shown; offsets must lie inside it; the kind must be in the enum. Quoted text is never forwarded or stored in a report.
+- Verifier (deterministic): the observation must exist and be in the chunk shown; the quote must occur verbatim in that observation's text; the kind must be in the enum. Quoted text is never forwarded or stored in a report.
 - Anything that fails verification is dropped and counted (`reader_claims_dropped`), never repaired.
 - Injected text can only produce a claim of a kind. It cannot reach a tool, a permission or the Analyst as prose.
 
@@ -101,4 +101,10 @@ Report `supported_case_success` two ways (deterministic-only vs full via `t3_mod
 
 ## Baseline
 
-(To be filled from the PC runs of D0 and S1. Until then the post-fix tuning-16 numbers are unmeasured.)
+Laptop, no model: unit 634 passed / 6 skipped / 1 failed (above); integration 493 passed.
+Post-fix tuning-16 numbers for D0 and S1 are unmeasured until the PC runs.
+
+## Implementation status
+
+- Done (pure, tested with scripted callables): `src/recycleguard/agents/{models,reader,analyst,pipeline}.py`, `tests/unit/test_agents.py`.
+- Not done: runner/`local_model` phases, prompt file, experiment variant, recorded-port tests, schemas/CONTRACTS update.
