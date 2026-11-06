@@ -33,6 +33,7 @@ SIGNALS = {
     "F09_EXPIRED_CANCELLED": {"CREDIT_EXPIRED", "CREDIT_CANCELLED"},
     "F10_CAPABILITY_MISMATCH": {"CAPABILITY_MISMATCH"},
     "F13_WEIGHT_BASIS_CONFLICT": {"WEIGHT_BASIS_CONFLICT"},
+    "F15_EXTRACTION_PAGE_LOSS": {"INCOMPLETE_COVERAGE"},
 }
 COLUMNS = [
     "trial_id",
@@ -73,6 +74,8 @@ def _source(finding):
         return "model"
     if "DETERMINISTIC_CALCULATION" in sources:
         return "calculation"
+    if "COVERAGE_CHECK" in sources:
+        return "coverage"
     return "claim_check"
 
 

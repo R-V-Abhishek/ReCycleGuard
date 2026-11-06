@@ -19,7 +19,7 @@ from recycleguard.contracts.core import (
     Nonempty,
     ServiceResult,
 )
-from recycleguard.contracts.extraction import ExtractionResult, Observation
+from recycleguard.contracts.extraction import CoverageItem, ExtractionResult, Observation
 from recycleguard.contracts.results import CalculationRequest, FindingRecord, Recommendation
 from recycleguard.contracts.retrieval import (
     EvidenceBundle,
@@ -58,6 +58,7 @@ from recycleguard.reporting.calculation_findings import (
     load_derivation,
     settled_without_finding,
 )
+from recycleguard.reporting.coverage_findings import coverage_findings
 from recycleguard.retrieval.service import RetrievalService
 from recycleguard.review.service import ReviewService
 from recycleguard.storage import canonical_json_bytes
@@ -531,6 +532,19 @@ class InvestigationService:
             )
         return observations
 
+    def _coverage_findings(self, spec):
+        """F15 for any document page extraction could not read; the run still investigates."""
+        extractions = []
+        for raw in self._membership(spec)["extractions"]:
+            extracted = ExtractionResult.model_validate_json(canonical_json_bytes(raw))
+            coverage = [
+                CoverageItem.model_validate_json(line)
+                for line in self.blobs.get(extracted.coverage_blob).splitlines()
+                if line.strip()
+            ]
+            extractions.append((extracted, coverage))
+        return coverage_findings(spec.case_snapshot.snapshot_id, extractions)
+
     def _findings(self, spec):
         from recycleguard.retrieval.claim_checks import inspect_regulatory_claims
 
@@ -870,11 +884,13 @@ class InvestigationService:
                 for item in self._membership(spec)["extractions"]
                 for i in item["issues"]
             )
+            # Page loss qualifies the run; it never stops it. The draft reports it as F15.
             return self._outcome(
                 context,
                 baseline.output,
-                "BLOCKED" if incomplete else "QUALIFIED",
-                "Missing declared pages require review"
+                "QUALIFIED",
+                "Declared pages are missing or unreadable; reported as a coverage finding "
+                "and investigated within scope"
                 if incomplete
                 else "Provisional deterministic arithmetic; applicability remains qualified",
                 service_operation_ids=[baseline.operation_id],
@@ -1078,7 +1094,7 @@ class InvestigationService:
                 universe,
                 self._observations(spec),
             )
-            findings = self._findings(spec) + computed
+            findings = self._findings(spec) + self._coverage_findings(spec) + computed
             accepted, rejected, inspected = self._gated_findings(
                 spec, calculated, findings, contradicted_families(computed, universe)
             )

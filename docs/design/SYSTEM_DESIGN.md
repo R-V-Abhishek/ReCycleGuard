@@ -278,7 +278,7 @@ The oracle has two layers: hidden world truth and **what is justified from visib
 
 ### 6.1 Preflight
 
-Before any LLM call, ingest and classify every asset; freeze a case version; load the approved profile; validate entity/period/units; inventory pending records; reconstruct supported event links; compute provisional results and seed findings. C08 derives its complete input universe from the pinned snapshot, including conflicting assertions and related historical allocations; caller-selected record lists cannot narrow this universe. A malformed optional document may allow a qualified run; missing critical scope or an unapproved profile blocks calculation. Every exclusion appears in the report coverage summary.
+Before any LLM call, ingest and classify every asset; freeze a case version; load the approved profile; validate entity/period/units; inventory pending records; reconstruct supported event links; compute provisional results and seed findings. C08 derives its complete input universe from the pinned snapshot, including conflicting assertions and related historical allocations; caller-selected record lists cannot narrow this universe. A malformed optional document may allow a qualified run. A lost or unreadable PDF page qualifies the run and is reported as F15, withholding `lost_document_page`; it does not block the investigation. Missing critical scope or an unapproved profile blocks calculation. Every exclusion appears in the report coverage summary.
 
 ### 6.2 Reconciliation model
 
