@@ -23,7 +23,19 @@ from recycleguard.local_model import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
-PROMPTS = ROOT / "docs/checkpoints/mg1/prompts"
+PROMPT_DIRS = (ROOT / "docs/checkpoints/mg1/prompts", ROOT / "docs/checkpoints/mg2/prompts")
+
+
+def prompt_file(name):
+    """The prompt file of that version, from the MG1 or the MG2 folder."""
+    found = [
+        folder / f"{name}.json" for folder in PROMPT_DIRS if (folder / f"{name}.json").is_file()
+    ]
+    if len(found) != 1:
+        raise SystemExit(f"expected exactly one prompt file named {name}, found {len(found)}")
+    return found[0]
+
+
 LLAMA_ENDPOINT = "http://127.0.0.1:8766/v1/completions"
 USAGE = (
     "usage: configure_local_model.py [--constrained] [--forced-cap N] [--prompt <version>] "
@@ -93,7 +105,7 @@ def with_options(config, *, cap=None, prompt=None):
         fields["max_model_calls"] = cap
     if prompt not in (None, BUILTIN_PROMPT_VERSION):
         # v7 stays the built-in text, so its configurations keep their usual pins.
-        text = PromptText.model_validate_json((PROMPTS / f"{prompt}.json").read_bytes())
+        text = PromptText.model_validate_json(prompt_file(prompt).read_bytes())
         fields.update(
             prompt=text,
             prompt_version=text.prompt_version,

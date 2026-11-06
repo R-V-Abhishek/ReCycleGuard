@@ -11,6 +11,7 @@ from urllib.parse import urlsplit
 
 from pydantic import ConfigDict, Field, JsonValue, ValidationError, model_validator
 
+from recycleguard.agents.models import AnalystProposal, ReaderProposal
 from recycleguard.contracts.core import ID, BoundaryModel, Digest, Issue, Nonempty, ServiceResult
 from recycleguard.contracts.workflow import AssessmentProposal, ConfigurationPin, PlanProposal
 from recycleguard.model_port import ModelCallResult
@@ -86,7 +87,14 @@ _PHASE_RULES = {
         "lost_document_page. "
     ),
 }
-_SCHEMAS = {"PLAN": PlanProposal, "ASSESS": AssessmentProposal}
+_SCHEMAS = {
+    "PLAN": PlanProposal,
+    "ASSESS": AssessmentProposal,
+    "READ": ReaderProposal,
+    "ANALYZE": AnalystProposal,
+}
+# A prompt serves one architecture: the single investigator or the Reader and Analyst.
+_PHASE_SETS = ({"PLAN", "ASSESS"}, {"READ", "ANALYZE"})
 # Greedy decoding repeats an identical prompt exactly, so a retry must differ to be worth a call.
 _RETRY_NOTE = (
     "Retry: your previous reply failed validation. Reply with one complete JSON object that "
@@ -151,13 +159,15 @@ class PromptText(BoundaryModel):
 
     prompt_version: Nonempty
     system: Nonempty
-    phase_rules: dict[Literal["PLAN", "ASSESS"], Nonempty]
+    phase_rules: dict[Literal["PLAN", "ASSESS", "READ", "ANALYZE"], Nonempty]
     retry_note: Nonempty
 
     @model_validator(mode="after")
     def both_phases(self):
-        if set(self.phase_rules) != {"PLAN", "ASSESS"}:
-            raise ValueError("a prompt needs rules for exactly PLAN and ASSESS")
+        if set(self.phase_rules) not in _PHASE_SETS:
+            raise ValueError(
+                "a prompt needs rules for exactly PLAN and ASSESS, or READ and ANALYZE"
+            )
         return self
 
 
@@ -169,6 +179,15 @@ BUILTIN_PROMPT = PromptText(
 )
 
 
+def phase_schemas(text: PromptText) -> dict[str, dict]:
+    """The JSON Schema of each phase a prompt serves."""
+    return {
+        phase: schema.model_json_schema()
+        for phase, schema in _SCHEMAS.items()
+        if phase in text.phase_rules
+    }
+
+
 def prompt_digest(prompt_version: str, text: PromptText) -> str:
     return hashlib.sha256(
         canonical_json_bytes(
@@ -178,9 +197,7 @@ def prompt_digest(prompt_version: str, text: PromptText) -> str:
                 "phase_rules": text.phase_rules,
                 "retry_note": text.retry_note,
                 "format": "qwen-im-start/non-thinking/raw-completion",
-                "schemas": {
-                    phase: schema.model_json_schema() for phase, schema in _SCHEMAS.items()
-                },
+                "schemas": phase_schemas(text),
             }
         )
     ).hexdigest()
@@ -269,7 +286,7 @@ class LocalModelConfig(BoundaryModel):
 
 class _Payload(BoundaryModel):
     model_config = ConfigDict(extra="allow", frozen=True, strict=True, allow_inf_nan=False)
-    phase: Literal["PLAN", "ASSESS"]
+    phase: Literal["PLAN", "ASSESS", "READ", "ANALYZE"]
     max_total_tokens: Annotated[int, Field(ge=1)]
     response_schema: dict[str, JsonValue]
 

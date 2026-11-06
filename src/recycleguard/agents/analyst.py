@@ -14,6 +14,7 @@ TEXT_FAMILIES = frozenset(CLAIM_FAMILY.values())
 
 def analyst_body(
     facts: Mapping[str, JsonValue],
+    calculation_ids: Iterable[str],
     verified: Iterable[VerifiedClaim],
     decided_families: Iterable[str],
     families: Iterable[str],
@@ -25,6 +26,7 @@ def analyst_body(
     """
     return {
         "facts": dict(facts),
+        "calculation_ids": list(calculation_ids),
         "verified_claims": [
             {
                 "kind": claim.kind,

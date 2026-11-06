@@ -26,7 +26,10 @@ from pathlib import Path
 
 REPOSITORY = Path(__file__).resolve().parents[1]
 WORK = Path("/work")
-PROMPTS = REPOSITORY / "docs/checkpoints/mg1/prompts"
+PROMPT_DIRS = (
+    REPOSITORY / "docs/checkpoints/mg1/prompts",
+    REPOSITORY / "docs/checkpoints/mg2/prompts",
+)
 CHECKING = REPOSITORY / "docs/checkpoints/mg1/protocols/checking-8.json"
 ORACLE = REPOSITORY / "benchmarks/hidden/pilot-0.1/oracle"
 VISIBLE = REPOSITORY / "tests/fixtures/visible"
@@ -80,8 +83,10 @@ def load_sweep(path):
     if not isinstance(sweep["slots"], int) or not 1 <= sweep["slots"] <= 8:
         raise SystemExit("slots must be an integer from 1 to 8")
     for prompt in prompts:
-        if not (PROMPTS / f"{prompt}.json").is_file():
-            raise SystemExit(f"no prompt file {PROMPTS / prompt}.json")
+        if not any((folder / f"{prompt}.json").is_file() for folder in PROMPT_DIRS):
+            raise SystemExit(
+                f"no prompt file named {prompt}.json in {[str(d) for d in PROMPT_DIRS]}"
+            )
     protocol = json.loads((REPOSITORY / sweep["protocol"]).read_text("utf-8"))
     checking = set(json.loads(CHECKING.read_text("utf-8"))["case_ids"])
     if checking & set(protocol["case_ids"]) or checking & set(protocol.get("canaries", ())):

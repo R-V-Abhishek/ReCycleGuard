@@ -118,7 +118,7 @@ class SupportReviewRequest(BoundaryModel):
 class RunRequest(BoundaryModel):
     dossier_id: Nonempty
     mode: Literal["MODEL_BACKED", "SCRIPTED_TEST"] = "MODEL_BACKED"
-    variant: Literal["ADAPTIVE", "FIXED_RETRIEVAL"] = "ADAPTIVE"
+    variant: Literal["ADAPTIVE", "FIXED_RETRIEVAL", "READER_ANALYST", "ANALYST_ONLY"] = "ADAPTIVE"
     budgets: BudgetLimits | None = None
 
 
@@ -399,8 +399,7 @@ def create_app(options: ApiOptions):
 
     @app.get("/api/v1/agent", response_model=AgentResponse)
     def agent():
-        from recycleguard.contracts.workflow import AssessmentProposal, PlanProposal
-        from recycleguard.local_model import BUILTIN_PROMPT
+        from recycleguard.local_model import BUILTIN_PROMPT, phase_schemas
 
         config = (
             None
@@ -414,10 +413,7 @@ def create_app(options: ApiOptions):
             "prompt_pin": None if config is None else config.prompt_pin().model_dump(mode="json"),
             "system_template": text.system,
             "phase_rules": text.phase_rules,
-            "response_schemas": {
-                "PLAN": PlanProposal.model_json_schema(),
-                "ASSESS": AssessmentProposal.model_json_schema(),
-            },
+            "response_schemas": phase_schemas(text),
             "note": (
                 "Templates are configuration. Per-call exact sent prompts appear "
                 "in provider_trace after completion."
@@ -748,6 +744,9 @@ def create_app(options: ApiOptions):
                             local_model_config=config,
                             fixed_plan=FixedPlan(rule_queries=list(FIXED_RULE_QUERIES))
                             if body.variant == "FIXED_RETRIEVAL"
+                            else None,
+                            agents=body.variant
+                            if body.variant in {"READER_ANALYST", "ANALYST_ONLY"}
                             else None,
                             budgets=budgets,
                         ),

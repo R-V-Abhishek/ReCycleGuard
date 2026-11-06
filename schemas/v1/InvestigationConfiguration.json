@@ -410,7 +410,9 @@
           "propertyNames": {
             "enum": [
               "PLAN",
-              "ASSESS"
+              "ASSESS",
+              "READ",
+              "ANALYZE"
             ]
           },
           "title": "Phase Rules",
@@ -437,7 +439,9 @@
         "phase": {
           "enum": [
             "PLAN",
-            "ASSESS"
+            "ASSESS",
+            "READ",
+            "ANALYZE"
           ],
           "title": "Phase",
           "type": "string"
@@ -491,6 +495,22 @@
         }
       ],
       "default": null
+    },
+    "agents": {
+      "anyOf": [
+        {
+          "enum": [
+            "READER_ANALYST",
+            "ANALYST_ONLY"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Agents"
     },
     "adapter_version": {
       "default": "a07-real-services-1",

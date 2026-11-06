@@ -282,7 +282,9 @@
           "propertyNames": {
             "enum": [
               "PLAN",
-              "ASSESS"
+              "ASSESS",
+              "READ",
+              "ANALYZE"
             ]
           },
           "title": "Phase Rules",
@@ -309,7 +311,9 @@
         "phase": {
           "enum": [
             "PLAN",
-            "ASSESS"
+            "ASSESS",
+            "READ",
+            "ANALYZE"
           ],
           "title": "Phase",
           "type": "string"
@@ -402,6 +406,22 @@
         }
       ],
       "default": null
+    },
+    "agents": {
+      "anyOf": [
+        {
+          "enum": [
+            "READER_ANALYST",
+            "ANALYST_ONLY"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Agents"
     },
     "budgets": {
       "$ref": "#/$defs/BudgetLimits"

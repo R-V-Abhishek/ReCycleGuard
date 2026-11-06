@@ -158,6 +158,7 @@ def test_an_invalid_reader_reply_ends_reading_without_losing_earlier_claims():
 def test_the_analyst_receives_kinds_and_ids_but_no_passage_text():
     body = analyst_body(
         {"pending_credit_kg": "0"},
+        ["calc:1"],
         [VerifiedClaim(kind="AUTOMATION_DIRECTIVE", observation_id="obs:b")],
         ["F07_PAID_NO_TRANSFER"],
         ["F16_PROMPT_INJECTION", "F07_PAID_NO_TRANSFER"],
@@ -232,7 +233,7 @@ def test_an_analyst_failure_leaves_no_proposals_and_is_recorded():
         analyse=fail,
         max_reader_chunks=1,
     )
-    assert outcome.proposals == [] and outcome.analyst_failed
+    assert outcome.proposals == [] and outcome.analyst_stopped_because == "INVALID_OUTPUT"
 
 
 def test_the_reader_ablation_gives_the_analyst_no_claims():
@@ -254,3 +255,17 @@ def test_the_reader_ablation_gives_the_analyst_no_claims():
         use_reader=False,
     )
     assert seen["verified_claims"] == [] and outcome.coverage is None
+
+
+def test_the_mg2_prompt_is_valid_and_names_every_claim_kind_and_family():
+    from pathlib import Path
+    from typing import get_args
+
+    from recycleguard.agents.models import CLAIM_FAMILY, ClaimKind
+    from recycleguard.local_model import PromptText
+
+    path = Path(__file__).parents[2] / "docs/checkpoints/mg2/prompts/mg2_reader_analyst_v1.json"
+    text = PromptText.model_validate_json(path.read_bytes())
+    assert path.stem == text.prompt_version and set(text.phase_rules) == {"READ", "ANALYZE"}
+    assert all(kind in text.phase_rules["READ"] for kind in get_args(ClaimKind))
+    assert set(CLAIM_FAMILY) == set(get_args(ClaimKind))

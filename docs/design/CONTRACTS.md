@@ -523,6 +523,14 @@ Abstention is represented by PENDING_VERIFICATION or REQUIRES_EXPERT_REVIEW plus
 
 `ContextManifest` records ordered included items, exact serialized payload refs, lengths/token counts where measurable, omitted candidate refs/reasons, pinned source/case versions and access/redaction policy. All data used in a model input must be accounted for here. Non-retrieved sources remain discoverable through the full snapshot membership rather than being copied into every prompt.
 
+### 6.5 Reader and Analyst (MG2, experimental)
+
+Phases `READ` and `ANALYZE` extend `ContextManifest.phase`, `ScriptedExchange.phase` and the local model's phase set. A prompt serves one architecture: `PLAN` and `ASSESS`, or `READ` and `ANALYZE`.
+
+`ReaderProposal = {claims: Claim[<=12]}`, `Claim = {kind, observation_id, quote}`. `kind` is a closed list from the family table above. The Reader is the only agent that receives document text. A claim is kept only when its observation was shown and its `quote` occurs verbatim in that observation's text; the kept form `VerifiedClaim = {kind, observation_id}` carries no text. `AnalystProposal = {findings: FindingProposal[<=6]}`; the Analyst receives computed facts, calculation ids and verified claims only, never passage text. A proposal in a text-derived family needs a verified claim of its kind on a cited observation, else it is retained as a rejection with reason `NO_VERIFIED_CLAIM`. Everything else goes through the existing finding gate, and a deterministic finding always wins its family.
+
+`AgentRecord` (`graph.agent.result`) archives coverage (what was read, truncated, dropped or not reached), verified claims, proposals, unsupported proposals and the citable refs. Experiment variants: `V3_READER_ANALYST_*` and `V3_ANALYST_ONLY_*`. Design: `docs/checkpoints/mg2/DESIGN.md`.
+
 ## 7. Component-by-component interfaces
 
 The following call signatures omit `CommandContext` and `ServiceResult<T>` for readability; **all calls use both**. Each producer owns validation of its output and each consumer revalidates version/access before use. C11 mediates all durable state transitions.

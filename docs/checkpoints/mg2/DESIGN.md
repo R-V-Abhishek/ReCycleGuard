@@ -106,5 +106,11 @@ Post-fix tuning-16 numbers for D0 and S1 are unmeasured until the PC runs.
 
 ## Implementation status
 
-- Done (pure, tested with scripted callables): `src/recycleguard/agents/{models,reader,analyst,pipeline}.py`, `tests/unit/test_agents.py`.
-- Not done: runner/`local_model` phases, prompt file, experiment variant, recorded-port tests, schemas/CONTRACTS update.
+Built and tested on the laptop with scripted ports and the loopback fixture server. No real model has run.
+
+- Agents: `src/recycleguard/agents/{models,reader,analyst,pipeline}.py`.
+- Phases `READ` and `ANALYZE` in `local_model.py`; `WorkflowRunner._investigate_agents`; request field `agents` and variants `V3_READER_ANALYST_*`, `V3_ANALYST_ONLY_*` in `investigation.py`; API run variants `READER_ANALYST` and `ANALYST_ONLY`; gate reason `NO_VERIFIED_CLAIM`.
+- Prompt `prompts/mg2_reader_analyst_v1.json`, protocol, two sweeps and `RUNBOOK.md`. Schemas, OpenAPI and CONTRACTS section 6.5 updated.
+- Tests: `tests/unit/test_agents.py`, `tests/integration/test_agents_workflow.py`. Full suite: 1308 passed, 6 skipped, 1 failed (the failure that was already there, above).
+- Not done: any real-model run (D0, S1, M2, M2-nr), checking-8, and the optional Verifier arm (M3).
+- Open: the pre-existing `replay_reasoning.attempts` test mismatch is unfixed by design (R3).

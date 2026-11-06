@@ -3,11 +3,13 @@
 import hashlib
 import json
 from datetime import UTC, datetime
+from decimal import Decimal
 from pathlib import Path
-from typing import Literal
+from typing import Literal, get_args
 
 from pydantic import Field, JsonValue, model_validator
 
+from recycleguard.agents.models import AgentRecord, AnalystProposal, ReaderProposal
 from recycleguard.baseline import BaselineService
 from recycleguard.contracts.artifacts import ProfileRef, SnapshotRef
 from recycleguard.contracts.baseline import BaselineRequest
@@ -20,7 +22,12 @@ from recycleguard.contracts.core import (
     ServiceResult,
 )
 from recycleguard.contracts.extraction import ExtractionResult, Observation
-from recycleguard.contracts.results import CalculationRequest, FindingRecord, Recommendation
+from recycleguard.contracts.results import (
+    CalculationRequest,
+    FaultFamily,
+    FindingRecord,
+    Recommendation,
+)
 from recycleguard.contracts.retrieval import (
     EvidenceBundle,
     IndexManifest,
@@ -67,23 +74,32 @@ from recycleguard.workflow.finding_gate import (
     gate_finding_proposals,
     reconciliation_settled,
 )
-from recycleguard.workflow.ports import OutcomeUnknownError
+from recycleguard.workflow.ports import AgentFacts, AgentWiring, OutcomeUnknownError
 from recycleguard.workflow.runner import CallRecord
 from recycleguard.workflow.store import GraphStore
 
+_SCRIPTED_RESPONSE = {
+    "PLAN": PlanProposal,
+    "ASSESS": AssessmentProposal,
+    "READ": ReaderProposal,
+    "ANALYZE": AnalystProposal,
+}
+AgentArchitecture = Literal["READER_ANALYST", "ANALYST_ONLY"]
+
 
 class ScriptedExchange(BoundaryModel):
-    phase: Literal["PLAN", "ASSESS"]
+    phase: Literal["PLAN", "ASSESS", "READ", "ANALYZE"]
     response: dict[str, JsonValue]
 
     @model_validator(mode="after")
     def valid_response(self):
-        model = PlanProposal if self.phase == "PLAN" else AssessmentProposal
-        model.model_validate_json(canonical_json_bytes(self.response))
+        _SCRIPTED_RESPONSE[self.phase].model_validate_json(canonical_json_bytes(self.response))
         return self
 
 
 FIXED_INSPECTION_LIMIT = 20
+# MG2: Reader calls per case. With the Analyst call this stays under the 12-call cap.
+AGENT_READER_CHUNKS = 6
 
 
 class FixedPlan(BoundaryModel):
@@ -100,6 +116,8 @@ class InvestigationRequest(BoundaryModel):
     scripted_exchanges: list[ScriptedExchange] = Field(default_factory=list)
     local_model_config: LocalModelConfig | None = None
     fixed_plan: FixedPlan | None = None
+    # MG2: the Reader and Analyst replace the plan-and-assess loop. Not combined with V1.
+    agents: AgentArchitecture | None = None
     budgets: BudgetLimits = Field(default_factory=BudgetLimits)
     parent_run_id: ID | None = None
 
@@ -107,6 +125,8 @@ class InvestigationRequest(BoundaryModel):
     def exactly_one_backend(self):
         if bool(self.scripted_exchanges) == (self.local_model_config is not None):
             raise ValueError("choose exactly one scripted sequence or local model configuration")
+        if self.agents is not None and self.fixed_plan is not None:
+            raise ValueError("a fixed plan and the agents are different architectures")
         return self
 
 
@@ -115,6 +135,7 @@ class InvestigationConfiguration(BoundaryModel):
     scripted_exchanges: list[ScriptedExchange] = Field(default_factory=list)
     local_model_config: LocalModelConfig | None = None
     fixed_plan: FixedPlan | None = None
+    agents: AgentArchitecture | None = None
     adapter_version: str = "a07-real-services-1"
 
     @model_validator(mode="after")
@@ -196,7 +217,10 @@ def resolve_budgets(config: LocalModelConfig | None, requested: BudgetLimits | N
     return evaluation_budgets(config)
 
 
-def experiment_variant(native, fixed_plan):
+def experiment_variant(native, fixed_plan, agents=None):
+    if agents is not None:
+        suffix = "SCRIPTED_TEST" if native is None else "REAL_MODEL"
+        return f"V3_{agents}_{suffix}"
     if native is None:
         return "REAL_SERVICES_SCRIPTED_C10" if fixed_plan is None else "V1_FIXED_SCRIPTED_TEST"
     return "V2_ADAPTIVE_REAL_MODEL" if fixed_plan is None else "V1_FIXED_RETRIEVAL_REAL_MODEL"
@@ -321,6 +345,7 @@ class InvestigationService:
             scripted_exchanges=request.scripted_exchanges,
             local_model_config=native,
             fixed_plan=request.fixed_plan,
+            agents=request.agents,
         )
         configuration_ref = self.blobs.put(
             canonical_json_bytes(configuration.model_dump(mode="json")),
@@ -343,7 +368,7 @@ class InvestigationService:
             audit_policy=pin("a07_audit", "durable-child-operations-v1"),
             security_policy=pin("a07_security", "readonly-tools-human-review-v1"),
             execution_kind="SCRIPTED_TEST" if native is None else "MODEL_BACKED",
-            experiment_variant=experiment_variant(native, request.fixed_plan),
+            experiment_variant=experiment_variant(native, request.fixed_plan, request.agents),
             finding_ids=request.finding_ids,
             budgets=request.budgets,
             parent_run_id=request.parent_run_id,
@@ -374,7 +399,9 @@ class InvestigationService:
         expected_kind = "SCRIPTED_TEST" if native is None else "MODEL_BACKED"
         if spec.execution_kind != expected_kind:
             raise ValueError("execution kind differs from the stored model backend")
-        if spec.experiment_variant != experiment_variant(native, configuration.fixed_plan):
+        if spec.experiment_variant != experiment_variant(
+            native, configuration.fixed_plan, configuration.agents
+        ):
             raise ValueError("experiment variant differs from the stored configuration")
         expected = {
             "adapters": pin("a07_adapters", "a07-real-services-1"),
@@ -612,8 +639,19 @@ class InvestigationService:
     def _run_evidence(self, spec):
         """What this run's own tools returned, and what the model proposed from it."""
         allowed, calculation_ids, inspected, proposals = {}, set(), set(), []
+        unsupported = []
         for event in self.kernel.list_stream_events(f"stream:{spec.run_id}"):
-            if event.event_type == "graph.assessment.result":
+            if event.event_type == "graph.agent.result":
+                record = AgentRecord.model_validate_json(self.blobs.get(event.payload_blob))
+                proposals.extend(record.proposals)
+                unsupported.extend(record.unsupported_proposals)
+                for ref in record.refs:
+                    allowed[ref.ref_id] = ref
+                    if ref.ref_kind == "CALCULATION":
+                        calculation_ids.add(ref.ref_id)
+                if record.coverage is not None:
+                    inspected.update(record.coverage.read_observation_ids)
+            elif event.event_type == "graph.assessment.result":
                 assessment = ObservationAssessment.model_validate_json(
                     self.blobs.get(event.payload_blob)
                 )
@@ -637,10 +675,10 @@ class InvestigationService:
                         artifact_revision_id=None,
                         locator=None,
                     )
-        return allowed, calculation_ids, inspected, proposals
+        return allowed, calculation_ids, inspected, proposals, unsupported
 
     def _gated_findings(self, spec, calculation, deterministic, contradicted=()):
-        allowed, calculation_ids, inspected, proposals = self._run_evidence(spec)
+        allowed, calculation_ids, inspected, proposals, unsupported = self._run_evidence(spec)
         accepted, rejected = gate_finding_proposals(
             proposals,
             allowed_refs=allowed,
@@ -650,6 +688,10 @@ class InvestigationService:
             calculation_ids={calculation.calculation_id},
             contradicted_issue_types=contradicted,
         )
+        rejected += [
+            RejectedFindingProposal(proposal=item, reason="NO_VERIFIED_CLAIM")
+            for item in unsupported
+        ]
         return accepted, rejected, len(inspected)
 
     @staticmethod
@@ -1160,6 +1202,41 @@ class InvestigationService:
                 "Report claims checked against authoritative calculation and citations",
             )
 
+        def agent_facts(context):
+            baseline = self._baseline(context, spec)
+            calculated = baseline.output.calculation
+            universe = universe_from_membership(
+                spec.case_snapshot.snapshot_id, self._membership(spec)
+            )
+            computed = calculation_findings(
+                calculated,
+                load_derivation(calculated, self.blobs),
+                universe,
+                self._observations(spec),
+            )
+            decided = sorted({f.issue_type for f in self._findings(spec) + computed})
+            return AgentFacts(
+                facts={
+                    "decided_families": decided,
+                    "ruled_out_families": sorted(contradicted_families(computed, universe)),
+                    "issue_codes": sorted({issue.code for issue in calculated.issues}),
+                    "bucket_count": len(calculated.bucket_results),
+                    "buckets_with_pending": sum(
+                        Decimal(bucket.pending.decimal) != 0 for bucket in calculated.bucket_results
+                    ),
+                    "reconciliation_settled": settled_without_finding(calculated),
+                },
+                calculation_ids=[calculated.calculation_id],
+                decided_families=decided,
+                reader_context={
+                    "reporting_period": max(
+                        record.liability_year
+                        for record in universe.records
+                        if record.record_type == "ObligationBucket"
+                    )
+                },
+            )
+
         runner = IntegratedRunner(
             self.cases,
             self.settings,
@@ -1179,6 +1256,15 @@ class InvestigationService:
             if configuration.fixed_plan is None
             else self._fixed_checks(spec, configuration.fixed_plan),
             plan_context=plan_context,
+            agents=None
+            if configuration.agents is None
+            else AgentWiring(
+                observations=lambda: self._observations(spec),
+                facts=agent_facts,
+                families=get_args(FaultFamily),
+                max_reader_chunks=AGENT_READER_CHUNKS,
+                use_reader=configuration.agents == "READER_ANALYST",
+            ),
         )
         runner.index = index
         return runner

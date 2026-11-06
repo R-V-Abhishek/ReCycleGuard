@@ -44,6 +44,7 @@ RejectionReason = Literal[
     "INVALID_ABSTENTION",
     "DUPLICATE_ISSUE_TYPE",
     "CONTRADICTED_BY_CALCULATION",
+    "NO_VERIFIED_CLAIM",
 ]
 
 

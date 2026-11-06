@@ -5,7 +5,9 @@ the chunker bounds each call, and the verifier drops any claim whose observation
 or whose quote is not in that observation's text. Quotes are not kept.
 """
 
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
+
+from pydantic import JsonValue
 
 from recycleguard.agents.models import (
     Claim,
@@ -22,7 +24,11 @@ MIN_TEXT_WORDS = 4
 
 
 class AgentCallError(Exception):
-    """A model call failed or its reply stayed invalid after the runner's retry."""
+    """A model call ended without a usable reply; reading or analysis stops, the run does not."""
+
+    def __init__(self, reason: str = "INVALID_OUTPUT"):
+        super().__init__(reason)
+        self.reason = reason
 
 
 def _strings(value) -> list[str]:
@@ -105,15 +111,19 @@ def verify_claims(
     return list(verified.values()), dropped
 
 
-def reader_body(chunk: list[tuple[str, str]]) -> dict:
-    """The only content a Reader call receives."""
-    return {"passages": [{"observation_id": ref, "text": text} for ref, text in chunk]}
+def reader_body(chunk: list[tuple[str, str]], context: Mapping[str, JsonValue]) -> dict:
+    """The only content a Reader call receives: the case's own period and the passages."""
+    return {
+        "case_context": dict(context),
+        "passages": [{"observation_id": ref, "text": text} for ref, text in chunk],
+    }
 
 
 def run_reader(
     observations: list[Observation],
     call: Callable[[dict], ReaderProposal],
     max_chunks: int,
+    context: Mapping[str, JsonValue] | None = None,
 ) -> tuple[list[VerifiedClaim], ReaderCoverage]:
     """Read the prose of a case in at most max_chunks calls.
 
@@ -129,9 +139,9 @@ def run_reader(
     for chunk in chunks:
         calls += 1
         try:
-            reply = call(reader_body(chunk))
-        except AgentCallError:
-            stopped = "INVALID_OUTPUT"
+            reply = call(reader_body(chunk, context or {}))
+        except AgentCallError as exc:
+            stopped = exc.reason
             break
         proposed += len(reply.claims)
         good, bad = verify_claims(reply.claims, dict(chunk))
@@ -146,5 +156,6 @@ def run_reader(
         claims_proposed=proposed,
         claims_verified=len(verified),
         claims_dropped=dropped,
+        read_observation_ids=[ref for chunk in chunks for ref, _ in chunk],
         stopped_because=stopped,
     )

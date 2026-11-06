@@ -16,6 +16,9 @@ from langgraph.graph import END, START, StateGraph
 from langsmith.run_helpers import tracing_context
 from pydantic import ValidationError
 
+from recycleguard.agents.models import AgentRecord, AnalystProposal, ReaderProposal
+from recycleguard.agents.pipeline import run_agents
+from recycleguard.agents.reader import AgentCallError
 from recycleguard.contracts.artifacts import ProfileRef
 from recycleguard.contracts.audit import OperationIntent, OperationResult
 from recycleguard.contracts.core import BlobRef, BoundaryModel, Issue, ServiceResult, Status
@@ -37,7 +40,7 @@ from recycleguard.model_port import ModelCallRequest, ModelCallResult
 from recycleguard.storage import canonical_json_bytes
 from recycleguard.storage.authority import AuthorizationError
 
-from .ports import OutcomeUnknownError, ToolBinding, WorkflowStages
+from .ports import AgentWiring, OutcomeUnknownError, ToolBinding, WorkflowStages
 from .store import GraphStore
 
 _TERMINAL = {"COMPLETED", "FAILED", "CANCELLED", "BLOCKED_INPUT", "BLOCKED_OUTPUT"}
@@ -52,7 +55,14 @@ _ALLOWED = {
 
 
 _PROMPT_EVIDENCE_IDS = 50
-_PLAN_CALLS = {"plan", "plan_repair"}
+_RESPONSE = {
+    "PLAN": PlanProposal,
+    "ASSESS": AssessmentProposal,
+    "READ": ReaderProposal,
+    "ANALYZE": AnalystProposal,
+}
+# Operation names are plan, plan_repair, assess, read_<n> and analyze.
+_CALL_PHASE = {"plan": "PLAN", "assess": "ASSESS", "read": "READ", "analyze": "ANALYZE"}
 
 
 class GraphInput(TypedDict):
@@ -140,6 +150,7 @@ class WorkflowRunner:
         model_run_validator: Callable[[RunSpec], None] | None = None,
         fixed_checks: list[tuple[str, dict]] | None = None,
         plan_context: Callable[[], dict] | None = None,
+        agents: AgentWiring | None = None,
     ):
         if not set(tools).issubset(_ALLOWED):
             raise ValueError("tool registry contains a prohibited operation")
@@ -148,6 +159,7 @@ class WorkflowRunner:
         self.model_run_validator = model_run_validator
         self.fixed_checks = fixed_checks
         self.plan_context = plan_context
+        self.agents = agents
         self.kernel, self.blobs = cases.kernel, cases.kernel.blob_store
         self.store = GraphStore(self.kernel)
         checkpoint_path = Path(checkpoint_path)
@@ -772,7 +784,7 @@ class WorkflowRunner:
                             == raw.output.validated_output_or_null
                         )
                         if raw.status == "SUCCESS":
-                            schema = PlanProposal if name in _PLAN_CALLS else AssessmentProposal
+                            schema = _RESPONSE[_CALL_PHASE.get(name.split("_")[0], "ASSESS")]
                             schema.model_validate_json(
                                 canonical_json_bytes(raw.output.validated_output_or_null)
                             )
@@ -925,7 +937,7 @@ class WorkflowRunner:
         return result.stage_output
 
     def _model(self, root, spec, initial, phase, body, cap, *, name=None):
-        response_model = PlanProposal if phase == "PLAN" else AssessmentProposal
+        response_model = _RESPONSE[phase]
         label = phase if name is None else name.upper()
         blob = self.blobs.put(
             canonical_json_bytes(
@@ -973,8 +985,7 @@ class WorkflowRunner:
         )
         if result.status != "SUCCESS" or result.model_output is None:
             raise WorkflowStop("PROVIDER_FAILURE", status="FAILED")
-        model = PlanProposal if phase == "PLAN" else AssessmentProposal
-        return model.model_validate_json(
+        return response_model.model_validate_json(
             canonical_json_bytes(result.model_output.validated_output_or_null)
         ), operation
 
@@ -1169,7 +1180,84 @@ class WorkflowRunner:
         # Two unrunnable plans: nothing ran, and the report is still drafted without the model.
         raise WorkflowStop("PROVIDER_FAILURE")
 
+    def _agent_call(self, root, spec, initial, cap, phase, name):
+        """A model call as a callable for the agents. An unusable reply ends that agent only.
+
+        A reply still invalid after its retry, or an exhausted budget, stops reading or analysis
+        and keeps what was gathered. Any other failure, including an outcome the provider may
+        have acted on, still fails the run.
+        """
+
+        def call(body):
+            try:
+                reply, _ = self._model(root, spec, initial, phase, body, cap, name=name())
+            except WorkflowStop as exc:
+                if exc.reason == "BUDGET_EXHAUSTED":
+                    raise AgentCallError("BUDGET_EXHAUSTED") from exc
+                if exc.reason == "PROVIDER_FAILURE" and exc.status == "DRAFTING":
+                    raise AgentCallError("INVALID_OUTPUT") from exc
+                raise
+            return reply
+
+        return call
+
+    def _investigate_agents(self, root, spec, initial, cap):
+        """Reader then Analyst in one turn. Their output is archived as one record.
+
+        Every pending finding is settled together: resolved when both agents finished, otherwise
+        abstained. The report is drafted from the deterministic findings plus whatever the gate
+        accepts from the Analyst's proposals.
+        """
+        wiring = self.agents
+        facts = wiring.facts(self._ctx(root, spec, "agent_facts"))
+        counter = iter(range(1, 1000))
+        outcome = run_agents(
+            wiring.observations(),
+            facts=facts.facts,
+            calculation_ids=facts.calculation_ids,
+            decided_families=facts.decided_families,
+            families=wiring.families,
+            read=self._agent_call(
+                root, spec, initial, cap, "READ", lambda: f"read_{next(counter)}"
+            ),
+            analyse=self._agent_call(root, spec, initial, cap, "ANALYZE", lambda: "analyze"),
+            max_reader_chunks=wiring.max_reader_chunks,
+            reader_context=facts.reader_context,
+            use_reader=wiring.use_reader,
+        )
+        record = AgentRecord(
+            architecture="READER_ANALYST" if wiring.use_reader else "ANALYST_ONLY",
+            coverage=outcome.coverage,
+            verified_claims=outcome.verified,
+            proposals=outcome.proposals,
+            unsupported_proposals=outcome.unsupported,
+            refs=list(outcome.refs.values()),
+            analyst_calls=outcome.analyst_calls,
+            analyst_stopped_because=outcome.analyst_stopped_because,
+        )
+        self.store.archive(
+            self._ctx(root, spec, "agent_record"), "graph.agent", record, capability=cap
+        )
+        complete = outcome.analyst_stopped_because is None and (
+            outcome.coverage is None or outcome.coverage.stopped_because is None
+        )
+        pending = list(initial.pending_finding_ids)
+        state = self.store.load(spec.run_id)
+        return state.model_copy(
+            update={
+                "status": "DRAFTING",
+                "stop_reason": "RESOLVED_WITHIN_SCOPE" if complete else "NO_NEW_EVIDENCE",
+                "pending_finding_ids": [],
+                "resolved_finding_ids": initial.resolved_finding_ids
+                + (pending if complete else []),
+                "abstained_finding_ids": initial.abstained_finding_ids
+                + ([] if complete else pending),
+            }
+        )
+
     def _investigate(self, root, spec, initial, cap):
+        if self.agents is not None:
+            return self._investigate_agents(root, spec, initial, cap)
         fixed = self.fixed_checks is not None
         if fixed:
             proposal, last_check = self._fixed_proposal(initial)

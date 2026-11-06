@@ -17,7 +17,7 @@ from recycleguard.contracts.core import EvidenceRef
 BASE = "/api/v1"
 TERMINAL = {"STOPPED", "FAILED"}
 REVIEW_NOTE = "Synthetic fixture review for a trial."
-REAL_MODEL_VARIANTS = {"FIXED_RETRIEVAL", "ADAPTIVE"}
+REAL_MODEL_VARIANTS = {"FIXED_RETRIEVAL", "ADAPTIVE", "READER_ANALYST", "ANALYST_ONLY"}
 CONTROL_FINDING = "finding:control"
 _CONTROL_PLAN = {
     "objective": "Scripted control.",
@@ -137,6 +137,14 @@ def _text(value):
 
 def _shown(request):
     """What the model was shown: counts, flags and issue codes, never the evidence itself."""
+    if request.get("phase") == "READ":
+        return {"passages": len(request.get("passages") or [])}
+    if request.get("phase") == "ANALYZE":
+        return {
+            "verified_claims": len(request.get("verified_claims") or []),
+            "calculation_ids": len(request.get("calculation_ids") or []),
+            "decided_families": len(request.get("already_decided_families") or []),
+        }
     if request.get("phase") == "PLAN":
         return {
             "pending_findings": len(request.get("pending_findings") or []),
@@ -171,6 +179,25 @@ def _reply(response):
     output = (response or {}).get("validated_output_or_null")
     if not isinstance(output, dict):
         return None
+    if "claims" in output:
+        # Kinds and ids only; a quote is document text and stays out of the trace.
+        return {
+            "claims": [
+                {"kind": claim.get("kind"), "observation_id": claim.get("observation_id")}
+                for claim in output["claims"][:12]
+            ]
+        }
+    if "findings" in output:
+        return {
+            "proposals": [
+                {
+                    "issue_type": item.get("issue_type"),
+                    "advisory_status": item.get("advisory_status"),
+                    "cited_ids": len(item.get("evidence_ref_ids") or []),
+                }
+                for item in output["findings"][:6]
+            ]
+        }
     if "verdict" in output:
         proposal = output.get("finding_proposal") or None
         return {
