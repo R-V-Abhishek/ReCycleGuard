@@ -129,15 +129,13 @@ def trial_counts(output, protocol_path):
 
 
 def model_health(run=subprocess.run):
-    """healthy, starting, unhealthy or down, from the model container's own health check."""
+    """healthy, starting, unhealthy or down, from the model container's own health check.
+
+    A container without a health check (the fixture model) counts as healthy while it runs.
+    """
+    template = "{{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}"
     done = run(
-        [
-            "docker",
-            "inspect",
-            "--format",
-            "{{.State.Status}} {{.State.Health.Status}}",
-            MODEL_CONTAINER,
-        ],
+        ["docker", "inspect", "--format", template, MODEL_CONTAINER],
         capture_output=True,
         text=True,
         check=False,
@@ -147,7 +145,9 @@ def model_health(run=subprocess.run):
     state, _, health = done.stdout.strip().partition(" ")
     if state != "running":
         return "down"
-    return {"healthy": "healthy", "starting": "starting"}.get(health, "unhealthy")
+    return {"healthy": "healthy", "none": "healthy", "starting": "starting"}.get(
+        health, "unhealthy"
+    )
 
 
 def restart_model(run=subprocess.run):

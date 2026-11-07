@@ -217,3 +217,21 @@ def test_a_stalled_session_is_stopped_and_started_again(world):
     state = world.run(path, stall_seconds=250)
     assert world.launched.count("q1-a-p1") == world.queue.MAX_ATTEMPTS
     assert state.data["sessions"]["a:p1"]["status"] == "FAILED"
+
+
+@pytest.mark.parametrize(
+    ("output", "code", "expected"),
+    [
+        ("running healthy\n", 0, "healthy"),
+        ("running none\n", 0, "healthy"),
+        ("running starting\n", 0, "starting"),
+        ("running unhealthy\n", 0, "unhealthy"),
+        ("exited none\n", 0, "down"),
+        ("", 1, "down"),
+    ],
+)
+def test_the_model_container_state_is_read_from_docker(world, output, code, expected):
+    class Done:
+        returncode, stdout = code, output
+
+    assert world.queue.model_health(lambda *args, **kwargs: Done()) == expected
