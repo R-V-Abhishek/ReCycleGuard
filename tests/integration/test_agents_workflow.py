@@ -1,4 +1,4 @@
-"""MG2 Reader and Analyst through the real runner over the loopback fixture server.
+"""MG2 Retriever and Classifier through the real runner over the loopback fixture server.
 
 No weights and no quality claim: the replies are fixtures, so this checks plumbing, audit and
 the gate, not whether a model reads well.
@@ -15,11 +15,11 @@ from tests.integration.test_a05_baseline import approved_foundation as approved_
 from tests.integration.test_model_investigation import native as native
 from tests.unit.test_local_model import server as server
 
-PROMPT = Path(__file__).parents[2] / "docs/checkpoints/mg2/prompts/mg2_reader_analyst_v1.json"
+PROMPT = Path(__file__).parents[2] / "docs/checkpoints/mg2/prompts/mg2_agents_v1.json"
 STOPPED = {"AWAITING_REVIEW", "FAILED", "BLOCKED_INPUT", "BLOCKED_OUTPUT"}
 
 
-def run(native, monkeypatch, respond, *, agents="READER_ANALYST"):
+def run(native, monkeypatch, respond, *, agents="RETRIEVER_CLASSIFIER"):
     """``respond(payload)`` supplies the fixture reply for each exact model request."""
     service, context, capability, request, config, backend = native
     text = PromptText.model_validate_json(PROMPT.read_bytes())
@@ -59,44 +59,61 @@ def run(native, monkeypatch, respond, *, agents="READER_ANALYST"):
             )
     finally:
         runner.close()
+    events = service.kernel.list_stream_events(f"stream:{spec.run_id}")
     records = [
         AgentRecord.model_validate_json(service.blobs.get(event.payload_blob))
-        for event in service.kernel.list_stream_events(f"stream:{spec.run_id}")
+        for event in events
         if event.event_type == "graph.agent.result"
     ]
-    return spec, state, phases, records, service
+    tools = [
+        event.event_type
+        for event in events
+        if event.event_type.startswith("graph.tool.") and event.event_type.endswith(".result")
+    ]
+    return spec, state, phases, records, service, tools
+
+
+def retrieve_nothing(payload):
+    return {"grade": "NO_RESULT_YET", "reason": "nothing to read", "action": "FINISH"}
+
+
+def propose_nothing(payload):
+    return {"action": "PROPOSE", "findings": []}
 
 
 def reply(payload):
-    if payload["phase"] == "READ":
-        return {"claims": []}
-    return {"findings": []}
+    return (retrieve_nothing if payload["phase"] == "RETRIEVE" else propose_nothing)(payload)
 
 
 def test_the_agents_replace_the_plan_and_assess_loop(native, monkeypatch):
-    spec, state, phases, records, _ = run(native, monkeypatch, reply)
-    assert spec.experiment_variant == "V3_READER_ANALYST_REAL_MODEL"
-    assert set(phases) <= {"READ", "ANALYZE"} and phases[-1] == "ANALYZE"
-    assert phases.count("ANALYZE") == 1
+    spec, state, phases, records, _, tools = run(native, monkeypatch, reply)
+    assert spec.experiment_variant == "V3_RETRIEVER_CLASSIFIER_REAL_MODEL"
+    assert phases == ["RETRIEVE", "CLASSIFY"] and tools == []
     assert state.status == "AWAITING_REVIEW"
-    assert len(records) == 1 and records[0].architecture == "READER_ANALYST"
+    assert len(records) == 1 and records[0].architecture == "RETRIEVER_CLASSIFIER"
     assert state.pending_finding_ids == [] and state.resolved_finding_ids == ["finding:one"]
 
 
-def test_the_analyst_only_arm_never_calls_the_reader(native, monkeypatch):
-    spec, state, phases, records, _ = run(native, monkeypatch, reply, agents="ANALYST_ONLY")
-    assert spec.experiment_variant == "V3_ANALYST_ONLY_REAL_MODEL"
-    assert phases == ["ANALYZE"] and state.status == "AWAITING_REVIEW"
+def test_the_lookup_arm_makes_no_classifier_call(native, monkeypatch):
+    _, state, phases, records, _, _ = run(native, monkeypatch, reply, agents="RETRIEVER_LOOKUP")
+    assert phases == ["RETRIEVE"] and state.status == "AWAITING_REVIEW"
+    assert records[0].classifier_calls == 0
+
+
+def test_the_classifier_alone_never_calls_the_retriever(native, monkeypatch):
+    spec, state, phases, records, _, _ = run(native, monkeypatch, reply, agents="CLASSIFIER_ONLY")
+    assert spec.experiment_variant == "V3_CLASSIFIER_ONLY_REAL_MODEL"
+    assert phases == ["CLASSIFY"] and state.status == "AWAITING_REVIEW"
     assert records[0].coverage is None
 
 
-def test_an_invalid_analyst_reply_still_drafts_the_report(native, monkeypatch):
+def test_an_invalid_classifier_reply_still_drafts_the_report(native, monkeypatch):
     def invalid(payload):
-        return {"claims": []} if payload["phase"] == "READ" else {"findings": "none"}
+        return {"action": "PROPOSE", "findings": "none"}
 
-    _, state, phases, records, _ = run(native, monkeypatch, invalid, agents="ANALYST_ONLY")
+    _, state, phases, records, _, _ = run(native, monkeypatch, invalid, agents="CLASSIFIER_ONLY")
     assert state.status == "AWAITING_REVIEW" and state.stop_reason == "NO_NEW_EVIDENCE"
-    assert records[0].analyst_stopped_because == "INVALID_OUTPUT"
+    assert records[0].classifier_stopped_because == "INVALID_OUTPUT"
     assert state.abstained_finding_ids == ["finding:one"]
 
 
@@ -116,43 +133,68 @@ def with_memo(monkeypatch):
     monkeypatch.setattr(InvestigationService, "_observations", observations)
 
 
+FINDING = {
+    "advisory_status": "REQUIRES_EXPERT_REVIEW",
+    "basis": "A passage describes the pattern this family covers.",
+    "abstention_reason": None,
+    "withheld_claim_scopes": [],
+    "next_action_kind": "INVESTIGATE",
+    "next_action_text": "A reviewer reads the passage.",
+}
+
+
 def alias_replies(payload):
-    if payload["phase"] == "READ":
-        assert "obs:memo" in [p["observation_id"] for p in payload["passages"]]
+    if payload["phase"] == "RETRIEVE":
+        last = payload["last_result"]
+        if last is None:
+            return {
+                "grade": "NO_RESULT_YET",
+                "reason": "start",
+                "action": "CALL",
+                "tool": "list_passages",
+            }
+        if last["tool"] == "list_passages":
+            assert "obs:memo" in json.dumps(last["result"])
+            return {
+                "grade": "SUFFICIENT",
+                "reason": "one memo",
+                "action": "CALL",
+                "tool": "read_passages",
+                "observation_ids": ["obs:memo"],
+            }
+        assert MEMO in json.dumps(last["result"])
         return {
+            "grade": "SUFFICIENT",
+            "reason": "alias wording",
+            "action": "FINISH",
             "claims": [
                 {
                     "kind": "ENTITY_ALIAS_STATEMENT",
                     "observation_id": "obs:memo",
                     "quote": "trades under another name",
                 }
-            ]
+            ],
         }
     assert payload["verified_claims"][0]["family"] == "F05_WRONG_ENTITY_ALIAS"
-    assert "another name" not in json.dumps(payload["verified_claims"])
-    finding = {
-        "advisory_status": "REQUIRES_EXPERT_REVIEW",
-        "basis": "A passage addresses an automated reader.",
-        "abstention_reason": None,
-        "withheld_claim_scopes": [],
-        "next_action_kind": "INVESTIGATE",
-        "next_action_text": "A reviewer reads the passage.",
-    }
+    assert "another name" not in json.dumps(payload)
     return {
+        "action": "PROPOSE",
         "findings": [
-            finding | {"issue_type": "F05_WRONG_ENTITY_ALIAS", "evidence_ref_ids": ["obs:memo"]},
-            finding | {"issue_type": "F12_UNSEEN_NOTICE_LEAD", "evidence_ref_ids": ["obs:memo"]},
-        ]
+            FINDING | {"issue_type": "F05_WRONG_ENTITY_ALIAS", "evidence_ref_ids": ["obs:memo"]},
+            FINDING | {"issue_type": "F12_UNSEEN_NOTICE_LEAD", "evidence_ref_ids": ["obs:memo"]},
+        ],
     }
 
 
-def test_a_verified_claim_becomes_a_gated_finding_and_an_unbacked_family_is_rejected(
+def test_a_read_claim_becomes_a_gated_finding_and_an_unbacked_family_is_rejected(
     native, monkeypatch
 ):
     with_memo(monkeypatch)
-    spec, state, phases, records, service = run(native, monkeypatch, alias_replies)
-    assert phases == ["READ", "ANALYZE"] and state.status == "AWAITING_REVIEW"
+    spec, state, phases, records, service, tools = run(native, monkeypatch, alias_replies)
+    assert phases == ["RETRIEVE", "RETRIEVE", "RETRIEVE", "CLASSIFY"]
+    assert len(tools) == 2 and state.status == "AWAITING_REVIEW"
     assert records[0].verified_claims[0].observation_id == "obs:memo"
+    assert records[0].coverage.units_read == 1 and records[0].coverage.tool_calls == 2
     report = service.latest_report(spec.run_id)
     assert [f.issue_type for f in report.findings if f.issue_type.startswith("F05")] == [
         "F05_WRONG_ENTITY_ALIAS"
@@ -161,3 +203,22 @@ def test_a_verified_claim_becomes_a_gated_finding_and_an_unbacked_family_is_reje
         ("F12_UNSEEN_NOTICE_LEAD", "NO_VERIFIED_CLAIM")
     ]
     assert MEMO not in report.model_dump_json()
+
+
+def test_the_classifier_may_run_a_compute_tool_and_sees_its_result(native, monkeypatch):
+    seen = []
+
+    def replies(payload):
+        if payload["phase"] == "RETRIEVE":
+            return retrieve_nothing(payload)
+        seen.append(payload)
+        if not payload["tool_results"]:
+            assert payload["facts"]["bucket_ids"], "the classifier is given ids to pass on"
+            return {"action": "CALL", "tool": "compute_reconciliation", "bucket_ids": []}
+        return {"action": "PROPOSE", "findings": []}
+
+    _, state, phases, records, _, tools = run(native, monkeypatch, replies)
+    assert phases == ["RETRIEVE", "CLASSIFY", "CLASSIFY"] and len(tools) == 1
+    assert seen[1]["tool_results"][0]["tool"] == "compute_reconciliation"
+    assert seen[1]["tool_results"][0]["refused"] is None and seen[1]["calls_left"] == 2
+    assert records[0].classifier_calls == 2 and state.status == "AWAITING_REVIEW"

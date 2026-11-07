@@ -120,7 +120,13 @@ class SupportReviewRequest(BoundaryModel):
 class RunRequest(BoundaryModel):
     dossier_id: Nonempty
     mode: Literal["MODEL_BACKED", "SCRIPTED_TEST"] = "MODEL_BACKED"
-    variant: Literal["ADAPTIVE", "FIXED_RETRIEVAL", "READER_ANALYST", "ANALYST_ONLY"] = "ADAPTIVE"
+    variant: Literal[
+        "ADAPTIVE",
+        "FIXED_RETRIEVAL",
+        "RETRIEVER_LOOKUP",
+        "RETRIEVER_CLASSIFIER",
+        "CLASSIFIER_ONLY",
+    ] = "ADAPTIVE"
     budgets: BudgetLimits | None = None
     # Evaluation only; a runtime-mode server rejects it. Empty keeps every deterministic check.
     ablated_families: list[FaultFamily] = Field(default_factory=list)
@@ -755,7 +761,8 @@ def create_app(options: ApiOptions):
                             if body.variant == "FIXED_RETRIEVAL"
                             else None,
                             agents=body.variant
-                            if body.variant in {"READER_ANALYST", "ANALYST_ONLY"}
+                            if body.variant
+                            in {"RETRIEVER_LOOKUP", "RETRIEVER_CLASSIFIER", "CLASSIFIER_ONLY"}
                             else None,
                             budgets=budgets,
                             ablated_families=body.ablated_families,

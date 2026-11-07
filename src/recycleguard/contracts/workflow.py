@@ -351,7 +351,7 @@ class StageOutcome(BoundaryModel):
 class ContextManifest(BoundaryModel):
     context_manifest_id: ID
     run_id: ID
-    phase: Literal["PLAN", "ASSESS", "BRIEF", "READ", "ANALYZE"]
+    phase: Literal["PLAN", "ASSESS", "BRIEF", "RETRIEVE", "CLASSIFY"]
     exact_request_blob: BlobRef
     allowed_tool_schema_digest: Digest
     max_total_tokens: int

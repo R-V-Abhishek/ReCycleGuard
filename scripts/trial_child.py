@@ -17,7 +17,13 @@ from recycleguard.contracts.core import EvidenceRef
 BASE = "/api/v1"
 TERMINAL = {"STOPPED", "FAILED"}
 REVIEW_NOTE = "Synthetic fixture review for a trial."
-REAL_MODEL_VARIANTS = {"FIXED_RETRIEVAL", "ADAPTIVE", "READER_ANALYST", "ANALYST_ONLY"}
+REAL_MODEL_VARIANTS = {
+    "FIXED_RETRIEVAL",
+    "ADAPTIVE",
+    "RETRIEVER_LOOKUP",
+    "RETRIEVER_CLASSIFIER",
+    "CLASSIFIER_ONLY",
+}
 CONTROL_FINDING = "finding:control"
 _CONTROL_PLAN = {
     "objective": "Scripted control.",
@@ -144,12 +150,19 @@ def _text(value):
 
 def _shown(request):
     """What the model was shown: counts, flags and issue codes, never the evidence itself."""
-    if request.get("phase") == "READ":
-        return {"passages": len(request.get("passages") or [])}
-    if request.get("phase") == "ANALYZE":
+    if request.get("phase") == "RETRIEVE":
+        return {
+            "turn": request.get("turn"),
+            "turns_left": request.get("turns_left"),
+            "passage_ids": len(request.get("passage_ids") or []),
+            "history": len(request.get("history") or []),
+            "last_tool": (request.get("last_result") or {}).get("tool"),
+        }
+    if request.get("phase") == "CLASSIFY":
         return {
             "verified_claims": len(request.get("verified_claims") or []),
-            "calculation_ids": len(request.get("calculation_ids") or []),
+            "tool_results": len(request.get("tool_results") or []),
+            "calls_left": request.get("calls_left"),
             "decided_families": len(request.get("already_decided_families") or []),
         }
     if request.get("phase") == "PLAN":
@@ -194,24 +207,30 @@ def _reply(response):
     output = (response or {}).get("validated_output_or_null")
     if not isinstance(output, dict):
         return None
-    if "claims" in output:
+    if "grade" in output:
         # Kinds and ids only; a quote is document text and stays out of the trace.
         return {
+            "grade": output.get("grade"),
+            "action": output.get("action"),
+            "tool": output.get("tool"),
+            "query": _text(output.get("query")),
             "claims": [
                 {"kind": claim.get("kind"), "observation_id": claim.get("observation_id")}
-                for claim in output["claims"][:12]
-            ]
+                for claim in (output.get("claims") or [])[:12]
+            ],
         }
     if "findings" in output:
         return {
+            "action": output.get("action"),
+            "tool": output.get("tool"),
             "proposals": [
                 {
                     "issue_type": item.get("issue_type"),
                     "advisory_status": item.get("advisory_status"),
                     "cited_ids": len(item.get("evidence_ref_ids") or []),
                 }
-                for item in output["findings"][:6]
-            ]
+                for item in (output.get("findings") or [])[:6]
+            ],
         }
     if "what_to_check" in output:  # the brief text itself is kept in the trial's briefs
         return {

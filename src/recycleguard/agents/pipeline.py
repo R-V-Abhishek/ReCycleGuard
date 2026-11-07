@@ -1,18 +1,27 @@
-"""Reader then Analyst, as a pure function of observations, facts and two model calls."""
+"""Retriever then Classifier, as a pure function of observations, facts and the agents' ports."""
 
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 
 from pydantic import JsonValue
 
-from recycleguard.agents.analyst import allowed_refs, analyst_body, require_claim_support
+from recycleguard.agents.classifier import (
+    ClassifierToolResult,
+    allowed_refs,
+    lookup_proposals,
+    require_claim_support,
+    run_classifier,
+)
 from recycleguard.agents.models import (
-    AnalystProposal,
-    ReaderCoverage,
-    ReaderProposal,
+    AgentArchitecture,
+    ClassifierStep,
+    ClassifierTurn,
+    RetrievalCoverage,
+    RetrieverStep,
+    RetrieverTurn,
     VerifiedClaim,
 )
-from recycleguard.agents.reader import AgentCallError, run_reader
+from recycleguard.agents.retriever import ToolResult, run_retriever
 from recycleguard.contracts.core import EvidenceRef
 from recycleguard.contracts.extraction import Observation
 from recycleguard.contracts.workflow import FindingProposal
@@ -26,40 +35,76 @@ class AgentOutcome:
     unsupported: list[FindingProposal]
     refs: dict[str, EvidenceRef]
     verified: list[VerifiedClaim]
-    coverage: ReaderCoverage | None
-    analyst_calls: int
-    analyst_stopped_because: str | None
+    coverage: RetrievalCoverage | None
+    retriever_turns: list[RetrieverTurn]
+    classifier_turns: list[ClassifierTurn]
+    classifier_calls: int
+    classifier_stopped_because: str | None
 
 
 def run_agents(
     observations: list[Observation],
     *,
+    architecture: AgentArchitecture,
     facts: Mapping[str, JsonValue],
     calculation_ids: Iterable[str],
     decided_families: Iterable[str],
     families: Iterable[str],
-    read: Callable[[dict], ReaderProposal],
-    analyse: Callable[[dict], AnalystProposal],
-    max_reader_chunks: int,
-    reader_context: Mapping[str, JsonValue] | None = None,
-    use_reader: bool = True,
+    known_ids: Mapping[str, Iterable[str]],
+    retrieve: Callable[[dict], RetrieverStep],
+    retrieve_tool: Callable[[RetrieverStep], ToolResult],
+    classify: Callable[[dict], ClassifierStep],
+    classify_tool: Callable[[ClassifierStep], ClassifierToolResult],
+    max_retriever_turns: int,
+    max_classifier_calls: int,
+    context: Mapping[str, JsonValue] | None = None,
 ) -> AgentOutcome:
-    """Run the Reader (unless ablated) and one Analyst call.
+    """Retrieval (unless ablated), then classification (unless replaced by the lookup).
 
-    A failed Reader call keeps the claims verified so far. A failed Analyst call yields no
-    proposals; the deterministic findings are unaffected either way.
+    A failed retrieval keeps the claims verified so far. A failed classification yields no
+    proposals. The deterministic findings are unaffected either way.
     """
     verified: list[VerifiedClaim] = []
-    coverage = None
-    if use_reader:
-        verified, coverage = run_reader(observations, read, max_reader_chunks, reader_context)
+    coverage, retriever_turns = None, []
+    if architecture != "CLASSIFIER_ONLY":
+        retrieved = run_retriever(
+            observations, retrieve, retrieve_tool, max_retriever_turns, context
+        )
+        verified, coverage, retriever_turns = (
+            retrieved.verified,
+            retrieved.coverage,
+            retrieved.turns,
+        )
     calculation_ids = list(calculation_ids)
-    body = analyst_body(facts, calculation_ids, verified, decided_families, families)
+    decided = list(decided_families)
+    if architecture == "RETRIEVER_LOOKUP":
+        proposals, unsupported = lookup_proposals(verified, decided), []
+        classifier_turns, calls, stopped = [], 0, None
+    else:
+        classified = run_classifier(
+            facts=facts,
+            calculation_ids=calculation_ids,
+            verified=verified,
+            decided_families=decided,
+            families=families,
+            known_ids=known_ids,
+            step=classify,
+            execute=classify_tool,
+            max_calls=max_classifier_calls,
+        )
+        calculation_ids = classified.calculation_ids
+        proposals, unsupported = require_claim_support(classified.proposals, verified)
+        classifier_turns = classified.turns
+        calls, stopped = classified.calls, classified.stopped_because
     refs = allowed_refs(observations, verified, calculation_ids)
-    try:
-        reply = analyse(body)
-        proposals, unsupported = require_claim_support(reply.findings, verified)
-        stopped = None
-    except AgentCallError as exc:
-        proposals, unsupported, stopped = [], [], exc.reason
-    return AgentOutcome(proposals, unsupported, refs, verified, coverage, 1, stopped)
+    return AgentOutcome(
+        proposals,
+        unsupported,
+        refs,
+        verified,
+        coverage,
+        retriever_turns,
+        classifier_turns,
+        calls,
+        stopped,
+    )

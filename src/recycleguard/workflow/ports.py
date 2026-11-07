@@ -5,6 +5,7 @@ from dataclasses import dataclass
 
 from pydantic import JsonValue
 
+from recycleguard.agents.models import AgentArchitecture
 from recycleguard.contracts.core import BoundaryModel, CommandContext, ServiceResult
 from recycleguard.contracts.extraction import Observation
 from recycleguard.contracts.workflow import BriefProposal, ReviewerBrief, RunSpec, StageOutcome
@@ -27,23 +28,26 @@ class WorkflowStages:
 
 @dataclass(frozen=True)
 class AgentFacts:
-    """What the deterministic engine computed, in the form the Analyst may be shown."""
+    """What the deterministic engine computed, in the form the agents may be shown."""
 
     facts: dict[str, JsonValue]
     calculation_ids: list[str]
     decided_families: list[str]
-    reader_context: dict[str, JsonValue]
+    # Ids each compute tool accepts, by tool name; a call naming any other id is refused.
+    known_ids: dict[str, list[str]]
+    context: dict[str, JsonValue]
 
 
 @dataclass(frozen=True)
 class AgentWiring:
-    """Trusted inputs of the Reader and Analyst. Present only for the multi-agent variants."""
+    """Trusted inputs of the Retriever and Classifier. Present only for the multi-agent variants."""
 
     observations: Callable[[], list[Observation]]
     facts: Callable[[CommandContext], AgentFacts]
     families: tuple[str, ...]
-    max_reader_chunks: int
-    use_reader: bool
+    architecture: AgentArchitecture
+    max_retriever_turns: int
+    max_classifier_calls: int
 
 
 @dataclass(frozen=True)

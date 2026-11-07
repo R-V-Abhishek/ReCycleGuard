@@ -262,6 +262,12 @@ def summarize(rows, backend):
         "v2_minus_v1_without_preflight_blocks": paired_bootstrap(
             without_blocks, *PAIR, seed=BOOTSTRAP_SEED
         ),
+        # Every real-model variant of the session against the control, the MG2 arms included.
+        "minus_sc": {
+            variant: paired_bootstrap(scored, "SC", variant, seed=BOOTSTRAP_SEED)
+            for variant in by_variant
+            if variant not in CONTROLS
+        },
         "v1_minus_sc": paired_bootstrap(scored, "SC", PAIR[0], seed=BOOTSTRAP_SEED),
         "v2_minus_sc": paired_bootstrap(scored, "SC", PAIR[1], seed=BOOTSTRAP_SEED),
         "failure_classes": dict(

@@ -16,9 +16,15 @@ from langgraph.graph import END, START, StateGraph
 from langsmith.run_helpers import tracing_context
 from pydantic import ValidationError
 
-from recycleguard.agents.models import AgentRecord, AnalystProposal, ReaderProposal
+from recycleguard.agents.classifier import ClassifierToolResult
+from recycleguard.agents.models import (
+    AgentRecord,
+    ClassifierStep,
+    RetrieverStep,
+)
+from recycleguard.agents.passages import AgentCallError
 from recycleguard.agents.pipeline import run_agents
-from recycleguard.agents.reader import AgentCallError
+from recycleguard.agents.retriever import ToolResult
 from recycleguard.contracts.artifacts import ProfileRef
 from recycleguard.contracts.audit import OperationIntent, OperationResult
 from recycleguard.contracts.core import BlobRef, BoundaryModel, Issue, ServiceResult, Status
@@ -52,6 +58,10 @@ _ALLOWED = {
     "compute_reconciliation",
     "compare_return",
     "search_rules",
+    # Read-only views of the dossier's prose, offered only to the Retriever (CONTRACTS.md 6.5).
+    # They change nothing and return nothing the extraction did not already hold.
+    "list_passages",
+    "read_passages",
 }
 
 
@@ -61,16 +71,16 @@ _RESPONSES = {
     "PLAN": PlanProposal,
     "ASSESS": AssessmentProposal,
     "BRIEF": BriefProposal,
-    "READ": ReaderProposal,
-    "ANALYZE": AnalystProposal,
+    "RETRIEVE": RetrieverStep,
+    "CLASSIFY": ClassifierStep,
 }
-# Operation names are plan, plan_repair, assess, read_<n>, analyze and brief_<finding>.
+# Operation names are plan, plan_repair, assess, retrieve_<n>, classify_<n> and brief_<finding>.
 _CALL_PHASE = {
     "plan": "PLAN",
     "assess": "ASSESS",
     "brief": "BRIEF",
-    "read": "READ",
-    "analyze": "ANALYZE",
+    "retrieve": "RETRIEVE",
+    "classify": "CLASSIFY",
 }
 # Brief calls run after verification, so they cannot affect the investigation. They have their
 # own bound instead of its caps: one call and its retry per finding, for at most this many.
@@ -1264,45 +1274,130 @@ class WorkflowRunner:
 
         return call
 
-    def _investigate_agents(self, root, spec, initial, cap):
-        """Reader then Analyst in one turn. Their output is archived as one record.
+    def _agent_tool(self, root, spec, cap, number, role, tool, data, *, reformulate=False):
+        """One audited tool call for an agent. Returns (view, stage, refusal).
 
-        Every pending finding is settled together: resolved when both agents finished, otherwise
-        abstained. The report is drafted from the deterministic findings plus whatever the gate
-        accepts from the Analyst's proposals.
+        An exhausted budget or arguments the tool rejects come back as a refusal the agent can
+        read; they never stop the run. A tool that failed is a refusal too. Anything else, such
+        as an outcome the tool may have acted on, still stops the run.
+        """
+        binding = self.tools[tool]
+        try:
+            arguments = binding.arguments_model.model_validate(data)
+        except ValidationError as exc:
+            return None, None, f"arguments rejected: {exc.errors()[0]['msg']}"
+        try:
+            observation, _ = self._external(
+                root,
+                spec,
+                f"tool_{number}",
+                "tool",
+                arguments,
+                binding.handler,
+                cap,
+                finding=f"agent:{role}",
+                reformulate=reformulate,
+            )
+        except WorkflowStop as exc:
+            if exc.reason == "BUDGET_EXHAUSTED":
+                return None, None, "BUDGET_EXHAUSTED"
+            raise
+        stage = observation.stage_output
+        if stage is None or observation.status not in {"SUCCESS", "PARTIAL"}:
+            return None, stage, "the tool failed"
+        return {"status": observation.status, **self._stage_view(stage)}, stage, None
+
+    def _investigate_agents(self, root, spec, initial, cap):
+        """The Retriever then the Classifier in one turn. Their work is archived as one record.
+
+        Every model call and tool call goes through the same audited, budgeted path as the
+        single-agent loop. Every pending finding is settled together: resolved when both agents
+        finished, otherwise abstained. The report is drafted from the deterministic findings plus
+        whatever the gate accepts from the Classifier's proposals.
         """
         wiring = self.agents
         facts = wiring.facts(self._ctx(root, spec, "agent_facts"))
-        counter = iter(range(1, 1000))
+        models, tools = iter(range(1, 1000)), iter(range(1, 1000))
+        searched = []
+
+        def retrieve_tool(reply):
+            data = {
+                "list_passages": {},
+                "read_passages": {"observation_ids": reply.observation_ids},
+                "search_rules": {"query": reply.query},
+            }[reply.tool]
+            view, stage, refusal = self._agent_tool(
+                root,
+                spec,
+                cap,
+                next(tools),
+                "retriever",
+                reply.tool,
+                data,
+                reformulate=reply.tool == "search_rules" and bool(searched),
+            )
+            if reply.tool == "search_rules":
+                searched.append(reply.query)
+            ids = reply.observation_ids if reply.tool == "read_passages" else []
+            if reply.tool == "search_rules" and stage is not None:
+                ids = [ref.ref_id for ref in stage.evidence_refs][:10]
+            return ToolResult(view or {}, refused=refusal, result_ids=ids)
+
+        def classify_tool(reply):
+            data = (
+                {"bucket_ids": reply.bucket_ids}
+                if reply.tool == "compute_reconciliation"
+                else {"certificate_ids": reply.certificate_ids}
+            )
+            view, stage, refusal = self._agent_tool(
+                root, spec, cap, next(tools), "classifier", reply.tool, data
+            )
+            return ClassifierToolResult(
+                view or {},
+                refused=refusal,
+                calculation_ids=[] if stage is None else list(stage.calculation_ids),
+            )
+
         outcome = run_agents(
             wiring.observations(),
+            architecture=wiring.architecture,
             facts=facts.facts,
             calculation_ids=facts.calculation_ids,
             decided_families=facts.decided_families,
             families=wiring.families,
-            read=self._agent_call(
-                root, spec, initial, cap, "READ", lambda: f"read_{next(counter)}"
+            known_ids=facts.known_ids,
+            retrieve=self._agent_call(
+                root, spec, initial, cap, "RETRIEVE", lambda: f"retrieve_{next(models)}"
             ),
-            analyse=self._agent_call(root, spec, initial, cap, "ANALYZE", lambda: "analyze"),
-            max_reader_chunks=wiring.max_reader_chunks,
-            reader_context=facts.reader_context,
-            use_reader=wiring.use_reader,
+            retrieve_tool=retrieve_tool,
+            classify=self._agent_call(
+                root, spec, initial, cap, "CLASSIFY", lambda: f"classify_{next(models)}"
+            ),
+            classify_tool=classify_tool,
+            max_retriever_turns=wiring.max_retriever_turns,
+            max_classifier_calls=wiring.max_classifier_calls,
+            context=facts.context,
         )
         record = AgentRecord(
-            architecture="READER_ANALYST" if wiring.use_reader else "ANALYST_ONLY",
+            architecture=wiring.architecture,
             coverage=outcome.coverage,
+            retriever_turns=outcome.retriever_turns,
+            classifier_turns=outcome.classifier_turns,
             verified_claims=outcome.verified,
             proposals=outcome.proposals,
             unsupported_proposals=outcome.unsupported,
             refs=list(outcome.refs.values()),
-            analyst_calls=outcome.analyst_calls,
-            analyst_stopped_because=outcome.analyst_stopped_because,
+            classifier_calls=outcome.classifier_calls,
+            classifier_stopped_because=outcome.classifier_stopped_because,
         )
         self.store.archive(
             self._ctx(root, spec, "agent_record"), "graph.agent", record, capability=cap
         )
-        complete = outcome.analyst_stopped_because is None and (
-            outcome.coverage is None or outcome.coverage.stopped_because is None
+        # A turn cap is stated in the coverage and is not a failure; an unusable reply or an
+        # exhausted budget leaves the findings unsettled.
+        broken = {"INVALID_OUTPUT", "BUDGET_EXHAUSTED"}
+        complete = outcome.classifier_stopped_because not in broken and (
+            outcome.coverage is None or outcome.coverage.stopped_because not in broken
         )
         pending = list(initial.pending_finding_ids)
         state = self.store.load(spec.run_id)

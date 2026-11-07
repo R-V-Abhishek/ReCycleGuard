@@ -11,7 +11,7 @@ from urllib.parse import urlsplit
 
 from pydantic import ConfigDict, Field, JsonValue, ValidationError, model_validator
 
-from recycleguard.agents.models import AnalystProposal, ReaderProposal
+from recycleguard.agents.models import ClassifierStep, RetrieverStep
 from recycleguard.contracts.core import ID, BoundaryModel, Digest, Issue, Nonempty, ServiceResult
 from recycleguard.contracts.workflow import (
     AssessmentProposal,
@@ -95,11 +95,11 @@ _PHASE_RULES = {
 _SCHEMAS = {
     "PLAN": PlanProposal,
     "ASSESS": AssessmentProposal,
-    "READ": ReaderProposal,
-    "ANALYZE": AnalystProposal,
+    "RETRIEVE": RetrieverStep,
+    "CLASSIFY": ClassifierStep,
 }
-# A prompt serves one architecture: the single investigator or the Reader and Analyst.
-_PHASE_SETS = ({"PLAN", "ASSESS"}, {"READ", "ANALYZE"})
+# A prompt serves one architecture: the single investigator or the Retriever and Classifier.
+_PHASE_SETS = ({"PLAN", "ASSESS"}, {"RETRIEVE", "CLASSIFY"})
 # Reviewer briefs, after verification. Frozen text, pinned only by configurations that brief, so
 # every investigation prompt and its digest stay as they were.
 BRIEF_RULES = (
@@ -182,14 +182,14 @@ class PromptText(BoundaryModel):
 
     prompt_version: Nonempty
     system: Nonempty
-    phase_rules: dict[Literal["PLAN", "ASSESS", "READ", "ANALYZE"], Nonempty]
+    phase_rules: dict[Literal["PLAN", "ASSESS", "RETRIEVE", "CLASSIFY"], Nonempty]
     retry_note: Nonempty
 
     @model_validator(mode="after")
     def both_phases(self):
         if set(self.phase_rules) not in _PHASE_SETS:
             raise ValueError(
-                "a prompt needs rules for exactly PLAN and ASSESS, or READ and ANALYZE"
+                "a prompt needs rules for exactly PLAN and ASSESS, or RETRIEVE and CLASSIFY"
             )
         return self
 
@@ -341,7 +341,7 @@ class LocalModelConfig(BoundaryModel):
 
 class _Payload(BoundaryModel):
     model_config = ConfigDict(extra="allow", frozen=True, strict=True, allow_inf_nan=False)
-    phase: Literal["PLAN", "ASSESS", "BRIEF", "READ", "ANALYZE"]
+    phase: Literal["PLAN", "ASSESS", "BRIEF", "RETRIEVE", "CLASSIFY"]
     max_total_tokens: Annotated[int, Field(ge=1)]
     response_schema: dict[str, JsonValue]
 
