@@ -32,6 +32,7 @@ from recycleguard.contracts.foundation import (
     FoundationRequest,
     FoundationResult,
 )
+from recycleguard.contracts.results import FaultFamily
 from recycleguard.contracts.review import ReviewDecision, ReviewPacket
 from recycleguard.contracts.workflow import BudgetLimits, PlanProposal, RunState
 from recycleguard.foundation import FoundationService
@@ -42,6 +43,7 @@ from recycleguard.investigation import (
     InvestigationReport,
     InvestigationRequest,
     InvestigationService,
+    RunBriefs,
     ScriptedExchange,
     resolve_budgets,
 )
@@ -120,6 +122,8 @@ class RunRequest(BoundaryModel):
     mode: Literal["MODEL_BACKED", "SCRIPTED_TEST"] = "MODEL_BACKED"
     variant: Literal["ADAPTIVE", "FIXED_RETRIEVAL", "READER_ANALYST", "ANALYST_ONLY"] = "ADAPTIVE"
     budgets: BudgetLimits | None = None
+    # Evaluation only; a runtime-mode server rejects it. Empty keeps every deterministic check.
+    ablated_families: list[FaultFamily] = Field(default_factory=list)
 
 
 class DecisionRequest(BoundaryModel):
@@ -399,7 +403,8 @@ def create_app(options: ApiOptions):
 
     @app.get("/api/v1/agent", response_model=AgentResponse)
     def agent():
-        from recycleguard.local_model import BUILTIN_PROMPT, phase_schemas
+        from recycleguard.contracts.workflow import BriefProposal
+        from recycleguard.local_model import BRIEF_RULES, BUILTIN_PROMPT, phase_schemas
 
         config = (
             None
@@ -407,13 +412,17 @@ def create_app(options: ApiOptions):
             else LocalModelConfig.model_validate_json(options.model_config_path.read_bytes())
         )
         text = BUILTIN_PROMPT if config is None else config.prompt_text()
+        brief = config is not None and config.brief
         return {
             "configured": config is not None,
             "model_id": None if config is None else config.model_id,
             "prompt_pin": None if config is None else config.prompt_pin().model_dump(mode="json"),
             "system_template": text.system,
-            "phase_rules": text.phase_rules,
-            "response_schemas": phase_schemas(text),
+            "phase_rules": {**text.phase_rules, **({"BRIEF": BRIEF_RULES} if brief else {})},
+            "response_schemas": {
+                **phase_schemas(text),
+                **({"BRIEF": BriefProposal.model_json_schema()} if brief else {}),
+            },
             "note": (
                 "Templates are configuration. Per-call exact sent prompts appear "
                 "in provider_trace after completion."
@@ -749,6 +758,7 @@ def create_app(options: ApiOptions):
                             if body.variant in {"READER_ANALYST", "ANALYST_ONLY"}
                             else None,
                             budgets=budgets,
+                            ablated_families=body.ablated_families,
                         ),
                     )
                     runner = service.runner(spec)
@@ -903,6 +913,12 @@ def create_app(options: ApiOptions):
         store.job(run_id)
         with local_application(settings) as (cases, _, cap):
             return InvestigationService(cases, settings, capability=cap).latest_report(run_id)
+
+    @app.get("/api/v1/runs/{run_id}/briefs", response_model=RunBriefs)
+    def briefs(run_id: str):
+        store.job(run_id)
+        with local_application(settings) as (cases, _, cap):
+            return InvestigationService(cases, settings, capability=cap).briefs(run_id)
 
     @app.post("/api/v1/runs/{run_id}/packet", response_model=ReviewPacket)
     def packet(run_id: str):

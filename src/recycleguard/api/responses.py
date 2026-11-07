@@ -128,6 +128,7 @@ class TraceEventResponse(BoundaryModel):
         "PLAN",
         "TOOL_PROPOSED",
         "ASSESSMENT",
+        "BRIEF",
         "MODEL_RESULT",
         "TOOL_OR_STAGE_RESULT",
         "AUDIT",

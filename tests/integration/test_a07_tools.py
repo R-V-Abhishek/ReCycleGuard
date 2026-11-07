@@ -6,6 +6,7 @@ import shutil
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
+from typing import get_args
 
 import pytest
 
@@ -16,6 +17,7 @@ from recycleguard.config import Settings
 from recycleguard.contracts.artifacts import SnapshotRef
 from recycleguard.contracts.checks import StructuredCheckResult
 from recycleguard.contracts.core import ServiceResult
+from recycleguard.contracts.results import FaultFamily
 from recycleguard.contracts.retrieval import RetrievalAttempt
 from recycleguard.extraction import extract_pdf_pages
 from recycleguard.indexing.corpus import load_corpus
@@ -76,12 +78,12 @@ def investigation(tmp_path, approved_foundation):
     settings = Settings(data_root=root, mode="test", enable_test_adapters=True)
 
     @contextmanager
-    def create():
+    def create(ablated=(), briefs=(), name=""):
         with local_application(settings) as (cases, context, capability):
             case = cases.snapshots.catalog.get_snapshot("snapshot:case_approved")
             corpus = cases.snapshots.catalog.get_snapshot("snapshot:corpus_approved")
             request = InvestigationRequest(
-                run_id="run:a07_real_services",
+                run_id="run:a07_real_services" + ("_ablated" if ablated else "") + name,
                 case_snapshot=SnapshotRef(
                     snapshot_id=case.snapshot_id, membership_digest=case.membership_digest
                 ),
@@ -89,7 +91,8 @@ def investigation(tmp_path, approved_foundation):
                     snapshot_id=corpus.snapshot_id, membership_digest=corpus.membership_digest
                 ),
                 finding_ids=["finding:one"],
-                scripted_exchanges=[_exchange(step) for step in _steps()],
+                scripted_exchanges=[_exchange(step) for step in _steps()] + list(briefs),
+                ablated_families=list(ablated),
             )
             service = InvestigationService(cases, settings, capability=capability)
             spec = service.prepare(context, request)
@@ -137,6 +140,139 @@ def test_real_search_reformulation_reconciliation_and_verified_report(investigat
         assert len({ref for turn in turns for ref in turn.retrieval_attempt_ids}) == 2
         calculated_ids = {ref for turn in turns for ref in turn.calculation_ids}
         assert {c.calculation_id for c in report.report.calculations} <= calculated_ids
+
+
+def _drive(env):
+    state = env.runner.start_run(env.context, env.spec, capability=env.capability)
+    for _ in range(15):
+        if state.status in {"AWAITING_REVIEW", "FAILED", "BLOCKED_INPUT", "BLOCKED_OUTPUT"}:
+            break
+        state = env.runner.advance(
+            command_context(env.context.actor),
+            state.run_id,
+            state.version,
+            capability=env.capability,
+        )
+    return state
+
+
+def _limitations(report):
+    return [c.template_or_text for c in report.report.claims if c.kind == "LIMITATION"]
+
+
+def test_ablation_switches_off_deterministic_findings_and_says_so(investigation):
+    every = list(get_args(FaultFamily))
+    with investigation() as env:
+        state = _drive(env)
+        stored = json.loads(env.service.blobs.get(env.spec.runtime_configuration))
+        # A default run's stored configuration is byte-for-byte what it was before ablation.
+        assert "ablated_families" not in stored
+        default = env.service.latest_report(state.run_id)
+        assert not any("switched off" in text for text in _limitations(default))
+    with investigation(ablated=every) as env:
+        state = _drive(env)
+        assert state.status == "AWAITING_REVIEW"
+        assert env.service.configuration(env.spec).ablated_families == every
+        report = env.service.latest_report(state.run_id)
+        # The scripted control proposes nothing, so with every source off nothing is reported,
+        # and a settled reconciliation is not passed off as a clean case.
+        assert report.findings == []
+        assert report.verification.verdict in {"PASS", "QUALIFIED"}
+        assert f"Deterministic checks for {len(every)} fault families" in " ".join(
+            _limitations(report)
+        )
+
+
+def test_ablation_is_refused_outside_evaluation_and_test_modes(tmp_path, approved_foundation):
+    root = tmp_path / "data"
+    shutil.copytree(approved_foundation, root, ignore=shutil.ignore_patterns("reviewer.json"))
+    with local_application(Settings(data_root=root)) as (cases, context, capability):
+        case = cases.snapshots.catalog.get_snapshot("snapshot:case_approved")
+        corpus = cases.snapshots.catalog.get_snapshot("snapshot:corpus_approved")
+        request = InvestigationRequest(
+            run_id="run:a07_ablation_refused",
+            case_snapshot=SnapshotRef(
+                snapshot_id=case.snapshot_id, membership_digest=case.membership_digest
+            ),
+            corpus_snapshot=SnapshotRef(
+                snapshot_id=corpus.snapshot_id, membership_digest=corpus.membership_digest
+            ),
+            finding_ids=["finding:one"],
+            scripted_exchanges=[_exchange(step) for step in _steps()],
+            ablated_families=["F09_EXPIRED_CANCELLED"],
+        )
+        service = InvestigationService(cases, Settings(data_root=root), capability=capability)
+        with pytest.raises(ValueError, match="evaluation setting"):
+            service.prepare(context, request)
+
+
+def _brief_reply(finding, text=None):
+    cited = [*finding.fact_refs, *finding.next_action.evidence_refs, *finding.provision_refs]
+    refs = [ref.ref_id for ref in cited]
+    return ScriptedExchange(
+        phase="BRIEF",
+        response={
+            "what_to_check": text or "Check that the cited record supports this finding.",
+            "explanation": "The finding rests on the cited evidence.",
+            "evidence_request": "Please send the source document behind the cited record.",
+            "evidence_ref_ids": refs[:1],
+        },
+    )
+
+
+def _outcome(report):
+    """What a brief must never change: the findings, their numbers and the verification."""
+    return (
+        [
+            (f.issue_type, f.bucket_ids, f.advisory_status, f.priority, f.fact_refs)
+            for f in report.findings
+        ],
+        [c.bucket_results for c in report.report.calculations],
+        report.verification.verdict,
+    )
+
+
+def test_briefing_runs_after_verification_and_changes_no_finding(investigation):
+    with investigation() as env:
+        plain = env.service.latest_report(_drive(env).run_id)
+    assert plain.findings, "the approved foundation must yield findings to brief"
+    good = [_brief_reply(f) for f in plain.findings]
+    with investigation(briefs=good, name="_briefed") as env:
+        state = _drive(env)
+        assert state.status == "AWAITING_REVIEW" and state.review_outcome == "PENDING"
+        assert state.budget.model_calls == 6 + len(plain.findings)
+        report = env.service.latest_report(state.run_id)
+        assert _outcome(report) == _outcome(plain)
+        briefs = env.service.briefs(state.run_id)
+        revision = report.report.revision.report_revision_id
+        assert briefs.report_revision_id == revision
+        assert [b.finding_revision_id for b in briefs.model_briefs] == [
+            f.finding_revision_id for f in report.findings
+        ]
+        assert {(b.source, b.status, b.report_revision_id) for b in briefs.model_briefs} == {
+            ("MODEL", "ACCEPTED", revision)
+        }
+        assert all(b.model_operation_ref for b in briefs.model_briefs)
+        assert len(briefs.template_briefs) == len(report.findings)
+        events = env.cases.kernel.list_stream_events(f"stream:{state.run_id}")
+        assert sum(e.event_type == "graph.brief.result" for e in events) == len(report.findings)
+
+
+def test_a_brief_the_gate_rejects_is_recorded_and_review_still_opens(investigation):
+    with investigation() as env:
+        plain = env.service.latest_report(_drive(env).run_id)
+    bad = [_brief_reply(f, "The shortfall is 45 KG.") for f in plain.findings]
+    with investigation(briefs=bad, name="_bad_briefs") as env:
+        state = _drive(env)
+        assert state.status == "AWAITING_REVIEW" and state.review_outcome == "PENDING"
+        report = env.service.latest_report(state.run_id)
+        assert _outcome(report) == _outcome(plain)
+        briefs = env.service.briefs(state.run_id)
+        assert {(b.status, b.reason) for b in briefs.model_briefs} == {
+            ("REJECTED", "DIGITS_IN_TEXT")
+        }
+        assert all(b.what_to_check is None for b in briefs.model_briefs)
+        assert all(b.status == "ACCEPTED" for b in briefs.template_briefs)
 
 
 def test_read_tools_return_original_provenance_and_real_calculations(investigation):

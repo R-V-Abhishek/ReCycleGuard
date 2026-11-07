@@ -1,0 +1,93 @@
+{
+ "audit_chain": "VERIFIED",
+ "budget": {
+  "actions": 2,
+  "cost_known_calls": 0,
+  "finding_actions": {},
+  "finding_reformulations": {},
+  "model_calls": 1,
+  "observed_cost_usd": null,
+  "observed_tokens": 3076,
+  "preflight_actions": 1,
+  "report_repairs": 0,
+  "reserved_tokens": 32768,
+  "retries": 0,
+  "tool_calls": 0,
+  "usage_known_calls": 1,
+  "verification_actions": 0
+ },
+ "calls": [
+  {
+   "event_type": "graph.stage.preflight.result",
+   "issue_codes": [],
+   "kind": "STAGE",
+   "operation_id": "operation:run:3e8e7f285e4546958cf36bc23c14bdf3:turn_2:preflight",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.plan.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:3e8e7f285e4546958cf36bc23c14bdf3:turn_3:plan",
+   "status": "SUCCESS"
+  }
+ ],
+ "case_id": "case_c42a634c48",
+ "census": null,
+ "decisions": [
+  {
+   "attempt_id": "attempt:run:3e8e7f285e4546958cf36bc23c14bdf3:turn_3:plan_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:3e8e7f285e4546958cf36bc23c14bdf3:turn_3:plan",
+   "reply": {
+    "argument_keys": [
+     "observation_ids"
+    ],
+    "concise_reason": "Review available observations to assess allocation gaps and evidence qualifications per frozen dossier",
+    "hypotheses": [
+     "Missing page evidence may exist for declared pages",
+     "Evidence qualifications may be incomplete or disputed",
+     "Coverage gaps may exist between declared and actual evidence"
+    ],
+    "objective": "Assess supported allocation gaps and evidence qualifications in the frozen dossier",
+    "operation": "inspect_evidence",
+    "proposed_checks": [
+     "inspect_evidence"
+    ],
+    "stop_reason": null
+   },
+   "shown": {
+    "inspectable_observations": 4,
+    "inspectable_total": 43,
+    "pending_findings": 1,
+    "phase": "PLAN",
+    "previous_plans": 0,
+    "previous_rejection": false,
+    "prior_observations": 1
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 289,
+    "elapsed_seconds": 16.6739440629608,
+    "finish_reason": "stop",
+    "prompt_tokens": 2787,
+    "thinking_finish": "stop",
+    "thinking_tokens": 653
+   }
+  }
+ ],
+ "experiment_variant": "V2_ADAPTIVE_REAL_MODEL",
+ "job": {
+  "cancel_requested": 0,
+  "detail": "BLOCKED_OUTPUT",
+  "dossier_id": "dossier:ff1c85cd51f3451ca4f01a3fec233771",
+  "run_id": "run:3e8e7f285e4546958cf36bc23c14bdf3",
+  "status": "STOPPED"
+ },
+ "rejected_actions": [],
+ "report": null,
+ "requested_variant": "ADAPTIVE",
+ "run_id": "run:3e8e7f285e4546958cf36bc23c14bdf3",
+ "status": "BLOCKED_OUTPUT",
+ "stop_reason": "EXPERT_REVIEW_REQUIRED"
+}

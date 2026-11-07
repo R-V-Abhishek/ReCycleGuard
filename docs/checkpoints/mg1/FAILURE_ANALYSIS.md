@@ -491,3 +491,90 @@ Verification on the laptop was static only:
 - read-only probes of the new rules over c08 builder universes and case_001.
 
 The unit and integration tests, the full suite and the confirming run are for the PC. Report every result two ways: deterministic-only success (`t3_model_influence`) next to full success.
+
+## Confirming run `tuning16-v7-det1` (PC, v7, 1 slot, 32 trials)
+
+| | Earlier v7 (3 sessions, 128 trials) | `tuning16-v7-det1` |
+| --- | --- | --- |
+| Primary success | 69 / 128 (53.9%) | 30 / 32 (93.8%), 15 / 16 per variant |
+| False positives / negatives | 3 / 56 | 2 / 2 |
+| Missing withheld scopes | 16 trials | 0 |
+| Exact bucket numbers | all | all |
+| Findings from the model | 3 | 0 of 40; one proposal, rejected for digits |
+| Mean model calls (ADAPTIVE / FIXED) | 2.44 / 5.63 | 2.38 / 5.75 |
+
+The success counts include the F15 preflight block on `c42a`, which is the expected outcome.
+
+- **Deterministic-only.** The model added no finding, so the success is deterministic-only. The earlier v7 sweep also had a model share of 0 of 13, so the gain is the engine, not the model.
+- **Remaining failure.** `e8b5` fails in both variants: F03 is missed and F01 is emitted.
+  - **Cause.** The ledger CSV adds an unsupported copy of each portal transfer, with the same external reference and quantity and a DATE time. The shared-instrument check refused any certificate holding an unsupported transfer.
+  - **Fix.** Now on the branch, in `domain/transfers.py`: an unsupported record that repeats a supported tranche counts as an observation of it. Any other unsupported transfer still leaves the certificate unresolved. A certificate with an unresolved F02 overlap is reported as the overlap only.
+  - **Offline check.** I rebuilt each tuning-16 case through the real foundation pipeline with the trial's support review emulated. Without the fix, the emulation reproduces the miss. With it, `e8b5` gives F03 and every other case keeps the families it had in the run.
+- **Next run.** Expected 32 / 32. A run on this fix is still needed. Then `checking-8` once.
+
+## Later runs: e8b5 fix, checking-8, controls and page loss (PC, v7)
+
+| Run | Code | Success | FP / FN | Findings from the model |
+| --- | --- | --- | --- | --- |
+| `tuning16-v7-det2` | e8b5 fix | 32 / 32 (c42a a preflight block) | 0 / 0 | 0 |
+| `checking8-v7` | e8b5 fix | 14 / 16; `e64d` fails in both variants | 0 / 0 on scored cases | 0 |
+| `checking8-v7-controls` | e8b5 fix | 7 / 8 for each of V0, SC, FIXED and ADAPTIVE | 0 / 0 on scored cases | 0 |
+| `tuning16-v7-pl1` | Improvement 1 | 32 / 32, all REVIEWED | 0 / 0 (21 TP per variant) | 0 |
+| `checking8-v7-pl1` | Improvement 1 | 32 / 32 across V0, SC, FIXED and ADAPTIVE, all REVIEWED | 0 / 0 (11 TP per variant) | 0 |
+
+- **`e64d`** has F15+F16. Preflight blocked it on its lost page, and the scorer accepts a block only for F15 alone.
+  - With Improvement 1 it is investigated and reports F15 and F16 in every variant.
+  - **Disclosure:** this change was prompted by checking-8. The fix is generic: page loss is reported, never blocking. It was first checked on tuning-16 `c42a`, and nothing was tuned on checking-8's results.
+- **`c42a`** (F15 alone) moves from PREFLIGHT_BLOCK to a REVIEWED report with F15 only.
+- **Other cases.** Per case, every other tuning-16 and checking-8 trial has the same emitted families and success as before.
+- **Model contribution.**
+  - On checking-8, V0 and SC are equal to the model: `v1_minus_sc` = `v2_minus_sc` = 0.0, interval [0, 0].
+  - The model proposed no finding in either pl1 run, so every result is deterministic.
+  - Improvement 2 measures what the model finds when the deterministic sources are off.
+- **Reliability.** Schema-valid logical calls are 1.0 in every run. There were no timeouts, and the audit chain verified on every trial.
+  - ADAPTIVE needed 7 format retries on tuning-16 pl1 (2 on checking-8 pl1).
+  - Mean calls per trial were 2.2 ADAPTIVE and 6.0 FIXED.
+
+## Improvement 2: rule ablation, v7 vs thinking (PC, tuning-16, 3 slots)
+
+`tuning16-v7-abl1` and `tuning16-think-abl1` run the `tuning-16-ablated` protocol, which has every family's deterministic findings switched off. `tuning16-think-pl1` runs the thinking prompt with every rule on.
+
+### What the model finds alone (21 expected families per variant)
+
+| Variant | Found | False alarms | Proposals (accepted / rejected) | Trial success |
+| --- | --- | --- | --- | --- |
+| SC (zero line) | 0 / 21 | 0 | 0 | 0 / 16 |
+| v7 FIXED | 0 / 21 | 0 | 0 | 0 / 16 |
+| v7 ADAPTIVE | 0 / 21 | 0 | 0 | 0 / 16 |
+| thinking FIXED | 1 / 21 (F06) | 3 (all F06) | 4 / 9 | 0 / 16 |
+| thinking ADAPTIVE | 1 / 21 (F06) | 0 | 1 / 1 | 0 / 16 |
+
+- **Signal families.** F06 on `cab8` is the only recovery, in both thinking variants. It cites the reconciliation, whose `STALE_SNAPSHOT` code the model was shown. The other signal codes it was shown (FIXED: 4 families) were not proposed.
+- **Judgement families** (F01, F03, F07, F11, F12, F14, F16): 0 recovered by any variant. Without the claim checks, no family whose evidence is document text was found.
+- **v7 proposes nothing.** In 48 v7 model trials it made no finding proposal at all, even where the issue code was in its evidence (8 shown-not-proposed in the funnel).
+- **What the gate refused.**
+  - Thinking proposed F01 "clean" 8 times across 7 fault-case trials. The gate refused every one: 5 for `INVALID_STATUS`, 3 for `DIGITS_IN_TEXT`.
+  - It refused 2 more proposals for citing ids the model had not been given (F04, and F10 on the page-loss case).
+- **Model minus SC:** 0.0 on trial success, interval [0, 0], for both variants and both prompts.
+
+### Thinking with the rules on (`tuning16-think-pl1` vs `tuning16-v7-pl1`)
+
+| | v7 | thinking |
+| --- | --- | --- |
+| FIXED success | 16 / 16 | 11 / 16 |
+| ADAPTIVE success | 16 / 16 | 15 / 16 |
+| False positives | 0 | 5 (all model F06, FIXED) |
+| Mean wall seconds (ADAPTIVE / FIXED) | 42 / 52 | 88 / 146 |
+| Mean tokens (ADAPTIVE / FIXED) | 7,936 / 16,964 | 12,883 / 23,122 |
+
+- **FIXED false positives.** The model asserted F06 (stale snapshot) on `ec2f`, `e3ce`, `b182`, `1c2f` and `4c48`, citing only record ids. The reconciliation raised no `STALE_SNAPSHOT` code on any of them.
+  - The gate accepted these claims because F06 is not in `COMPLETE_FAMILIES` (only F02, F04 and F07 are), so a clean F06 sweep does not contradict a model claim.
+- **ADAPTIVE `c42a`.** The model's first planned action was refused by the runner, which stops with `BLOCKED_OUTPUT` and gives no report. v7 passed this case.
+- **Reasoning budget.** 70 of 145 thinking requests hit the 1024-token cap (80 of 145 in the ablated run), with a mean of about 860 tokens. About half the reasoning is cut before it ends.
+
+### Conclusion
+
+- With the deterministic findings off, the model recovers 1 of 21 families (F06, only from a shown issue code) and raises 3 false F06 claims.
+- With the rules on, thinking lowers success from 32 / 32 to 26 / 32, roughly doubles wall time, and adds 5 accepted false positives.
+- Neither prompt finds any judgement-only family. v7 stays the baseline prompt; the thinking prompt is not adopted.
+- **One deterministic defect surfaced:** the gate accepts a model F06 that the sweep found no sign of. Whether F06 can join `COMPLETE_FAMILIES` is a separate change. This run prompted it, so it must be disclosed and checked on tuning-16 before any adoption.

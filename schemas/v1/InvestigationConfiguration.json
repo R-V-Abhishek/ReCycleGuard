@@ -374,6 +374,16 @@
           },
           "title": "Server Flags",
           "type": "array"
+        },
+        "thinking": {
+          "default": false,
+          "title": "Thinking",
+          "type": "boolean"
+        },
+        "brief": {
+          "default": false,
+          "title": "Brief",
+          "type": "boolean"
         }
       },
       "required": [
@@ -440,6 +450,7 @@
           "enum": [
             "PLAN",
             "ASSESS",
+            "BRIEF",
             "READ",
             "ANALYZE"
           ],
@@ -516,6 +527,31 @@
       "default": "a07-real-services-1",
       "title": "Adapter Version",
       "type": "string"
+    },
+    "ablated_families": {
+      "items": {
+        "enum": [
+          "F01_CLEAN_BASELINE",
+          "F02_OVERLAPPING_EXPORT",
+          "F03_MULTISTAGE_ID_REUSE",
+          "F04_UNIT_DIMENSION_MIX",
+          "F05_WRONG_ENTITY_ALIAS",
+          "F06_STALE_SNAPSHOT",
+          "F07_PAID_NO_TRANSFER",
+          "F08_PRIOR_ARREARS_DRAIN",
+          "F09_EXPIRED_CANCELLED",
+          "F10_CAPABILITY_MISMATCH",
+          "F11_WRONG_PERIOD_RULE",
+          "F12_UNSEEN_NOTICE_LEAD",
+          "F13_WEIGHT_BASIS_CONFLICT",
+          "F14_OUT_OF_SCOPE_REGIME",
+          "F15_EXTRACTION_PAGE_LOSS",
+          "F16_PROMPT_INJECTION"
+        ],
+        "type": "string"
+      },
+      "title": "Ablated Families",
+      "type": "array"
     }
   },
   "required": [

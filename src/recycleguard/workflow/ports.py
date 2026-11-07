@@ -7,7 +7,7 @@ from pydantic import JsonValue
 
 from recycleguard.contracts.core import BoundaryModel, CommandContext, ServiceResult
 from recycleguard.contracts.extraction import Observation
-from recycleguard.contracts.workflow import RunSpec, StageOutcome
+from recycleguard.contracts.workflow import BriefProposal, ReviewerBrief, RunSpec, StageOutcome
 
 
 @dataclass(frozen=True)
@@ -44,6 +44,18 @@ class AgentWiring:
     families: tuple[str, ...]
     max_reader_chunks: int
     use_reader: bool
+
+
+@dataclass(frozen=True)
+class Briefing:
+    """After verification, one advisory model brief per finding. A brief never changes the report.
+
+    ``requests`` gives each finding's revision ID and the data the model is shown. ``record`` turns
+    the model's draft, or the reason there is none, into the brief that is archived.
+    """
+
+    requests: Callable[[RunSpec], list[tuple[str, dict]]]
+    record: Callable[[RunSpec, str, BriefProposal | None, str | None, str | None], ReviewerBrief]
 
 
 class OutcomeUnknownError(RuntimeError):

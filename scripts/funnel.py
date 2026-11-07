@@ -33,6 +33,7 @@ SIGNALS = {
     "F09_EXPIRED_CANCELLED": {"CREDIT_EXPIRED", "CREDIT_CANCELLED"},
     "F10_CAPABILITY_MISMATCH": {"CAPABILITY_MISMATCH"},
     "F13_WEIGHT_BASIS_CONFLICT": {"WEIGHT_BASIS_CONFLICT"},
+    "F15_EXTRACTION_PAGE_LOSS": {"INCOMPLETE_COVERAGE"},
 }
 COLUMNS = [
     "trial_id",
@@ -45,6 +46,7 @@ COLUMNS = [
     "model_calls",
     "truncated_evidence_calls",
     "length_stops",
+    "thinking_cuts",
     "stop_reason",
     "records",
     "checks",
@@ -73,6 +75,8 @@ def _source(finding):
         return "model"
     if "DETERMINISTIC_CALCULATION" in sources:
         return "calculation"
+    if "COVERAGE_CHECK" in sources:
+        return "coverage"
     return "claim_check"
 
 
@@ -129,6 +133,10 @@ def rows_for(result, score):
         "length_stops": ""
         if decisions is None
         else sum((d.get("transport") or {}).get("finish_reason") == "length" for d in decisions),
+        # Thinking calls only: reasoning cut at the output cap, then closed and answered.
+        "thinking_cuts": ""
+        if decisions is None
+        else sum((d.get("transport") or {}).get("thinking_finish") == "length" for d in decisions),
         "stop_reason": result.get("stop_reason"),
         # What the deterministic checks had to work with, when the trial recorded it.
         "records": _compact((result.get("census") or {}).get("records")),

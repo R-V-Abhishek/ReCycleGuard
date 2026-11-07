@@ -21,7 +21,7 @@ from recycleguard.contracts.core import (
     Nonempty,
     ServiceResult,
 )
-from recycleguard.contracts.extraction import ExtractionResult, Observation
+from recycleguard.contracts.extraction import CoverageItem, ExtractionResult, Observation
 from recycleguard.contracts.results import (
     CalculationRequest,
     FaultFamily,
@@ -36,10 +36,12 @@ from recycleguard.contracts.retrieval import (
 )
 from recycleguard.contracts.workflow import (
     AssessmentProposal,
+    BriefProposal,
     BudgetLimits,
     ConfigurationPin,
     ObservationAssessment,
     PlanProposal,
+    ReviewerBrief,
     RunSpec,
     StageOutcome,
 )
@@ -56,15 +58,19 @@ from recycleguard.reporting.baseline import (
     BaselineReportBuilder,
     ReportVerifier,
     VerificationResult,
+    ablation_limitation,
     inspection_limitation,
 )
+from recycleguard.reporting.briefs import brief_request, model_brief, template_brief
 from recycleguard.reporting.calculation_findings import (
     DETERMINISTIC_SOURCE,
+    ablate,
     calculation_findings,
     contradicted_families,
     load_derivation,
     settled_without_finding,
 )
+from recycleguard.reporting.coverage_findings import coverage_findings
 from recycleguard.retrieval.service import RetrievalService
 from recycleguard.review.service import ReviewService
 from recycleguard.storage import canonical_json_bytes
@@ -74,13 +80,14 @@ from recycleguard.workflow.finding_gate import (
     gate_finding_proposals,
     reconciliation_settled,
 )
-from recycleguard.workflow.ports import AgentFacts, AgentWiring, OutcomeUnknownError
+from recycleguard.workflow.ports import AgentFacts, AgentWiring, Briefing, OutcomeUnknownError
 from recycleguard.workflow.runner import CallRecord
 from recycleguard.workflow.store import GraphStore
 
-_SCRIPTED_RESPONSE = {
+_SCRIPTED_RESPONSES = {
     "PLAN": PlanProposal,
     "ASSESS": AssessmentProposal,
+    "BRIEF": BriefProposal,
     "READ": ReaderProposal,
     "ANALYZE": AnalystProposal,
 }
@@ -88,12 +95,12 @@ AgentArchitecture = Literal["READER_ANALYST", "ANALYST_ONLY"]
 
 
 class ScriptedExchange(BoundaryModel):
-    phase: Literal["PLAN", "ASSESS", "READ", "ANALYZE"]
+    phase: Literal["PLAN", "ASSESS", "BRIEF", "READ", "ANALYZE"]
     response: dict[str, JsonValue]
 
     @model_validator(mode="after")
     def valid_response(self):
-        _SCRIPTED_RESPONSE[self.phase].model_validate_json(canonical_json_bytes(self.response))
+        _SCRIPTED_RESPONSES[self.phase].model_validate_json(canonical_json_bytes(self.response))
         return self
 
 
@@ -120,6 +127,9 @@ class InvestigationRequest(BoundaryModel):
     agents: AgentArchitecture | None = None
     budgets: BudgetLimits = Field(default_factory=BudgetLimits)
     parent_run_id: ID | None = None
+    # Evaluation only: families whose deterministic findings are switched off, to measure what
+    # the model finds without them. Pinned in the stored configuration and named in the report.
+    ablated_families: list[FaultFamily] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def exactly_one_backend(self):
@@ -127,6 +137,8 @@ class InvestigationRequest(BoundaryModel):
             raise ValueError("choose exactly one scripted sequence or local model configuration")
         if self.agents is not None and self.fixed_plan is not None:
             raise ValueError("a fixed plan and the agents are different architectures")
+        if len(set(self.ablated_families)) != len(self.ablated_families):
+            raise ValueError("ablated families must be unique")
         return self
 
 
@@ -137,6 +149,7 @@ class InvestigationConfiguration(BoundaryModel):
     fixed_plan: FixedPlan | None = None
     agents: AgentArchitecture | None = None
     adapter_version: str = "a07-real-services-1"
+    ablated_families: list[FaultFamily] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def exactly_one_backend(self):
@@ -185,6 +198,17 @@ class InvestigationReport(BoundaryModel):
     available_evidence_refs: list[EvidenceRef]
     verification: VerificationResult
     rejected_finding_proposals: list[RejectedFindingProposal] = Field(default_factory=list)
+
+
+class RunBriefs(BoundaryModel):
+    """Reading aids for the current report revision. Neither kind changes the report."""
+
+    run_id: ID
+    report_revision_id: ID
+    # Present only when the run drafted briefs, one per finding, accepted or with its reason.
+    model_briefs: list[ReviewerBrief]
+    # Built from each finding by code, for every run.
+    template_briefs: list[ReviewerBrief]
 
 
 def digest(value):
@@ -314,6 +338,8 @@ class InvestigationService:
 
     def prepare(self, context, request: InvestigationRequest):
         native = request.local_model_config
+        if request.ablated_families and self.settings.mode not in {"evaluation", "test"}:
+            raise ValueError("ablated families are an evaluation setting; runtime runs keep them")
         if native is None and (
             self.settings.mode != "test" or not self.settings.enable_test_adapters
         ):
@@ -346,9 +372,16 @@ class InvestigationService:
             local_model_config=native,
             fixed_plan=request.fixed_plan,
             agents=request.agents,
+            ablated_families=request.ablated_families,
         )
+        # An unablated configuration keeps the bytes, and so the digest, it had before ablation.
         configuration_ref = self.blobs.put(
-            canonical_json_bytes(configuration.model_dump(mode="json")),
+            canonical_json_bytes(
+                configuration.model_dump(
+                    mode="json",
+                    exclude=None if configuration.ablated_families else {"ablated_families"},
+                )
+            ),
             "application/json",
         )
         script = [step.model_dump(mode="json") for step in request.scripted_exchanges]
@@ -558,6 +591,19 @@ class InvestigationService:
             )
         return observations
 
+    def _coverage_findings(self, spec):
+        """F15 for any document page extraction could not read; the run still investigates."""
+        extractions = []
+        for raw in self._membership(spec)["extractions"]:
+            extracted = ExtractionResult.model_validate_json(canonical_json_bytes(raw))
+            coverage = [
+                CoverageItem.model_validate_json(line)
+                for line in self.blobs.get(extracted.coverage_blob).splitlines()
+                if line.strip()
+            ]
+            extractions.append((extracted, coverage))
+        return coverage_findings(spec.case_snapshot.snapshot_id, extractions)
+
     def _findings(self, spec):
         from recycleguard.retrieval.claim_checks import inspect_regulatory_claims
 
@@ -752,6 +798,24 @@ class InvestigationService:
                     )
         raise ValueError("run has no durably drafted report")
 
+    def briefs(self, run_id) -> RunBriefs:
+        current = self.latest_report(run_id)  # verifies the run's audit chain first
+        revision = current.report.revision.report_revision_id
+        drafted = [
+            ReviewerBrief.model_validate_json(self.blobs.get(event.payload_blob))
+            for event in self.kernel.list_stream_events(f"stream:{run_id}")
+            if event.event_type == "graph.brief.result"
+        ]
+        return RunBriefs(
+            run_id=run_id,
+            report_revision_id=revision,
+            model_briefs=[brief for brief in drafted if brief.report_revision_id == revision],
+            template_briefs=[
+                template_brief(run_id, revision, finding, current.report.calculations)
+                for finding in current.findings
+            ],
+        )
+
     def review_service(self):
         return ReviewService(
             self.cases,
@@ -912,11 +976,13 @@ class InvestigationService:
                 for item in self._membership(spec)["extractions"]
                 for i in item["issues"]
             )
+            # Page loss qualifies the run; it never stops it. The draft reports it as F15.
             return self._outcome(
                 context,
                 baseline.output,
-                "BLOCKED" if incomplete else "QUALIFIED",
-                "Missing declared pages require review"
+                "QUALIFIED",
+                "Declared pages are missing or unreadable; reported as a coverage finding "
+                "and investigated within scope"
                 if incomplete
                 else "Provisional deterministic arithmetic; applicability remains qualified",
                 service_operation_ids=[baseline.operation_id],
@@ -1120,12 +1186,19 @@ class InvestigationService:
                 universe,
                 self._observations(spec),
             )
-            findings = self._findings(spec) + computed
+            ablated = self.configuration(spec).ablated_families
+            findings, contradicted = ablate(
+                self._findings(spec) + self._coverage_findings(spec) + computed,
+                contradicted_families(computed, universe),
+                ablated,
+            )
             accepted, rejected, inspected = self._gated_findings(
-                spec, calculated, findings, contradicted_families(computed, universe)
+                spec, calculated, findings, contradicted
             )
             findings = findings + accepted
-            if not findings and settled_without_finding(calculated):
+            # Under ablation a settled reconciliation is no evidence of a clean case: the checks
+            # that would have found a fault did not run. Only a gated model claim can say clean.
+            if not findings and not ablated and settled_without_finding(calculated):
                 findings = [self._clean_finding(calculated)]
             refs = [
                 ref for finding in findings for ref in finding.fact_refs + finding.provision_refs
@@ -1162,6 +1235,7 @@ class InvestigationService:
                 limitations=[
                     inspection_limitation(inspected, len(self._observations(spec))),
                     *([MODEL_LOOP_LIMITATION] if state.stop_reason == "PROVIDER_FAILURE" else []),
+                    *([ablation_limitation(len(ablated))] if ablated else []),
                 ],
             )
             verified = ReportVerifier().verify(
@@ -1237,6 +1311,39 @@ class InvestigationService:
                 },
             )
 
+        def brief_requests(_spec):
+            current = self.latest_report(spec.run_id)
+            observations = {item.observation_id: item for item in self._observations(spec)}
+            return [
+                (
+                    finding.finding_revision_id,
+                    brief_request(finding, current.report.calculations, observations),
+                )
+                for finding in current.findings
+            ]
+
+        def record_brief(_spec, finding_revision_id, proposal, reason, operation):
+            current = self.latest_report(spec.run_id)
+            finding = next(
+                f for f in current.findings if f.finding_revision_id == finding_revision_id
+            )
+            return model_brief(
+                spec.run_id,
+                current.report.revision.report_revision_id,
+                finding,
+                current.report.calculations,
+                proposal,
+                reason,
+                operation,
+            )
+
+        # Opt-in: a briefing model configuration, or a scripted test that supplies brief replies.
+        briefing = (
+            any(step.phase == "BRIEF" for step in configuration.scripted_exchanges)
+            if native is None
+            else native.brief
+        )
+
         runner = IntegratedRunner(
             self.cases,
             self.settings,
@@ -1265,6 +1372,7 @@ class InvestigationService:
                 max_reader_chunks=AGENT_READER_CHUNKS,
                 use_reader=configuration.agents == "READER_ANALYST",
             ),
+            briefing=Briefing(brief_requests, record_brief) if briefing else None,
         )
         runner.index = index
         return runner

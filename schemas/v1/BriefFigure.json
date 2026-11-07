@@ -1,0 +1,65 @@
+{
+  "$defs": {
+    "CalculationValueRef": {
+      "additionalProperties": false,
+      "properties": {
+        "calculation_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Calculation Id",
+          "type": "string"
+        },
+        "bucket_id": {
+          "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+          "title": "Bucket Id",
+          "type": "string"
+        },
+        "field": {
+          "enum": [
+            "required",
+            "supported",
+            "signed_gap",
+            "shortfall",
+            "surplus",
+            "pending",
+            "portal_reported",
+            "ledger_supported",
+            "delta"
+          ],
+          "title": "Field",
+          "type": "string"
+        }
+      },
+      "required": [
+        "calculation_id",
+        "bucket_id",
+        "field"
+      ],
+      "title": "CalculationValueRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "One number shown with a brief, copied by code from the authoritative calculation.",
+  "properties": {
+    "label": {
+      "minLength": 1,
+      "title": "Label",
+      "type": "string"
+    },
+    "value": {
+      "minLength": 1,
+      "title": "Value",
+      "type": "string"
+    },
+    "value_ref": {
+      "$ref": "#/$defs/CalculationValueRef"
+    }
+  },
+  "required": [
+    "label",
+    "value",
+    "value_ref"
+  ],
+  "title": "BriefFigure",
+  "type": "object"
+}

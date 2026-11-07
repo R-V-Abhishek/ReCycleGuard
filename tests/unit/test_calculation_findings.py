@@ -323,6 +323,29 @@ def test_supported_tranches_of_one_certificate_are_a_shared_instrument_not_an_ov
     assert sweep(tmp_path / "pending", pending) == {}
 
 
+def test_an_export_row_repeating_a_tranche_does_not_hide_the_shared_instrument(tmp_path):
+    def ref(record, value):
+        return record.model_copy(update={"external_event_ref": value})
+
+    tranches = [
+        bucket(),
+        certificate(face="110.0000"),
+        ref(event(), "TXN-1"),
+        ref(event(key="evt:2", when="2024-09-20T10:00:00Z"), "TXN-2"),
+        allocation(),
+        allocation(key="alloc:2", evt="evt:2"),
+        balance(reported="110.0000"),
+    ]
+    # The ledger export repeats the second tranche: same reference and quantity, a dated time.
+    copy = ref(event(key="evt:3", state="PENDING"), "TXN-2").model_copy(
+        update={"event_time": day("2024-09-20"), "to_entity_id": None}
+    )
+    assert set(sweep(tmp_path, [*tranches, copy])) == {"F03_MULTISTAGE_ID_REUSE"}
+    # An unsupported transfer that repeats no tranche leaves the certificate unresolved.
+    other = event(key="evt:4", state="PENDING", quantity="10.0000", when="2024-09-25T10:00:00Z")
+    assert sweep(tmp_path / "other", [*tranches, other]) == {}
+
+
 def test_a_dated_cutoff_wholly_before_an_allocated_transfer_is_stale(tmp_path):
     def records(cutoff):
         stale = balance().model_copy(update={"business_cutoff": day(cutoff)})

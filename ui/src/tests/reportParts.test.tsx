@@ -1,8 +1,8 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { ApiClient } from "../api/client";
-import type { InvestigationReport, Issue, Quantity } from "../api/types";
-import { ChecksTable, ClaimsBySection, ReportText, UnresolvedIssues } from "../components/reportParts";
+import type { InvestigationReport, Issue, Quantity, ReviewerBrief, RunBriefs } from "../api/types";
+import { BriefPanel, ChecksTable, ClaimsBySection, ReportText, UnresolvedIssues } from "../components/reportParts";
 import { SessionContext } from "../state/session";
 
 afterEach(cleanup);
@@ -64,5 +64,43 @@ describe("unresolved issues and checks", () => {
     render(<ChecksTable checks={[{ check: "citations", passed: true }, { check: "scope" }]} />);
     expect(screen.getByText("true")).toBeTruthy();
     expect(screen.getAllByText("–")).toHaveLength(1);
+  });
+});
+
+describe("reviewer brief", () => {
+  const brief = (over: Partial<ReviewerBrief>): ReviewerBrief => ({
+    brief_id: "brief:template_1", run_id: "run:1", report_revision_id: "rr", finding_revision_id: "finding_revision:1",
+    issue_type: "F07_PAID_NO_TRANSFER", source: "TEMPLATE", status: "ACCEPTED", reason: null,
+    what_to_check: "Template check", explanation: "Template basis", evidence_request: "Template request",
+    evidence_refs: [ref], figures: [{ label: "Supported, bucket:au", value: "0.1 KG", value_ref: { calculation_id: "calc:1", bucket_id: "bucket:au", field: "supported" } }],
+    label: "Template brief, generated from the finding.", model_operation_ref: null, ...over,
+  });
+  const model = brief({
+    brief_id: "brief:model_1", source: "MODEL", what_to_check: "Model check", explanation: "Model basis",
+    evidence_request: "Model request", label: "Advisory, model-drafted; it changes no finding, number or decision.",
+    model_operation_ref: "operation:brief_0",
+  });
+  const set = (models: ReviewerBrief[]): RunBriefs => ({ run_id: "run:1", report_revision_id: "rr", model_briefs: models, template_briefs: [brief({})] });
+
+  it("labels an accepted model brief as advisory and keeps the template beside it", () => {
+    render(withSession(<BriefPanel findingRevisionId="finding_revision:1" briefs={set([model])} />));
+    expect(screen.getByText(/Advisory, model-drafted/)).toBeTruthy();
+    expect(screen.getByText("Model check")).toBeTruthy();
+    expect(screen.getAllByText("0.1 KG").length).toBeGreaterThan(0);
+    expect(screen.getByText("Template brief")).toBeTruthy();
+  });
+
+  it("states a rejected model brief's reason, never its text, and shows the template", () => {
+    const rejected = { ...model, status: "REJECTED" as const, reason: "DIGITS_IN_TEXT", what_to_check: null, explanation: null, evidence_request: null, figures: [], evidence_refs: [] };
+    render(withSession(<BriefPanel findingRevisionId="finding_revision:1" briefs={set([rejected])} />));
+    expect(screen.getByText(/DIGITS_IN_TEXT/)).toBeTruthy();
+    expect(screen.queryByText("Model check")).toBeNull();
+    expect(screen.getByText("Template check")).toBeTruthy();
+    expect(screen.getByText(/Template brief, generated/)).toBeTruthy();
+  });
+
+  it("renders nothing when the finding has no brief", () => {
+    const { container } = render(withSession(<BriefPanel findingRevisionId="finding_revision:other" briefs={set([])} />));
+    expect(container.textContent).toBe("");
   });
 });

@@ -5,6 +5,7 @@ import json
 from recycleguard.contracts.core import BlobRef
 from recycleguard.contracts.workflow import ConfigurationPin, ContextManifest
 from recycleguard.local_model import (
+    BRIEF_RULES,
     BUILTIN_PROMPT,
     BUILTIN_PROMPT_VERSION,
     LocalModelConfig,
@@ -18,9 +19,18 @@ def _run_prompt(pin: ConfigurationPin, configured: LocalModelConfig | None) -> P
     """The template text only when its pin matches the run's; otherwise none is shown."""
     if configured is not None and configured.prompt_pin() == pin:
         return configured.prompt_text()
-    if pin.digest == prompt_digest(BUILTIN_PROMPT_VERSION, BUILTIN_PROMPT):
+    if pin.digest in {
+        prompt_digest(BUILTIN_PROMPT_VERSION, BUILTIN_PROMPT),
+        prompt_digest(BUILTIN_PROMPT_VERSION, BUILTIN_PROMPT, brief=True),
+    }:
         return BUILTIN_PROMPT
     return None
+
+
+def _system_template(prompt: PromptText | None, phase: str) -> str | None:
+    if prompt is None:
+        return None
+    return prompt.system + (BRIEF_RULES if phase == "BRIEF" else prompt.phase_rules[phase])
 
 
 def trace_events(service, run_id, *, after=0, configured: LocalModelConfig | None = None):
@@ -49,9 +59,7 @@ def trace_events(service, run_id, *, after=0, configured: LocalModelConfig | Non
                 kind="PROMPT_PREPARED",
                 phase=manifest.phase,
                 request=request,
-                system_template=(
-                    None if prompt is None else prompt.system + prompt.phase_rules[manifest.phase]
-                ),
+                system_template=_system_template(prompt, manifest.phase),
                 note=(
                     "Prepared context; exact sent wire prompt is retained after adapter completion."
                 ),
@@ -60,12 +68,14 @@ def trace_events(service, run_id, *, after=0, configured: LocalModelConfig | Non
             "graph.plan.result",
             "graph.action.result",
             "graph.assessment.result",
+            "graph.brief.result",
         }:
             item.update(
                 kind={
                     "graph.plan.result": "PLAN",
                     "graph.action.result": "TOOL_PROPOSED",
                     "graph.assessment.result": "ASSESSMENT",
+                    "graph.brief.result": "BRIEF",
                 }[event.event_type],
                 data=json.loads(blobs.get(event.payload_blob)),
             )
