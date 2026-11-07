@@ -338,6 +338,8 @@ stateDiagram-v2
         DRAFTING --> VERIFYING
         VERIFYING --> DRAFTING: bounded verification repair
         VERIFYING --> AWAITING_REVIEW: valid qualified report
+        VERIFYING --> BRIEFING: valid report, briefing configuration
+        BRIEFING --> AWAITING_REVIEW: every brief accepted, rejected or dropped
         AWAITING_REVIEW --> AWAITING_REVIEW: ESCALATE / expert decision pending
     }
     PREFLIGHT --> BLOCKED_INPUT: critical input/profile failure
@@ -354,7 +356,9 @@ stateDiagram-v2
     CANCELLED --> [*]
 ```
 
-`Processing` is a diagram grouping, not a persisted run status. All eleven RunStatus values from CONTRACTS C09 are drawn. `COMPLETED` means execution finished, not compliance confirmed. Approval records review_outcome=APPROVED; explicit manual closure can complete with CLOSED_WITHOUT_DECISION, never fabricated approval. Escalation retains AWAITING_REVIEW with review_outcome=ESCALATED and waits for a new external reviewer event; it is not an automatic loop.
+`Processing` is a diagram grouping, not a persisted run status. All twelve RunStatus values from CONTRACTS C09 are drawn.
+
+`BRIEFING` runs only when the model configuration sets `brief` (or a scripted test supplies `BRIEF` replies). For each verified finding, one audited model call drafts an advisory `ReviewerBrief`, bound to the exact report and finding revisions. Code checks it (citations limited to the finding's own references, no digits, no prohibited or authority wording, length caps) and fills every figure from the authoritative calculation. A failed call, a gate rejection or the run's wall clock records the brief as `DROPPED` or `REJECTED` with its reason, and review still opens. Only cancellation or an audit failure stops the run. Brief calls are counted in the run's model calls and tokens but are not limited by the investigation's call and token caps; they have their own bound of 16 findings, each with one call plus its retries. The report, its digest, its verification and the review packet are unchanged; a deterministic template brief for every finding is the comparison. `COMPLETED` means execution finished, not compliance confirmed. Approval records review_outcome=APPROVED; explicit manual closure can complete with CLOSED_WITHOUT_DECISION, never fabricated approval. Escalation retains AWAITING_REVIEW with review_outcome=ESCALATED and waits for a new external reviewer event; it is not an automatic loop.
 
 Rejection terminates as BLOCKED_OUTPUT/REVIEW_REJECTED; requested changes terminate as BLOCKED_OUTPUT/CHANGES_REQUESTED. A correction starts a new explicitly authorized run with parent_run_id; report-only corrections can reuse the frozen case, while changed evidence creates a new case version. No terminal run is silently revived and no approval transfers. Ordinary provider timeouts use bounded retry; only unrecoverable failures enter FAILED. Budget exhaustion can still produce a qualified report but cannot mark unresolved findings reconciled.
 

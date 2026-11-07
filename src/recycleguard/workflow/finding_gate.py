@@ -1,7 +1,6 @@
 """Deterministic gate for model finding proposals. Rejections are retained, never dropped."""
 
 import hashlib
-import re
 from collections.abc import Iterable, Mapping
 from decimal import Decimal
 from typing import Literal, get_args
@@ -14,7 +13,7 @@ from recycleguard.contracts.results import (
     WithheldScope,
 )
 from recycleguard.contracts.workflow import FindingProposal
-from recycleguard.reporting.baseline import PROHIBITED_CLAIM
+from recycleguard.reporting.baseline import AUTHORITY_CLAIM, DIGIT, PROHIBITED_CLAIM
 from recycleguard.storage import canonical_json_bytes
 
 MODEL_PROPOSAL_SOURCE = "MODEL_PROPOSAL"
@@ -22,15 +21,6 @@ _CLEAN = "F01_CLEAN_BASELINE"
 _RECONCILED = "RECONCILED_WITHIN_SCOPE"
 _ABSTAINING = {"PENDING_VERIFICATION", "REQUIRES_EXPERT_REVIEW"}
 _MAX_TEXT = 400
-_DIGIT = re.compile(r"\d")
-# Authority or instruction wording, for example copied from an injected dossier document.
-# "Certificate" is the domain's own noun for an EPR credit record, so only the verb forms and
-# "certification" count as a claim of authority.
-_AUTHORITY = re.compile(
-    r"\b(?:approved?|certif(?:y|ies|ied|ying|ications?)|ignore\s+(?:all|any|previous|prior)"
-    r"|instructions?)\b",
-    re.IGNORECASE,
-)
 
 RejectionReason = Literal[
     "NO_EVIDENCE_REF",
@@ -62,11 +52,11 @@ def _rejection(
     texts = (proposal.basis, proposal.next_action_text)
     if any(len(text) > _MAX_TEXT for text in texts):
         return "TEXT_TOO_LONG"
-    if any(_DIGIT.search(text) for text in texts):
+    if any(DIGIT.search(text) for text in texts):
         return "DIGITS_IN_TEXT"
     if any(PROHIBITED_CLAIM.search(text) for text in texts):
         return "PROHIBITED_TEXT"
-    if any(_AUTHORITY.search(text) for text in texts):
+    if any(AUTHORITY_CLAIM.search(text) for text in texts):
         return "AUTHORITY_TEXT"
     if (proposal.issue_type == _CLEAN) != (proposal.advisory_status == _RECONCILED):
         return "INVALID_STATUS"

@@ -64,9 +64,11 @@ other fault in it is found.
   - The offline probe of tuning-16 with every family off leaves no deterministic finding and no contradiction on any case.
   - Five settled cases would otherwise have received a false deterministic F01.
   - Non-thinking pins and the v7 prompt digest are unchanged.
-- [ ] Required tests pass (PC)
-- [ ] PC runs done: `tuning16-v7-abl1`, `tuning16-think-abl1`, `tuning16-think-pl1`
-- [ ] Results recorded
+- [ ] Required tests pass (PC). No test log was committed with the runs.
+- [x] PC runs done: `tuning16-v7-abl1`, `tuning16-think-abl1`, `tuning16-think-pl1`.
+- [x] Results recorded in `FAILURE_ANALYSIS.md`.
+  - With the rules off, the model found 1 of 21 families (thinking: F06 only, plus 3 false F06). v7 found 0 of 21; SC found 0.
+  - With the rules on, thinking scored 26/32 against v7's 32/32. v7 stays the baseline.
 
 **Goal.** Measure, per fault family, how often the model finds the fault when that family's
 deterministic check is switched off.
@@ -100,11 +102,17 @@ scorer.
 
 ## 3. Reviewer brief: speed up the compliance review
 
-- [ ] Plan approved
-- [ ] Implemented
-- [ ] Required tests pass (PC)
+- [x] Plan approved
+- [x] Implemented.
+  - A `BRIEFING` run step after verification and before review, turned on per model config (`--brief`). Plain v7 configurations and their pins and prompt digest are unchanged.
+  - Each brief is a separate `ReviewerBrief` record, bound to the report and finding revisions. The report, its verification and the review packet are untouched.
+  - The UI shows each brief under its finding, with the advisory or template label. Rejected and dropped briefs show their reason, followed by the template.
+  - Blind brief sheets: `make_rubric_sheets.py --briefs 1`.
+- [ ] Required tests pass (PC). This includes the Improvement 1–2 tests that have no log yet.
 - [ ] PC runs done
 - [ ] Results recorded
+
+**Deviation from the plan (disclosed).** Brief calls are not limited by the investigation's model-call, action and token caps, so a run that used its whole investigation budget still gets briefs. They are still counted in the run's model calls and reserved tokens, so the run budget's `model_calls` now includes them. Their own bound is 16 findings, each with one call plus its retries; beyond 16 a brief is dropped as `BRIEF_LIMIT`. The wall clock still applies.
 
 **Goal.** For each finding, a model-drafted brief that shortens the review: what to check, the
 cited evidence, and a draft evidence request. Numbers are filled in by code, never written by the

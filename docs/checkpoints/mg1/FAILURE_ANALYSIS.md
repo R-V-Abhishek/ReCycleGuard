@@ -534,3 +534,47 @@ The success counts include the F15 preflight block on `c42a`, which is the expec
 - **Reliability.** Schema-valid logical calls are 1.0 in every run. There were no timeouts, and the audit chain verified on every trial.
   - ADAPTIVE needed 7 format retries on tuning-16 pl1 (2 on checking-8 pl1).
   - Mean calls per trial were 2.2 ADAPTIVE and 6.0 FIXED.
+
+## Improvement 2: rule ablation, v7 vs thinking (PC, tuning-16, 3 slots)
+
+`tuning16-v7-abl1` and `tuning16-think-abl1` run the `tuning-16-ablated` protocol, which has every family's deterministic findings switched off. `tuning16-think-pl1` runs the thinking prompt with every rule on.
+
+### What the model finds alone (21 expected families per variant)
+
+| Variant | Found | False alarms | Proposals (accepted / rejected) | Trial success |
+| --- | --- | --- | --- | --- |
+| SC (zero line) | 0 / 21 | 0 | 0 | 0 / 16 |
+| v7 FIXED | 0 / 21 | 0 | 0 | 0 / 16 |
+| v7 ADAPTIVE | 0 / 21 | 0 | 0 | 0 / 16 |
+| thinking FIXED | 1 / 21 (F06) | 3 (all F06) | 4 / 9 | 0 / 16 |
+| thinking ADAPTIVE | 1 / 21 (F06) | 0 | 1 / 1 | 0 / 16 |
+
+- **Signal families.** F06 on `cab8` is the only recovery, in both thinking variants. It cites the reconciliation, whose `STALE_SNAPSHOT` code the model was shown. The other signal codes it was shown (FIXED: 4 families) were not proposed.
+- **Judgement families** (F01, F03, F07, F11, F12, F14, F16): 0 recovered by any variant. Without the claim checks, no family whose evidence is document text was found.
+- **v7 proposes nothing.** In 48 v7 model trials it made no finding proposal at all, even where the issue code was in its evidence (8 shown-not-proposed in the funnel).
+- **What the gate refused.**
+  - Thinking proposed F01 "clean" 8 times across 7 fault-case trials. The gate refused every one: 5 for `INVALID_STATUS`, 3 for `DIGITS_IN_TEXT`.
+  - It refused 2 more proposals for citing ids the model had not been given (F04, and F10 on the page-loss case).
+- **Model minus SC:** 0.0 on trial success, interval [0, 0], for both variants and both prompts.
+
+### Thinking with the rules on (`tuning16-think-pl1` vs `tuning16-v7-pl1`)
+
+| | v7 | thinking |
+| --- | --- | --- |
+| FIXED success | 16 / 16 | 11 / 16 |
+| ADAPTIVE success | 16 / 16 | 15 / 16 |
+| False positives | 0 | 5 (all model F06, FIXED) |
+| Mean wall seconds (ADAPTIVE / FIXED) | 42 / 52 | 88 / 146 |
+| Mean tokens (ADAPTIVE / FIXED) | 7,936 / 16,964 | 12,883 / 23,122 |
+
+- **FIXED false positives.** The model asserted F06 (stale snapshot) on `ec2f`, `e3ce`, `b182`, `1c2f` and `4c48`, citing only record ids. The reconciliation raised no `STALE_SNAPSHOT` code on any of them.
+  - The gate accepted these claims because F06 is not in `COMPLETE_FAMILIES` (only F02, F04 and F07 are), so a clean F06 sweep does not contradict a model claim.
+- **ADAPTIVE `c42a`.** The model's first planned action was refused by the runner, which stops with `BLOCKED_OUTPUT` and gives no report. v7 passed this case.
+- **Reasoning budget.** 70 of 145 thinking requests hit the 1024-token cap (80 of 145 in the ablated run), with a mean of about 860 tokens. About half the reasoning is cut before it ends.
+
+### Conclusion
+
+- With the deterministic findings off, the model recovers 1 of 21 families (F06, only from a shown issue code) and raises 3 false F06 claims.
+- With the rules on, thinking lowers success from 32 / 32 to 26 / 32, roughly doubles wall time, and adds 5 accepted false positives.
+- Neither prompt finds any judgement-only family. v7 stays the baseline prompt; the thinking prompt is not adopted.
+- **One deterministic defect surfaced:** the gate accepts a model F06 that the sweep found no sign of. Whether F06 can join `COMPLETE_FAMILIES` is a separate change. This run prompted it, so it must be disclosed and checked on tuning-16 before any adoption.

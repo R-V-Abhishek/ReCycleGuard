@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { BucketResult, InvestigationReport, Issue, ReportClaim } from "../api/types";
+import type { BucketResult, InvestigationReport, Issue, ReportClaim, ReviewerBrief, RunBriefs } from "../api/types";
 import { Badge, Mono, Qty, Unavailable } from "./common";
 import { EvidenceChips } from "./evidence";
 
@@ -123,6 +123,59 @@ export function UnresolvedIssues({ ids, report }: { ids: string[]; report: Inves
         );
       })}
     </ul>
+  );
+}
+
+function BriefBody({ brief, dossierId, onCalculation }: { brief: ReviewerBrief; dossierId?: string; onCalculation?(id: string): void }) {
+  return (
+    <>
+      <p className="note">{brief.label}</p>
+      <dl className="pairs">
+        <dt>What to check</dt><dd>{brief.what_to_check}</dd>
+        <dt>Why it was raised</dt><dd>{brief.explanation}</dd>
+        <dt>Evidence request</dt><dd>{brief.evidence_request}</dd>
+        {/* Figures are copied by the backend from the calculation; nothing is computed here. */}
+        {brief.figures.map((figure) => (
+          <FigureRow key={`${figure.value_ref.bucket_id}:${figure.value_ref.field}`} label={figure.label} value={figure.value} />
+        ))}
+      </dl>
+      {brief.evidence_refs.length > 0 && <EvidenceChips refs={brief.evidence_refs} dossierId={dossierId} onCalculation={onCalculation} />}
+    </>
+  );
+}
+
+const FigureRow = ({ label, value }: { label: string; value: string }) => (
+  <><dt>{label}</dt><dd><Mono>{value}</Mono></dd></>
+);
+
+// The reviewer brief for one finding. A model brief is shown only when it passed the gate;
+// otherwise its outcome is stated and the template brief built from the finding is shown.
+export function BriefPanel({ findingRevisionId, briefs, dossierId, onCalculation }: { findingRevisionId: string; briefs?: RunBriefs; dossierId?: string; onCalculation?(id: string): void }) {
+  if (!briefs) return null;
+  const model = briefs.model_briefs.find((brief) => brief.finding_revision_id === findingRevisionId);
+  const template = briefs.template_briefs.find((brief) => brief.finding_revision_id === findingRevisionId);
+  if (!model && !template) return null;
+  const accepted = model?.status === "ACCEPTED" ? model : undefined;
+  return (
+    <div className="brief">
+      <h4>Reviewer brief</h4>
+      {model && !accepted && (
+        <p className="muted small"><Badge value={model.status} /> Model brief not shown: {model.reason}. The template brief follows.</p>
+      )}
+      {accepted ? (
+        <>
+          <BriefBody brief={accepted} dossierId={dossierId} onCalculation={onCalculation} />
+          {template && (
+            <details>
+              <summary>Template brief</summary>
+              <BriefBody brief={template} dossierId={dossierId} onCalculation={onCalculation} />
+            </details>
+          )}
+        </>
+      ) : (
+        template && <BriefBody brief={template} dossierId={dossierId} onCalculation={onCalculation} />
+      )}
+    </div>
   );
 }
 

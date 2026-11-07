@@ -43,6 +43,7 @@ from recycleguard.investigation import (
     InvestigationReport,
     InvestigationRequest,
     InvestigationService,
+    RunBriefs,
     ScriptedExchange,
     resolve_budgets,
 )
@@ -402,8 +403,12 @@ def create_app(options: ApiOptions):
 
     @app.get("/api/v1/agent", response_model=AgentResponse)
     def agent():
-        from recycleguard.contracts.workflow import AssessmentProposal, PlanProposal
-        from recycleguard.local_model import BUILTIN_PROMPT
+        from recycleguard.contracts.workflow import (
+            AssessmentProposal,
+            BriefProposal,
+            PlanProposal,
+        )
+        from recycleguard.local_model import BRIEF_RULES, BUILTIN_PROMPT
 
         config = (
             None
@@ -411,15 +416,17 @@ def create_app(options: ApiOptions):
             else LocalModelConfig.model_validate_json(options.model_config_path.read_bytes())
         )
         text = BUILTIN_PROMPT if config is None else config.prompt_text()
+        brief = config is not None and config.brief
         return {
             "configured": config is not None,
             "model_id": None if config is None else config.model_id,
             "prompt_pin": None if config is None else config.prompt_pin().model_dump(mode="json"),
             "system_template": text.system,
-            "phase_rules": text.phase_rules,
+            "phase_rules": {**text.phase_rules, **({"BRIEF": BRIEF_RULES} if brief else {})},
             "response_schemas": {
                 "PLAN": PlanProposal.model_json_schema(),
                 "ASSESS": AssessmentProposal.model_json_schema(),
+                **({"BRIEF": BriefProposal.model_json_schema()} if brief else {}),
             },
             "note": (
                 "Templates are configuration. Per-call exact sent prompts appear "
@@ -908,6 +915,12 @@ def create_app(options: ApiOptions):
         store.job(run_id)
         with local_application(settings) as (cases, _, cap):
             return InvestigationService(cases, settings, capability=cap).latest_report(run_id)
+
+    @app.get("/api/v1/runs/{run_id}/briefs", response_model=RunBriefs)
+    def briefs(run_id: str):
+        store.job(run_id)
+        with local_application(settings) as (cases, _, cap):
+            return InvestigationService(cases, settings, capability=cap).briefs(run_id)
 
     @app.post("/api/v1/runs/{run_id}/packet", response_model=ReviewPacket)
     def packet(run_id: str):

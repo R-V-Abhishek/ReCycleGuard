@@ -16,8 +16,9 @@ from pydantic import ValidationError
 
 from recycleguard.application import command_context
 from recycleguard.contracts.core import ActorRef
-from recycleguard.contracts.workflow import AssessmentProposal, PlanProposal
+from recycleguard.contracts.workflow import AssessmentProposal, BriefProposal, PlanProposal
 from recycleguard.local_model import (
+    BRIEF_RULES,
     BUILTIN_PROMPT,
     CONSTRAINED_FLAG,
     LLAMA_SERVER_FLAGS,
@@ -309,7 +310,7 @@ def test_llama_flags_equal_the_copy_in_the_model_image():
 
 
 def request(port, *, phase="PLAN", budget=16384, additional=None):
-    schema = AssessmentProposal if phase == "ASSESS" else PlanProposal
+    schema = {"ASSESS": AssessmentProposal, "BRIEF": BriefProposal}.get(phase, PlanProposal)
     body = {
         "phase": phase,
         "max_total_tokens": budget,
@@ -449,8 +450,8 @@ def test_the_v7_prompt_file_is_the_built_in_text_and_keeps_its_pins(server, tmp_
     assert text == BUILTIN_PROMPT
     plain = configuration(server, tmp_path)
     fields = plain.model_dump(mode="json")
-    assert fields["prompt"] is None and fields["thinking"] is False
-    del fields["prompt"], fields["thinking"]
+    assert fields["prompt"] is None and fields["thinking"] is False and fields["brief"] is False
+    del fields["prompt"], fields["thinking"], fields["brief"]
     assert plain.pin().digest == hashlib.sha256(canonical_json_bytes(fields)).hexdigest()
     explicit = LocalModelConfig(**{**plain.model_dump(), "prompt": text})
     assert explicit.prompt_pin() == plain.prompt_pin()
@@ -544,6 +545,45 @@ def test_a_non_thinking_call_sends_one_request_and_records_no_reasoning(server, 
     assert result.status == "SUCCESS"
     assert len([call for call in backend.calls if call[0] == "POST"]) == 1
     assert "thinking" not in json.loads(port.blobs.get(result.output_blob))
+
+
+def brief_reply():
+    return {
+        "what_to_check": "Check whether the paid credit record reached a completed transfer.",
+        "explanation": "A payment alone earns no credit.",
+        "evidence_request": "Please send the portal transfer record for this credit.",
+        "evidence_ref_ids": ["record:one"],
+    }
+
+
+def test_a_brief_configuration_sends_the_brief_rules_and_schema(server, tmp_path):
+    backend, _, _ = server
+    backend.model_text = json.dumps(brief_reply())
+    plain = configuration(server, tmp_path)
+    config = plain.model_copy(update={"brief": True})
+    port = LocalModelPort(config, BlobStore(tmp_path / "blobs"))
+    result = invoke(port, request(port, phase="BRIEF", additional={"finding": {"id": "f"}}))
+    assert result.status == "SUCCESS"
+    assert result.output.validated_output_or_null == brief_reply()
+    prompt = json.loads(backend.calls[0][2])["prompt"]
+    system = prompt[: prompt.index("<|im_end|>")]
+    assert BUILTIN_PROMPT.system + BRIEF_RULES in system
+    assert BUILTIN_PROMPT.phase_rules["PLAN"] not in system
+    assert json.dumps(BriefProposal.model_json_schema(), separators=(",", ":")) in system
+    # Briefing is pinned in both the configuration and the prompt; plain v7 pins are unchanged.
+    assert config.pin() != plain.pin() and config.prompt_pin() != plain.prompt_pin()
+    assert config.model_copy(update={"brief": False}).pin() == plain.pin()
+    # A brief configuration still plans and assesses with the v7 rules.
+    backend.model_text = json.dumps(proposal())
+    assert invoke(port).status == "SUCCESS"
+
+
+def test_a_configuration_without_briefs_refuses_a_brief_call(server, tmp_path):
+    backend, _, _ = server
+    port = LocalModelPort(configuration(server, tmp_path), BlobStore(tmp_path / "blobs"))
+    result = invoke(port, request(port, phase="BRIEF"))
+    assert result.status == "REJECTED"
+    assert not [call for call in backend.calls if call[0] == "POST"]
 
 
 def test_changed_prompt_text_needs_its_own_matching_version(server, tmp_path):

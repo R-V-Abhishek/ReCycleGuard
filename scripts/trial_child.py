@@ -153,6 +153,14 @@ def _shown(request):
             "previous_plans": len(request.get("previous_plans") or []),
             "previous_rejection": "previous_rejection" in request,
         }
+    if request.get("phase") == "BRIEF":
+        finding = request.get("finding") or {}
+        return {
+            "issue_type": finding.get("issue_type"),
+            "citable_evidence_ids": len(request.get("citable_evidence_ref_ids") or []),
+            "evidence_items": len(request.get("evidence") or []),
+            "figures": len(request.get("figures_shown_by_code") or []),
+        }
     stage = (request.get("observation") or {}).get("stage_output") or {}
     decision = stage.get("concise_decision")
     evidence = decision.get("evidence_data") if isinstance(decision, dict) else None
@@ -178,6 +186,14 @@ def _reply(response):
     output = (response or {}).get("validated_output_or_null")
     if not isinstance(output, dict):
         return None
+    if "what_to_check" in output:  # the brief text itself is kept in the trial's briefs
+        return {
+            "brief_chars": {
+                key: len(str(output.get(key) or ""))
+                for key in ("what_to_check", "explanation", "evidence_request")
+            },
+            "cited_ids": len(output.get("evidence_ref_ids") or []),
+        }
     if "verdict" in output:
         proposal = output.get("finding_proposal") or None
         return {
@@ -493,6 +509,8 @@ def main():
             "stop_reason": state["stop_reason"],
             "budget": state["budget"],
             "report": None,
+            # Model briefs (gated, or dropped with a reason) and template briefs, per finding.
+            "briefs": None,
             "calls": None,
             "decisions": None,
             "census": None,
@@ -504,6 +522,9 @@ def main():
         if response.status_code == 200:
             result["report"] = response.json()
             result["census"] = census(arguments.runtime / "root", result["report"])
+        response = client.get(f"{BASE}/runs/{run_id}/briefs")
+        if response.status_code == 200:
+            result["briefs"] = response.json()
         response = client.get(f"{BASE}/runs/{run_id}/trace")
         if response.status_code == 200:
             events = response.json()["events"]

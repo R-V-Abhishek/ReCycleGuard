@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import type { BucketResult, InvestigationReport, ReviewDecisionKind, ReviewPacket } from "../api/types";
+import type { BucketResult, InvestigationReport, ReviewDecisionKind, ReviewPacket, RunBriefs } from "../api/types";
 import { Badge, ErrorBanner, IssueList, Mono, PasswordField, Qty, Section, TextField, Unavailable, useAction, useLoad } from "../components/common";
 import { EvidenceChips } from "../components/evidence";
-import { BucketDetails, ChecksTable, ClaimsBySection, ReportText, UnresolvedIssues } from "../components/reportParts";
+import { BriefPanel, BucketDetails, ChecksTable, ClaimsBySection, ReportText, UnresolvedIssues } from "../components/reportParts";
 import { useHeader } from "../components/Shell";
 import { href, useClient } from "../state/session";
 
@@ -35,7 +35,9 @@ export function BucketTable({ buckets }: { buckets: BucketResult[] }) {
   );
 }
 
-function Findings({ report, dossierId, onCalculation }: { report: InvestigationReport; dossierId?: string; onCalculation(id: string): void }) {
+function Findings({ report, briefs, dossierId, onCalculation }: { report: InvestigationReport; briefs?: RunBriefs; dossierId?: string; onCalculation(id: string): void }) {
+  // Briefs bind one report revision; a brief for another revision is never shown here.
+  const current = briefs?.report_revision_id === report.report.revision.report_revision_id ? briefs : undefined;
   if (!report.findings.length) return <p className="muted">No findings were recorded in this report.</p>;
   return (
     <>
@@ -85,6 +87,7 @@ function Findings({ report, dossierId, onCalculation }: { report: InvestigationR
               <ul>{finding.scope_limits.map((item, i) => <li key={i}>{item}</li>)}</ul>
             </>
           )}
+          <BriefPanel findingRevisionId={finding.finding_revision_id} briefs={current} dossierId={dossierId} onCalculation={onCalculation} />
         </article>
       ))}
     </>
@@ -194,6 +197,7 @@ export function Report({ runId }: { runId: string }) {
   const client = useClient();
   const run = useLoad(() => client.run(runId), [client, runId]);
   const report = useLoad(() => client.report(runId), [client, runId]);
+  const briefs = useLoad(() => client.briefs(runId), [client, runId]);
   const audit = useLoad(() => client.audit(runId), [client, runId]);
   const dossierId = run.data?.job.dossier_id;
   const dossier = useLoad(async () => (dossierId ? client.dossier(dossierId) : undefined), [client, dossierId]);
@@ -209,6 +213,7 @@ export function Report({ runId }: { runId: string }) {
   const refresh = () => {
     void run.reload();
     void report.reload();
+    void briefs.reload();
     void audit.reload();
   };
 
@@ -249,7 +254,10 @@ export function Report({ runId }: { runId: string }) {
             <p className="muted small">What the report asserts, with the backend's support status and its evidence. Open a reference to see the original.</p>
             <ClaimsBySection report={body.report} dossierId={dossierId} onCalculation={scrollToCalculation} />
           </Section>
-          <Section title="Findings"><Findings report={body} dossierId={dossierId} onCalculation={scrollToCalculation} /></Section>
+          <Section title="Findings">
+            {briefs.error ? <p className="muted small">Reviewer briefs are unavailable; the findings are complete without them.</p> : null}
+            <Findings report={body} briefs={briefs.data} dossierId={dossierId} onCalculation={scrollToCalculation} />
+          </Section>
           <Section title="Verifier" aside={<Badge value={body.verification.verdict} />}>
             <p className="muted small">Checks this report's claims and dependencies. This isn't the integrity audit or a human decision.</p>
             <IssueList issues={body.verification.issues} />

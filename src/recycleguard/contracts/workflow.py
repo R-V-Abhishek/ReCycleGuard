@@ -6,7 +6,7 @@ from pydantic import ConfigDict, Field, JsonValue, model_validator
 
 from .artifacts import ProfileRef, SnapshotRef
 from .core import ID, BlobRef, BoundaryModel, Digest, EvidenceRef, Nonempty, Timestamp
-from .results import AbstentionReason, FaultFamily
+from .results import AbstentionReason, CalculationValueRef, FaultFamily
 
 RunStatus = Literal[
     "CREATED",
@@ -14,6 +14,7 @@ RunStatus = Literal[
     "INVESTIGATING",
     "DRAFTING",
     "VERIFYING",
+    "BRIEFING",
     "AWAITING_REVIEW",
     "COMPLETED",
     "BLOCKED_INPUT",
@@ -237,6 +238,66 @@ class AssessmentProposal(BoundaryModel):
         return self
 
 
+class BriefProposal(BoundaryModel):
+    """A model's draft reviewer brief for one verified finding.
+
+    Text only, in words: code adds every number. Lengths and references are checked by the brief
+    gate, so a bad draft is a retained rejection rather than a failed call.
+    """
+
+    what_to_check: Nonempty
+    explanation: Nonempty
+    evidence_request: Nonempty
+    evidence_ref_ids: list[str]
+
+
+class BriefFigure(BoundaryModel):
+    """One number shown with a brief, copied by code from the authoritative calculation."""
+
+    label: Nonempty
+    value: Nonempty
+    value_ref: CalculationValueRef
+
+
+class ReviewerBrief(BoundaryModel):
+    """Advisory reading aid for one finding of one report revision. It changes nothing.
+
+    A model brief that fails the gate, or whose call did not complete, is kept with its reason
+    and no text. A template brief is built by code from the finding alone.
+    """
+
+    brief_id: ID
+    run_id: ID
+    report_revision_id: ID
+    finding_revision_id: ID
+    issue_type: FaultFamily
+    source: Literal["MODEL", "TEMPLATE"]
+    status: Literal["ACCEPTED", "REJECTED", "DROPPED"]
+    reason: str | None
+    what_to_check: str | None
+    explanation: str | None
+    evidence_request: str | None
+    evidence_refs: list[EvidenceRef]
+    figures: list[BriefFigure]
+    label: Nonempty
+    model_operation_ref: ID | None
+    proposal: BriefProposal | None = None
+
+    @model_validator(mode="after")
+    def outcome_shape(self):
+        texts = (self.what_to_check, self.explanation, self.evidence_request)
+        if self.status == "ACCEPTED":
+            if any(text is None for text in texts) or self.reason is not None:
+                raise ValueError("an accepted brief has its text and no rejection reason")
+        elif any(text is not None for text in texts) or not self.reason:
+            raise ValueError("a rejected or dropped brief has a reason and no text")
+        if self.source == "TEMPLATE" and (
+            self.status != "ACCEPTED" or self.model_operation_ref is not None
+        ):
+            raise ValueError("a template brief is always built and involves no model call")
+        return self
+
+
 class ObservationAssessment(BoundaryModel):
     assessment_id: ID
     operation_ref: ID
@@ -290,7 +351,7 @@ class StageOutcome(BoundaryModel):
 class ContextManifest(BoundaryModel):
     context_manifest_id: ID
     run_id: ID
-    phase: Literal["PLAN", "ASSESS"]
+    phase: Literal["PLAN", "ASSESS", "BRIEF"]
     exact_request_blob: BlobRef
     allowed_tool_schema_digest: Digest
     max_total_tokens: int

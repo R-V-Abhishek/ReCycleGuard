@@ -34,10 +34,12 @@ from recycleguard.contracts.retrieval import (
 )
 from recycleguard.contracts.workflow import (
     AssessmentProposal,
+    BriefProposal,
     BudgetLimits,
     ConfigurationPin,
     ObservationAssessment,
     PlanProposal,
+    ReviewerBrief,
     RunSpec,
     StageOutcome,
 )
@@ -57,6 +59,7 @@ from recycleguard.reporting.baseline import (
     ablation_limitation,
     inspection_limitation,
 )
+from recycleguard.reporting.briefs import brief_request, model_brief, template_brief
 from recycleguard.reporting.calculation_findings import (
     DETERMINISTIC_SOURCE,
     ablate,
@@ -75,19 +78,20 @@ from recycleguard.workflow.finding_gate import (
     gate_finding_proposals,
     reconciliation_settled,
 )
-from recycleguard.workflow.ports import OutcomeUnknownError
+from recycleguard.workflow.ports import Briefing, OutcomeUnknownError
 from recycleguard.workflow.runner import CallRecord
 from recycleguard.workflow.store import GraphStore
 
+_SCRIPTED_RESPONSES = {"PLAN": PlanProposal, "ASSESS": AssessmentProposal, "BRIEF": BriefProposal}
+
 
 class ScriptedExchange(BoundaryModel):
-    phase: Literal["PLAN", "ASSESS"]
+    phase: Literal["PLAN", "ASSESS", "BRIEF"]
     response: dict[str, JsonValue]
 
     @model_validator(mode="after")
     def valid_response(self):
-        model = PlanProposal if self.phase == "PLAN" else AssessmentProposal
-        model.model_validate_json(canonical_json_bytes(self.response))
+        _SCRIPTED_RESPONSES[self.phase].model_validate_json(canonical_json_bytes(self.response))
         return self
 
 
@@ -178,6 +182,17 @@ class InvestigationReport(BoundaryModel):
     available_evidence_refs: list[EvidenceRef]
     verification: VerificationResult
     rejected_finding_proposals: list[RejectedFindingProposal] = Field(default_factory=list)
+
+
+class RunBriefs(BoundaryModel):
+    """Reading aids for the current report revision. Neither kind changes the report."""
+
+    run_id: ID
+    report_revision_id: ID
+    # Present only when the run drafted briefs, one per finding, accepted or with its reason.
+    model_briefs: list[ReviewerBrief]
+    # Built from each finding by code, for every run.
+    template_briefs: list[ReviewerBrief]
 
 
 def digest(value):
@@ -746,6 +761,24 @@ class InvestigationService:
                     )
         raise ValueError("run has no durably drafted report")
 
+    def briefs(self, run_id) -> RunBriefs:
+        current = self.latest_report(run_id)  # verifies the run's audit chain first
+        revision = current.report.revision.report_revision_id
+        drafted = [
+            ReviewerBrief.model_validate_json(self.blobs.get(event.payload_blob))
+            for event in self.kernel.list_stream_events(f"stream:{run_id}")
+            if event.event_type == "graph.brief.result"
+        ]
+        return RunBriefs(
+            run_id=run_id,
+            report_revision_id=revision,
+            model_briefs=[brief for brief in drafted if brief.report_revision_id == revision],
+            template_briefs=[
+                template_brief(run_id, revision, finding, current.report.calculations)
+                for finding in current.findings
+            ],
+        )
+
     def review_service(self):
         return ReviewService(
             self.cases,
@@ -1206,6 +1239,39 @@ class InvestigationService:
                 "Report claims checked against authoritative calculation and citations",
             )
 
+        def brief_requests(_spec):
+            current = self.latest_report(spec.run_id)
+            observations = {item.observation_id: item for item in self._observations(spec)}
+            return [
+                (
+                    finding.finding_revision_id,
+                    brief_request(finding, current.report.calculations, observations),
+                )
+                for finding in current.findings
+            ]
+
+        def record_brief(_spec, finding_revision_id, proposal, reason, operation):
+            current = self.latest_report(spec.run_id)
+            finding = next(
+                f for f in current.findings if f.finding_revision_id == finding_revision_id
+            )
+            return model_brief(
+                spec.run_id,
+                current.report.revision.report_revision_id,
+                finding,
+                current.report.calculations,
+                proposal,
+                reason,
+                operation,
+            )
+
+        # Opt-in: a briefing model configuration, or a scripted test that supplies brief replies.
+        briefing = (
+            any(step.phase == "BRIEF" for step in configuration.scripted_exchanges)
+            if native is None
+            else native.brief
+        )
+
         runner = IntegratedRunner(
             self.cases,
             self.settings,
@@ -1225,6 +1291,7 @@ class InvestigationService:
             if configuration.fixed_plan is None
             else self._fixed_checks(spec, configuration.fixed_plan),
             plan_context=plan_context,
+            briefing=Briefing(brief_requests, record_brief) if briefing else None,
         )
         runner.index = index
         return runner

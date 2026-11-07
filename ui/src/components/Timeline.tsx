@@ -38,6 +38,13 @@ export function rowSummary(event: TraceEvent, events: TraceEvent[] = []): { kind
         title: `${event.data.verdict} · ${event.data.disposition}`,
         detail: event.data.next_check_or_stop,
       };
+    case "BRIEF":
+      return {
+        kind: "Brief",
+        title: `Reviewer brief · ${event.data.issue_type}`,
+        detail: event.data.reason ?? event.data.what_to_check ?? undefined,
+        status: event.data.status,
+      };
     case "TOOL_OR_STAGE_RESULT": {
       const { family, name } = eventParts(event);
       const proposal = family === "tool" ? events.find((candidate) =>
@@ -171,7 +178,7 @@ function resultOf(event: TraceEvent, events: TraceEvent[]): ReactNode {
       </div>
     );
   }
-  if (target.kind === "ASSESSMENT" || target.kind === "PLAN") return <JsonView value={target.data} />;
+  if (target.kind === "ASSESSMENT" || target.kind === "PLAN" || target.kind === "BRIEF") return <JsonView value={target.data} />;
   return <Unavailable label="this entry has no result" />;
 }
 
@@ -182,6 +189,7 @@ function evidenceOf(event: TraceEvent, events: TraceEvent[]): { refs: EvidenceRe
     return { refs: [...event.data.evidence_refs, ...(later?.evidence_refs ?? [])], calculations: later?.calculation_ids ?? [] };
   }
   if (event.kind === "ASSESSMENT") return { refs: event.data.observation_refs, calculations: [] };
+  if (event.kind === "BRIEF") return { refs: event.data.evidence_refs, calculations: [] };
   if (event.kind === "TOOL_OR_STAGE_RESULT" || event.kind === "MODEL_RESULT") {
     return { refs: event.data?.evidence_refs ?? [], calculations: event.data?.calculation_ids ?? [] };
   }

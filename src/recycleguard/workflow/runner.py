@@ -23,6 +23,7 @@ from recycleguard.contracts.workflow import (
     ActionDraft,
     ActionProposal,
     AssessmentProposal,
+    BriefProposal,
     ContextManifest,
     ObservationAssessment,
     PlanDraft,
@@ -37,7 +38,7 @@ from recycleguard.model_port import ModelCallRequest, ModelCallResult
 from recycleguard.storage import canonical_json_bytes
 from recycleguard.storage.authority import AuthorizationError
 
-from .ports import OutcomeUnknownError, ToolBinding, WorkflowStages
+from .ports import Briefing, OutcomeUnknownError, ToolBinding, WorkflowStages
 from .store import GraphStore
 
 _TERMINAL = {"COMPLETED", "FAILED", "CANCELLED", "BLOCKED_INPUT", "BLOCKED_OUTPUT"}
@@ -53,6 +54,18 @@ _ALLOWED = {
 
 _PROMPT_EVIDENCE_IDS = 50
 _PLAN_CALLS = {"plan", "plan_repair"}
+_RESPONSES = {"PLAN": PlanProposal, "ASSESS": AssessmentProposal, "BRIEF": BriefProposal}
+# Brief calls run after verification, so they cannot affect the investigation. They have their
+# own bound instead of its caps: one call and its retry per finding, for at most this many.
+_BRIEF_CALL = "brief_"
+_MAX_BRIEFS = 16
+_NODES = ("preflight", "investigate", "draft", "verify", "brief", "sync")
+
+
+def _response_model(call_name):
+    if call_name in _PLAN_CALLS:
+        return PlanProposal
+    return BriefProposal if call_name.startswith(_BRIEF_CALL) else AssessmentProposal
 
 
 class GraphInput(TypedDict):
@@ -140,6 +153,7 @@ class WorkflowRunner:
         model_run_validator: Callable[[RunSpec], None] | None = None,
         fixed_checks: list[tuple[str, dict]] | None = None,
         plan_context: Callable[[], dict] | None = None,
+        briefing: Briefing | None = None,
     ):
         if not set(tools).issubset(_ALLOWED):
             raise ValueError("tool registry contains a prohibited operation")
@@ -148,6 +162,7 @@ class WorkflowRunner:
         self.model_run_validator = model_run_validator
         self.fixed_checks = fixed_checks
         self.plan_context = plan_context
+        self.briefing = briefing
         self.kernel, self.blobs = cases.kernel, cases.kernel.blob_store
         self.store = GraphStore(self.kernel)
         checkpoint_path = Path(checkpoint_path)
@@ -164,13 +179,11 @@ class WorkflowRunner:
             ),
         )
         builder = StateGraph(GraphInput)
-        for name in ("preflight", "investigate", "draft", "verify", "sync"):
+        for name in _NODES:
             builder.add_node(name, self._node)
             builder.add_edge(name, END)
         builder.add_conditional_edges(
-            START,
-            lambda state: state["route"],
-            {name: name for name in ("preflight", "investigate", "draft", "verify", "sync")},
+            START, lambda state: state["route"], {name: name for name in _NODES}
         )
         self.graph = builder.compile(checkpointer=self.checkpointer)
         self._lock = Lock()
@@ -291,6 +304,7 @@ class WorkflowRunner:
                 "INVESTIGATING": "investigate",
                 "DRAFTING": "draft",
                 "VERIFYING": "verify",
+                "BRIEFING": "brief",
             }
             with tracing_context(enabled=False):
                 self.graph.invoke(
@@ -432,7 +446,8 @@ class WorkflowRunner:
             )
             return {"status": output.status}
         try:
-            self._time(spec, state)
+            if initial.status != "BRIEFING":  # briefing records its own stops; review still opens
+                self._time(spec, state)
             if initial.status == "CREATED":
                 state = state.model_copy(update={"status": "PREFLIGHT"})
             elif initial.status == "PREFLIGHT":
@@ -466,13 +481,19 @@ class WorkflowRunner:
                         state = state.model_copy(update={"status": "DRAFTING", "budget": usage})
                     else:
                         state = state.model_copy(update={"status": "BLOCKED_OUTPUT"})
+                elif self.briefing is not None:
+                    state = state.model_copy(update={"status": "BRIEFING"})
                 else:
                     state = state.model_copy(
                         update={"status": "AWAITING_REVIEW", "review_outcome": "PENDING"}
                     )
+            elif initial.status == "BRIEFING":
+                state = self._brief(root, spec, initial, cap)
         except WorkflowStop as exc:
             state = self.store.load(spec.run_id)
-            target = exc.status if initial.status == "INVESTIGATING" else "BLOCKED_OUTPUT"
+            target = (
+                exc.status if initial.status in {"INVESTIGATING", "BRIEFING"} else "BLOCKED_OUTPUT"
+            )
             state = state.model_copy(
                 update={
                     "status": target,
@@ -622,11 +643,13 @@ class WorkflowRunner:
         self._time(spec, state)
         usage, limits = state.budget, spec.budgets
         reserve = 2 if kind in {"model", "tool"} else 0
-        if usage.actions + 1 + reserve > limits.max_case_actions:
+        # A brief call is counted like any call but bounded by the brief limit (see _brief).
+        brief = kind == "model" and name.startswith(_BRIEF_CALL)
+        if not brief and usage.actions + 1 + reserve > limits.max_case_actions:
             raise WorkflowStop("BUDGET_EXHAUSTED")
         changes = {"actions": usage.actions + 1, "retries": usage.retries + int(retry)}
         if kind == "model":
-            if (
+            if not brief and (
                 usage.model_calls >= limits.max_model_calls
                 or usage.reserved_tokens + limits.tokens_per_model_call > limits.max_total_tokens
             ):
@@ -772,8 +795,7 @@ class WorkflowRunner:
                             == raw.output.validated_output_or_null
                         )
                         if raw.status == "SUCCESS":
-                            schema = PlanProposal if name in _PLAN_CALLS else AssessmentProposal
-                            schema.model_validate_json(
+                            _response_model(name).model_validate_json(
                                 canonical_json_bytes(raw.output.validated_output_or_null)
                             )
                         issues.extend(raw.output.validation_issues)
@@ -925,7 +947,7 @@ class WorkflowRunner:
         return result.stage_output
 
     def _model(self, root, spec, initial, phase, body, cap, *, name=None):
-        response_model = PlanProposal if phase == "PLAN" else AssessmentProposal
+        response_model = _RESPONSES[phase]
         label = phase if name is None else name.upper()
         blob = self.blobs.put(
             canonical_json_bytes(
@@ -973,10 +995,45 @@ class WorkflowRunner:
         )
         if result.status != "SUCCESS" or result.model_output is None:
             raise WorkflowStop("PROVIDER_FAILURE", status="FAILED")
-        model = PlanProposal if phase == "PLAN" else AssessmentProposal
-        return model.model_validate_json(
+        return response_model.model_validate_json(
             canonical_json_bytes(result.model_output.validated_output_or_null)
         ), operation
+
+    def _brief(self, root, spec, initial, cap):
+        """One advisory brief per verified finding. Every outcome is recorded; review opens.
+
+        A call that cannot complete drops that brief with its reason; an exhausted run budget
+        (the wall clock) drops the rest. Only a cancellation or an audit failure stops the run.
+        The report, its findings and its verification are never touched.
+        """
+        stopped = None
+        for n, (finding_revision_id, body) in enumerate(self.briefing.requests(spec)):
+            name = f"{_BRIEF_CALL}{n}"
+            proposal, reason, operation = None, stopped, None
+            if reason is None and n >= _MAX_BRIEFS:
+                reason = "BRIEF_LIMIT"
+            if reason is None:
+                operation = self._ctx(root, spec, name).operation_id
+                try:
+                    proposal, _ = self._model(root, spec, initial, "BRIEF", body, cap, name=name)
+                except WorkflowStop as exc:
+                    if (
+                        exc.reason == "AUDIT_FAILURE"
+                        or self.store.load(spec.run_id).status in _TERMINAL
+                    ):
+                        raise
+                    reason = exc.reason
+                    if reason == "BUDGET_EXHAUSTED":
+                        stopped = reason
+            self.store.archive(
+                self._ctx(root, spec, f"brief_record_{n}"),
+                "graph.brief",
+                self.briefing.record(spec, finding_revision_id, proposal, reason, operation),
+                capability=cap,
+            )
+        return self.store.load(spec.run_id).model_copy(
+            update={"status": "AWAITING_REVIEW", "review_outcome": "PENDING"}
+        )
 
     def _plan(
         self,

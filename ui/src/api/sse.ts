@@ -78,7 +78,7 @@ export function validateTraceEvent(value: unknown): asserts value is TraceEvent 
   if (!record(value) || !Number.isSafeInteger(value.sequence) || Number(value.sequence) < 1 ||
       typeof value.event_id !== "string" || !value.event_id ||
       typeof value.event_type !== "string" || !value.event_type ||
-      !["AUDIT", "PLAN", "TOOL_PROPOSED", "ASSESSMENT", "PROMPT_PREPARED", "MODEL_RESULT", "TOOL_OR_STAGE_RESULT"].includes(String(value.kind))) {
+      !["AUDIT", "PLAN", "TOOL_PROPOSED", "ASSESSMENT", "BRIEF", "PROMPT_PREPARED", "MODEL_RESULT", "TOOL_OR_STAGE_RESULT"].includes(String(value.kind))) {
     throw protocol("The event stream returned an invalid trace identity or sequence.");
   }
   for (const key of ["operation_id", "attempt_id", "turn_id"]) {
@@ -87,11 +87,11 @@ export function validateTraceEvent(value: unknown): asserts value is TraceEvent 
   if (!record(value.payload_ref) || !/^[0-9a-f]{64}$/.test(String(value.payload_ref.sha256)) ||
       !Number.isSafeInteger(value.payload_ref.byte_length) || Number(value.payload_ref.byte_length) < 0 ||
       typeof value.payload_ref.media_type !== "string") throw protocol("Trace payload reference is invalid.");
-  if (["PLAN", "TOOL_PROPOSED", "ASSESSMENT"].includes(String(value.kind)) && !record(value.data)) {
+  if (["PLAN", "TOOL_PROPOSED", "ASSESSMENT", "BRIEF"].includes(String(value.kind)) && !record(value.data)) {
     throw protocol("The event stream returned a missing structured trace payload.");
   }
   if (value.kind === "PROMPT_PREPARED" &&
-      (!["PLAN", "ASSESS"].includes(String(value.phase)) ||
+      (!["PLAN", "ASSESS", "BRIEF"].includes(String(value.phase)) ||
        (value.system_template !== null && typeof value.system_template !== "string") ||
        typeof value.note !== "string" || !("request" in value))) throw protocol("Prepared context is invalid.");
   if (value.kind === "PLAN") {
@@ -111,6 +111,16 @@ export function validateTraceEvent(value: unknown): asserts value is TraceEvent 
         typeof data.finding_id !== "string" || typeof data.concise_reason !== "string" ||
         !record(data.typed_arguments) || !Array.isArray(data.evidence_refs)) {
       throw protocol("The stream returned an invalid tool proposal.");
+    }
+  }
+  if (value.kind === "BRIEF") {
+    const data = value.data as Record<string, unknown>;
+    if (typeof data.brief_id !== "string" || typeof data.finding_revision_id !== "string" ||
+        !["MODEL", "TEMPLATE"].includes(String(data.source)) ||
+        !["ACCEPTED", "REJECTED", "DROPPED"].includes(String(data.status)) ||
+        !nullableString(data.reason) || !nullableString(data.what_to_check) ||
+        !Array.isArray(data.evidence_refs) || !Array.isArray(data.figures)) {
+      throw protocol("The stream returned an invalid reviewer brief.");
     }
   }
   if (value.kind === "ASSESSMENT") {

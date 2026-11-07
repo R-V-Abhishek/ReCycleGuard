@@ -788,8 +788,12 @@ def test_configuration_names_never_collide(tmp_path):
         configure.config_name(slots=4),
         configure.config_name(prompt="u01_thinking_v1"),
         configure.config_name(prompt="u01_thinking_v1", thinking=True),
+        configure.config_name(brief=True),
+        configure.config_name(brief=True, slots=3),
     }
-    assert len(names) == 8
+    assert len(names) == 10
+    assert configure.config_name(brief=True) == "local-model-brief.json"
+    assert configure.config_name(brief=True, slots=3) == "local-model-brief-s3.json"
     assert (
         configure.config_name(prompt="u01_thinking_v1", thinking=True, slots=3)
         == "local-model-u01_thinking_v1-thinking-s3.json"
@@ -985,6 +989,50 @@ def test_a_thinking_call_reports_its_cut_but_its_reasoning_stays_in_the_runtime_
     assert reasoning not in json.dumps(row)
     (exact,) = child.model_calls([event])
     assert reasoning in exact["thinking_response_body_utf8"]
+
+
+def test_a_brief_call_is_traced_by_counts_and_lengths_without_its_text():
+    child = script("trial_child")
+    request = {
+        "phase": "BRIEF",
+        "finding": {"issue_type": "F07_PAID_NO_TRANSFER"},
+        "citable_evidence_ref_ids": ["record:one", "record:two"],
+        "evidence": [{"ref_id": "record:one", "text": SECRET_EVIDENCE}],
+        "figures_shown_by_code": [{"label": "Required", "value": "100.0000 KG"}],
+    }
+    reply = {
+        "what_to_check": "Check the private transfer wording.",
+        "explanation": "A payment alone earns no credit.",
+        "evidence_request": "Please send the transfer record.",
+        "evidence_ref_ids": ["record:one"],
+    }
+    events = [
+        {"kind": "PROMPT_PREPARED", "phase": "BRIEF", "request": request},
+        {
+            "kind": "MODEL_RESULT",
+            "operation_id": "operation:brief_0",
+            "status": "SUCCESS",
+            "response": {"validated_output_or_null": reply},
+        },
+    ]
+    (row,) = child.decision_trace(events)
+    assert row["shown"] == {
+        "phase": "BRIEF",
+        "issue_type": "F07_PAID_NO_TRANSFER",
+        "citable_evidence_ids": 2,
+        "evidence_items": 1,
+        "figures": 1,
+    }
+    assert row["reply"] == {
+        "brief_chars": {
+            "what_to_check": len(reply["what_to_check"]),
+            "explanation": len(reply["explanation"]),
+            "evidence_request": len(reply["evidence_request"]),
+        },
+        "cited_ids": 1,
+    }
+    text = json.dumps(row)
+    assert SECRET_EVIDENCE not in text and "private transfer wording" not in text
 
 
 def test_the_funnel_assigns_each_miss_to_the_stage_where_it_was_lost():

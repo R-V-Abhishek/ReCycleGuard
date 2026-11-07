@@ -1198,6 +1198,61 @@
         }
       }
     },
+    "/api/v1/runs/{run_id}/briefs": {
+      "get": {
+        "summary": "Briefs",
+        "operationId": "briefs_api_v1_runs__run_id__briefs_get",
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          },
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunBriefs"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/runs/{run_id}/packet": {
       "post": {
         "summary": "Packet",
@@ -1683,6 +1738,68 @@
           "media_type"
         ],
         "title": "BlobRef"
+      },
+      "BriefFigure": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Label"
+          },
+          "value": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Value"
+          },
+          "value_ref": {
+            "$ref": "#/components/schemas/CalculationValueRef"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "label",
+          "value",
+          "value_ref"
+        ],
+        "title": "BriefFigure",
+        "description": "One number shown with a brief, copied by code from the authoritative calculation."
+      },
+      "BriefProposal": {
+        "properties": {
+          "what_to_check": {
+            "type": "string",
+            "minLength": 1,
+            "title": "What To Check"
+          },
+          "explanation": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Explanation"
+          },
+          "evidence_request": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Evidence Request"
+          },
+          "evidence_ref_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Evidence Ref Ids"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "what_to_check",
+          "explanation",
+          "evidence_request",
+          "evidence_ref_ids"
+        ],
+        "title": "BriefProposal",
+        "description": "A model's draft reviewer brief for one verified finding.\n\nText only, in words: code adds every number. Lengths and references are checked by the brief\ngate, so a bad draft is a retained rejection rather than a failed call."
       },
       "BucketResult": {
         "properties": {
@@ -4286,6 +4403,214 @@
         ],
         "title": "ReviewPacket"
       },
+      "ReviewerBrief": {
+        "properties": {
+          "brief_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Brief Id"
+          },
+          "run_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Run Id"
+          },
+          "report_revision_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Report Revision Id"
+          },
+          "finding_revision_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Finding Revision Id"
+          },
+          "issue_type": {
+            "type": "string",
+            "enum": [
+              "F01_CLEAN_BASELINE",
+              "F02_OVERLAPPING_EXPORT",
+              "F03_MULTISTAGE_ID_REUSE",
+              "F04_UNIT_DIMENSION_MIX",
+              "F05_WRONG_ENTITY_ALIAS",
+              "F06_STALE_SNAPSHOT",
+              "F07_PAID_NO_TRANSFER",
+              "F08_PRIOR_ARREARS_DRAIN",
+              "F09_EXPIRED_CANCELLED",
+              "F10_CAPABILITY_MISMATCH",
+              "F11_WRONG_PERIOD_RULE",
+              "F12_UNSEEN_NOTICE_LEAD",
+              "F13_WEIGHT_BASIS_CONFLICT",
+              "F14_OUT_OF_SCOPE_REGIME",
+              "F15_EXTRACTION_PAGE_LOSS",
+              "F16_PROMPT_INJECTION"
+            ],
+            "title": "Issue Type"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "MODEL",
+              "TEMPLATE"
+            ],
+            "title": "Source"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACCEPTED",
+              "REJECTED",
+              "DROPPED"
+            ],
+            "title": "Status"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "what_to_check": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "What To Check"
+          },
+          "explanation": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Explanation"
+          },
+          "evidence_request": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Request"
+          },
+          "evidence_refs": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceRef"
+            },
+            "type": "array",
+            "title": "Evidence Refs"
+          },
+          "figures": {
+            "items": {
+              "$ref": "#/components/schemas/BriefFigure"
+            },
+            "type": "array",
+            "title": "Figures"
+          },
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Label"
+          },
+          "model_operation_ref": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Operation Ref"
+          },
+          "proposal": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BriefProposal"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "brief_id",
+          "run_id",
+          "report_revision_id",
+          "finding_revision_id",
+          "issue_type",
+          "source",
+          "status",
+          "reason",
+          "what_to_check",
+          "explanation",
+          "evidence_request",
+          "evidence_refs",
+          "figures",
+          "label",
+          "model_operation_ref"
+        ],
+        "title": "ReviewerBrief",
+        "description": "Advisory reading aid for one finding of one report revision. It changes nothing.\n\nA model brief that fails the gate, or whose call did not complete, is kept with its reason\nand no text. A template brief is built by code from the finding alone."
+      },
+      "RunBriefs": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Run Id"
+          },
+          "report_revision_id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
+            "title": "Report Revision Id"
+          },
+          "model_briefs": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewerBrief"
+            },
+            "type": "array",
+            "title": "Model Briefs"
+          },
+          "template_briefs": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewerBrief"
+            },
+            "type": "array",
+            "title": "Template Briefs"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "run_id",
+          "report_revision_id",
+          "model_briefs",
+          "template_briefs"
+        ],
+        "title": "RunBriefs",
+        "description": "Reading aids for the current report revision. Neither kind changes the report."
+      },
       "RunConfigurationResponse": {
         "properties": {
           "execution_kind": {
@@ -4465,6 +4790,7 @@
               "INVESTIGATING",
               "DRAFTING",
               "VERIFYING",
+              "BRIEFING",
               "AWAITING_REVIEW",
               "COMPLETED",
               "BLOCKED_INPUT",
@@ -5006,6 +5332,7 @@
               "PLAN",
               "TOOL_PROPOSED",
               "ASSESSMENT",
+              "BRIEF",
               "MODEL_RESULT",
               "TOOL_OR_STAGE_RESULT",
               "AUDIT"

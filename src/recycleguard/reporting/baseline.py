@@ -100,6 +100,16 @@ PROHIBITED_CLAIM = re.compile(
     r"compensation|penalt(?:y|ies))\b",
     re.IGNORECASE,
 )
+# Model-written text carries no numbers: code supplies every figure from the calculation.
+DIGIT = re.compile(r"\d")
+# Authority or instruction wording, for example copied from an injected dossier document.
+# "Certificate" is the domain's own noun for an EPR credit record, so only the verb forms and
+# "certification" count as a claim of authority.
+AUTHORITY_CLAIM = re.compile(
+    r"\b(?:approved?|certif(?:y|ies|ied|ying|ications?)|ignore\s+(?:all|any|previous|prior)"
+    r"|instructions?)\b",
+    re.IGNORECASE,
+)
 _INSPECTION_LIMITATION = re.compile(r"Inspected \d+ of \d+ dossier observations\.")
 MODEL_LOOP_LIMITATION = (
     "The model investigation ended on invalid model output; the findings are deterministic "

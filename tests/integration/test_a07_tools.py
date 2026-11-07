@@ -78,12 +78,12 @@ def investigation(tmp_path, approved_foundation):
     settings = Settings(data_root=root, mode="test", enable_test_adapters=True)
 
     @contextmanager
-    def create(ablated=()):
+    def create(ablated=(), briefs=(), name=""):
         with local_application(settings) as (cases, context, capability):
             case = cases.snapshots.catalog.get_snapshot("snapshot:case_approved")
             corpus = cases.snapshots.catalog.get_snapshot("snapshot:corpus_approved")
             request = InvestigationRequest(
-                run_id="run:a07_real_services" + ("_ablated" if ablated else ""),
+                run_id="run:a07_real_services" + ("_ablated" if ablated else "") + name,
                 case_snapshot=SnapshotRef(
                     snapshot_id=case.snapshot_id, membership_digest=case.membership_digest
                 ),
@@ -91,7 +91,7 @@ def investigation(tmp_path, approved_foundation):
                     snapshot_id=corpus.snapshot_id, membership_digest=corpus.membership_digest
                 ),
                 finding_ids=["finding:one"],
-                scripted_exchanges=[_exchange(step) for step in _steps()],
+                scripted_exchanges=[_exchange(step) for step in _steps()] + list(briefs),
                 ablated_families=list(ablated),
             )
             service = InvestigationService(cases, settings, capability=capability)
@@ -204,6 +204,75 @@ def test_ablation_is_refused_outside_evaluation_and_test_modes(tmp_path, approve
         service = InvestigationService(cases, Settings(data_root=root), capability=capability)
         with pytest.raises(ValueError, match="evaluation setting"):
             service.prepare(context, request)
+
+
+def _brief_reply(finding, text=None):
+    cited = [*finding.fact_refs, *finding.next_action.evidence_refs, *finding.provision_refs]
+    refs = [ref.ref_id for ref in cited]
+    return ScriptedExchange(
+        phase="BRIEF",
+        response={
+            "what_to_check": text or "Check that the cited record supports this finding.",
+            "explanation": "The finding rests on the cited evidence.",
+            "evidence_request": "Please send the source document behind the cited record.",
+            "evidence_ref_ids": refs[:1],
+        },
+    )
+
+
+def _outcome(report):
+    """What a brief must never change: the findings, their numbers and the verification."""
+    return (
+        [
+            (f.issue_type, f.bucket_ids, f.advisory_status, f.priority, f.fact_refs)
+            for f in report.findings
+        ],
+        [c.bucket_results for c in report.report.calculations],
+        report.verification.verdict,
+    )
+
+
+def test_briefing_runs_after_verification_and_changes_no_finding(investigation):
+    with investigation() as env:
+        plain = env.service.latest_report(_drive(env).run_id)
+    assert plain.findings, "the approved foundation must yield findings to brief"
+    good = [_brief_reply(f) for f in plain.findings]
+    with investigation(briefs=good, name="_briefed") as env:
+        state = _drive(env)
+        assert state.status == "AWAITING_REVIEW" and state.review_outcome == "PENDING"
+        assert state.budget.model_calls == 6 + len(plain.findings)
+        report = env.service.latest_report(state.run_id)
+        assert _outcome(report) == _outcome(plain)
+        briefs = env.service.briefs(state.run_id)
+        revision = report.report.revision.report_revision_id
+        assert briefs.report_revision_id == revision
+        assert [b.finding_revision_id for b in briefs.model_briefs] == [
+            f.finding_revision_id for f in report.findings
+        ]
+        assert {(b.source, b.status, b.report_revision_id) for b in briefs.model_briefs} == {
+            ("MODEL", "ACCEPTED", revision)
+        }
+        assert all(b.model_operation_ref for b in briefs.model_briefs)
+        assert len(briefs.template_briefs) == len(report.findings)
+        events = env.cases.kernel.list_stream_events(f"stream:{state.run_id}")
+        assert sum(e.event_type == "graph.brief.result" for e in events) == len(report.findings)
+
+
+def test_a_brief_the_gate_rejects_is_recorded_and_review_still_opens(investigation):
+    with investigation() as env:
+        plain = env.service.latest_report(_drive(env).run_id)
+    bad = [_brief_reply(f, "The shortfall is 45 KG.") for f in plain.findings]
+    with investigation(briefs=bad, name="_bad_briefs") as env:
+        state = _drive(env)
+        assert state.status == "AWAITING_REVIEW" and state.review_outcome == "PENDING"
+        report = env.service.latest_report(state.run_id)
+        assert _outcome(report) == _outcome(plain)
+        briefs = env.service.briefs(state.run_id)
+        assert {(b.status, b.reason) for b in briefs.model_briefs} == {
+            ("REJECTED", "DIGITS_IN_TEXT")
+        }
+        assert all(b.what_to_check is None for b in briefs.model_briefs)
+        assert all(b.status == "ACCEPTED" for b in briefs.template_briefs)
 
 
 def test_read_tools_return_original_provenance_and_real_calculations(investigation):
