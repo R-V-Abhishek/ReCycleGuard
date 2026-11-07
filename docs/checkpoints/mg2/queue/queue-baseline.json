@@ -1,0 +1,36 @@
+{
+  "queue_version": "mg2-queue",
+  "model_root": "/models/provenance/qwen3.5-9b-q8_0",
+  "slots": 6,
+  "name": "mg2-baseline",
+  "jobs": [
+    {
+      "id": "ablated-baseline-fixed",
+      "protocol": "docs/checkpoints/mg2/protocols/ablated-baseline-fixed.json",
+      "prompts": [
+        "u01_non_thinking_v7"
+      ]
+    },
+    {
+      "id": "ablated-baseline-adaptive",
+      "protocol": "docs/checkpoints/mg2/protocols/ablated-baseline-adaptive.json",
+      "prompts": [
+        "u01_non_thinking_v7"
+      ]
+    },
+    {
+      "id": "rules-on-baseline-fixed",
+      "protocol": "docs/checkpoints/mg2/protocols/rules-on-baseline-fixed.json",
+      "prompts": [
+        "u01_non_thinking_v7"
+      ]
+    },
+    {
+      "id": "rules-on-baseline-adaptive",
+      "protocol": "docs/checkpoints/mg2/protocols/rules-on-baseline-adaptive.json",
+      "prompts": [
+        "u01_non_thinking_v7"
+      ]
+    }
+  ]
+}
