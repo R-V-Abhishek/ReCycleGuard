@@ -389,7 +389,8 @@ def caller(client):
     def call(method, path, body=None, code=200):
         response = client.request(method, BASE + path, json=body)
         if response.status_code != code:
-            raise RuntimeError(f"{method} {path}: {response.status_code}")
+            # The API's own error code and message, so the runtime log says why; capped.
+            raise RuntimeError(f"{method} {path}: {response.status_code} {response.text[:300]}")
         return response.json()
 
     return call
