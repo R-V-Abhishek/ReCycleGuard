@@ -21,7 +21,10 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-from benchmarks.evaluation.rubric import (
+REPOSITORY = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPOSITORY))  # evaluator code is not part of the installed wheel
+
+from benchmarks.evaluation.rubric import (  # noqa: E402
     BRIEF_SCORES,
     DIMENSIONS,
     brief_item_key,

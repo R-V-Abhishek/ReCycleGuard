@@ -96,7 +96,7 @@ def test_blocked_output_is_terminal_and_never_called_success(tmp_path):
 
 def test_scripts_run_without_pythonpath():
     env = {key: value for key, value in os.environ.items() if key != "PYTHONPATH"}
-    for name in ("run_trials", "score_trials", "make_tables"):
+    for name in ("run_trials", "score_trials", "make_tables", "make_rubric_sheets"):
         done = subprocess.run(
             [sys.executable, str(ROOT / f"scripts/{name}.py"), "--help"],
             capture_output=True,
