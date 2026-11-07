@@ -66,6 +66,20 @@ services:
       - model-provenance:/models/provenance
       - evaluator-data:/repo/benchmarks/hidden
 
+  # Read-only page for a running queue (scripts/run_queue.py writes /work/_status). It serves that
+  # one folder over HTTP and holds no secrets. Start it after the queue has begun; it is untested
+  # on the PC until the MG2 runbook is followed there.
+  status:
+    profiles: [monitor]
+    build:
+      <<: *repo-build
+      target: trials
+    command: [python, -m, http.server, "8099", "--bind", "0.0.0.0", "--directory", "/work/_status"]
+    ports:
+      - 8099:8099
+    volumes:
+      - trial-data:/work:ro
+
   test:
     profiles: [tools]
     build:

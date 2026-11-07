@@ -155,6 +155,11 @@ def test_a_slot_that_frees_starts_the_next_session_from_any_job(world):
     assert world.launched == ["q1-a-p1", "q1-a-p2", "q1-b-p3"]
     assert {entry["status"] for entry in state.data["sessions"].values()} == {"DONE"}
     assert max(world.concurrent) <= 2
+    assert sorted(path.name for path in world.sweep.scored[:3]) == [
+        "q1-a-p1",
+        "q1-a-p2",
+        "q1-b-p3",
+    ]
     status = json.loads((world.work / "_status" / "status.json").read_text("utf-8"))
     assert status["done"] == status["total"] == 6 and status["running"] == 0
 

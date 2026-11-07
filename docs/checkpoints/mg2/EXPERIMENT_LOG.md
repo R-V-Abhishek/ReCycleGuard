@@ -92,3 +92,17 @@ families off), **held-out** (24 sealed dossiers, never opened).
 - **Changed.** Wrote `PREREGISTRATION.md`; merged the MG1 integration branch into this branch
   (page loss, ablation, thinking, briefs); built the unattended queue.
 - **Data.** None.
+
+### 11. The Retriever and Classifier built (scripted ports only)
+- **Hypothesis.** A retrieval loop that grades and re-queries, feeding a classifier that may run
+  compute tools, recovers judgement families the single-agent loop and the first Reader never did.
+  Not yet tested: no real model has run on it.
+- **Changed.** Replaced the chunked Reader and Analyst with `agents/retriever.py` (bounded loop,
+  tools `list_passages`, `read_passages`, `search_rules`, grade-then-change rule, verbatim quote
+  check) and `agents/classifier.py` (at most three compute calls, then proposals). Both prompts are
+  generated from `agents/registry.py` and each role is given only the problem and the definitions it
+  needs. Added the arms `RETRIEVER_LOOKUP`, `RETRIEVER_CLASSIFIER` and `CLASSIFIER_ONLY`, prompt
+  versions v1 to v3, per-arm protocols, and the queues. The ablation now reaches the agents' facts.
+- **Data.** None. Unit tests and the loopback fixture server check plumbing, audit and the gate.
+- **Decision.** Run the baselines first (they need none of this code), then the agent queue.
+- **Next.** Entry 12 will be the baseline result, written when it exists.

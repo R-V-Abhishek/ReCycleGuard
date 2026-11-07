@@ -339,6 +339,7 @@ def run(
         # The same list a sweep writes, so scripts/docker/export-results.sh exports each session.
         names = "".join(f"{output_of(queue, session).name}\n" for session in sessions)
         atomic_write(folder / "sessions", names)
+        final_keys = {session.key for session in sessions if session.final}
         killed = (folder / "KILL").exists()
         status = health()
         if status == "healthy":
@@ -365,6 +366,8 @@ def run(
             done, total = trial_counts(output, protocol)
             if done >= total:
                 entry["status"] = "DONE"
+                if key not in final_keys:
+                    sweep.score(output)  # tables as soon as a development session is whole
             elif halted:
                 entry["attempts"] -= 1  # stopped on purpose; resumes without using an attempt
             elif entry["attempts"] >= MAX_ATTEMPTS:
