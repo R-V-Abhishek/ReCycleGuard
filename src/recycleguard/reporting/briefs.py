@@ -87,8 +87,8 @@ FAMILY_MEANING: dict[FaultFamily, str] = {
         "ask for a complete copy."
     ),
     "F16_PROMPT_INJECTION": (
-        "A document contains instruction-like text. It is evidence only, and it changed no "
-        "permission or result."
+        "A document contains text that tries to direct the reviewer or the tool. It is evidence "
+        "only, and it changed no permission or result."
     ),
 }
 
