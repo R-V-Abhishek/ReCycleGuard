@@ -106,3 +106,20 @@ families off), **held-out** (24 sealed dossiers, never opened).
 - **Data.** None. Unit tests and the loopback fixture server check plumbing, audit and the gate.
 - **Decision.** Run the baselines first (they need none of this code), then the agent queue.
 - **Next.** Entry 12 will be the baseline result, written when it exists.
+
+### 11a. Harness defect found before any run: one-variant protocols (no data affected)
+- **Found by.** A new read-only `run_queue.py --check`, run in the built `trials` image while
+  writing the PC runbook. It was not found by the unit tests.
+- **Defect.** `build_schedule` (`benchmarks/evaluation/trials.py`) required exactly two distinct
+  variants, the shape of the MG1 pair. All ten MG2 per-arm protocols name one variant, so every
+  session would have exited at start, been retried three times by the queue and marked `FAILED`.
+- **Changed.** `build_schedule` accepts one or two distinct variants. Nothing else reads `variants`.
+  The arms, protocols, prompts, controls and selection rule are unchanged. Added `--check` to
+  `run_queue.py`, which validates a queue file and prints each session's trials, and a unit test for
+  each change.
+- **Data.** None. The 224 baseline and 784 agent trials counted by `--check` have not run.
+- **Not covered.** On a laptop Docker host with 2 CPUs the per-trial container (`--cpus 8`) is
+  refused, so a one-variant trial could not be run to the end against the fixture model there. The
+  PC needs 8 CPUs visible to Docker; the runbook checks this first.
+- **Decision.** Proceed with the registered design. The runbook was rewritten to be self-contained
+  after team feedback that it did not work as intended and needed every command in order.

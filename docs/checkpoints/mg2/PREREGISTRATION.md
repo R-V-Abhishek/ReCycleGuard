@@ -104,4 +104,4 @@ beat M1, the Classifier call adds nothing and the report says so.
 
 | Date | What changed | Why | Effect on the data already collected |
 | --- | --- | --- | --- |
-| | | | |
+| 2026-11-08 | `build_schedule` accepts one or two variants instead of exactly two (harness only); `run_queue.py --check` added | the ten per-arm protocols name one variant and would all have failed at start; see log entry 11a | None: no trial had run |

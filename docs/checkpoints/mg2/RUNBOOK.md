@@ -1,137 +1,378 @@
-# MG2 runbook (PC, real model)
+# MG2 runbook: run the experiment on the PC with Docker
 
-Status: written and not yet run on the PC. The queue, its health check and the status page have
-only been exercised with stubs. Nothing here is a result. The laptop has no model, so every quality
-number comes from these steps. The container, the model server and the hidden-data import are in
-`docs/checkpoints/mg1/DOCKER_RUNBOOK.md`; only what differs is listed here.
+Follow the parts in order. Every command is for **PowerShell on the Windows PC**, run from the
+repository root, and every step says what you should see and what to do if you do not. The
+container, the model and the hidden data are all covered here; you do not need another document.
 
-Read [PREREGISTRATION.md](PREREGISTRATION.md) first. It fixes the arms, the two arenas, the
-selection rule and the held-out policy before any data exists.
+**Status.** Written from the code and from checks on a laptop without a GPU. Nothing here has run
+against the real model yet, so Part 3 and later are where a surprise can still happen. If a step
+does not behave as written, stop and write down the command and its output. Do not improvise.
 
-## The idea: start it, leave it, come back
+## What you will run
 
-One command starts a queue. The queue keeps every model slot busy, restarts what fails, pauses
-while the model server is down, and writes a status page. You do not have to be there.
+| Queue file | Sessions | Trials | Needs |
+| --- | --- | --- | --- |
+| `queue-baseline.json` | 4 (v7 FIXED and ADAPTIVE, in both arenas) | 224 | the model |
+| `queue-agents.json` | 14 (the three agent arms by prompt version, in both arenas) | 784 | the model |
 
-| File | Runs | Needs the agent code? |
+The trial counts are what `run_queue.py --check` prints. Each session is one prompt version run
+over 16 development dossiers with 2 repeats, plus model-free controls. The **ablated** arena (every
+deterministic check off) is the primary result. **rules-on** is the no-regression check. Read
+[PREREGISTRATION.md](PREREGISTRATION.md) once: it fixes the arms and the rules before any data.
+
+Both queues run from **one build of the image**, one after the other (Part 5). The code is
+committed, so there is no reason to use two builds; one revision makes the arms comparable.
+
+## Part 0. What the PC needs
+
+| Need | How to check | Pass |
 | --- | --- | --- |
-| `queue/queue-baseline.json` | v7 (FIXED and ADAPTIVE) and the controls, in both arenas | No |
-| `queue/queue-agents.json` | the three arms by the registered prompt versions, in both arenas | Yes |
+| Docker Desktop running, WSL 2 backend | `docker version --format '{{.Server.Version}}'` | prints a version |
+| At least **8 CPUs** visible to Docker | `docker info --format 'cpus={{.NCPU}} memory={{.MemTotal}}'` | `cpus=8` or more |
+| NVIDIA GPU visible to Docker | `docker run --rm --gpus all ubuntu nvidia-smi` | the GPU table prints |
+| Git for Windows (`sh.exe`) | `Test-Path "$env:ProgramFiles\Git\bin\sh.exe"` | `True` |
+| The private `benchmarks\hidden` folder | `Test-Path .\benchmarks\hidden\pilot-0.1\oracle` (only if you keep a copy in the clone; Part 1, step 3 imports it into Docker) | `True` |
 
-The baseline queue (4 sessions) can start as soon as the branch is built, so the machine works
-while everything else is finished. Arenas: `ablated` is the primary one (every deterministic family
-off), `rules-on` is the no-regression gate.
+Every trial starts its own container that asks Docker for 8 CPUs. With fewer, Docker refuses with
+`range of CPUs is from 0.01 to 2.00, as there are only 2 CPUs available`, and every trial is
+recorded as an infrastructure failure. Raise the CPUs for the WSL 2 backend in `%UserProfile%\.wslconfig`
+(`[wsl2]` then `processors=16`), run `wsl --shutdown`, and start Docker Desktop again.
 
-## Before the first run
+`benchmarks\hidden` holds the evaluator's answers. Copy it in privately; it is never in Git and
+never in an image.
 
-1. Open PowerShell at the repository root and set the three variables from the MG1 runbook
-   (`COMPOSE_FILE`, `MSYS_NO_PATHCONV`, `$sh`).
-2. `git pull` the branch, note `git rev-parse HEAD`, then
-   `docker compose --profile tools build trials`. The image holds the code, so this is the code
-   revision every run in that queue records. **Do not rebuild or pull while a queue runs.**
-   Run the baseline queue from one build and the agent queue from a later one; say so in the
-   report. The S1 and control code paths are the same in both; the unit tests are what say so.
-3. Calibrate the slots once. The queue files say 6.
-   ```powershell
-   $env:SLOTS = "6"
-   docker compose up -d --force-recreate model
-   docker compose logs -f model     # wait for it to listen
-   nvidia-smi                        # note the memory in use with the model loaded
-   ```
-   Keep at least 3 GB of the 24 GB free. If less is free, set `"slots": 4` in the queue file and
-   `$env:SLOTS = "4"`, recreate the model, and write the number in the experiment log. Stay inside
-   the dedicated 24 GB: spilling into shared GPU memory is far slower. Every arm of a comparison
-   must use the same slot count; it is part of each run's configuration name (`-s6`).
+## Part 1. One-time setup
 
-## Start
+### 1. Open PowerShell and set three variables
+
+Do this in **every** new PowerShell window.
 
 ```powershell
+$env:COMPOSE_FILE = "deploy/compose.yaml"
+$env:MSYS_NO_PATHCONV = "1"
+$sh = "$env:ProgramFiles\Git\bin\sh.exe"
+```
+
+Nothing prints. `MSYS_NO_PATHCONV` stops Git for Windows rewriting container paths such as
+`/export`; without it the scripts print success and copy nothing.
+
+### 2. Get the code
+
+First time:
+
+```powershell
+git clone --branch codex/multi-agent-mg2 https://github.com/R-V-Abhishek/ReCycleGuard.git
+cd ReCycleGuard
+```
+
+Already cloned for the earlier runs:
+
+```powershell
+cd ReCycleGuard
+git status --short
+git fetch origin
+git switch codex/multi-agent-mg2
+git pull --ff-only
+```
+
+`git status --short` must print nothing before you pull (if it lists files, stash or commit them
+first; the experiment needs a clean tree). Then record the revision, and write it in your notes:
+
+```powershell
+git rev-parse HEAD
+```
+
+### 3. Copy the evaluator data into its Docker volume (once)
+
+Replace the path with where your copy of the folder is.
+
+```powershell
+& $sh scripts/docker/import-hidden.sh C:\path\to\hidden
+```
+
+Expect `Imported ... into the evaluator volume.` If it prints `missing s06-dev-0.1/clean` or
+`missing pilot-0.1/oracle`, the folder is wrong or incomplete. The volume keeps the data across
+rebuilds, so skip this step next time.
+
+### 4. Build the images
+
+```powershell
+docker compose --profile setup --profile tools --profile build-only --profile monitor build
+```
+
+Expect it to end without `ERROR`. The first build downloads a lot and can take 10 minutes or more.
+The `trials` image contains the code, so **this build fixes the code revision of every run**.
+**Do not rebuild or `git pull` while a queue is running.**
+
+### 5. Download and configure the model (once)
+
+Skip this step if you did the earlier runs on this PC. Check first:
+
+```powershell
+docker compose --profile tools run --rm --no-deps trials ls /models/provenance/qwen3.5-9b-q8_0
+```
+
+If it lists `local-model.json`, `server-session.json` and a weights manifest, skip to step 6.
+Otherwise:
+
+```powershell
+docker compose --profile setup run --rm model-download
+docker compose --profile tools run --rm trials python scripts/configure_local_model.py --llama-cpp /models/provenance/qwen3.5-9b-q8_0
+```
+
+The download is about 10 GB. It is pinned by revision and checked against a manifest; a mismatch
+stops it.
+
+### 6. Start the model with 6 slots
+
+```powershell
+$env:SLOTS = "6"
+docker compose up -d --force-recreate model
+docker compose logs -f model
+```
+
+Wait until the log reports that the server is listening, then press **Ctrl+C**. That only stops the
+log; the model keeps running. Then confirm all three of these:
+
+```powershell
+docker inspect --format '{{.State.Health.Status}}' recycleguard-model
+nvidia-smi --query-gpu=memory.used,memory.total --format=csv
+docker compose --profile tools run --rm --no-deps trials cat /models/provenance/qwen3.5-9b-q8_0/server-session.json
+```
+
+| Check | Expect | If not |
+| --- | --- | --- |
+| Health | `healthy` (it can say `starting` for up to 3 minutes) | `docker compose logs model`, look for the first error |
+| GPU memory | `memory.used` well under `memory.total`, at least 3 GB free | see below |
+| `server_flags` in the JSON | contains `--parallel` and `6` | you skipped `$env:SLOTS`; repeat this step |
+
+If less than 3 GB of the 24 GB is free, use 4 slots instead. Set `$env:SLOTS = "4"`, repeat step 6,
+and change `"slots": 6` to `"slots": 4` in **both** files in `docs/checkpoints/mg2/queue/`. Write the
+number in `EXPERIMENT_LOG.md`. Do not let the model spill into shared GPU memory: it is far slower.
+Every arm must use the same slot count.
+
+### 7. Probe the model
+
+```powershell
+docker run --rm --network container:recycleguard-model --volume recycleguard-model-provenance:/models/provenance:ro --entrypoint /opt/venv/bin/recycleguard recycleguard-investigator:local model probe --config /models/provenance/qwen3.5-9b-q8_0/local-model.json
+```
+
+It must pass and show the prompt `u01_non_thinking_v7`. If the probe fails, fix that before going
+on; see Part 8.
+
+## Part 2. Checks before you leave it running
+
+All of these run inside the container and change nothing.
+
+```powershell
+docker compose --profile tools run --rm --no-deps trials python scripts/write_mg2_prompts.py --check
+docker compose --profile tools run --rm --no-deps trials python scripts/run_queue.py --check docs/checkpoints/mg2/queue/queue-baseline.json
+docker compose --profile tools run --rm --no-deps trials python scripts/run_queue.py --check docs/checkpoints/mg2/queue/queue-agents.json
+```
+
+| Command | Expect |
+| --- | --- |
+| prompt check | no output |
+| baseline queue | 4 lines, then `queue mg2-baseline: 4 sessions, 224 trials, 6 slots` |
+| agents queue | 14 lines, then `queue mg2-agents: 14 sessions, 784 trials, 6 slots` |
+
+An error here (a missing prompt, a bad protocol) is a defect in the files. Do not start the queue.
+
+Optional but recommended once: the whole test suite, about 20 minutes. It continues past failures
+and reports them at the end.
+
+```powershell
+docker compose --profile tools run --rm test
+```
+
+## Part 3. Start the baseline queue
+
+```powershell
+docker rm mg2-queue 2>$null
 docker compose --profile tools run -d --name mg2-queue trials python scripts/run_queue.py docs/checkpoints/mg2/queue/queue-baseline.json
 ```
 
-`-d` returns at once. If the PC reboots or the container stops, run the same command again: every
-session continues from its own ledger and nothing finished is repeated. (Remove the old container
-first with `docker rm mg2-queue`.)
+`docker rm` prints an error the first time because nothing exists; ignore it. The second command
+prints a container id and returns at once. The queue now runs by itself.
 
-## Look in
+Confirm it started, within a minute:
 
 ```powershell
-docker exec mg2-queue cat /work/_status/status.md       # trials done, ETA, what is running
-docker exec mg2-queue sh -c 'tail -n 20 /work/mg2-baseline/*.log'
-docker compose --profile monitor up -d status           # optional page, http://<this PC>:8099
+docker ps --filter name=mg2-queue
+docker logs --tail 20 mg2-queue
 ```
 
-The page is read-only, serves only `/work/_status`, reloads every 30 seconds and sends nothing
-anywhere. Start it after the queue has begun (the folder must exist). `status.json` holds the same
-numbers for a script.
+Expect `Up ...` and lines such as `started ablated-baseline-fixed:u01_non_thinking_v7 (attempt 1)`.
+If the container is gone, run `docker logs mg2-queue` and read the last lines; the usual cause is
+the server check in Part 8.
 
-## Control it while it runs
+## Part 4. Watch it, or leave it
 
-Files in `/work/<queue name>/` (use `docker exec mg2-queue touch ...`):
+You do not have to watch. Come back whenever you like.
 
-| File | Effect |
-| --- | --- |
-| `PAUSE` | start nothing new; running sessions finish |
-| `KILL` | stop every session before its next trial; rerun the same command to resume |
-| `ALLOW_FINAL` | let jobs marked `"final": true` start; nothing else ever starts them |
+```powershell
+docker exec mg2-queue cat /work/_status/status.md
+docker exec mg2-queue sh -c 'tail -n 5 /work/mg2-baseline/*.log'
+docker logs --tail 20 mg2-queue
+```
 
-Edit the queue file to add jobs or remove ones that have not started; it is read again between
-sessions. `name`, `model_root` and `slots` cannot change. A prompt already in the queue must stay
-byte-identical, or the queue refuses to continue.
+The status file shows trials done of the total, the time left, how many slots are busy and which
+session is running. Sessions are named `<job>:<prompt>`. A session may show `idle_seconds`; if one
+passes 1800 the queue restarts that session by itself.
 
-## What the queue does by itself
+A page for the same information (optional, start it after the queue has begun):
 
-- A session that exits non-zero, or whose ledger has not moved for 30 minutes, is started again,
-  at most 3 times, then marked `FAILED`.
-- While the model container is `unhealthy` or down, running sessions are stopped between trials and
-  nothing starts. After 2 minutes it restarts the container (`docker restart`, same flags), at
-  most twice, then waits for you. Trials that were in flight during an outage are recorded as
-  infrastructure failures; list them in the report, do not hide them.
-- A development session is scored the moment it is whole, and when the queue ends `compare.csv` in
-  the queue folder puts the sessions side by side. A final session is never scored automatically.
+```powershell
+docker compose --profile monitor up -d status
+ipconfig
+```
 
-## Afterwards
+Open `http://localhost:8099`, or `http://<this PC's IPv4 address>:8099` from another machine on the
+network. It is read-only, serves one folder, and reloads every 30 seconds. Stop it with
+`docker compose --profile monitor rm -sf status`.
+
+### Control it while it runs
+
+```powershell
+docker exec mg2-queue touch /work/mg2-baseline/PAUSE    # start nothing new; running sessions finish
+docker exec mg2-queue rm /work/mg2-baseline/PAUSE       # carry on
+docker exec mg2-queue touch /work/mg2-baseline/KILL     # stop every session before its next trial
+```
+
+`KILL` ends the queue with exit code 3 and the message `stopped by KILL. Remove it and rerun the same
+command to resume.` The container is then gone, so remove the file this way and start Part 3 again:
+
+```powershell
+docker compose --profile tools run --rm --no-deps trials rm /work/mg2-baseline/KILL
+```
+
+Nothing finished is repeated: every session continues from its own ledger. The same applies if the
+PC reboots; run the two Part 3 commands again.
+
+### What the queue does by itself
+
+- A session that exits non-zero, or whose ledger has not moved for 30 minutes, is started again, at
+  most 3 times, then marked `FAILED`.
+- While the model container is `unhealthy` or down, running sessions stop between trials and nothing
+  new starts. After 2 minutes it restarts the model (same flags), at most twice, then waits for you.
+  Trials in flight during an outage are recorded as infrastructure failures. List them in the
+  report; do not hide them.
+- Each finished development session is scored as soon as it is whole. When the queue ends,
+  `compare.csv` in `/work/mg2-baseline/` puts the sessions side by side.
+
+The queue ends by itself. Exit code 0 prints `queue finished; development sessions are scored`.
+Exit code 1 lists the sessions that failed after 3 attempts.
+
+```powershell
+docker wait mg2-queue
+docker logs --tail 5 mg2-queue
+```
+
+`docker wait` blocks until it ends and prints the exit code.
+
+## Part 5. The agent queue, from the same build
+
+When the baseline queue has finished, with **no rebuild and no pull**:
+
+```powershell
+docker rm mg2-queue
+docker compose --profile tools run -d --name mg2-queue trials python scripts/run_queue.py docs/checkpoints/mg2/queue/queue-agents.json
+```
+
+Watch and control it as in Part 4, replacing `mg2-baseline` with `mg2-agents` in the paths. The
+model container stays up between the two queues; if you stopped it, repeat Part 1 step 6 with the
+same `$env:SLOTS`.
+
+You can edit `queue-agents.json` while it runs: it is read again between sessions. Adding a job or
+removing one that has not started is allowed. A prompt that is already in the queue must stay
+byte-identical, and `name`, `model_root` and `slots` cannot change, or the queue refuses.
+
+## Part 6. After each queue: export and commit
 
 ```powershell
 & $sh scripts/docker/export-results.sh mg2-baseline docs/checkpoints/mg2/runs/pc
+& $sh scripts/docker/export-results.sh mg2-agents docs/checkpoints/mg2/runs/pc
+git status --short
 ```
 
-Commit what it copies, as MG1 did. Do not commit weights, tokens or `.env` values. Then append
-the result, the decision and what it motivates to `EXPERIMENT_LOG.md`.
+Expect `Exported mg2-baseline to ...` and files under `docs\checkpoints\mg2\runs\pc`. It copies
+ledgers, results, protocols, scores, tables, logs and isolation evidence for each session. Bundles
+and data roots hold dossier data and stay in the volume. Then:
 
-## What to read, and how to report it
+1. Read `compare.csv` and the tables, and report as in Part 7.
+2. Add the result, the decision and what it motivates as the next numbered entry in
+   `EXPERIMENT_LOG.md` (entry 12 onward). Never edit an earlier entry.
+3. Commit only the exported files and the log. Do not commit weights, tokens, `.env` values or
+   anything from `benchmarks\hidden`.
+
+## Part 7. What to read, and how to report it
 
 - `supported_case_success` per arm and arena, with the paired bootstrap against SC. Report each
-  number twice: full, and deterministic-only from `t3_model_influence`. The agents' contribution
-  is the gap.
-- False positives per case and proposals rejected, by reason: `NO_VERIFIED_CLAIM` (no verified
-  claim backed it) and `CONTRADICTED_BY_CALCULATION`.
-- Per agent, the schema-valid, semantically-valid and wrong-but-valid rates, calls, tokens, wall.
+  number twice: full, and deterministic-only from `t3_model_influence`. The agents' contribution is
+  the gap.
+- False positives per case, and proposals rejected by reason (`NO_VERIFIED_CLAIM`,
+  `CONTRADICTED_BY_CALCULATION`).
+- Per agent: schema-valid, semantically valid and wrong-but-valid rates, calls, tokens, wall time.
 - From `graph.agent.result` in the traces: the Retriever's grades, refusals, searches and
-  reformulations, claims proposed, verified and dropped (and why), passages read of passages
-  available, and why it stopped.
-- Signal families against judgement families, as in MG1 Improvement 2.
+  reformulations; claims proposed, verified and dropped, and why; passages read of passages
+  available; why it stopped.
+- Signal families against judgement families, as in MG1 improvement 2.
+- Infrastructure failures from outages, listed separately.
 
-## Choosing, freezing, and the held-out run
+A result of no lift is valid. Report it as such.
 
-1. Apply the selection rule in `PREREGISTRATION.md` to the development sessions. v4 is added only
-   if a result motivates one change; log the reason before it runs.
-2. A person creates and commits the freeze manifest (`benchmarks/evaluation/freeze.py`) for the
-   chosen prompt digests, code revision and slot count. Nothing is tuned after this.
-3. Add one job per arm to a new queue file, each with `"final": true` and
-   `"held_out": "<committed freeze file>"`, for D0, SC, v7 (S1) and the single best new arm.
-4. `docker exec mg2-queue touch /work/<queue name>/ALLOW_FINAL`. The sealed 24 held-out dossiers
-   run once. `run_trials.py` refuses without a freeze that verifies against this exact code and
-   protocol. Report the result whatever it is.
+## Part 8. Something went wrong
+
+| What you see | Cause | What to do |
+| --- | --- | --- |
+| `range of CPUs is from 0.01 to N.00` in a trial's `child.log`; every trial `INFRA_FAILED` | Docker has fewer than 8 CPUs | Part 0, `.wslconfig` |
+| Queue exits: `the model server runs with None, the sweep needs [...]` | model not started, or started with other slots | Part 1 step 6 |
+| Queue exits: `a configuration changed since this queue started` | a prompt, the model or the code changed under a running queue | start a new queue `name`; never mix |
+| Queue exits: `this queue name was used with another model or slot count` | `slots` was edited after the queue began | restore it, or use a new `name` |
+| `run_trials.py` refuses: `api` is up | the demo stack is running | `docker compose --profile demo down` |
+| Docker error `container name "/mg2-queue" is already in use` | an old queue container exists | `docker rm mg2-queue` |
+| A session shows `FAILED` | 3 attempts exhausted; rerunning the queue does **not** retry it | read `/work/<queue>/<job>-<prompt>.log`, fix the cause, then run that job again in a new queue file with a new `name`; report both |
+| `compare.csv` is missing | a session is not whole | `docker exec mg2-queue cat /work/_status/status.md` |
+| Probe fails or replies are refused | model server or reply format | `docker compose logs model`; `docs/checkpoints/mg1/DOCKER_RUNBOOK.md` section "If the first start fails" lists causes and where to fix them |
+| The status page is blank | queue has not begun, so `/work/_status` does not exist yet | start the queue, then `docker compose --profile monitor up -d --force-recreate status` |
+
+To look inside a session's data: `docker compose --profile tools run --rm --no-deps trials ls /work`.
+
+Never delete the Docker volumes (`recycleguard-trial-data`, `recycleguard-model-weights`,
+`recycleguard-model-provenance`, `recycleguard-evaluator-data`): they hold the ledgers, the 10 GB
+download and the evaluator data. `docker compose down` without `-v` is safe.
+
+## Part 9. Choose, freeze, and the held-out run (a person does this)
+
+This part cannot be run from here step by step yet, and it should not be rushed. The held-out
+dossiers run once, for D0, SC, v7 and the single best new arm, and the result stands.
+
+1. Apply the selection rule in `PREREGISTRATION.md` (false positives first, then recall, then calls)
+   to the development sessions. A fourth prompt version is allowed only if a result motivates one
+   change; log the reason before it runs.
+2. Commit and push everything. The tree must be clean. Rebuild the image from that commit.
+3. A person builds a freeze manifest with `scripts/make_freeze.py <spec.json> <freeze.json>` for the
+   chosen prompt digests, code revision and slot count, and the protocol digest. Nothing is tuned
+   after this.
+4. A final queue file lists one job per arm with `"final": true` and `"held_out": "<freeze file>"`.
+   Start it as in Part 3, then allow it: `docker exec mg2-queue touch /work/<queue name>/ALLOW_FINAL`.
+   `run_trials.py` refuses unless the freeze verifies against this exact code and protocol.
+
+Two things are **not verified and need a decision before step 3**, so do not start without them:
+
+- `verify_freeze(strict_commit=True)` compares the current commit to the frozen one. A committed
+  freeze file creates a newer commit, so it can never verify. Decide how the file is kept (for
+  example, untracked and copied into the image) and test it on a development protocol first.
+- The freeze must name `held_out_visible_root`, a directory that exists where the run happens.
+  Confirm which folder holds the held-out visible dossiers in the evaluator volume.
 
 checking-8 is a development set that has been looked at; report it as a secondary check only.
 
 ## Known limits
 
-- The status page and the container restart are untested on the PC. MG1 ran at most 4 sessions
-  at once; 6 is new. If sessions collide on a container name or the GPU runs out of memory, drop
-  the queue's `slots` to 4 and note it in the log.
-- Greedy decoding under several slots can differ in the last digits of the logits, so compare
-  arms only inside one slot count, and use the repeats.
+- The status page, the model restart and six concurrent sessions are untested on the PC. The earlier
+  runs used at most four. If sessions collide or the GPU runs out of memory, use 4 slots and note it.
+- Greedy decoding under several slots can differ in the last digits of the logits. Compare arms only
+  inside one slot count, and use the repeats.
 - A 9B model chooses passages from their first 100 characters. Coverage shows what was not read.
-- n=16 with one or two cases per family: intervals are wide.
+- n=16 with one or two cases per family: the intervals are wide.
