@@ -183,6 +183,19 @@ def test_a_final_job_waits_for_a_human_and_is_never_run_by_the_queue_alone(world
     assert world.launched == ["q1-a-p1", "q1-f-p2"]
 
 
+def test_check_lists_sessions_and_trials_and_starts_nothing(world):
+    path = world.write_queue([world.job("a", ["p1", "p2"]), world.job("b", ["p1"], final=True)])
+    world.progress[world.work / "q1-a-p1"] = 1
+    lines = []
+    world.queue.check(path, out=lines.append)
+    assert lines[0].startswith("a:p1") and "1 of    2 trials" in lines[0]
+    assert lines[2].endswith("FINAL")
+    assert lines[-1] == "queue q1: 3 sessions, 6 trials, 2 slots"
+    assert world.launched == [] and not (world.work / "q1").exists()
+    with pytest.raises(SystemExit, match="no prompt file"):
+        world.queue.check(world.write_queue([world.job("a", ["nope"])]), out=lines.append)
+
+
 def test_a_queue_file_is_checked(world):
     bad = world.write_queue([world.job("a", ["nope"])])
     with pytest.raises(SystemExit, match="no prompt file"):

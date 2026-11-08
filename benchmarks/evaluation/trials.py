@@ -53,13 +53,15 @@ class TrialOutcome(BaseModel):
 
 def build_schedule(
     case_ids: Iterable[str],
-    variants: tuple[str, str],
+    variants: tuple[str, ...],
     repeats: int,
     *,
     controls: Iterable[str] = (),
     canaries: Iterable[str] = (),
 ) -> list[TrialSpec]:
-    """Repeat-major order; the two variants alternate which runs first from case to case.
+    """Repeat-major order; two variants alternate which runs first from case to case.
+
+    One variant is allowed for an arm compared with the controls rather than with another variant.
 
     Controls are deterministic, so they run once per case after the real-model trials. A canary
     is a development case run at both ends of a session to expose drift; it is never scored.
@@ -67,8 +69,8 @@ def build_schedule(
     cases, controls, canaries = list(case_ids), tuple(controls), list(canaries)
     if len(set(cases)) != len(cases) or len(set(canaries)) != len(canaries):
         raise ValueError("case ids must be unique")
-    if len(variants) != 2 or len(set(variants)) != 2 or repeats < 1:
-        raise ValueError("two distinct variants and at least one repeat are required")
+    if not 1 <= len(variants) <= 2 or len(set(variants)) != len(variants) or repeats < 1:
+        raise ValueError("one or two distinct variants and at least one repeat are required")
     if not set(controls) <= set(CONTROLS) or len(set(controls)) != len(controls):
         raise ValueError("controls must be distinct values of V0 and SC")
     if set(canaries) & set(cases):

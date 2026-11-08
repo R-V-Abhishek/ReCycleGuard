@@ -23,6 +23,16 @@ def test_schedule_is_repeat_major_and_counterbalanced():
     assert len({s.trial_id for s in schedule}) == 16
 
 
+def test_schedule_accepts_one_variant_and_the_controls():
+    schedule = build_schedule(["a", "b"], ("V1",), 2, controls=("V0", "SC"))
+    assert [s.variant for s in schedule] == ["V1", "V1", "V1", "V1", "V0", "SC", "V0", "SC"]
+    assert len({s.trial_id for s in schedule}) == len(schedule)
+    with pytest.raises(ValueError):
+        build_schedule(["a"], (), 1)
+    with pytest.raises(ValueError):
+        build_schedule(["a"], ("V1", "V2", "V3"), 1)
+
+
 def test_schedule_rejects_duplicate_cases_and_bad_variants():
     with pytest.raises(ValueError):
         build_schedule(["a", "a"], ("V1", "V2"), 1)

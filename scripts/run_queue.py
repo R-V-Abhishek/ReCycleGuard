@@ -5,6 +5,7 @@ sweep runs one protocol and waits for its slowest prompt, a queue is one pool of
 many jobs: a slot that frees starts the next session of any job, so nothing idles at the tail.
 
     python scripts/run_queue.py docs/checkpoints/mg2/queue/queue-a.json     # in `trials`
+    python scripts/run_queue.py --check docs/checkpoints/mg2/queue/queue-a.json   # read-only
 
 Queue: {"queue_version": "mg2-queue", "name": "q1", "model_root": "/models/provenance/<slug>",
 "slots": 6, "jobs": [{"id": "ablated", "protocol": "<protocol.json>", "prompts": ["<version>"]}]}
@@ -468,7 +469,23 @@ def run(
         sleep(poll)
 
 
+def check(queue_path, out=print):
+    """Validate a queue file and list its sessions and trials. Starts and writes nothing."""
+    queue = load_queue(queue_path, sibling("run_sweep"))
+    total = 0
+    for session in sessions_of(queue):
+        done, count = trial_counts(output_of(queue, session), session.protocol)
+        total += count
+        kind = "FINAL" if session.final else "development"
+        out(f"{session.key:50} {done:4} of {count:4} trials  {kind}")
+    names = len(sessions_of(queue))
+    out(f"queue {queue['name']}: {names} sessions, {total} trials, {queue['slots']} slots")
+
+
 def main(argv):
+    if len(argv) == 2 and argv[0] == "--check":
+        check(Path(argv[1]))
+        return
     if len(argv) != 1:
         raise SystemExit(__doc__)
     state = run(Path(argv[0]))
