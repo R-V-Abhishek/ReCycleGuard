@@ -6,6 +6,7 @@ many jobs: a slot that frees starts the next session of any job, so nothing idle
 
     python scripts/run_queue.py docs/checkpoints/mg2/queue/queue-a.json     # in `trials`
     python scripts/run_queue.py --check docs/checkpoints/mg2/queue/queue-a.json   # read-only
+    uv run scripts/run_queue.py --host docs/checkpoints/mg2/queue/t4/queue-t4-core.json  # no Docker
 
 Queue: {"queue_version": "mg2-queue", "name": "q1", "model_root": "/models/provenance/<slug>",
 "slots": 6, "jobs": [{"id": "ablated", "protocol": "<protocol.json>", "prompts": ["<version>"]}]}
@@ -21,6 +22,10 @@ A session that exits non-zero, or whose ledger has not moved for ``stall_seconds
 running sessions are stopped between trials; it is restarted, at most twice, with the flags it has.
 Trials that were in flight during an outage are recorded by the runner as infrastructure failures;
 list them in the report. Status goes to ``/work/_status`` as status.json, status.md and index.html.
+
+``--host`` is for a machine without Docker (docs/checkpoints/mg2/CLOUD_RUNBOOK.md):
+trials run with ``--isolation-disclosed``, health is the server's own ``/health`` on the same
+machine, a restart runs ``/work/_model/start.sh``, and final or held-out jobs are refused.
 """
 
 import html
@@ -30,6 +35,8 @@ import os
 import subprocess
 import sys
 import time
+import urllib.error
+import urllib.request
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -37,7 +44,8 @@ from pathlib import Path
 REPOSITORY = Path(__file__).resolve().parents[1]
 SCRIPTS = Path(__file__).resolve().parent
 sys.path.insert(0, str(REPOSITORY))
-WORK = Path("/work")
+# RECYCLEGUARD_WORK moves it for a dry run on a machine without /work (CLOUD_RUNBOOK.md).
+WORK = Path(os.environ.get("RECYCLEGUARD_WORK", "/work"))
 MODEL_CONTAINER = "recycleguard-model"
 MAX_ATTEMPTS = 3
 MAX_RESTARTS = 2
@@ -45,6 +53,8 @@ POLL_SECONDS = 15
 STALL_SECONDS = 1800
 UNHEALTHY_GRACE_SECONDS = 120
 RESTART_WAIT_SECONDS = 900
+HOST_HEALTH_URL = "http://127.0.0.1:8766/health"
+DOCKER_TRIALS, HOST_TRIALS = "--docker", "--isolation-disclosed"
 JOB_KEYS = {"id", "protocol", "prompts"}
 OPTIONAL_JOB_KEYS = {"final", "held_out"}
 
@@ -158,6 +168,32 @@ def restart_model(run=subprocess.run):
     )
 
 
+def host_model_health(fetch=urllib.request.urlopen):
+    """The same four states from llama-server's /health: 503 means it is still loading."""
+    try:
+        with fetch(HOST_HEALTH_URL, timeout=5) as response:
+            return "healthy" if response.status == 200 else "unhealthy"
+    except urllib.error.HTTPError as exc:
+        return "starting" if exc.code == 503 else "unhealthy"
+    except (urllib.error.URLError, OSError):
+        return "down"
+
+
+def host_restart_model(run=subprocess.run):
+    """Run the start script the cloud bootstrap wrote; same flags, so the same pin."""
+    script = WORK / "_model" / "start.sh"
+    if not script.is_file():
+        return False
+    return run(["sh", str(script)], capture_output=True, check=False).returncode == 0
+
+
+def require_no_final(queue):
+    """Held-out and final runs need the container isolation; a host queue never starts one."""
+    final = [job["id"] for job in queue["jobs"] if job.get("final") or job.get("held_out")]
+    if final:
+        raise SystemExit(f"--host cannot run final or held-out jobs: {final}")
+
+
 def atomic_write(path, text):
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
@@ -240,7 +276,7 @@ def write_status(snapshot):
     )
 
 
-def command_for(queue, session, config):
+def command_for(queue, session, config, trials=DOCKER_TRIALS):
     command = [
         sys.executable,
         str(SCRIPTS / "run_trials.py"),
@@ -248,7 +284,7 @@ def command_for(queue, session, config):
         str(output_of(queue, session)),
         "--config",
         str(config),
-        "--docker",
+        trials,
     ]
     if session.held_out:
         command += ["--held-out", str(REPOSITORY / session.held_out)]
@@ -302,9 +338,12 @@ def run(
     clock=time.time,
     poll=POLL_SECONDS,
     stall_seconds=STALL_SECONDS,
+    host=False,
 ):
     sweep = sibling("run_sweep")
     queue = load_queue(queue_path, sweep)
+    if host:
+        require_no_final(queue)
     folder = WORK / queue["name"]
     folder.mkdir(parents=True, exist_ok=True)
     identity = {key: queue[key] for key in ("name", "model_root", "slots")}
@@ -327,6 +366,8 @@ def run(
     while True:
         try:
             current = load_queue(queue_path, sweep)
+            if host:
+                require_no_final(current)
             if {key: current[key] for key in identity} != identity:
                 raise SystemExit("name, model_root and slots cannot change while a queue runs")
             if current["jobs"] != queue["jobs"]:
@@ -410,7 +451,12 @@ def run(
                 output = output_of(queue, session)
                 log = (folder / f"{session.job}-{session.prompt}.log").open("ab")
                 process = launch(
-                    command_for(queue, session, configs[session.prompt]),
+                    command_for(
+                        queue,
+                        session,
+                        configs[session.prompt],
+                        HOST_TRIALS if host else DOCKER_TRIALS,
+                    ),
                     stdout=log,
                     stderr=subprocess.STDOUT,
                 )
@@ -486,9 +532,13 @@ def main(argv):
     if len(argv) == 2 and argv[0] == "--check":
         check(Path(argv[1]))
         return
-    if len(argv) != 1:
+    host = bool(argv) and argv[0] == "--host"
+    if len(argv) != 1 + host:
         raise SystemExit(__doc__)
-    state = run(Path(argv[0]))
+    if host:
+        state = run(Path(argv[1]), health=host_model_health, restart=host_restart_model, host=True)
+    else:
+        state = run(Path(argv[0]))
     failed = sorted(k for k, v in state.data["sessions"].items() if v["status"] == "FAILED")
     if failed:
         print(f"sessions that failed after {MAX_ATTEMPTS} attempts: {failed}")

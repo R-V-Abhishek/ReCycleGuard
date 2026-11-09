@@ -123,3 +123,27 @@ families off), **held-out** (24 sealed dossiers, never opened).
   PC needs 8 CPUs visible to Docker; the runbook checks this first.
 - **Decision.** Proceed with the registered design. The runbook was rewritten to be self-contained
   after team feedback that it did not work as intended and needed every command in order.
+
+### 11b. A T4 series on free notebooks while the PC is unavailable (no data yet)
+- **Why.** The PC cannot be reached for at least two days. The Retriever+Classifier arm has to run
+  at least once before the review. Only free compute on our own accounts is available (one account
+  per platform; Colab's FAQ disallows several accounts used to get around its limits).
+- **Changed.** `run_queue.py --host` runs the same queue without Docker. Trials use the existing
+  `--isolation-disclosed` backend, health is the server's `/health`, a restart runs the start
+  script, and final or held-out jobs are refused. `RECYCLEGUARD_WORK` moves `/work` for a laptop dry
+  run. `start_model.py` takes the binary path from `LLAMA_SERVER`. `scripts/cloud/` adds the
+  bootstrap, a persist copy (ledgers last, a torn last line dropped) and `score.py`.
+  `export-results.sh` copies from a local folder. `deploy/cloud/mg2_t4.ipynb` and
+  `CLOUD_RUNBOOK.md` are the procedure. The three queues in `queue/t4/` hold the 18 PC sessions
+  unchanged, at 3 slots: `mg2-t4-core` (v7 ADAPTIVE and Retriever+Classifier v1 in both arenas),
+  `mg2-t4-ablated-rest` and `mg2-t4-rules-on-rest`.
+- **Checked on the laptop, fixture model only (not evidence).** A host-mode queue of two shortened
+  sessions ran, was scored and was exported. The v7 and SC trials ran through. The
+  Retriever+Classifier trials ended in `PROVIDER_FAILURE` after one call, because the fixture model
+  only answers v7-shaped prompts. Persist save and restore were tested with a torn ledger line.
+- **Not checked.** Extracting the pinned llama.cpp binary on a notebook VM, VRAM headroom at 3 slots
+  on a T4, and throughput.
+- **Data.** None.
+- **Decision.** Run `mg2-t4-core` on Kaggle and `mg2-t4-rules-on-rest` on Colab at the same time,
+  then `mg2-t4-ablated-rest`. Label every result *T4, cooperative isolation, s3*. Never pool these
+  results with PC runs. Entry 12 will be the first result.

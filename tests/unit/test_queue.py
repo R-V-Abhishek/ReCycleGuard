@@ -253,3 +253,68 @@ def test_the_model_container_state_is_read_from_docker(world, output, code, expe
         returncode, stdout = code, output
 
     assert world.queue.model_health(lambda *args, **kwargs: Done()) == expected
+
+
+def test_a_host_queue_runs_trials_without_docker_and_refuses_final_jobs(world):
+    commands = []
+
+    def launch(command, stdout, stderr):
+        commands.append(command)
+        return world.launch(command, stdout, stderr)
+
+    path = world.write_queue([world.job("a", ["p1"])])
+    world.queue.run(
+        path,
+        launch=launch,
+        health=lambda: "healthy",
+        restart=lambda: True,
+        sleep=world.sleep,
+        clock=lambda: world.now,
+        poll=0,
+        host=True,
+    )
+    assert commands[0][-1] == "--isolation-disclosed" and "--docker" not in commands[0]
+    final = world.write_queue([world.job("a", ["p1"]), world.job("f", ["p2"], final=True)])
+    with pytest.raises(SystemExit, match="cannot run final or held-out"):
+        world.run(final, host=True)
+
+
+@pytest.mark.parametrize(
+    ("reply", "expected"),
+    [(200, "healthy"), (503, "starting"), (500, "unhealthy"), (None, "down")],
+)
+def test_the_host_model_state_is_read_from_its_health_endpoint(world, reply, expected):
+    import urllib.error
+
+    class Response:
+        status = reply
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+    def fetch(url, timeout):
+        assert url == "http://127.0.0.1:8766/health"
+        if reply is None:
+            raise urllib.error.URLError("refused")
+        if reply != 200:
+            raise urllib.error.HTTPError(url, reply, "", {}, None)
+        return Response()
+
+    assert world.queue.host_model_health(fetch) == expected
+
+
+def test_a_host_restart_needs_the_start_script(world):
+    assert world.queue.host_restart_model() is False
+    script = world.work / "_model" / "start.sh"
+    script.parent.mkdir()
+    script.write_text("true\n", "utf-8")
+    ran = []
+
+    class Done:
+        returncode = 0
+
+    assert world.queue.host_restart_model(lambda *a, **k: ran.append(a[0]) or Done()) is True
+    assert ran == [["sh", str(script)]]

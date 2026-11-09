@@ -9,7 +9,8 @@ from pathlib import Path
 
 WEIGHTS = Path("/models/weights")
 PROVENANCE = Path("/models/provenance")
-SERVER = "/app/llama-server"
+# Without Docker (docs/checkpoints/mg2/CLOUD_RUNBOOK.md) the same binary lives elsewhere.
+SERVER = os.environ.get("LLAMA_SERVER", "/app/llama-server")
 PORT = "8766"
 SLOT_CONTEXT = 32768
 CONSTRAINED_FLAG = "--constrained-json"

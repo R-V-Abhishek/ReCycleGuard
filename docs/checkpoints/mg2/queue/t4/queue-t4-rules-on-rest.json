@@ -1,0 +1,39 @@
+{
+  "queue_version": "mg2-queue",
+  "model_root": "/models/provenance/qwen3.5-9b-q8_0",
+  "slots": 3,
+  "name": "mg2-t4-rules-on-rest",
+  "jobs": [
+    {
+      "id": "rules-on-baseline-fixed",
+      "protocol": "docs/checkpoints/mg2/protocols/rules-on-baseline-fixed.json",
+      "prompts": [
+        "u01_non_thinking_v7"
+      ]
+    },
+    {
+      "id": "rules-on-classifier",
+      "protocol": "docs/checkpoints/mg2/protocols/rules-on-classifier.json",
+      "prompts": [
+        "mg2_agents_v2",
+        "mg2_agents_v3"
+      ]
+    },
+    {
+      "id": "rules-on-classifier-only",
+      "protocol": "docs/checkpoints/mg2/protocols/rules-on-classifier-only.json",
+      "prompts": [
+        "mg2_agents_v1",
+        "mg2_agents_v3"
+      ]
+    },
+    {
+      "id": "rules-on-lookup",
+      "protocol": "docs/checkpoints/mg2/protocols/rules-on-lookup.json",
+      "prompts": [
+        "mg2_agents_v1",
+        "mg2_agents_v2"
+      ]
+    }
+  ]
+}
