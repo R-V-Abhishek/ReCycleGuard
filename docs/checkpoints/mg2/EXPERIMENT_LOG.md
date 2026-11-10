@@ -177,7 +177,7 @@ families off), **held-out** (24 sealed dossiers, never opened).
 
 ### 13. Ablated remainder: `mg2-t4-ablated-rest` (T4, cooperative isolation, s3)
 - **Hypothesis.** As entry 11, for the other ablated arms: v7 FIXED, M2 with prompts v2 and v3,
-  the Classifier alone (M1, v1 and v3) and the Retriever alone (lookup, v1 and v2).
+  the Classifier alone (M2-nr, v1 and v3) and the Retriever with the deterministic lookup (M1, v1 and v2).
 - **Run.** Kaggle, Tesla T4 (driver 580.178.04), revision `f792dc1`, the same llama-server build
   12033 from the pinned image, 3 slots, 11,525 of 15,360 MiB used after the probe. Started fresh
   (nothing restored). 336 of 336 trials; the first ledger line is at 08:11 and the last at 11:07
@@ -194,19 +194,52 @@ families off), **held-out** (24 sealed dossiers, never opened).
   | v7 FIXED | 0 of 32 | 0 / 1 (F07) | 2 / 1 | 6.1, 117 |
   | M2 v2 | 0 of 32 | 6 / 47 (F05 23, F14 12, F07 11, F04 1) | 65 / 53 | 5.7, 177 |
   | M2 v3 | 0 of 32 | 2 / 42 (F05 17, F07 11, F14 8, F16 6) | 55 / 44 | 5.7, 165 |
-  | M1 v1 (Classifier only) | 2 of 32 | 2 / 0 (found F10 2) | 39 / 2 | 1.1, 60 |
-  | M1 v3 (Classifier only) | 2 of 32 | 3 / 0 (found F10 2, F06 1) | 37 / 3 | 1.8, 71 |
-  | Lookup v1 (Retriever only) | 1 of 32 | 6 / 36 (F05 17, F07 8, F14 7, F16 2, F11 1, F13 1) | 42 / 42 | 4.7, 120 |
-  | Lookup v2 (Retriever only) | 0 of 32 | 3 / 28 (F05 14, F07 7, F14 6, F13 1) | 31 / 31 | 4.2, 101 |
+  | M2-nr v1 (Classifier alone) | 2 of 32 | 2 / 0 (found F10 2) | 39 / 2 | 1.1, 60 |
+  | M2-nr v3 (Classifier alone) | 2 of 32 | 3 / 0 (found F10 2, F06 1) | 37 / 3 | 1.8, 71 |
+  | M1 v1 (Retriever + lookup) | 1 of 32 | 6 / 36 (F05 17, F07 8, F14 7, F16 2, F11 1, F13 1) | 42 / 42 | 4.7, 120 |
+  | M1 v2 (Retriever + lookup) | 0 of 32 | 3 / 28 (F05 14, F07 7, F14 6, F13 1) | 31 / 31 | 4.2, 101 |
 
-  Most rejections of M1 claims were `NO_VERIFIED_CLAIM` (34 of 37 for v1, 33 of 34 for v3). The
-  M2 gate rejected 12 (v2) and 11 (v3). Lookup proposals were all accepted.
+  Most rejections of M2-nr claims were `NO_VERIFIED_CLAIM` (34 of 37 for v1, 33 of 34 for v3). The
+  M2 gate rejected 12 (v2) and 11 (v3). M1 proposals were all accepted.
 - **Reading (inference, not yet analysed).** Every arm that uses the Retriever produces the same
   false-positive families as M2 v1 in entry 12 (F05, F07, F14), and v2 and v3 do not reduce them.
   The Classifier alone makes no false positive because the gate rejects almost all of its claims.
-  By the selection rule (fewest false positives, then ablated recall), M1 leads the ablated arena,
+  By the selection rule (fewest false positives, then ablated recall), M2-nr leads the ablated arena,
   with 2 of 32 cases (95% CI 0 to 0.19) and 2 of 42 (v1) or 3 of 40 (v3, one trial failed) findings. Neither can be selected
   without its rules-on gate result, which is in `mg2-t4-rules-on-rest`.
 - **Not shown.** `mg2-t4-rules-on-rest` (Colab) ran but its records are not available. No
   `recycleguard-work` folder exists in the account's Drive, so the 10-minute copies did not reach
   it or went to another account. Not yet explained.
+
+### 14. Rules-on remainder: `mg2-t4-rules-on-rest` (T4, cooperative isolation, s3)
+- **Hypothesis.** As entry 11: the gate for every arm of entry 13, with the rules on.
+- **Run.** Rerun on Kaggle in place of the lost Colab run (entry 13; none of its records are used).
+  Tesla T4 (driver 580.178.04), revision `19cca05`, llama-server build 12033 from the pinned
+  image, 3 slots, 11,525 of 15,360 MiB used after the probe. Started fresh. 448 of 448 trials, all
+  `SUCCESS` on the first attempt, with ledger lines from 13:15 to 16:21 UTC on 2026-11-10. The
+  10-minute copy stopped at 14:26: rsync exited 24 because a running trial's SQLite `-wal`/`-shm`
+  file vanished mid-copy, and `persist.sh` runs under `set -e`. The notebook's final save copied
+  everything, so nothing was lost here. `persist.sh` now accepts exit 24. The same failure would
+  have stopped the Colab copies to Drive (inference: the Colab log was not kept). Scored on the
+  laptop; machine records in `runs/t4/mg2-t4-rules-on-rest/machine-kaggle-3/`.
+- **Data.** rules on (tuning-16), 2 repeats per arm, SC and V0 controls per session.
+- **Result.** SC and V0 16 of 16 with no false positive in all seven sessions.
+
+  | Arm | Cases (95% CI) | True / false positives | Proposed / accepted |
+  | --- | --- | --- | --- |
+  | v7 FIXED | 32 of 32 | 42 / 0 | 1 / 0 |
+  | M2 v2 | 15 of 32 (0.31 to 0.63) | 42 / 25 (F05 16, F14 7, F16 2) | 38 / 25 |
+  | M2 v3 | 12 of 32 (0.19 to 0.59) | 40 / 35 (F05 20, F16 7, F14 6, F08 1, F13 1) | 46 / 35 |
+  | M2-nr v1 | 30 of 32 (0.81 to 1.00) | 42 / 2 (F03 2) | 26 / 2 |
+  | M2-nr v3 | 31 of 32 (0.91 to 1.00) | 42 / 1 (F08 1) | 18 / 1 |
+  | M1 v1 | 9 of 32 (0.13 to 0.47) | 41 / 37 (F05 22, F14 8, F16 5, F13 2) | 45 / 37 |
+  | M1 v2 | 13 of 32 (0.25 to 0.59) | 41 / 31 (F05 19, F14 8, F16 3, F13 1) | 44 / 31 |
+
+- **Decision (T4 series, entries 12 to 14).** No multi-agent arm passes the rules-on gate (32 of 32
+  and no false positive), so none is selected and nothing is frozen. Only v7 FIXED passes, and it
+  recovers nothing in the ablated arena (entry 13); v7 ADAPTIVE failed the gate at 31 of 32 (entry 12).
+  M2-nr is the nearest: 1 or 2 accepted false positives with the rules on, none in the ablated arena,
+  but only 2 of 32 ablated cases. Every arm with the Retriever has 25 to 37 accepted false
+  positives with the rules on, mostly F05 and F14, as in the ablated arena.
+- **Next.** Find out from the bundles why the gate accepts the Retriever's F05 and F14 claims, and
+  M2-nr's F03 and F08 ones, before any v4 prompt; v4 must be logged before it runs.

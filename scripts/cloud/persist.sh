@@ -16,9 +16,10 @@ command -v rsync >/dev/null 2>&1 || { apt-get -qq update && apt-get -qq install 
 
 copy() {
     mkdir -p "$2"
-    # The model server's log and binaries are per machine; only the records move.
-    rsync -a --exclude ledger.jsonl --exclude _model/server.log "$1/" "$2/"
-    rsync -a --include '*/' --include ledger.jsonl --exclude '*' "$1/" "$2/"
+    # The model server's log and binaries are per machine; only the records move. Exit 24 means a
+    # file vanished mid-copy (a running trial's SQLite -wal/-shm); the next copy takes what remains.
+    rsync -a --exclude ledger.jsonl --exclude _model/server.log "$1/" "$2/" || [ $? -eq 24 ]
+    rsync -a --include '*/' --include ledger.jsonl --exclude '*' "$1/" "$2/" || [ $? -eq 24 ]
     find "$2" -name ledger.jsonl -exec python3 -c '
 import sys
 for name in sys.argv[1:]:
