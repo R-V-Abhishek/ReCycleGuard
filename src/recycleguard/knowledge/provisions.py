@@ -2,6 +2,7 @@
 
 import hashlib
 from datetime import UTC, datetime
+from functools import cache
 from pathlib import Path
 
 from recycleguard.contracts.artifacts import ArtifactRevision
@@ -80,6 +81,17 @@ def register_reviewed_sources(
     return tuple(result)
 
 
+@cache
+def _page_texts(name: str, revision_id: str, data: bytes) -> tuple[tuple[int, str], ...]:
+    """Page text of a pinned source PDF. Parsing takes seconds and depends only on the bytes."""
+    observations, coverage, _, issues = extract_pdf_pages(
+        data, revision_id, f"ext:{name}_provisions"
+    )
+    if issues or len(coverage) != (38 if name == "r02" else 13):
+        raise ValueError(f"source page coverage is incomplete: {name}")
+    return tuple((obs.locator.page_index_1based, obs.parsed_fields["text"]) for obs in observations)
+
+
 def get_reviewed_provisions(
     blob_store: BlobStore,
     *,
@@ -88,16 +100,10 @@ def get_reviewed_provisions(
 ) -> list[ProvisionVersion]:
     """Extract actual page context; all proposals remain DRAFT until trusted review."""
     revisions = {"r02": r02_revision, "r08": r08_revision}
-    pages = {}
-    for name, revision in revisions.items():
-        observations, coverage, _, issues = extract_pdf_pages(
-            blob_store.get(revision.blob), revision.artifact_revision_id, f"ext:{name}_provisions"
-        )
-        if issues or len(coverage) != (38 if name == "r02" else 13):
-            raise ValueError(f"source page coverage is incomplete: {name}")
-        pages[name] = {
-            obs.locator.page_index_1based: obs.parsed_fields["text"] for obs in observations
-        }
+    pages = {
+        name: dict(_page_texts(name, revision.artifact_revision_id, blob_store.get(revision.blob)))
+        for name, revision in revisions.items()
+    }
     definitions = [
         (
             "r02",
