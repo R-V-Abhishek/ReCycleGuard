@@ -174,3 +174,39 @@ families off), **held-out** (24 sealed dossiers, never opened).
 - **Not shown.** These are T4 runs with cooperative isolation and are not pooled with PC runs. M1,
   M2-nr and prompt versions v2 and v3 are in `mg2-t4-ablated-rest` and `mg2-t4-rules-on-rest`,
   still running or not yet run.
+
+### 13. Ablated remainder: `mg2-t4-ablated-rest` (T4, cooperative isolation, s3)
+- **Hypothesis.** As entry 11, for the other ablated arms: v7 FIXED, M2 with prompts v2 and v3,
+  the Classifier alone (M1, v1 and v3) and the Retriever alone (lookup, v1 and v2).
+- **Run.** Kaggle, Tesla T4 (driver 580.178.04), revision `f792dc1`, the same llama-server build
+  12033 from the pinned image, 3 slots, 11,525 of 15,360 MiB used after the probe. Started fresh
+  (nothing restored). 336 of 336 trials; the first ledger line is at 08:11 and the last at 11:07
+  UTC on 2026-11-10. One trial, `case_cab84413b4|CLASSIFIER_ONLY|r1` (classifier-only v3), ended
+  `FAILED` after two `INFRA_FAILED` attempts with `child exit 1`; the same case also failed once
+  under M2 v3 and passed on retry. The child log holds only the `wrapt` sitecustomize warning, so
+  the cause is not known. Scored on the laptop; exported to `runs/t4/`, machine records in
+  `runs/t4/mg2-t4-ablated-rest/machine-kaggle-2/`.
+- **Data.** ablated (tuning-16), 2 repeats per arm, SC controls per session.
+- **Result.** SC 0 of 16 cases and 0 of 21 findings in all seven sessions, as in entries 7 and 12.
+
+  | Arm | Cases | True / false positives | Proposed / accepted | Calls, s per trial |
+  | --- | --- | --- | --- | --- |
+  | v7 FIXED | 0 of 32 | 0 / 1 (F07) | 2 / 1 | 6.1, 117 |
+  | M2 v2 | 0 of 32 | 6 / 47 (F05 23, F14 12, F07 11, F04 1) | 65 / 53 | 5.7, 177 |
+  | M2 v3 | 0 of 32 | 2 / 42 (F05 17, F07 11, F14 8, F16 6) | 55 / 44 | 5.7, 165 |
+  | M1 v1 (Classifier only) | 2 of 32 | 2 / 0 (found F10 2) | 39 / 2 | 1.1, 60 |
+  | M1 v3 (Classifier only) | 2 of 32 | 3 / 0 (found F10 2, F06 1) | 37 / 3 | 1.8, 71 |
+  | Lookup v1 (Retriever only) | 1 of 32 | 6 / 36 (F05 17, F07 8, F14 7, F16 2, F11 1, F13 1) | 42 / 42 | 4.7, 120 |
+  | Lookup v2 (Retriever only) | 0 of 32 | 3 / 28 (F05 14, F07 7, F14 6, F13 1) | 31 / 31 | 4.2, 101 |
+
+  Most rejections of M1 claims were `NO_VERIFIED_CLAIM` (34 of 37 for v1, 33 of 34 for v3). The
+  M2 gate rejected 12 (v2) and 11 (v3). Lookup proposals were all accepted.
+- **Reading (inference, not yet analysed).** Every arm that uses the Retriever produces the same
+  false-positive families as M2 v1 in entry 12 (F05, F07, F14), and v2 and v3 do not reduce them.
+  The Classifier alone makes no false positive because the gate rejects almost all of its claims.
+  By the selection rule (fewest false positives, then ablated recall), M1 leads the ablated arena,
+  with 2 of 32 cases (95% CI 0 to 0.19) and 2 of 42 (v1) or 3 of 40 (v3, one trial failed) findings. Neither can be selected
+  without its rules-on gate result, which is in `mg2-t4-rules-on-rest`.
+- **Not shown.** `mg2-t4-rules-on-rest` (Colab) ran but its records are not available. No
+  `recycleguard-work` folder exists in the account's Drive, so the 10-minute copies did not reach
+  it or went to another account. Not yet explained.
