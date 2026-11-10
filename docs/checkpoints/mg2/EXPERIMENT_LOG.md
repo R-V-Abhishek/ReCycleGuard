@@ -147,3 +147,30 @@ families off), **held-out** (24 sealed dossiers, never opened).
 - **Decision.** Run `mg2-t4-core` on Kaggle and `mg2-t4-rules-on-rest` on Colab at the same time,
   then `mg2-t4-ablated-rest`. Label every result *T4, cooperative isolation, s3*. Never pool these
   results with PC runs. Entry 12 will be the first result.
+
+### 12. First result: `mg2-t4-core` (T4, cooperative isolation, s3)
+- **Hypothesis.** As entry 11: the Retriever+Classifier (M2, prompt `mg2_agents_v1`) recovers
+  families in the ablated arena without a regression with the rules on.
+- **Run.** Kaggle, Tesla T4 (driver 580.178.04), revision `7685b0c`, the pinned image's own
+  llama-server (build 12033), 3 slots, 11,525 of 15,360 MiB used after the probe. 224 of 224 trials
+  within about 2 h 05 min of the bootstrap start (03:25 to 05:30 UTC on 2026-11-10), one attempt
+  per session, no restart and no `INFRA_FAILED`. Scored on the laptop (the notebook held no
+  evaluator data; its own tables had 0 scored). Exported to `runs/t4/`, machine records in `runs/t4/mg2-t4-core/machine-kaggle-1/`.
+- **Data.** ablated and rules on (tuning-16), 2 repeats per arm, SC and V0 controls per session.
+- **Result, ablated (primary).** No arm succeeded on any case. v7 ADAPTIVE 0 of 32, proposed
+  nothing, 39 of 39 expected findings missed. SC 0 of 16 cases and 0 of 21 findings, as in entry 7. Retriever+Classifier 0 of
+  32: it proposed 60 findings, the gate accepted 42, and 1 was right (F16, 1 of 2) and 41 were false
+  (F05 18, F07 11, F14 6, F16 4, F04 1, F11 1). Gate rejections: 12 `NO_VERIFIED_CLAIM`,
+  3 `UNKNOWN_EVIDENCE_REF`, 2 `INVALID_ABSTENTION`, 1 `DUPLICATE_ISSUE_TYPE`. Schema-valid rate
+  0.962, 5.4 model calls and 117 s per trial on average.
+- **Result, rules on (gate).** v7 ADAPTIVE 31 of 32 (one `model-schema` failure), SC and V0 16 of
+  16, no false positive. Retriever+Classifier 10 of 32 (95% CI 0.16 to 0.47; against SC −0.69, CI
+  −0.84 to −0.53): every expected finding but one was found, by the rules, and the model added 38
+  accepted false positives (F05 20, F14 11, F16 4, F03 2, F13 1). Repeats disagreed on 8 of 16 cases.
+- **Decision.** M2 v1 fails the gate (false positives, below 32 of 32) and is not selected. In the
+  ablated arena it is the only arm that proposes anything, but almost all of it is wrong. The
+  gate accepted 79 model claims (41 + 38) across both arenas that the oracle marks false, most of
+  them F05 and F14; why it accepted them has not been analysed yet and is the next step.
+- **Not shown.** These are T4 runs with cooperative isolation and are not pooled with PC runs. M1,
+  M2-nr and prompt versions v2 and v3 are in `mg2-t4-ablated-rest` and `mg2-t4-rules-on-rest`,
+  still running or not yet run.

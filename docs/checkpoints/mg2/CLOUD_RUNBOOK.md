@@ -101,7 +101,8 @@ Rough time: on the PC a v7 trial took about 47 s. Expect 2 to 4 times that on a 
 ## Part 4. Bring the results back and score them on the laptop
 
 1. Download the work folder into a new, empty folder, for example `~/mg2-t4/kaggle-1/work`:
-   - From Kaggle: the version's *Output* → download.
+   - From Kaggle: the version's *Output* → download (one zip). The output is about 65,000 small
+     files; `kaggle kernels output` fetches them one at a time and takes hours.
    - From Colab: `MyDrive/recycleguard-work/work` in Google Drive → download.
 2. Score each queue, from the repository root (the oracle is only here):
 
@@ -109,7 +110,9 @@ Rough time: on the PC a v7 trial took about 47 s. Expect 2 to 4 times that on a 
    RECYCLEGUARD_WORK=~/mg2-t4/kaggle-1/work uv run scripts/cloud/score.py docs/checkpoints/mg2/queue/t4/queue-t4-core.json
    ```
 
-   Expect `scored N sessions; compare.csv in .../work/mg2-t4-core`. Unfinished sessions are
+   Expect `scored N sessions; compare.csv in .../work/mg2-t4-core`. The `-scores` and `-tables`
+   folders that came back from the notebook were made without the oracle (all unscored); this
+   command scores every whole session again and replaces them. Unfinished sessions are
    listed as `not whole, not scored`.
 3. Export what may be committed, by the same rule as the PC, plus the machine record:
 

@@ -43,8 +43,8 @@ def main(argv):
         if done < total:
             unfinished.append(f"{session.key}: {done} of {total}")
             continue
-        existing = Path(f"{output}-tables")
-        tables[session.key] = existing if existing.is_dir() else sweep.score(output)
+        # Always rescore: the notebook's own tables were made without the oracle (all unscored).
+        tables[session.key] = sweep.score(output)
     scored = {key: path for key, path in tables.items() if path is not None}
     if scored:
         atomic_write(WORK / queue["name"] / "compare.csv", sweep.compare(scored))

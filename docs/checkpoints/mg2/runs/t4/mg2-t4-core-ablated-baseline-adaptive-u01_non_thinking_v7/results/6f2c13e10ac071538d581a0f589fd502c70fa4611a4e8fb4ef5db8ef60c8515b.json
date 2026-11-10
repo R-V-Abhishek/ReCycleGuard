@@ -1,0 +1,184 @@
+{
+ "audit_chain": "VERIFIED",
+ "briefs": null,
+ "budget": {
+  "actions": 5,
+  "cost_known_calls": 0,
+  "finding_actions": {
+   "finding:926e537886884b979f3022d4f7e7e3d4": 1
+  },
+  "finding_reformulations": {},
+  "model_calls": 3,
+  "observed_cost_usd": null,
+  "observed_tokens": 8740,
+  "preflight_actions": 1,
+  "report_repairs": 0,
+  "reserved_tokens": 98304,
+  "retries": 0,
+  "tool_calls": 1,
+  "usage_known_calls": 3,
+  "verification_actions": 0
+ },
+ "calls": [
+  {
+   "event_type": "graph.stage.preflight.result",
+   "issue_codes": [],
+   "kind": "STAGE",
+   "operation_id": "operation:run:926e537886884b979f3022d4f7e7e3d4:turn_2:preflight",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.plan.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:926e537886884b979f3022d4f7e7e3d4:turn_3:plan",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.tool.tool.result",
+   "issue_codes": [],
+   "kind": "TOOL",
+   "operation_id": "operation:run:926e537886884b979f3022d4f7e7e3d4:turn_3:tool",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.assess.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:926e537886884b979f3022d4f7e7e3d4:turn_3:assess",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.plan.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:926e537886884b979f3022d4f7e7e3d4:turn_4:plan",
+   "status": "SUCCESS"
+  }
+ ],
+ "case_id": "case_c42a634c48",
+ "census": null,
+ "decisions": [
+  {
+   "attempt_id": "attempt:run:926e537886884b979f3022d4f7e7e3d4:turn_3:plan_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:926e537886884b979f3022d4f7e7e3d4:turn_3:plan",
+   "reply": {
+    "argument_keys": [
+     "observation_ids"
+    ],
+    "concise_reason": "Inspecting the frozen dossier to evaluate page availability and evidence qualifications.",
+    "hypotheses": [
+     "The dossier contains missing or unreadable pages affecting allocation coverage.",
+     "Evidence qualifications are insufficient to support declared allocations."
+    ],
+    "objective": "Assess supported allocation gaps and evidence qualifications in the frozen dossier.",
+    "operation": "inspect_evidence",
+    "proposed_checks": [
+     "inspect_evidence"
+    ],
+    "stop_reason": null
+   },
+   "shown": {
+    "inspectable_observations": 4,
+    "inspectable_total": 43,
+    "pending_findings": 1,
+    "phase": "PLAN",
+    "previous_plans": 0,
+    "previous_rejection": false,
+    "prior_observations": 1
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 341,
+    "elapsed_seconds": 29.374937444999887,
+    "finish_reason": "stop",
+    "prompt_tokens": 2130
+   }
+  },
+  {
+   "attempt_id": "attempt:run:926e537886884b979f3022d4f7e7e3d4:turn_3:assess_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:926e537886884b979f3022d4f7e7e3d4:turn_3:assess",
+   "reply": {
+    "disposition": "CONTINUE",
+    "next_check_or_stop": "continue",
+    "proposal": null,
+    "verdict": "UNKNOWN",
+    "weak_result_or_mistake": null
+   },
+   "shown": {
+    "citable_calculation_ids": 0,
+    "citable_evidence_ids": 4,
+    "disposition": "QUALIFIED",
+    "evidence_chars": 1715,
+    "evidence_keys": [
+     "observation_count",
+     "observations",
+     "observations_omitted"
+    ],
+    "evidence_refs_total": 4,
+    "evidence_truncated": false,
+    "phase": "ASSESS",
+    "tool": "inspect_evidence",
+    "visible_issue_codes": []
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 41,
+    "elapsed_seconds": 5.334943144999897,
+    "finish_reason": "stop",
+    "prompt_tokens": 2636
+   }
+  },
+  {
+   "attempt_id": "attempt:run:926e537886884b979f3022d4f7e7e3d4:turn_4:plan_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:926e537886884b979f3022d4f7e7e3d4:turn_4:plan",
+   "reply": {
+    "argument_keys": [],
+    "concise_reason": "Trace the certificate 'cert:c42a634c48_001' referenced in prior observations to validate the allocation chain.",
+    "hypotheses": [
+     "The certificate 'cert:c42a634c48_001' exists and is valid.",
+     "The certificate supports the allocation 'alloc:c42a634c48_004'."
+    ],
+    "objective": "Verify the existence and content of the certificate referenced in the prior observations to validate the allocation chain.",
+    "operation": "trace_certificate",
+    "proposed_checks": [
+     "trace_certificate"
+    ],
+    "stop_reason": null
+   },
+   "shown": {
+    "inspectable_observations": 4,
+    "inspectable_total": 43,
+    "pending_findings": 1,
+    "phase": "PLAN",
+    "previous_plans": 1,
+    "previous_rejection": false,
+    "prior_observations": 2
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 352,
+    "elapsed_seconds": 41.88798182100004,
+    "finish_reason": "stop",
+    "prompt_tokens": 3240
+   }
+  }
+ ],
+ "experiment_variant": "V2_ADAPTIVE_REAL_MODEL",
+ "job": {
+  "cancel_requested": 0,
+  "detail": "BLOCKED_OUTPUT",
+  "dossier_id": "dossier:c0e6985fd52b4e09895243831ab1fede",
+  "run_id": "run:926e537886884b979f3022d4f7e7e3d4",
+  "status": "STOPPED"
+ },
+ "rejected_actions": [],
+ "report": null,
+ "requested_variant": "ADAPTIVE",
+ "run_id": "run:926e537886884b979f3022d4f7e7e3d4",
+ "status": "BLOCKED_OUTPUT",
+ "stop_reason": "EXPERT_REVIEW_REQUIRED"
+}
