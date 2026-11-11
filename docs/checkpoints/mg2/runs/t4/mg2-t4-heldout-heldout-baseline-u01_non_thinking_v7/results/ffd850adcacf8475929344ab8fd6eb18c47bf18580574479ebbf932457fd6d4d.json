@@ -1,0 +1,1209 @@
+{
+ "audit_chain": "VERIFIED",
+ "briefs": {
+  "model_briefs": [],
+  "report_revision_id": "report_revision:7ce5f910b783db157d8bf363",
+  "run_id": "run:5ef24c841d5c4e008f98a31d1a489c5f",
+  "template_briefs": [
+   {
+    "brief_id": "brief:template_d3311f43833ad7544331475d",
+    "evidence_refs": [
+     {
+      "artifact_revision_id": "artifact_rev:0720cc6a63c743f092cceede5a69192a",
+      "locator": {
+       "cell_column": null,
+       "cell_row": null,
+       "column_name": null,
+       "json_pointer": null,
+       "kind": "PDF_PAGE",
+       "page_index_1based": 1,
+       "printed_page_label": "1",
+       "row_index_1based": null,
+       "table_id": null,
+       "text_end": null,
+       "text_start": null
+      },
+      "ref_id": "obs:df228c5a85e9",
+      "ref_kind": "OBSERVATION"
+     }
+    ],
+    "evidence_request": "Dossier cites an older rule or a reporting period different from the case.",
+    "explanation": "Dossier cites an older rule or a reporting period different from the case.",
+    "figures": [],
+    "finding_revision_id": "finding_revision:903cd638fae72521e436ae4f",
+    "issue_type": "F11_WRONG_PERIOD_RULE",
+    "label": "Template brief, generated from the finding.",
+    "model_operation_ref": null,
+    "proposal": null,
+    "reason": null,
+    "report_revision_id": "report_revision:7ce5f910b783db157d8bf363",
+    "run_id": "run:5ef24c841d5c4e008f98a31d1a489c5f",
+    "source": "TEMPLATE",
+    "status": "ACCEPTED",
+    "what_to_check": "A rule from another period, or a superseded reading of it, may have been applied. Check the rule version in force for the period."
+   },
+   {
+    "brief_id": "brief:template_82c5ae331b418e38a69cede1",
+    "evidence_refs": [
+     {
+      "artifact_revision_id": "artifact_rev:0720cc6a63c743f092cceede5a69192a",
+      "locator": null,
+      "ref_id": "artifact_rev:0720cc6a63c743f092cceede5a69192a",
+      "ref_kind": "ARTIFACT"
+     }
+    ],
+    "evidence_request": "Request a legible, complete copy of the affected document; an unread page does not establish zero activity or a missing event.",
+    "explanation": "A document page could not be read or is missing from the file.",
+    "figures": [],
+    "finding_revision_id": "finding_revision:coverage_9f602392cdf2fb1729bc0f52",
+    "issue_type": "F15_EXTRACTION_PAGE_LOSS",
+    "label": "Template brief, generated from the finding.",
+    "model_operation_ref": null,
+    "proposal": null,
+    "reason": null,
+    "report_revision_id": "report_revision:7ce5f910b783db157d8bf363",
+    "run_id": "run:5ef24c841d5c4e008f98a31d1a489c5f",
+    "source": "TEMPLATE",
+    "status": "ACCEPTED",
+    "what_to_check": "Part of a document could not be read. This does not prove that an event is missing; ask for a complete copy."
+   }
+  ]
+ },
+ "budget": {
+  "actions": 9,
+  "cost_known_calls": 0,
+  "finding_actions": {
+   "finding:5ef24c841d5c4e008f98a31d1a489c5f": 2
+  },
+  "finding_reformulations": {},
+  "model_calls": 4,
+  "observed_cost_usd": null,
+  "observed_tokens": 14371,
+  "preflight_actions": 1,
+  "report_repairs": 0,
+  "reserved_tokens": 131072,
+  "retries": 0,
+  "tool_calls": 2,
+  "usage_known_calls": 4,
+  "verification_actions": 1
+ },
+ "calls": [
+  {
+   "event_type": "graph.stage.preflight.result",
+   "issue_codes": [],
+   "kind": "STAGE",
+   "operation_id": "operation:run:5ef24c841d5c4e008f98a31d1a489c5f:turn_2:preflight",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.plan.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:5ef24c841d5c4e008f98a31d1a489c5f:turn_3:plan",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.tool.tool.result",
+   "issue_codes": [],
+   "kind": "TOOL",
+   "operation_id": "operation:run:5ef24c841d5c4e008f98a31d1a489c5f:turn_3:tool",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.assess.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:5ef24c841d5c4e008f98a31d1a489c5f:turn_3:assess",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.plan.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:5ef24c841d5c4e008f98a31d1a489c5f:turn_4:plan",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.tool.tool.result",
+   "issue_codes": [],
+   "kind": "TOOL",
+   "operation_id": "operation:run:5ef24c841d5c4e008f98a31d1a489c5f:turn_4:tool",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.assess.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:5ef24c841d5c4e008f98a31d1a489c5f:turn_4:assess",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.stage.draft.result",
+   "issue_codes": [],
+   "kind": "STAGE",
+   "operation_id": "operation:run:5ef24c841d5c4e008f98a31d1a489c5f:turn_5:draft",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.stage.verify.result",
+   "issue_codes": [],
+   "kind": "STAGE",
+   "operation_id": "operation:run:5ef24c841d5c4e008f98a31d1a489c5f:turn_6:verify",
+   "status": "SUCCESS"
+  }
+ ],
+ "case_id": "case_2e33b29a20",
+ "census": {
+  "allocation_checks": {
+   "LIFECYCLE:PASS:None": 1
+  },
+  "dispositions": {
+   "AccountBalanceObservation:INCLUDED": 1,
+   "Allocation:EXCLUDED": 1,
+   "Allocation:INCLUDED": 1,
+   "Certificate:EXCLUDED": 1,
+   "Certificate:INCLUDED": 1,
+   "CertificateEvent:EXCLUDED": 1,
+   "CertificateEvent:INCLUDED": 1,
+   "CertificateEvent:PENDING": 2,
+   "CommercialRecord:OUT_OF_SCOPE": 1,
+   "Entity:INCLUDED": 2,
+   "Entity:OUT_OF_SCOPE": 1,
+   "ObligationBucket:INCLUDED": 1,
+   "Registration:INCLUDED": 2,
+   "Registration:OUT_OF_SCOPE": 1
+  },
+  "eligibility": {
+   "ACHIEVEMENT_DEADLINE:UNAVAILABLE:NOT_EVALUATED": 1,
+   "CAPABILITY:TESTABLE:NOT_EVALUATED": 1,
+   "CATEGORY:TESTABLE:NOT_EVALUATED": 1,
+   "CREDIT_EVENT_DEADLINE:UNAVAILABLE:NOT_EVALUATED": 1,
+   "ENTITY:TESTABLE:PASS": 1,
+   "LIFECYCLE:TESTABLE:PASS": 1,
+   "METAL:TESTABLE:NOT_EVALUATED": 1,
+   "PERIOD:TESTABLE:NOT_EVALUATED": 1,
+   "REGISTRATION:TESTABLE:PASS": 1
+  },
+  "priority_checks": {
+   "NOT_EVALUATED": 1
+  },
+  "records": {
+   "AccountBalanceObservation": 1,
+   "Allocation": 2,
+   "Certificate": 2,
+   "CertificateEvent": 4,
+   "CommercialRecord": 1,
+   "Entity": 3,
+   "ObligationBucket": 1,
+   "Registration": 3
+  }
+ },
+ "decisions": [
+  {
+   "attempt_id": "attempt:run:5ef24c841d5c4e008f98a31d1a489c5f:turn_3:plan_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:5ef24c841d5c4e008f98a31d1a489c5f:turn_3:plan",
+   "reply": {
+    "argument_keys": [
+     "observation_ids"
+    ],
+    "concise_reason": "Inspect the frozen dossier to gather evidence on allocation gaps and qualifications.",
+    "hypotheses": [
+     "The dossier contains missing or unreadable pages affecting allocation support.",
+     "Evidence qualifications are insufficient to support declared allocations."
+    ],
+    "objective": "Assess supported allocation gaps and evidence qualifications in the frozen dossier.",
+    "operation": "inspect_evidence",
+    "proposed_checks": [
+     "inspect_evidence"
+    ],
+    "stop_reason": null
+   },
+   "shown": {
+    "inspectable_observations": 4,
+    "inspectable_total": 43,
+    "pending_findings": 1,
+    "phase": "PLAN",
+    "previous_plans": 0,
+    "previous_rejection": false,
+    "prior_observations": 1
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 258,
+    "elapsed_seconds": 15.647178756000358,
+    "finish_reason": "stop",
+    "prompt_tokens": 2129
+   }
+  },
+  {
+   "attempt_id": "attempt:run:5ef24c841d5c4e008f98a31d1a489c5f:turn_3:assess_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:5ef24c841d5c4e008f98a31d1a489c5f:turn_3:assess",
+   "reply": {
+    "disposition": "CONTINUE",
+    "next_check_or_stop": "continue",
+    "proposal": null,
+    "verdict": "UNKNOWN",
+    "weak_result_or_mistake": null
+   },
+   "shown": {
+    "citable_calculation_ids": 0,
+    "citable_evidence_ids": 43,
+    "disposition": "QUALIFIED",
+    "evidence_chars": 4339,
+    "evidence_keys": [
+     "observation_count",
+     "observations",
+     "observations_omitted"
+    ],
+    "evidence_refs_total": 43,
+    "evidence_truncated": false,
+    "phase": "ASSESS",
+    "tool": "inspect_evidence",
+    "visible_issue_codes": []
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 41,
+    "elapsed_seconds": 6.747990398000184,
+    "finish_reason": "stop",
+    "prompt_tokens": 3822
+   }
+  },
+  {
+   "attempt_id": "attempt:run:5ef24c841d5c4e008f98a31d1a489c5f:turn_4:plan_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:5ef24c841d5c4e008f98a31d1a489c5f:turn_4:plan",
+   "reply": {
+    "argument_keys": [
+     "observation_ids"
+    ],
+    "concise_reason": "Inspect the four pending observations to evaluate allocation support and evidence qualifications.",
+    "hypotheses": [
+     "The dossier contains missing or unreadable pages affecting allocation support.",
+     "Evidence qualifications are insufficient to support declared allocations."
+    ],
+    "objective": "Assess supported allocation gaps and evidence qualifications in the frozen dossier.",
+    "operation": "inspect_evidence",
+    "proposed_checks": [
+     "inspect_evidence"
+    ],
+    "stop_reason": null
+   },
+   "shown": {
+    "inspectable_observations": 4,
+    "inspectable_total": 43,
+    "pending_findings": 1,
+    "phase": "PLAN",
+    "previous_plans": 1,
+    "previous_rejection": false,
+    "prior_observations": 2
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 329,
+    "elapsed_seconds": 24.63355577600032,
+    "finish_reason": "stop",
+    "prompt_tokens": 5019
+   }
+  },
+  {
+   "attempt_id": "attempt:run:5ef24c841d5c4e008f98a31d1a489c5f:turn_4:assess_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:5ef24c841d5c4e008f98a31d1a489c5f:turn_4:assess",
+   "reply": {
+    "disposition": "ABSTAIN",
+    "next_check_or_stop": "stop",
+    "proposal": null,
+    "verdict": "WEAK",
+    "weak_result_or_mistake": "The dossier contains missing or unreadable pages affecting allocation support."
+   },
+   "shown": {
+    "citable_calculation_ids": 0,
+    "citable_evidence_ids": 4,
+    "disposition": "QUALIFIED",
+    "evidence_chars": 1718,
+    "evidence_keys": [
+     "observation_count",
+     "observations",
+     "observations_omitted"
+    ],
+    "evidence_refs_total": 4,
+    "evidence_truncated": false,
+    "phase": "ASSESS",
+    "tool": "inspect_evidence",
+    "visible_issue_codes": []
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 53,
+    "elapsed_seconds": 6.017607241000405,
+    "finish_reason": "stop",
+    "prompt_tokens": 2720
+   }
+  }
+ ],
+ "experiment_variant": "V2_ADAPTIVE_REAL_MODEL",
+ "job": {
+  "cancel_requested": 0,
+  "detail": "AWAITING_REVIEW",
+  "dossier_id": "dossier:30cdd063c7274f07abe744fe415f0759",
+  "run_id": "run:5ef24c841d5c4e008f98a31d1a489c5f",
+  "status": "STOPPED"
+ },
+ "rejected_actions": [],
+ "report": {
+  "available_evidence_refs": [
+   {
+    "artifact_revision_id": "artifact_rev:0720cc6a63c743f092cceede5a69192a",
+    "locator": {
+     "cell_column": null,
+     "cell_row": null,
+     "column_name": null,
+     "json_pointer": null,
+     "kind": "PDF_PAGE",
+     "page_index_1based": 1,
+     "printed_page_label": "1",
+     "row_index_1based": null,
+     "table_id": null,
+     "text_end": null,
+     "text_start": null
+    },
+    "ref_id": "obs:df228c5a85e9",
+    "ref_kind": "OBSERVATION"
+   },
+   {
+    "artifact_revision_id": "artifact_rev:0720cc6a63c743f092cceede5a69192a",
+    "locator": null,
+    "ref_id": "artifact_rev:0720cc6a63c743f092cceede5a69192a",
+    "ref_kind": "ARTIFACT"
+   }
+  ],
+  "findings": [
+   {
+    "abstention_reason": "TEMPORAL_UNCERTAINTY",
+    "action_owner_ref": null,
+    "advisory_status": "REQUIRES_EXPERT_REVIEW",
+    "bucket_ids": [],
+    "calculation_refs": [],
+    "case_version_id": "snapshot:api_support_approved_c696197638db4d5394362c32ce76a82c",
+    "delta_value_ref": null,
+    "evidence_assessments": [
+     {
+      "outcome": "FAIL",
+      "scope": "cited rule / reporting period"
+     }
+    ],
+    "fact_refs": [
+     {
+      "artifact_revision_id": "artifact_rev:0720cc6a63c743f092cceede5a69192a",
+      "locator": {
+       "cell_column": null,
+       "cell_row": null,
+       "column_name": null,
+       "json_pointer": null,
+       "kind": "PDF_PAGE",
+       "page_index_1based": 1,
+       "printed_page_label": "1",
+       "row_index_1based": null,
+       "table_id": null,
+       "text_end": null,
+       "text_start": null
+      },
+      "ref_id": "obs:df228c5a85e9",
+      "ref_kind": "OBSERVATION"
+     }
+    ],
+    "finding_id": "finding:regulatory_fab0743b1e2f20bb67a35688",
+    "finding_revision_id": "finding_revision:903cd638fae72521e436ae4f",
+    "hypotheses": [],
+    "issue_type": "F11_WRONG_PERIOD_RULE",
+    "ledger_supported_value_ref": null,
+    "next_action": {
+     "description": "Dossier cites an older rule or a reporting period different from the case.",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": "artifact_rev:0720cc6a63c743f092cceede5a69192a",
+       "locator": {
+        "cell_column": null,
+        "cell_row": null,
+        "column_name": null,
+        "json_pointer": null,
+        "kind": "PDF_PAGE",
+        "page_index_1based": 1,
+        "printed_page_label": "1",
+        "row_index_1based": null,
+        "table_id": null,
+        "text_end": null,
+        "text_start": null
+       },
+       "ref_id": "obs:df228c5a85e9",
+       "ref_kind": "OBSERVATION"
+      }
+     ],
+     "kind": "REQUEST_EVIDENCE"
+    },
+    "portal_reported_value_ref": null,
+    "priority": "HIGH",
+    "priority_basis": "Dossier cites an older rule or a reporting period different from the case.",
+    "provision_refs": [],
+    "scope_limits": [
+     "cited rule / reporting period"
+    ],
+    "snapshot_comparison_ref": null,
+    "supersedes_finding_revision_id": null,
+    "withheld_claim_scopes": [
+     "rule_version_applied"
+    ]
+   },
+   {
+    "abstention_reason": "MISSING_EVIDENCE",
+    "action_owner_ref": null,
+    "advisory_status": "REQUIRES_EXPERT_REVIEW",
+    "bucket_ids": [],
+    "calculation_refs": [],
+    "case_version_id": "snapshot:api_support_approved_c696197638db4d5394362c32ce76a82c",
+    "delta_value_ref": null,
+    "evidence_assessments": [
+     {
+      "signals": [
+       {
+        "artifact": "artifact_rev:0720cc6a63c743f092cceede5a69192a",
+        "pages": [
+         "page:3"
+        ]
+       }
+      ],
+      "source": "COVERAGE_CHECK"
+     }
+    ],
+    "fact_refs": [
+     {
+      "artifact_revision_id": "artifact_rev:0720cc6a63c743f092cceede5a69192a",
+      "locator": null,
+      "ref_id": "artifact_rev:0720cc6a63c743f092cceede5a69192a",
+      "ref_kind": "ARTIFACT"
+     }
+    ],
+    "finding_id": "finding:coverage_9f602392cdf2fb1729bc0f52",
+    "finding_revision_id": "finding_revision:coverage_9f602392cdf2fb1729bc0f52",
+    "hypotheses": [],
+    "issue_type": "F15_EXTRACTION_PAGE_LOSS",
+    "ledger_supported_value_ref": null,
+    "next_action": {
+     "description": "Request a legible, complete copy of the affected document; an unread page does not establish zero activity or a missing event.",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": "artifact_rev:0720cc6a63c743f092cceede5a69192a",
+       "locator": null,
+       "ref_id": "artifact_rev:0720cc6a63c743f092cceede5a69192a",
+       "ref_kind": "ARTIFACT"
+      }
+     ],
+     "kind": "REQUEST_EVIDENCE"
+    },
+    "portal_reported_value_ref": null,
+    "priority": "HIGH",
+    "priority_basis": "A document page could not be read or is missing from the file.",
+    "provision_refs": [],
+    "scope_limits": [
+     "Pages that could not be read were not used; no conclusion is drawn from them."
+    ],
+    "snapshot_comparison_ref": null,
+    "supersedes_finding_revision_id": null,
+    "withheld_claim_scopes": [
+     "lost_document_page"
+    ]
+   }
+  ],
+  "rejected_finding_proposals": [],
+  "report": {
+   "calculations": [
+    {
+     "analyzed_bucket_ids": [
+      "bucket:2e33b29a20_al_2024_2025"
+     ],
+     "analyzed_input_membership_blob": {
+      "byte_length": 2881,
+      "media_type": "application/json",
+      "sha256": "a55f1e4ac9ad327ef96e3bd8a2172a301e6ea593b9493ff67381b1b56944676d"
+     },
+     "bucket_results": [
+      {
+       "allocation_ids": [
+        "alloc:2e33b29a20_004"
+       ],
+       "bucket_id": "bucket:2e33b29a20_al_2024_2025",
+       "delta": {
+        "decimal": "0.0000",
+        "dimension": "METAL_MASS",
+        "metal": "AL",
+        "unit": "KG"
+       },
+       "ledger_supported": {
+        "decimal": "23061.5000",
+        "dimension": "METAL_MASS",
+        "metal": "AL",
+        "unit": "KG"
+       },
+       "pending": {
+        "decimal": "0.0000",
+        "dimension": "METAL_MASS",
+        "metal": "AL",
+        "unit": "KG"
+       },
+       "portal_reported": {
+        "decimal": "23061.5000",
+        "dimension": "METAL_MASS",
+        "metal": "AL",
+        "unit": "KG"
+       },
+       "qualification_refs": [
+        {
+         "artifact_revision_id": null,
+         "locator": null,
+         "ref_id": "bucket:2e33b29a20_al_2024_2025",
+         "ref_kind": "RECORD"
+        }
+       ],
+       "required": {
+        "decimal": "26206.5000",
+        "dimension": "METAL_MASS",
+        "metal": "AL",
+        "unit": "KG"
+       },
+       "shortfall": {
+        "decimal": "3145.0000",
+        "dimension": "METAL_MASS",
+        "metal": "AL",
+        "unit": "KG"
+       },
+       "signed_gap": {
+        "decimal": "3145.0000",
+        "dimension": "METAL_MASS",
+        "metal": "AL",
+        "unit": "KG"
+       },
+       "snapshot_comparison_ref": "comparison:a4d76b9e147ac199661f9ab4",
+       "supported": {
+        "decimal": "23061.5000",
+        "dimension": "METAL_MASS",
+        "metal": "AL",
+        "unit": "KG"
+       },
+       "surplus": {
+        "decimal": "0.0000",
+        "dimension": "METAL_MASS",
+        "metal": "AL",
+        "unit": "KG"
+       }
+      }
+     ],
+     "calculation_id": "calc:5567ec7006a44d6b5f79dfc4",
+     "case_version_id": "snapshot:api_support_approved_c696197638db4d5394362c32ce76a82c",
+     "coverage": "QUALIFIED",
+     "derivation_blob": {
+      "byte_length": 4444,
+      "media_type": "application/json",
+      "sha256": "b6d76501b591d2874c9672ddf3fe11d0d3fa6dbd6b5665d80ffdf3d4a627bfb5"
+     },
+     "input_digest": "5567ec7006a44d6b5f79dfc44fa3becce03fb65f342ce857e24c6bdf50700d0b",
+     "issues": [
+      {
+       "code": "APPLICABILITY_UNRESOLVED",
+       "evidence_refs": [],
+       "field_path": null,
+       "issue_id": "issue:applicability_unresolved_3eaa783b1fae",
+       "message": "Profile declares eligibility conditions unavailable; results are qualified",
+       "retryable": false,
+       "severity": "WARNING"
+      }
+     ],
+     "profile_id": "profile:producer_snapshot_v1",
+     "quantity_dispositions_blob": {
+      "byte_length": 7401,
+      "media_type": "application/json",
+      "sha256": "b3a1f54d51ae32da951cf5b91e1bd31458b916045d468cdf892c0b3133254deb"
+     },
+     "tool_version": "c08-s04-0.2"
+    }
+   ],
+   "claims": [
+    {
+     "calculation_value_ref": null,
+     "claim_id": "claim:case_scope_001",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:5567ec7006a44d6b5f79dfc4",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "kind": "FACT",
+     "support_status": "QUALIFIED",
+     "template_or_text": "Case version snapshot:api_support_approved_c696197638db4d5394362c32ce76a82c; profile profile:producer_snapshot_v1."
+    },
+    {
+     "calculation_value_ref": null,
+     "claim_id": "claim:evidence_coverage_002",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:5567ec7006a44d6b5f79dfc4",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "kind": "FACT",
+     "support_status": "QUALIFIED",
+     "template_or_text": "Calculation coverage is QUALIFIED."
+    },
+    {
+     "calculation_value_ref": {
+      "bucket_id": "bucket:2e33b29a20_al_2024_2025",
+      "calculation_id": "calc:5567ec7006a44d6b5f79dfc4",
+      "field": "required"
+     },
+     "claim_id": "claim:bucket_reconciliation_003",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:5567ec7006a44d6b5f79dfc4",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "kind": "NUMERIC",
+     "support_status": "QUALIFIED",
+     "template_or_text": "Required for bucket:2e33b29a20_al_2024_2025: {value}."
+    },
+    {
+     "calculation_value_ref": {
+      "bucket_id": "bucket:2e33b29a20_al_2024_2025",
+      "calculation_id": "calc:5567ec7006a44d6b5f79dfc4",
+      "field": "supported"
+     },
+     "claim_id": "claim:bucket_reconciliation_004",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:5567ec7006a44d6b5f79dfc4",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "kind": "NUMERIC",
+     "support_status": "QUALIFIED",
+     "template_or_text": "Supported for bucket:2e33b29a20_al_2024_2025: {value}."
+    },
+    {
+     "calculation_value_ref": {
+      "bucket_id": "bucket:2e33b29a20_al_2024_2025",
+      "calculation_id": "calc:5567ec7006a44d6b5f79dfc4",
+      "field": "signed_gap"
+     },
+     "claim_id": "claim:bucket_reconciliation_005",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:5567ec7006a44d6b5f79dfc4",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "kind": "NUMERIC",
+     "support_status": "QUALIFIED",
+     "template_or_text": "Signed gap for bucket:2e33b29a20_al_2024_2025: {value}."
+    },
+    {
+     "calculation_value_ref": {
+      "bucket_id": "bucket:2e33b29a20_al_2024_2025",
+      "calculation_id": "calc:5567ec7006a44d6b5f79dfc4",
+      "field": "pending"
+     },
+     "claim_id": "claim:bucket_reconciliation_006",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:5567ec7006a44d6b5f79dfc4",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "kind": "NUMERIC",
+     "support_status": "QUALIFIED",
+     "template_or_text": "Pending for bucket:2e33b29a20_al_2024_2025: {value}."
+    },
+    {
+     "calculation_value_ref": {
+      "bucket_id": "bucket:2e33b29a20_al_2024_2025",
+      "calculation_id": "calc:5567ec7006a44d6b5f79dfc4",
+      "field": "portal_reported"
+     },
+     "claim_id": "claim:bucket_reconciliation_007",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:5567ec7006a44d6b5f79dfc4",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "kind": "NUMERIC",
+     "support_status": "QUALIFIED",
+     "template_or_text": "Portal reported for bucket:2e33b29a20_al_2024_2025: {value}."
+    },
+    {
+     "calculation_value_ref": {
+      "bucket_id": "bucket:2e33b29a20_al_2024_2025",
+      "calculation_id": "calc:5567ec7006a44d6b5f79dfc4",
+      "field": "delta"
+     },
+     "claim_id": "claim:bucket_reconciliation_008",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:5567ec7006a44d6b5f79dfc4",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "kind": "NUMERIC",
+     "support_status": "QUALIFIED",
+     "template_or_text": "Portal delta for bucket:2e33b29a20_al_2024_2025: {value}."
+    },
+    {
+     "calculation_value_ref": null,
+     "claim_id": "claim:finding_register_009",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": "artifact_rev:0720cc6a63c743f092cceede5a69192a",
+       "locator": {
+        "cell_column": null,
+        "cell_row": null,
+        "column_name": null,
+        "json_pointer": null,
+        "kind": "PDF_PAGE",
+        "page_index_1based": 1,
+        "printed_page_label": "1",
+        "row_index_1based": null,
+        "table_id": null,
+        "text_end": null,
+        "text_start": null
+       },
+       "ref_id": "obs:df228c5a85e9",
+       "ref_kind": "OBSERVATION"
+      }
+     ],
+     "kind": "INTERPRETATION",
+     "support_status": "QUALIFIED",
+     "template_or_text": "F11_WRONG_PERIOD_RULE: REQUIRES_EXPERT_REVIEW; priority HIGH."
+    },
+    {
+     "calculation_value_ref": null,
+     "claim_id": "claim:next_actions_010",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": "artifact_rev:0720cc6a63c743f092cceede5a69192a",
+       "locator": {
+        "cell_column": null,
+        "cell_row": null,
+        "column_name": null,
+        "json_pointer": null,
+        "kind": "PDF_PAGE",
+        "page_index_1based": 1,
+        "printed_page_label": "1",
+        "row_index_1based": null,
+        "table_id": null,
+        "text_end": null,
+        "text_start": null
+       },
+       "ref_id": "obs:df228c5a85e9",
+       "ref_kind": "OBSERVATION"
+      }
+     ],
+     "kind": "RECOMMENDATION",
+     "support_status": "QUALIFIED",
+     "template_or_text": "Dossier cites an older rule or a reporting period different from the case."
+    },
+    {
+     "calculation_value_ref": null,
+     "claim_id": "claim:finding_register_011",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": "artifact_rev:0720cc6a63c743f092cceede5a69192a",
+       "locator": null,
+       "ref_id": "artifact_rev:0720cc6a63c743f092cceede5a69192a",
+       "ref_kind": "ARTIFACT"
+      }
+     ],
+     "kind": "INTERPRETATION",
+     "support_status": "QUALIFIED",
+     "template_or_text": "F15_EXTRACTION_PAGE_LOSS: REQUIRES_EXPERT_REVIEW; priority HIGH."
+    },
+    {
+     "calculation_value_ref": null,
+     "claim_id": "claim:next_actions_012",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": "artifact_rev:0720cc6a63c743f092cceede5a69192a",
+       "locator": null,
+       "ref_id": "artifact_rev:0720cc6a63c743f092cceede5a69192a",
+       "ref_kind": "ARTIFACT"
+      }
+     ],
+     "kind": "RECOMMENDATION",
+     "support_status": "QUALIFIED",
+     "template_or_text": "Request a legible, complete copy of the affected document; an unread page does not establish zero activity or a missing event."
+    },
+    {
+     "calculation_value_ref": null,
+     "claim_id": "claim:investigation_history_013",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:5567ec7006a44d6b5f79dfc4",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "kind": "LIMITATION",
+     "support_status": "QUALIFIED",
+     "template_or_text": "No model-authored investigation steps are asserted in this baseline report."
+    },
+    {
+     "calculation_value_ref": null,
+     "claim_id": "claim:human_decisions_014",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:5567ec7006a44d6b5f79dfc4",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "kind": "LIMITATION",
+     "support_status": "QUALIFIED",
+     "template_or_text": "No human approval is implied by this report."
+    },
+    {
+     "calculation_value_ref": null,
+     "claim_id": "claim:limitations_and_reproducibility_015",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:5567ec7006a44d6b5f79dfc4",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "kind": "LIMITATION",
+     "support_status": "QUALIFIED",
+     "template_or_text": "Numerical agreement does not establish legal correctness or filing readiness."
+    },
+    {
+     "calculation_value_ref": null,
+     "claim_id": "claim:limitations_and_reproducibility_016",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:5567ec7006a44d6b5f79dfc4",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "kind": "LIMITATION",
+     "support_status": "QUALIFIED",
+     "template_or_text": "Inspected 43 of 43 dossier observations."
+    }
+   ],
+   "rendered_markdown": "# Baseline reconciliation report\n\n## Case scope\n\n- Case version snapshot:api_support_approved_c696197638db4d5394362c32ce76a82c; profile profile:producer_snapshot_v1. [calc:5567ec7006a44d6b5f79dfc4]\n\n## Evidence coverage\n\n- Calculation coverage is QUALIFIED. [calc:5567ec7006a44d6b5f79dfc4]\n\n## Bucket reconciliation\n\n- Required for bucket:2e33b29a20_al_2024_2025: 26206.5000 KG. [calc:5567ec7006a44d6b5f79dfc4]\n\n- Supported for bucket:2e33b29a20_al_2024_2025: 23061.5000 KG. [calc:5567ec7006a44d6b5f79dfc4]\n\n- Signed gap for bucket:2e33b29a20_al_2024_2025: 3145.0000 KG. [calc:5567ec7006a44d6b5f79dfc4]\n\n- Pending for bucket:2e33b29a20_al_2024_2025: 0.0000 KG. [calc:5567ec7006a44d6b5f79dfc4]\n\n- Portal reported for bucket:2e33b29a20_al_2024_2025: 23061.5000 KG. [calc:5567ec7006a44d6b5f79dfc4]\n\n- Portal delta for bucket:2e33b29a20_al_2024_2025: 0.0000 KG. [calc:5567ec7006a44d6b5f79dfc4]\n\n## Finding register\n\n- F11_WRONG_PERIOD_RULE: REQUIRES_EXPERT_REVIEW; priority HIGH. [obs:df228c5a85e9]\n\n- F15_EXTRACTION_PAGE_LOSS: REQUIRES_EXPERT_REVIEW; priority HIGH. [artifact_rev:0720cc6a63c743f092cceede5a69192a]\n\n## Investigation history\n\n- No model-authored investigation steps are asserted in this baseline report. [calc:5567ec7006a44d6b5f79dfc4]\n\n## Next actions\n\n- Dossier cites an older rule or a reporting period different from the case. [obs:df228c5a85e9]\n\n- Request a legible, complete copy of the affected document; an unread page does not establish zero activity or a missing event. [artifact_rev:0720cc6a63c743f092cceede5a69192a]\n\n## Human decisions\n\n- No human approval is implied by this report. [calc:5567ec7006a44d6b5f79dfc4]\n\n## Limitations and reproducibility\n\n- Numerical agreement does not establish legal correctness or filing readiness. [calc:5567ec7006a44d6b5f79dfc4]\n\n- Inspected 43 of 43 dossier observations. [calc:5567ec7006a44d6b5f79dfc4]\n",
+   "revision": {
+    "calculation_ids": [
+     "calc:5567ec7006a44d6b5f79dfc4"
+    ],
+    "claim_ids": [
+     "claim:case_scope_001",
+     "claim:evidence_coverage_002",
+     "claim:bucket_reconciliation_003",
+     "claim:bucket_reconciliation_004",
+     "claim:bucket_reconciliation_005",
+     "claim:bucket_reconciliation_006",
+     "claim:bucket_reconciliation_007",
+     "claim:bucket_reconciliation_008",
+     "claim:finding_register_009",
+     "claim:next_actions_010",
+     "claim:finding_register_011",
+     "claim:next_actions_012",
+     "claim:investigation_history_013",
+     "claim:human_decisions_014",
+     "claim:limitations_and_reproducibility_015",
+     "claim:limitations_and_reproducibility_016"
+    ],
+    "coverage_ref": {
+     "artifact_revision_id": null,
+     "locator": null,
+     "ref_id": "calc:5567ec7006a44d6b5f79dfc4",
+     "ref_kind": "CALCULATION"
+    },
+    "finding_revision_ids": [
+     "finding_revision:903cd638fae72521e436ae4f",
+     "finding_revision:coverage_9f602392cdf2fb1729bc0f52"
+    ],
+    "report_id": "report:7ce5f910b783db157d8bf363",
+    "report_revision_id": "report_revision:7ce5f910b783db157d8bf363",
+    "review_dependency_digest": "7ce5f910b783db157d8bf363270e61754d508958f2a1ad5ecf27bfbb689a8782",
+    "run_id": "run:5ef24c841d5c4e008f98a31d1a489c5f",
+    "section_refs": [
+     "section:case_scope",
+     "section:evidence_coverage",
+     "section:bucket_reconciliation",
+     "section:finding_register",
+     "section:investigation_history",
+     "section:next_actions",
+     "section:human_decisions",
+     "section:limitations_and_reproducibility"
+    ],
+    "supersedes_report_revision_id": null
+   },
+   "sections": [
+    {
+     "claim_ids": [
+      "claim:case_scope_001"
+     ],
+     "coverage_state": "QUALIFIED",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:5567ec7006a44d6b5f79dfc4",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "section_id": "CASE_SCOPE",
+     "structured_content_ref": "section:case_scope",
+     "title": "Case scope"
+    },
+    {
+     "claim_ids": [
+      "claim:evidence_coverage_002"
+     ],
+     "coverage_state": "QUALIFIED",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:5567ec7006a44d6b5f79dfc4",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "section_id": "EVIDENCE_COVERAGE",
+     "structured_content_ref": "section:evidence_coverage",
+     "title": "Evidence coverage"
+    },
+    {
+     "claim_ids": [
+      "claim:bucket_reconciliation_003",
+      "claim:bucket_reconciliation_004",
+      "claim:bucket_reconciliation_005",
+      "claim:bucket_reconciliation_006",
+      "claim:bucket_reconciliation_007",
+      "claim:bucket_reconciliation_008"
+     ],
+     "coverage_state": "QUALIFIED",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:5567ec7006a44d6b5f79dfc4",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "section_id": "BUCKET_RECONCILIATION",
+     "structured_content_ref": "section:bucket_reconciliation",
+     "title": "Bucket reconciliation"
+    },
+    {
+     "claim_ids": [
+      "claim:finding_register_009",
+      "claim:finding_register_011"
+     ],
+     "coverage_state": "QUALIFIED",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:5567ec7006a44d6b5f79dfc4",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "section_id": "FINDING_REGISTER",
+     "structured_content_ref": "section:finding_register",
+     "title": "Finding register"
+    },
+    {
+     "claim_ids": [
+      "claim:investigation_history_013"
+     ],
+     "coverage_state": "QUALIFIED",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:5567ec7006a44d6b5f79dfc4",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "section_id": "INVESTIGATION_HISTORY",
+     "structured_content_ref": "section:investigation_history",
+     "title": "Investigation history"
+    },
+    {
+     "claim_ids": [
+      "claim:next_actions_010",
+      "claim:next_actions_012"
+     ],
+     "coverage_state": "QUALIFIED",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:5567ec7006a44d6b5f79dfc4",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "section_id": "NEXT_ACTIONS",
+     "structured_content_ref": "section:next_actions",
+     "title": "Next actions"
+    },
+    {
+     "claim_ids": [
+      "claim:human_decisions_014"
+     ],
+     "coverage_state": "QUALIFIED",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:5567ec7006a44d6b5f79dfc4",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "section_id": "HUMAN_DECISIONS",
+     "structured_content_ref": "section:human_decisions",
+     "title": "Human decisions"
+    },
+    {
+     "claim_ids": [
+      "claim:limitations_and_reproducibility_015",
+      "claim:limitations_and_reproducibility_016"
+     ],
+     "coverage_state": "QUALIFIED",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:5567ec7006a44d6b5f79dfc4",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "section_id": "LIMITATIONS_AND_REPRODUCIBILITY",
+     "structured_content_ref": "section:limitations_and_reproducibility",
+     "title": "Limitations and reproducibility"
+    }
+   ]
+  },
+  "verification": {
+   "checks": [
+    {
+     "check": "authoritative_calculation",
+     "passed": true
+    },
+    {
+     "check": "unique_claim_ids",
+     "passed": true
+    },
+    {
+     "check": "unique_section_ids",
+     "passed": true
+    },
+    {
+     "check": "unique_calculation_ids",
+     "passed": true
+    },
+    {
+     "check": "unique_finding_ids",
+     "passed": true
+    },
+    {
+     "check": "calculation_coverage",
+     "passed": true
+    },
+    {
+     "check": "finding_scope",
+     "passed": true
+    },
+    {
+     "check": "canonical_claims",
+     "passed": true
+    },
+    {
+     "check": "canonical_sections",
+     "passed": true
+    },
+    {
+     "check": "revision_metadata",
+     "passed": true
+    },
+    {
+     "check": "rendered_content",
+     "passed": true
+    },
+    {
+     "check": "section_order",
+     "passed": true
+    },
+    {
+     "check": "numeric:claim:bucket_reconciliation_003",
+     "passed": true
+    },
+    {
+     "check": "numeric:claim:bucket_reconciliation_004",
+     "passed": true
+    },
+    {
+     "check": "numeric:claim:bucket_reconciliation_005",
+     "passed": true
+    },
+    {
+     "check": "numeric:claim:bucket_reconciliation_006",
+     "passed": true
+    },
+    {
+     "check": "numeric:claim:bucket_reconciliation_007",
+     "passed": true
+    },
+    {
+     "check": "numeric:claim:bucket_reconciliation_008",
+     "passed": true
+    },
+    {
+     "check": "rendered_numeric_placeholders",
+     "passed": true
+    }
+   ],
+   "issues": [],
+   "report_revision_id": "report_revision:7ce5f910b783db157d8bf363",
+   "verdict": "QUALIFIED",
+   "verification_id": "verification:d69da76562fc6053e75c97f1",
+   "verified_dependency_digest": "d69da76562fc6053e75c97f16814add254e732711318d31726902c6652f6f0bd",
+   "verifier_version": "v03.2"
+  }
+ },
+ "requested_variant": "ADAPTIVE",
+ "run_id": "run:5ef24c841d5c4e008f98a31d1a489c5f",
+ "status": "AWAITING_REVIEW",
+ "stop_reason": "NO_NEW_EVIDENCE"
+}

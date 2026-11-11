@@ -275,3 +275,39 @@ families off), **held-out** (24 sealed dossiers, never opened).
   renamed them to the PREREGISTRATION names (M2-nr and M1). No number changed.
 - **Expected.** Nothing is tuned after the freeze. The result is reported whatever it is,
   including a drop of the deterministic engine on cases it was not built from.
+
+### 16. Held-out result: `mg2-t4-heldout` (T4, cooperative isolation, s3)
+- **Hypothesis.** As declared in entry 15: the primary comparison V2 ADAPTIVE vs V1 FIXED with v7 on
+  the 24 sealed cases, with V0 and SC; M2-nr v3 descriptively.
+- **Run.** Kaggle, Tesla T4 (driver 580.178.04), the freeze commit `410ac92` checked out and both
+  freezes verified (`--strict-commit`) before the queue started; llama-server build 12033 from the
+  pinned image, 3 slots, 11,525 of 15,360 MiB used after the probe. Started fresh. 240 of 240
+  trials, all `SUCCESS` on the first attempt, no restart, with ledger lines from 03:37 to 06:03 UTC
+  on 2026-11-11. Downloaded to the laptop (72,337 files; 3 failed on a laptop DNS outage and were
+  fetched again), scored there against `benchmarks/hidden`; machine records in
+  `runs/t4/mg2-t4-heldout/machine-kaggle-heldout/`.
+- **Data.** held-out (24 cases), rules on, 2 repeats, SC and V0 controls in each session.
+- **Result.**
+
+  | Arm | Cases (95% CI) | True / false positives | Proposed / accepted | Calls, s |
+  | --- | --- | --- | --- | --- |
+  | V1 FIXED (v7) | 48 of 48 | 64 / 0 | 3 / 0 | 6.1, 83 |
+  | V2 ADAPTIVE (v7) | 48 of 48 | 64 / 0 | 3 / 0 | 2.4, 73 |
+  | M2-nr v3 | 47 of 48 (0.94 to 1.00) | 64 / 1 (F03 1) | 31 / 1 | 1.1, 42 |
+  | SC, V0 (both sessions) | 24 of 24 each | 32 / 0 | 0 / 0 | 2.0, 1.0 |
+
+  - V2 minus V1: 0.00 (95% CI 0.00 to 0.00, 24 paired cases); V1 and V2 minus SC: 0.00.
+  - The model's share of findings is 0 for V1 and V2: all six proposals were rejected by the gate
+    (contradicted by a calculation 3, unknown evidence reference 2, duplicate 1).
+  - M2-nr's one false positive is `case_9454ad1a05|CLASSIFIER_ONLY|r1` (F03 added to the expected
+    F05); repeat r2 of the same case was clean. Of its 31 proposals, 28 were rejected for no
+    verified claim and 2 for digits in text.
+- **Reading.** The deterministic engine and gate carry over to cases they were not built from: the
+  controls succeed on all 24, so the held-out set does not show a drop. The primary comparison
+  cannot separate V2 from V1 on success (both at the ceiling); V2 reached it with fewer model calls
+  (2.4 against 6.1) and less time. As in MG1, the model adds no accepted finding with the rules on.
+  The intervals of 1.00 to 1.00 are case-level bootstrap intervals with no failure to resample, not
+  certainty; with no failure in 24 cases, a per-case failure rate up to about 12% (3/24, the
+  rule of three) cannot be excluded.
+- **Decision.** This closes the experiment; nothing is tuned after it. The report states the
+  held-out result as measured, with the ceiling effect as a limitation.
