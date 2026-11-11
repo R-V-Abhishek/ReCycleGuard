@@ -1,134 +1,114 @@
 # ReCycleGuard
 
-Agentic AI for e-waste Extended Producer Responsibility (EPR) compliance reconciliation.
+An audited, human-reviewed agentic assistant for e-waste Extended Producer Responsibility (EPR)
+reconciliation under India's E-Waste (Management) Rules, 2022. It helps a compliance officer
+establish, for one producer and reporting period, which obligation balances are supported by
+verified evidence, which discrepancies need follow-up, and what a reviewer must confirm. Outputs
+are advisory working papers, not legal certification, portal filings, credit trades or fraud
+verdicts.
 
-This mini-project supports a compliance officer in investigating discrepancies between a producer's obligations and supporting records. The planned scope covers one producer, one reporting period, limited equipment categories, structured records, and a curated regulatory corpus. Outputs are advisory and subject to human review.
+Agentic AI (26CD7PEAAI), B.E. CSE (Data Science), VII Semester, BMSCE. Team 06.
 
-## Development and checkpoint verification
+## Final deliverables
+
+- **Report:** [`docs/report/report.tex`](docs/report/report.tex) (department template); build it
+  with `latexmk -pdf report.tex` in `docs/report/`. Its tables come from committed run data via
+  `uv run scripts/report_tables.py`.
+- **Experiment record:** [`docs/checkpoints/mg2/EXPERIMENT_LOG.md`](docs/checkpoints/mg2/EXPERIMENT_LOG.md)
+  (every step: hypothesis, change, result, decision),
+  [pre-registration](docs/checkpoints/mg2/PREREGISTRATION.md) and
+  [evaluation protocol](docs/evaluation/PROTOCOL.md).
+
+## What it does
+
+1. **Evidence pipeline (deterministic).** Original PDFs, CSVs and JSON are hashed and stored
+   immutably, extracted into observations with page/row locators, normalised with exact decimal
+   arithmetic, and frozen into case and corpus snapshots.
+2. **Bounded investigation agent.** A LangGraph workflow (preflight, investigate, draft, verify)
+   in which a locally served model plans one audited tool call at a time, assesses the result and
+   resolves, continues or abstains, within 12 calls, 600 s and a token budget.
+3. **Deterministic gate and human review.** A model's finding is accepted only if computed evidence
+   supports it; the verified working paper goes to a reviewer whose decision binds the exact
+   report revision.
+4. **Evaluation harness.** 48 synthetic dossiers with sixteen fault families, hidden answers kept
+   outside the runtime, model-free controls in every session, and an unattended trial queue for a
+   GPU PC (Docker) or a free cloud T4 notebook.
+
+## Results in brief
+
+All real-model runs use Qwen3.5-9B Q8_0 on llama.cpp `b12033`. Full tables are in the report.
+
+- **MG1 (single agent, RTX PC).** With the deterministic checks and contradiction gate, v7 reached
+  32 of 32 on the tuning set, but model-free controls matched it and the model's share of findings
+  was 0. With the checks off, no model variant recovered a judgement fault.
+- **MG2 (Retriever + Classifier, Kaggle T4, pre-registered).** No multi-agent arm passed the
+  rules-on gate; every arm using the Retriever accepted 25 to 38 false findings in 32 trials.
+  Prompt iteration stopped after three versions (log entry 15).
+- **Held-out run.** The 24 sealed dossiers ran once, as declared in log entry 15; the result is in
+  the experiment log and the report.
+
+The value of the system at this model size comes from the deterministic tools, the gate and human
+review; the agent loop is bounded, traceable and safe to fail.
+
+## Quick start
+
+Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/). The deterministic pipeline needs no
+model and no secrets.
 
 ```sh
 uv sync --locked
 uv run recycleguard doctor
-uv run pytest
-uv run scripts/export_schemas.py --check
-uv run scripts/verify_cp2.py --data-root .recycleguard/cp2-reproduction --output tmp/cp2-reproduction
+uv run pytest                              # about 4 min, runs in parallel
+uv run scripts/export_schemas.py --check   # contract checks
+uv run scripts/export_openapi.py --check
 ```
 
-CP1 is locked. CP2 integrates original-file intake, extraction, normalization,
-reviewed frozen inputs, deterministic reconciliation, an eight-section verified
-working paper and audited outcomes. Its synthetic baseline demonstrates 100 kg
-required, 55 supported, 45 gap and 25 pending after exact evidence-support review.
-Applicability and deadline limits remain explicit, so this result is qualified.
-See the [CP2 record](docs/checkpoints/checkpoint-2/README.md) for approval status,
-operating-system verification, member contributions and reproduction details.
-
-Use new, separate paths for each reproduction run. The fixture review identity is
-synthetic test data, not actual team approval. Hidden oracle data remains outside
-runtime. Local MLX inference dependencies are isolated from the base package;
-OCR selection remains separate. See [configuration](configs/README.md) for runtime
-roots and test-adapter guards, and the [checkpoint construction log](docs/checkpoints/README.md)
-for the preserved CP0/CP1 history.
-
-## Current artifacts
-
-- [Project guidelines](PROJECT_GUIDELINES.md): course requirements, schedule, rubrics, and deliverables.
-- [Project charter source](PROJECT_CHARTER.tex): editable one-page LaTeX charter.
-- [Project charter PDF](output/pdf/PROJECT_CHARTER.pdf): compiled charter.
-- [Review 2 design PDF](output/pdf/REVIEW_2_DESIGN.pdf): five-page A4 submission, including references.
-- [Review 2 LaTeX source](docs/design/REVIEW_2_DESIGN.tex): editable architecture, patterns, data/tools, governance, and evaluation plan.
-- [Review 2 PowerPoint](output/pptx/ReCycleGuard_Review_2_Visual.pptx): redesigned slides with editable diagrams/chart and the timed speech in Presenter Notes; 13 main slides and two hidden backups.
-- [Presentation speech](docs/presentation/PRESENTATION_SPEECH.md): 8–10 minute script with emphasis cues, timings, rehearsal guidance and Q&A.
-- [Presentation sources and rebuild notes](docs/presentation/README.md).
-- [Additional project PDF](output/pdf/ReCycleGuard.pdf).
-
-## Research inputs
-
-- [Domain research](docs/research/DOMAIN_RESEARCH.md): regulatory authorities, source hierarchy, compliance-officer workflow, evidence trails, and research gaps.
-- [Agentic implementation overview](docs/research/AGENTIC_IMPLEMENTATION_OVERVIEW.md): task mapping, ingestion/retrieval/tools, data licensing, synthetic-data precedents, and evaluation recommendations.
-- [CPCB EPR data and RAG research](docs/research/CPCB%20EPR%20Data%20and%20RAG.md): additional source inventory, candidate fields, and synthetic-data proposals.
-
-The initial research notes are dated 16 October 2026; the additional CPCB data/RAG document is a further design input. Proposed behavior and synthetic-data plans are not implemented or measured results.
-
-## System specification
-
-- [System design](docs/design/SYSTEM_DESIGN.md): component architecture, online-source storage, synthetic dossier formats, reconciliation, retrieval, complete audit trails, recovery, and evaluation.
-- [Component contracts](docs/design/CONTRACTS.md): versioned input/output types, permissions, component interfaces, data/control flow, and integration acceptance criteria.
-- [Implementation plan](implementation%20plan.md): four-person ownership, task dependencies, integration gates, evaluation and publication artifacts. **Use its task dependency graphs, state register and checkpoint approvals to control implementation.** U01 explores an explicitly configured local Qwen backend; prompt v4 runs the development dossiers but MG1 is not approved. Real agent evaluation still requires the separate MG1 gate.
-
-The specifications were drafted on 18 October and corrected against the research review on 22 October 2026. They qualify tentative research assumptions and describe planned implementation.
-
-The deterministic evidence and reporting pipeline is implemented. A06 adds the
-bounded graph, audit/checkpoint recovery and scripted-port budget tests. See the
-[A06 handoff](docs/checkpoints/checkpoint-3/a06.md). Real-service integration,
-human-review transitions and wider evaluation remain
-subsequent work. Reproduce the explicitly scripted trace with fresh paths:
+HTTP API and browser UI (see [API](docs/api/README.md) and [UI](ui/README.md)):
 
 ```sh
-uv run scripts/verify_a06.py --data-root .recycleguard/a06-reproduction --output tmp/a06-reproduction
+uv run recycleguard serve --host 0.0.0.0 --port 8000 --model-config .recycleguard/local-model.json
+cd ui && npm ci && npm run dev
 ```
 
-For local model setup, exact weight/runtime pins, native smoke evidence and cleanup
-paths, see the [U01 local-model record](docs/checkpoints/model-gateway/README.md).
-The MLX inference environment is isolated from the application and Windows/Linux
-test dependencies. Model weights are ignored by Git. Local inference is explicitly
-selected; there is no silent replacement of scripted tests or provider fallback.
+Use fresh data roots for verification runs. Fixture reviewer identities are synthetic test data,
+not team approvals.
 
-## Build the Review 2 design document
+## Local model and experiments
 
-From the repository root, use a LaTeX distribution providing `pdflatex` and the packages listed in the source (including TikZ, Latin Modern, `tabularx`, `booktabs`, `enumitem`, `fancyhdr`, and `hyperref`). The diagrams are native vector drawings; no external images or bibliography processor are required.
+- PC with Docker and an NVIDIA GPU: [MG1 Docker runbook](docs/checkpoints/mg1/DOCKER_RUNBOOK.md),
+  [MG2 runbook](docs/checkpoints/mg2/RUNBOOK.md).
+- Free Kaggle/Colab T4: [cloud runbook](docs/checkpoints/mg2/CLOUD_RUNBOOK.md) and
+  [`deploy/cloud/mg2_t4.ipynb`](deploy/cloud/mg2_t4.ipynb). The evaluator's answers are never
+  uploaded; scoring runs where `benchmarks/hidden` is.
+- Model and server pins: [`deploy/model.env`](deploy/model.env). Weights are not in Git.
 
-```sh
-mkdir -p tmp/pdfs/review2 output/pdf
-pdflatex -interaction=nonstopmode -halt-on-error -output-directory=tmp/pdfs/review2 docs/design/REVIEW_2_DESIGN.tex
-pdflatex -interaction=nonstopmode -halt-on-error -output-directory=tmp/pdfs/review2 docs/design/REVIEW_2_DESIGN.tex
-cp tmp/pdfs/review2/REVIEW_2_DESIGN.pdf output/pdf/REVIEW_2_DESIGN.pdf
-```
+## Repository layout
 
-The second pass resolves PDF references/bookmarks. With Poppler installed, verify the five-page A4 limit and render every page for visual review:
+| Path | Contents |
+| --- | --- |
+| `src/recycleguard/` | intake, extraction, normalisation, snapshots, indexing, retrieval, domain tools, workflow, agents, model gateway, reporting, review, export, API, CLI |
+| `ui/` | React interface (consumes the HTTP API only) |
+| `benchmarks/` | synthetic dossier generator and evaluation code |
+| `scripts/` | trial runner, queue, scoring and table scripts, cloud helpers |
+| `deploy/` | Docker files, model pins, cloud notebook |
+| `tests/` | unit, integration, contract and acceptance tests |
+| `docs/` | [system design](docs/design/SYSTEM_DESIGN.md), [contracts](docs/design/CONTRACTS.md), [dataset card](docs/data/dataset_card.md), [checkpoints](docs/checkpoints/README.md), report |
 
-```sh
-pdfinfo output/pdf/REVIEW_2_DESIGN.pdf
-pdftoppm -r 150 -png output/pdf/REVIEW_2_DESIGN.pdf tmp/pdfs/review2/review
-```
+## Project history
 
-Check the build log for overfull boxes or unresolved references after edits. The document is self-contained, with its own architecture, representative interfaces, safeguards, evaluation plan, team ownership, and primary references. All application components, datasets, and experiments remain proposed. The separate PowerPoint covers the system design and evaluation plan for presentation.
-
-The report styling is inspired by [Eisvogel](https://github.com/Wandmalfarbe/pandoc-latex-template); component diagrams follow the clarity principles in the [C4 diagram review checklist](https://c4model.com/diagrams/checklist). The source implements the layout directly in LaTeX/TikZ using installed fonts, without a Pandoc or external-template dependency.
-
-## Build the charter
-
-With a LaTeX distribution providing `pdflatex` installed, run from the repository root:
-
-```sh
-mkdir -p tmp/pdfs output/pdf
-pdflatex -interaction=nonstopmode -halt-on-error -output-directory=tmp/pdfs PROJECT_CHARTER.tex
-cp tmp/pdfs/PROJECT_CHARTER.pdf output/pdf/PROJECT_CHARTER.pdf
-```
+The application was built through checkpoints CP0 to CP4 and model gates MG1 and MG2; each has a
+construction and acceptance record in [docs/checkpoints](docs/checkpoints/README.md). The task plan
+and ownership are in [implementation plan](implementation%20plan.md); course requirements in
+[PROJECT_GUIDELINES.md](PROJECT_GUIDELINES.md). Earlier review artifacts remain available: the
+[charter](PROJECT_CHARTER.tex), the [Review 2 design](docs/design/REVIEW_2_DESIGN.tex) and
+[presentation sources](docs/presentation/README.md), and the
+[domain research](docs/research/DOMAIN_RESEARCH.md).
 
 ## Team
 
-| Member | Student ID |
-| --- | --- |
-| R V Abhishek (Team Lead) | 1BM23CD047 |
-| H Sampreeth Bhat | 1BM23CD020 |
-| Sushanth S | 1BM23CD063 |
-| Vedantha Vinay Vernekar | 1BM23CD069 |
-
-Agentic AI (26CD7PEAAI), B.E. CSE (Data Science), VII Semester, BMSCE.
-
-### CP3 integrated investigation
-
-Real retrieval, domain tools, verified reports and authenticated review are integrated on
-`checkpoint-3`. C10 remains explicitly scripted for this offline checkpoint. See the
-[CP3 record](docs/checkpoints/checkpoint-3/README.md) for per-member work, limitations
-and reproducible CLI verification (`uv run scripts/verify_a07.py --data-root NEW_ROOT --output NEW_OUTPUT`).
-
-### Backend API (no frontend)
-
-The local-model branch and S07/H08 submissions are integrated on
-`codex/backend-api`. The HTTP API supports manifest-based dossier upload/selection,
-explicit evidence review, background investigation, exact prompt/tool traces,
-SSE, reports, integrity auditing and authenticated report decisions.
-See [API setup and endpoints](docs/api/README.md),
-[OpenAPI contract](docs/api/openapi.json) and the
-[future UI implementation plan](docs/api/UI_IMPLEMENTATION_PLAN.md).
+| Member | USN | Components |
+| --- | --- | --- |
+| R V Abhishek (Team Lead) | 1BM23CD047 | orchestration, integration, contracts, CLI, snapshots, model gateway, evaluation harness, experiments |
+| H Sampreeth Bhat | 1BM23CD020 | intake, extraction, indexing and retrieval |
+| Sushanth S | 1BM23CD063 | normalisation, deterministic domain tools, synthetic dossiers |
+| Vedantha Vinay Vernekar | 1BM23CD069 | storage and audit, reports and review, export and replay, evaluator isolation |
