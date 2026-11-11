@@ -33,6 +33,8 @@ PROMPT_DIRS = (
 CHECKING = REPOSITORY / "docs/checkpoints/mg1/protocols/checking-8.json"
 ORACLE = REPOSITORY / "benchmarks/hidden/pilot-0.1/oracle"
 VISIBLE = REPOSITORY / "tests/fixtures/visible"
+# The sealed held-out dossiers, kept out of Git (docs/checkpoints/mg2/CLOUD_RUNBOOK.md Part 5).
+HELD_OUT_VISIBLE = REPOSITORY / "benchmarks/heldout/visible"
 SCRIPTS = Path(__file__).resolve().parent
 NAME = re.compile(r"^[a-z0-9][a-z0-9._-]{0,63}$")
 POLL_SECONDS = 5
@@ -181,10 +183,10 @@ def run_sessions(sweep, folder, configs, *, launch=subprocess.Popen, poll=POLL_S
     return codes
 
 
-def score(output):
+def score(output, visible=VISIBLE):
     scores, tables = Path(f"{output}-scores"), Path(f"{output}-tables")
     for command in (
-        [sys.executable, str(SCRIPTS / "score_trials.py"), output, ORACLE, VISIBLE, scores],
+        [sys.executable, str(SCRIPTS / "score_trials.py"), output, ORACLE, visible, scores],
         [sys.executable, str(SCRIPTS / "make_tables.py"), output, scores, tables],
         [sys.executable, str(SCRIPTS / "funnel.py"), output, scores, tables / "funnel.csv"],
     ):

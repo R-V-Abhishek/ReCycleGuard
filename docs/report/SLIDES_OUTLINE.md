@@ -1,5 +1,8 @@
 # Slides outline (Review 4, Sat 7 Nov 2026)
 
+**Superseded (11 November 2026).** The final slides reuse the figures and tables of
+`docs/report/report.tex`. Kept as the Review 4 outline.
+
 Status: **outline.** Result slides stay `NOT YET MEASURED` until CP6; numbers are copied from
 `tables/*.csv`. Target about 12 slides plus a live demo and a recorded fallback.
 

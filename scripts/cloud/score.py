@@ -5,9 +5,10 @@ persisted ``work`` folder here, then:
 
     RECYCLEGUARD_WORK=<downloaded>/work uv run scripts/cloud/score.py <queue.json>
 
-Every whole development session is scored exactly as ``run_queue.py`` would score it (tables next
-to the session), and ``compare.csv`` goes in ``<work>/<queue name>/``. Unfinished sessions are
-listed and left alone. Runbook: docs/checkpoints/mg2/CLOUD_RUNBOOK.md.
+Every whole session is scored exactly as ``run_queue.py`` would score it (tables next to the
+session), and ``compare.csv`` goes in ``<work>/<queue name>/``. A final (held-out) session is scored
+against the held-out visible dossiers, which must be here too. Unfinished sessions are listed and
+left alone. Runbook: docs/checkpoints/mg2/CLOUD_RUNBOOK.md.
 """
 
 import sys
@@ -36,15 +37,16 @@ def main(argv):
     queue = load_queue(Path(argv[0]), sweep)
     tables, unfinished = {}, []
     for session in sessions_of(queue):
-        if session.final:
-            continue
         output = output_of(queue, session)
         done, total = trial_counts(output, session.protocol)
         if done < total:
             unfinished.append(f"{session.key}: {done} of {total}")
             continue
         # Always rescore: the notebook's own tables were made without the oracle (all unscored).
-        tables[session.key] = sweep.score(output)
+        if session.final and not sweep.HELD_OUT_VISIBLE.is_dir():
+            raise SystemExit(f"no held-out visible dossiers at {sweep.HELD_OUT_VISIBLE}")
+        visible = sweep.HELD_OUT_VISIBLE if session.final else sweep.VISIBLE
+        tables[session.key] = sweep.score(output, visible)
     scored = {key: path for key, path in tables.items() if path is not None}
     if scored:
         atomic_write(WORK / queue["name"] / "compare.csv", sweep.compare(scored))

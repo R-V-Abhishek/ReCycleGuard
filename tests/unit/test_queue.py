@@ -275,8 +275,44 @@ def test_a_host_queue_runs_trials_without_docker_and_refuses_final_jobs(world):
     )
     assert commands[0][-1] == "--isolation-disclosed" and "--docker" not in commands[0]
     final = world.write_queue([world.job("a", ["p1"]), world.job("f", ["p2"], final=True)])
-    with pytest.raises(SystemExit, match="cannot run final or held-out"):
+    with pytest.raises(SystemExit, match="final or held-out jobs only with --final-disclosed"):
         world.run(final, host=True)
+
+
+def test_a_disclosed_host_queue_runs_a_final_job_only_once_a_human_allows_it(world):
+    commands = []
+
+    def launch(command, stdout, stderr):
+        commands.append(command)
+        return world.launch(command, stdout, stderr)
+
+    path = world.write_queue([world.job("f", ["p1"], final=True, held_out="freeze.json")])
+    options = {
+        "launch": launch,
+        "health": lambda: "healthy",
+        "restart": lambda: True,
+        "sleep": world.sleep,
+        "clock": lambda: world.now,
+        "poll": 0,
+        "host": True,
+        "final_disclosed": True,
+    }
+    state = world.queue.run(path, **options)
+    assert commands == [] and state.data["sessions"]["f:p1"]["status"] == "PENDING"
+    (world.work / "q1" / "ALLOW_FINAL").touch()
+    world.queue.run(path, **options)
+    assert commands[0][-3:] == ["--isolation-disclosed", "--held-out", str(ROOT / "freeze.json")]
+    assert world.sweep.scored == []  # held-out sessions are scored on the laptop, never here
+
+
+def test_the_held_out_queue_names_only_final_jobs_with_a_freeze():
+    spec = importlib.util.spec_from_file_location("run_queue_real", ROOT / "scripts/run_queue.py")
+    queue = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(queue)
+    lines = []
+    queue.check(ROOT / "docs/checkpoints/mg2/queue/t4/queue-t4-heldout.json", out=lines.append)
+    assert all(line.endswith("FINAL") for line in lines[:-1])
+    assert lines[-1] == "queue mg2-t4-heldout: 2 sessions, 240 trials, 3 slots"
 
 
 @pytest.mark.parametrize(

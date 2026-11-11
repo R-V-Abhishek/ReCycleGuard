@@ -7,6 +7,7 @@ many jobs: a slot that frees starts the next session of any job, so nothing idle
     python scripts/run_queue.py docs/checkpoints/mg2/queue/queue-a.json     # in `trials`
     python scripts/run_queue.py --check docs/checkpoints/mg2/queue/queue-a.json   # read-only
     uv run scripts/run_queue.py --host docs/checkpoints/mg2/queue/t4/queue-t4-core.json  # no Docker
+    uv run scripts/run_queue.py --host --final-disclosed <queue.json>  # CLOUD_RUNBOOK Part 5
 
 Queue: {"queue_version": "mg2-queue", "name": "q1", "model_root": "/models/provenance/<slug>",
 "slots": 6, "jobs": [{"id": "ablated", "protocol": "<protocol.json>", "prompts": ["<version>"]}]}
@@ -25,7 +26,9 @@ list them in the report. Status goes to ``/work/_status`` as status.json, status
 
 ``--host`` is for a machine without Docker (docs/checkpoints/mg2/CLOUD_RUNBOOK.md):
 trials run with ``--isolation-disclosed``, health is the server's own ``/health`` on the same
-machine, a restart runs ``/work/_model/start.sh``, and final or held-out jobs are refused.
+machine, a restart runs ``/work/_model/start.sh``, and final or held-out jobs are refused unless
+``--final-disclosed`` is also given: then they run with the same cooperative isolation, which the
+report must disclose, and still need ``ALLOW_FINAL`` and a freeze that verifies.
 """
 
 import html
@@ -188,10 +191,10 @@ def host_restart_model(run=subprocess.run):
 
 
 def require_no_final(queue):
-    """Held-out and final runs need the container isolation; a host queue never starts one."""
+    """Held-out and final runs need the container isolation unless its absence is disclosed."""
     final = [job["id"] for job in queue["jobs"] if job.get("final") or job.get("held_out")]
     if final:
-        raise SystemExit(f"--host cannot run final or held-out jobs: {final}")
+        raise SystemExit(f"--host runs final or held-out jobs only with --final-disclosed: {final}")
 
 
 def atomic_write(path, text):
@@ -339,10 +342,12 @@ def run(
     poll=POLL_SECONDS,
     stall_seconds=STALL_SECONDS,
     host=False,
+    final_disclosed=False,
 ):
     sweep = sibling("run_sweep")
     queue = load_queue(queue_path, sweep)
-    if host:
+    refuse_final = host and not final_disclosed
+    if refuse_final:
         require_no_final(queue)
     folder = WORK / queue["name"]
     folder.mkdir(parents=True, exist_ok=True)
@@ -366,7 +371,7 @@ def run(
     while True:
         try:
             current = load_queue(queue_path, sweep)
-            if host:
+            if refuse_final:
                 require_no_final(current)
             if {key: current[key] for key in identity} != identity:
                 raise SystemExit("name, model_root and slots cannot change while a queue runs")
@@ -533,10 +538,17 @@ def main(argv):
         check(Path(argv[1]))
         return
     host = bool(argv) and argv[0] == "--host"
-    if len(argv) != 1 + host:
+    final_disclosed = host and len(argv) > 1 and argv[1] == "--final-disclosed"
+    if len(argv) != 1 + host + final_disclosed:
         raise SystemExit(__doc__)
     if host:
-        state = run(Path(argv[1]), health=host_model_health, restart=host_restart_model, host=True)
+        state = run(
+            Path(argv[-1]),
+            health=host_model_health,
+            restart=host_restart_model,
+            host=True,
+            final_disclosed=final_disclosed,
+        )
     else:
         state = run(Path(argv[0]))
     failed = sorted(k for k, v in state.data["sessions"].items() if v["status"] == "FAILED")

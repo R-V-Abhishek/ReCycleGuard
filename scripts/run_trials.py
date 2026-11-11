@@ -128,12 +128,13 @@ def require_verified_freeze(freeze_path, protocol_path):
         problems.append("freeze scope does not include the real model")
     if values.get("protocol_sha256") != hashlib.sha256(protocol_path.read_bytes()).hexdigest():
         problems.append("freeze does not name this exact protocol")
+    # A relative root is inside this checkout, so one freeze verifies on the laptop and the cloud.
     root = values.get("held_out_visible_root")
-    if not root or not Path(root).is_dir():
+    if not root or not (REPOSITORY / root).is_dir():
         problems.append("freeze does not name an existing held-out visible root")
     if problems:
         raise SystemExit("held-out run refused: " + "; ".join(problems))
-    return Path(root).resolve()
+    return (REPOSITORY / root).resolve()
 
 
 def require_held_out_cases(case_ids):
@@ -536,6 +537,11 @@ def main():
         launch = Launch(DOCKER_FIXTURE if fixture else DOCKERED, arguments.config.resolve())
         coordinate(arguments.protocol, arguments.output, launch, held_out=arguments.held_out)
     elif arguments.isolation_disclosed:
+        from recycleguard.local_model import FIXTURE_MODEL_PREFIX, LocalModelConfig
+
+        config = LocalModelConfig.model_validate_json(arguments.config.read_bytes())
+        if config.model_id.startswith(FIXTURE_MODEL_PREFIX) and arguments.held_out is not None:
+            parser.error("a fixture dry run can never use held-out cases")
         launch = Launch(DISCLOSED, arguments.config.resolve())
         coordinate(arguments.protocol, arguments.output, launch, held_out=arguments.held_out)
     else:

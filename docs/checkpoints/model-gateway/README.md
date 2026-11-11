@@ -2,6 +2,13 @@
 
 Status: **Experimental native compatibility demonstrated; real-model acceptance remains gated**.
 
+**Current status (11 November 2026).** This log covers the MLX workstream on the Mac up to MG1 and
+is historical below this note. Every later real-model run uses `unsloth/Qwen3.5-9B-GGUF` Q8_0
+(revision in `deploy/model.env`) on llama.cpp `b12033`: MG1 on the RTX PC with one Docker container
+per trial (`docs/checkpoints/mg1/DOCKER_RUNBOOK.md`), and MG2 on free Kaggle T4 notebooks with
+cooperative isolation (`docs/checkpoints/mg2/CLOUD_RUNBOOK.md`). Results and decisions are in
+`docs/checkpoints/mg2/EXPERIMENT_LOG.md`.
+
 **Current status (reconciled 1 November 2026).** Prompt v4 (`prompt:u01_qwen_non_thinking_v4`,
 digest `7aae007d…feeb`) is the pinned prompt. Its single-case smoke is retained in
 [prompt-v4-summary.json](evidence/prompt-v4-summary.json) (AWAITING_REVIEW, 2 model calls,

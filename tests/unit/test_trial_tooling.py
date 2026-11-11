@@ -313,6 +313,24 @@ def test_held_out_returns_the_frozen_root_when_everything_matches(passing_verifi
     assert returned == root.resolve()
 
 
+def test_a_relative_held_out_root_is_inside_the_checkout(
+    passing_verification, tmp_path, monkeypatch
+):
+    protocol = tmp_path / "protocol.json"
+    protocol.write_text("{}")
+    (tmp_path / "benchmarks/heldout/visible").mkdir(parents=True)
+    monkeypatch.setattr(passing_verification, "REPOSITORY", tmp_path)
+    returned = passing_verification.require_verified_freeze(
+        freeze_file(
+            tmp_path,
+            protocol_sha256=hashlib.sha256(b"{}").hexdigest(),
+            held_out_visible_root="benchmarks/heldout/visible",
+        ),
+        protocol,
+    )
+    assert returned == (tmp_path / "benchmarks/heldout/visible").resolve()
+
+
 def test_held_out_cases_are_checked_against_the_stubbed_list(run_trials, monkeypatch):
     monkeypatch.setattr(run_trials, "held_out_case_ids", lambda: {"case_h"})
     run_trials.require_held_out_cases(["case_h"])

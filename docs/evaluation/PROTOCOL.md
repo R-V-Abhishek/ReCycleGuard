@@ -1,7 +1,11 @@
 # Evaluation protocol (DRAFT v0.1)
 
 Status: **DRAFT, not frozen.** Written 1 November 2026 under task V10a. It is frozen
-only by the CP5 freeze record. Governing plan: `EXECUTION_PLAN.md`. Every statement
+only by the CP5 freeze record. On 11 November 2026 the held-out run was fixed in
+`docs/checkpoints/mg2/EXPERIMENT_LOG.md` entry 15 and frozen by the two manifests in
+`benchmarks/heldout/freeze/` (kept out of Git; digests in
+`docs/checkpoints/mg2/HELDOUT_APPROVAL.md`); section 5 says what
+they hold. Governing plan: `EXECUTION_PLAN.md`. Every statement
 about measurements below is a rule or target, not a result.
 
 ## 1. Scope
@@ -94,10 +98,10 @@ behaviour and goes to A09 (dev-only tuning).
 
 24 held-out cases x {V1, V2} x R repeats, plus V0 and SC.
 
-**R is undecided.** R = 3 is proposed, replacing the earlier throughput rule (R = 2 if the dev V2 mean is
-<= 240 s, otherwise R = 1 plus a second repeat on a fixed 8-case family-stratified subset), because time
-no longer drives the design. Sushanth and Abhishek decide it together at the freeze, before any held-out
-run. V1/V2 order alternates per case. Repeats are not independent samples; bootstraps resample cases
+**R = 2**, decided on 11 November 2026 by Abhishek with Sushanth's agreement, before any held-out
+run (R = 3 had been proposed). The run is on the T4 series with Qwen3.5-9B Q8_0 on llama.cpp `b12033`,
+3 slots, rules on, and adds the Classifier-alone arm (M2-nr, `mg2_agents_v3`) as a descriptive arm
+(`docs/checkpoints/mg2/PREREGISTRATION.md`, deviations of 2026-11-11). V1/V2 order alternates per case. Repeats are not independent samples; bootstraps resample cases
 with all their repeats.
 
 Held-out runs need `run_trials.py --held-out <freeze.json>`. It refuses to run unless the freeze verifies

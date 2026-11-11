@@ -1,5 +1,8 @@
 # Final report skeleton (IEEE style, 8-12 pages)
 
+**Superseded (11 November 2026)** by `docs/report/report.tex`, written in the department
+template. Kept as the earlier plan.
+
 Status: **skeleton.** Structure follows `PROJECT_GUIDELINES.md` section 7. Prose marked *draft* comes
 from the repository and must be rewritten by its owner. Every result cell is
 `NOT YET MEASURED` until the CP6 tables exist; fill cells only from `tables/*.csv` produced by

@@ -243,3 +243,35 @@ families off), **held-out** (24 sealed dossiers, never opened).
   positives with the rules on, mostly F05 and F14, as in the ablated arena.
 - **Next.** Find out from the bundles why the gate accepts the Retriever's F05 and F14 claims, and
   M2-nr's F03 and F08 ones, before any v4 prompt; v4 must be logged before it runs.
+
+### 15. Stop prompt iteration; declare the held-out run before it happens
+- **Decision.** No v4 prompt is written and no MG2 arm is selected or frozen as a winner. Three
+  prompt versions across the three multi-agent arms (entries 12 to 14) all fail the rules-on gate,
+  and every arm that uses the Retriever produces the same accepted false-positive families (F05,
+  F14, with F07 ablated and F16 with the rules on) whatever the prompt. The team accepts that prompting
+  Qwen3.5-9B Q8_0 further is unlikely to change this. The gate analysis named in entry 14 is not
+  done; it is reported as future work. Decided by Abhishek, with Sushanth's agreement.
+- **Held-out run, declared here before it runs** (PREREGISTRATION.md held-out policy, with the
+  deviations dated 2026-11-11):
+  - Queue `queue/t4/queue-t4-heldout.json` (`mg2-t4-heldout`, 3 slots), rules on, the 24 sealed
+    held-out cases (`held_out_case_ids()`), 2 repeats, V0 and SC controls in each session:
+    - `heldout-baseline` with v7 (`u01_non_thinking_v7`): V1 FIXED_RETRIEVAL and V2 ADAPTIVE.
+      This is the primary comparison of `docs/evaluation/PROTOCOL.md` (V2 vs V1).
+    - `heldout-classifier-only` with `mg2_agents_v3`: M2-nr v3, the Classifier alone. By the
+      selection rule it ranks first among the agent arms (0 ablated and 1 rules-on false
+      positive, 3 ablated true positives, against 0, 2 and 2 for v1), but it failed the gate (31 of
+      32), so it is reported **descriptively**, not as a selected arm.
+  - 240 trials: 144 and 96 (`run_queue.py --check`).
+  - R = 2, decided by Abhishek with Sushanth's agreement (PROTOCOL.md had proposed 3).
+  - Where: a Kaggle T4, cooperative isolation (`--isolation-disclosed`), as in entries 12 to 14.
+    The 24 visible dossiers go up once as a **private** Kaggle dataset, with the two freeze
+    manifests; `benchmarks/hidden` (the answers) stays on the laptop, where the run is scored.
+  - Freeze: one manifest per protocol (`benchmarks/heldout/freeze/`, untracked), built with
+    `scripts/make_freeze.py` from a clean pushed commit. It pins that commit, the protocol, prompt
+    and queue files, and the visible dossiers as a tree digest; the notebook checks out that commit
+    and verifies both freezes before the queue starts.
+- **Correction to entry 13.** Entry 13 first named the arms wrongly: it called the Classifier alone
+  "M1" and the Retriever with the deterministic lookup "Lookup (Retriever only)". Commit `2a9c4ec`
+  renamed them to the PREREGISTRATION names (M2-nr and M1). No number changed.
+- **Expected.** Nothing is tuned after the freeze. The result is reported whatever it is,
+  including a drop of the deterministic engine on cases it was not built from.

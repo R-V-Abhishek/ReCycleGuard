@@ -16,12 +16,13 @@ stop, copy the cell's output into the log, and do not improvise.
 | GPU | 24 GB, 6 slots | T4 16 GB, **3 slots** for every cloud shard |
 | Trial isolation | one Docker container per trial | `--isolation-disclosed` (cooperative): one process per trial on the notebook VM |
 | Evaluator answers | in a Docker volume | **never uploaded**; scoring runs on the laptop |
-| Queue | `run_queue.py` | `run_queue.py --host`: same queue code, HTTP health check, refuses final/held-out jobs |
+| Queue | `run_queue.py` | `run_queue.py --host`: same queue code, HTTP health check, refuses final/held-out jobs unless `--final-disclosed` (Part 5) |
 | llama.cpp | image `LLAMA_IMAGE_DIGEST` | the same image's binary, extracted; a source build of `b12033` only if that fails, recorded in `llama-provenance.txt` |
-| Queue names | `mg2-baseline`, `mg2-agents` | `mg2-t4-core`, `mg2-t4-ablated-rest`, `mg2-t4-rules-on-rest` |
+| Queue names | `mg2-baseline`, `mg2-agents` | `mg2-t4-core`, `mg2-t4-ablated-rest`, `mg2-t4-rules-on-rest`, `mg2-t4-heldout` |
 
 The T4 runs are a **separate series**. Compare arms only within it. Never pool them with PC runs.
-The held-out run (RUNBOOK.md Part 9) is never done here.
+The held-out run was first planned for the PC only (RUNBOOK.md Part 9). On 2026-11-11 it moved here,
+once, as Part 5 (log entry 15, PREREGISTRATION deviations).
 
 ## What you will run
 
@@ -30,6 +31,7 @@ The held-out run (RUNBOOK.md Part 9) is never done here.
 | `queue-t4-core.json` | 4: ablated and rules-on, v7 ADAPTIVE and Retriever+Classifier v1 | 224 | Kaggle | first |
 | `queue-t4-rules-on-rest.json` | 7: the other rules-on sessions | 448 | Colab | at the same time as core |
 | `queue-t4-ablated-rest.json` | 7: the other ablated sessions | 336 | Kaggle | after core |
+| `queue-t4-heldout.json` | 2: held-out, rules on (Part 5) | 240 | Kaggle | once, last |
 
 The three files hold exactly the 18 sessions of the two PC queues, with the same protocols and
 prompts. Every session has its own SC controls. Core alone answers the main question: does the
@@ -103,7 +105,10 @@ Rough time: on the PC a v7 trial took about 47 s. Expect 2 to 4 times that on a 
 1. Download the work folder into a new, empty folder, for example `~/mg2-t4/kaggle-1/work`:
    - From Kaggle: the version's *Output* → download (one zip). The output is about 65,000 small
      files; `kaggle kernels output` fetches them one at a time and takes hours.
-   - From Colab: `MyDrive/recycleguard-work/work` in Google Drive → download.
+   - From Colab: `MyDrive/recycleguard-work/work` in Google Drive → download. The one Colab run
+     (2026-11-10) left nothing in Drive: the copy loop died on rsync exit 24 (a vanished SQLite
+     `-wal` file), fixed since in `persist.sh`. Check that the folder appears after the first 10
+     minutes.
 2. Score each queue, from the repository root (the oracle is only here):
 
    ```sh
@@ -126,6 +131,47 @@ Rough time: on the PC a v7 trial took about 47 s. Expect 2 to 4 times that on a 
    `EXPERIMENT_LOG.md`, with the label **T4, cooperative isolation, s3**. Commit only the exported
    files and the log. Bundles and `benchmarks/hidden` stay out of Git.
 
+## Part 5. The held-out run (once)
+
+The 24 sealed held-out dossiers run once, rules on: v7 FIXED and ADAPTIVE, the Classifier alone
+(v3, descriptive), with V0 and SC. What runs and why is in log entry 15. The result stands whatever
+it is; nothing is tuned after the freeze.
+
+1. **Laptop: freeze.** Commit and push everything; `git status --short` must list no tracked change.
+   Build one freeze per protocol from that commit, from the specs in `freeze-spec/`:
+
+   ```sh
+   mkdir -p benchmarks/heldout/freeze
+   for name in heldout-baseline heldout-classifier-only; do
+       PYTHONPATH=. uv run scripts/make_freeze.py docs/checkpoints/mg2/freeze-spec/$name.json \
+           benchmarks/heldout/freeze/$name.json
+       PYTHONPATH=. uv run scripts/verify_freeze.py benchmarks/heldout/freeze/$name.json --strict-commit
+   done
+   ```
+
+   Each freeze pins the commit, the protocol, prompt and queue files, and `benchmarks/heldout/visible`
+   as a tree digest, with `held_out_visible_root` set to that checkout-relative path. The folder
+   `benchmarks/heldout/` is gitignored, so the freezes do not dirty the tree. Record both freeze
+   digests in `HELDOUT_APPROVAL.md`.
+2. **Laptop: private dataset.** Upload `benchmarks/heldout/` (only `visible/` and `freeze/`; never
+   `benchmarks/hidden`) as the private Kaggle dataset `recycleguard-heldout`, then confirm it is
+   private (`kaggle datasets metadata`, `isPrivate: true`). Do not share it.
+3. **Kaggle.** Import the notebook as in Part 2 and keep the notebook private. *Add Input* →
+   *Your Datasets* → `recycleguard-heldout`. Do **not** attach an earlier notebook output (this is a
+   fresh queue). In the first cell set
+   `QUEUE = "docs/checkpoints/mg2/queue/t4/queue-t4-heldout.json"` and `FINAL = True`, then
+   *Save & Run All (Commit)*.
+4. **Expect** in the log, beyond Part 2's lines: `git checkout --detach <freeze commit>`, two
+   `verify_freeze.py` outputs with `"ok": true`, then
+   `queue mg2-t4-heldout: 2 sessions, 240 trials, 3 slots`. If a freeze does not verify, the cell
+   stops before any trial; do not edit the freeze, find out why.
+5. **Laptop: score and export** as in Part 4, with `queue-t4-heldout.json` and the name
+   `mg2-t4-heldout`. `score.py` scores the final sessions against `benchmarks/heldout/visible`; the
+   export holds ledgers, results and tables, never the dossiers. Write the next log entry.
+
+The notebook's output holds trial folders with copies of the held-out dossiers, so keep the notebook
+private, like the dataset.
+
 ## Something went wrong
 
 | What you see | Cause | What to do |
@@ -139,7 +185,7 @@ Rough time: on the PC a v7 trial took about 47 s. Expect 2 to 4 times that on a 
 | `only N MiB free with 3 slots` | the T4 has less free memory than expected | **only before any shard has started**: set `"slots": 2` in all three t4 queue files, commit, push, add a deviation row, rerun. Never change it once a shard has run |
 | `the model server runs with ..., the sweep needs ...` | the server started with another slot count | rerun cell 3 |
 | `this queue name was used with another model or slot count` | `slots` changed after a shard began | restore the value |
-| `--host cannot run final or held-out jobs` | a final job is in a t4 queue file | remove it; the held-out run is PC-only |
+| `--host runs final or held-out jobs only with --final-disclosed` | a final job in a development queue, or Part 5 run without `FINAL = True` | development: remove it. Held-out: Part 5 |
 | A session shows `FAILED` | 3 attempts used | read `/work/<queue>/<job>-<prompt>.log`; report it; do not rerun it under the same name |
 | `score.py`: `no evaluator data` | run on a machine without `benchmarks/hidden` | score on the laptop |
 

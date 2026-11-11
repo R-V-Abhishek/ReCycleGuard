@@ -344,6 +344,12 @@ download and the evaluator data. `docker compose down` without `-v` is safe.
 
 ## Part 9. Choose, freeze, and the held-out run (a person does this)
 
+**Superseded for this project (2026-11-11).** The held-out run was done once on a Kaggle T4
+instead: `CLOUD_RUNBOOK.md` Part 5, log entry 15, PREREGISTRATION deviations of 2026-11-11. It
+settles both open points below: the freezes stay untracked in `benchmarks/heldout/freeze/`, and
+`held_out_visible_root` is the checkout-relative `benchmarks/heldout/visible`. The text below is kept
+as written.
+
 This part cannot be run from here step by step yet, and it should not be rushed. The held-out
 dossiers run once, for D0, SC, v7 and the single best new arm, and the result stands.
 
