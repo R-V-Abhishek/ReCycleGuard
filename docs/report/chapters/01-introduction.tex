@@ -1,0 +1,91 @@
+%---------------------------------------------------------------------
+\chapter{Introduction}
+%---------------------------------------------------------------------
+
+\section{Background}
+India regulates electronic waste through the E-Waste (Management) Rules, 2022, notified by the
+Ministry of Environment, Forest and Climate Change (MoEFCC) as G.S.R.~801(E) on 2~November
+2022~\cite{rules2022}. The rules place an Extended Producer Responsibility (EPR) obligation on
+every producer of covered electrical and electronic equipment (EEE): a business that sells
+equipment under its brand, or imports it, must ensure that a stated share of the equipment it
+placed on the market earlier is recycled. Schedule~III sets the share at 60\% for 2023--24 and
+2024--25, 70\% for 2025--26 and 2026--27, and 80\% from 2027--28, computed on a historical sales
+cohort determined by product life rather than on current sales~\cite{rules2022}. Producers
+register on the Central Pollution Control Board (CPCB) EPR portal and meet the obligation with EPR
+certificates that registered recyclers generate for recovered material and transfer to them;
+Rules~14 and~15 describe how certificates are adjusted against liability, with earlier liability
+taking priority~\cite{rules2022}. The rules were amended in 2023 and 2024; the March 2024
+amendment (G.S.R.~164(E)) allows certain return timelines to be relaxed by
+order~\cite{amend2024}.
+
+For a producer, this creates a recurring reconciliation problem. The obligation, the sales
+history behind it, the certificates bought, the payments made, the transfers recorded on the
+portal and the balances the portal shows are different facts held in different documents. CPCB's
+own guidance separates them: a commercial agreement or a payment does not prove that a
+certificate was transferred, and certificate metal values, equipment mass and money are separate
+quantities~\cite{framework,faq2024}. A compliance officer preparing a return must therefore
+trace each claimed reduction of the obligation back to evidence, decide whether the evidence
+supports it, and record why.
+
+\section{Problem Statement}
+A compliance officer at a producer has a dossier for one reporting period: registration
+records, obligation statements, sales and product mappings, purchase and payment records,
+certificate records and observations, transfer events, portal balances, and the applicable
+rules. Some of these records may be inconsistent, duplicated, expired, attributed to the wrong
+entity, expressed in the wrong unit or period, unreadable, or may even contain text that tries to
+instruct an automated reader. The officer needs to know which part of the obligation is supported,
+which discrepancies exist, and what remains uncertain, with every statement traceable to a page
+or record. \textbf{The decision supported is: for this producer and period, which obligation
+balances are supported by verified evidence, which discrepancies must be followed up, and what
+must a human reviewer confirm before the working paper is used?}
+
+\section{Motivation and Why Agentic AI}
+Two simpler designs were considered. A purely rule-based reconciler can compute balances once the
+records are clean and linked, and ReCycleGuard does contain one, because arithmetic over
+compliance quantities must be exact and reproducible. But the investigation that precedes the
+arithmetic is open-ended: which record to inspect next depends on what the previous inspection
+showed, a discrepancy may need a rule lookup for the period in question, and a weak or ambiguous
+result must lead either to another check or to an explicit abstention. A single prompt to a
+language model, on the other hand, can neither inspect a dossier of thousands of observations
+within its context nor be trusted to compute balances or cite pages it has not read.
+
+The problem therefore suggests an agent in a specific, bounded sense: a loop that (i) chooses the
+next check from a fixed set of audited tools, (ii) observes structured evidence, (iii) assesses
+whether the evidence supports, refutes or does not settle a candidate finding, and (iv) stops with a
+recorded reason, under hard budgets. Retrieval is needed because the rules and the dossier
+text are long; human review is needed because the output has regulatory weight. The project also
+treats the agentic hypothesis as something to be tested rather than assumed: model-free controls run
+through the same pipeline, so the model's own contribution can be measured.
+
+\section{Objectives}
+\begin{enumerate}[itemsep=2pt]
+\item To design and implement an evidence pipeline that stores originals immutably, extracts
+observations with page and row locators, and reconciles obligations with exact decimal
+arithmetic.
+\item To implement a bounded LangGraph investigation agent with audited tools, a deterministic
+finding gate and a human review step bound to an exact report revision.
+\item To build a 48-dossier synthetic benchmark with sixteen fault families and an evaluator whose
+answers never enter the runtime, prompts or user interface.
+\item To measure, against model-free controls and with confidence intervals, how much a locally
+served 9-billion-parameter model contributes to correct findings.
+\item To test, under a pre-registered protocol, whether a multi-agent design with a retrieval
+agent and a classification agent recovers judgement faults that the single-agent loop misses,
+and to run the held-out dossiers once.
+\end{enumerate}
+
+\section{Scope of the Project}
+Included: one producer and one reporting period per dossier; structured records and PDFs;
+a curated corpus of two public CPCB documents (the 2022 Rules and the January 2024 FAQ); a local
+web interface and HTTP interface for review; local inference only. Excluded: filing on the CPCB
+portal, trading or transferring certificates, any statement of legal compliance or fraud, and
+real producer data. The output is an advisory working paper that a person must review; the system
+never approves its own findings.
+
+\section{Organisation of the Report}
+Chapter~2 reviews how EPR reconciliation is done today and the agentic techniques used here.
+Chapter~3 states the requirements and data sources, and Chapter~4 presents the architecture and
+the multi-agent design. Chapter~5 maps the system to the course's agentic concepts with evidence,
+and Chapter~6 describes the implementation and the evaluation harness. Chapter~7 covers tracing,
+the benchmark, the metrics and the results, and Chapter~8 the pre-registered multi-agent
+experiment. Chapter~9 discusses limitations, failure modes and responsible use, and Chapter~10
+concludes.

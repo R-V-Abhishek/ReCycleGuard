@@ -1,0 +1,97 @@
+%=====================================================================
+%  APPENDICES
+%=====================================================================
+\chapter{Team Contribution}
+\label{app:contrib}
+Ownership follows the repository's component assignment (\texttt{AGENTS.md}, \texttt{implementation
+plan.md}); integration work by the lead is recorded separately in each checkpoint's construction
+record. Shares are not quantified.
+
+\begin{table}[htbp]
+\centering
+\caption{Contribution of team members}
+\small
+\begin{tabularx}{\linewidth}{@{}l l X@{}}
+\toprule
+\textbf{USN} & \textbf{Name} & \textbf{Components owned} \\ \midrule
+\USNb & \NameB\ (Lead) & Orchestration and integration, shared contracts and configuration, CLI,
+snapshots, model gateway integration, evaluation harness and queue, MG1 and MG2 experiments, cloud
+runner, report \\
+\USNa & \NameA & Intake, extraction, indexing and retrieval (FTS5, grading, temporal validity) \\
+\USNc & \NameC & Normalisation, deterministic domain tools and reconciliation, synthetic dossier
+generator and benchmark \\
+\USNd & \NameD & Storage and audit, reports and review, export and replay, evaluator isolation \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\chapter{Setup and Run Instructions}
+\label{app:run}
+Repository: \url{https://github.com/R-V-Abhishek/ReCycleGuard}. The commands below are those of the
+repository's README and reproduction guide (\texttt{docs/release/REPRODUCE.md}). No secret is needed
+for the deterministic pipeline; the model configuration and reviewer password stay outside Git.
+
+\begin{lstlisting}[language={},numbers=none]
+git clone https://github.com/R-V-Abhishek/ReCycleGuard.git && cd ReCycleGuard
+uv sync --locked
+uv run recycleguard doctor
+uv run pytest                                   # full suite
+uv run scripts/export_schemas.py --check        # contract checks
+uv run scripts/export_openapi.py --check
+# HTTP interface with a local model configuration (docs/api/README.md)
+uv run recycleguard serve --host 0.0.0.0 --port 8000 \
+    --model-config .recycleguard/local-model.json
+# user interface (ui/README.md)
+cd ui && npm ci && npm run dev
+# result tables of this report
+uv run scripts/report_tables.py
+\end{lstlisting}
+
+The model server setup is in \texttt{docs/checkpoints/mg1/DOCKER\_RUNBOOK.md} (PC, Docker) and
+\texttt{docs/checkpoints/mg2/CLOUD\_RUNBOOK.md} (Kaggle or Colab T4); both pin llama.cpp
+\texttt{b12033} and the Q8\_0 weights by revision (\texttt{deploy/model.env}).
+
+\chapter{Sample Traces}
+\label{app:traces}
+The excerpts below are copied from committed run records; identifiers and digests are shortened
+with an ellipsis, nothing else is changed.
+
+\section{Session ledger}
+Each trial writes a start line and an end line. This is the first trial of the rules-on M2 v1
+session of the T4 core queue.
+\begin{lstlisting}[language={},numbers=none,caption={Ledger lines of one trial (\texttt{mg2-t4-core}, rules-on, M2 v1)},label={lst:ledger}]
+{"at": "2026-11-10T04:29:24.092381+00:00", "attempt": 1, "status": "STARTED",
+ "trial_id": "case_20cd8cfb68|RETRIEVER_CLASSIFIER|r1"}
+{"at": "2026-11-10T04:31:23.193486+00:00", "attempt": 1,
+ "bundle_digest": "cbcf3625...", "detail": "AWAITING_REVIEW/RESOLVED_WITHIN_SCOPE",
+ "result_digest": "f87eb578...", "status": "SUCCESS", "tokens": 15436,
+ "trial_id": "case_20cd8cfb68|RETRIEVER_CLASSIFIER|r1", "wall_seconds": 119.097}
+\end{lstlisting}
+
+\section{Result record}
+The result record of a scripted-control trial in the same session, abridged to its top-level fields
+and the budget block.
+\begin{lstlisting}[language={},numbers=none,caption={Abridged result record (SC control, \texttt{case\_55681578c8})},label={lst:result}]
+audit_chain        VERIFIED
+case_id            case_55681578c8
+requested_variant  SC
+status             AWAITING_REVIEW
+stop_reason        NO_NEW_EVIDENCE
+job                {status: STOPPED, detail: AWAITING_REVIEW, ...}
+budget             {actions: 6, model_calls: 2, tool_calls: 1, preflight_actions: 1,
+                    verification_actions: 1, retries: 0, report_repairs: 0,
+                    reserved_tokens: 4096, ...}
+calls              [6 records: stage and scripted model calls, in order]
+census             {records, eligibility, dispositions, allocation_checks, priority_checks}
+report             {findings: 1, rejected_finding_proposals: 0,
+                    available_evidence_refs: 7, verification: {...}}
+\end{lstlisting}
+
+\chapter{Prompts}
+\label{app:prompts}
+The prompts that produced the reported results, generated verbatim from the repository with their
+digests. \texttt{mg2\_agents\_v2} and \texttt{v3} differ from v1 in one declared change each (v2
+removes the Retriever's examples, v3 removes the Classifier's family meanings); they are in
+\texttt{docs/checkpoints/mg2/prompts/}.
+
+\input{generated/prompts.tex}

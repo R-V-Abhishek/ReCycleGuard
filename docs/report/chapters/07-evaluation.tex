@@ -1,0 +1,136 @@
+%---------------------------------------------------------------------
+\chapter{Observability and Evaluation}
+%---------------------------------------------------------------------
+
+\section{Tracing and Monitoring}
+Three layers of records make a run inspectable. Inside the application, the audit kernel writes
+every model call and tool action, with its budget reservation, before dispatch, and the graph
+checkpoints each state transition. For each evaluation trial, the result record captures the run
+status and stop reason, the ordered list of model and stage calls, a budget block (actions, tool
+calls, model calls, retries, report repairs, reserved tokens), an evidence census (record counts,
+eligibility and allocation checks), the findings and the rejected proposals with their reasons, and
+the outcome of re-verifying the audit chain. Each session's ledger records the start and end of
+every trial with its status, wall time, token count and the digests of its bundle and result,
+which is what the queue uses to resume and what the scorer reads. Appendix~\ref{app:traces} shows
+real excerpts. During the cloud runs, a status page summarised trials done, sessions running and an
+estimated finish time every five minutes. Latency and calls per trial are reported with the
+results below; money is not reported because inference was local and unmetered.
+
+\section{Evaluation Dataset}
+The \texttt{pilot-0.1} benchmark has 48 synthetic dossiers rendered from a typed world model with
+exact decimal quantities. Each split contains one dossier per fault family F01--F16
+(Table~\ref{tab:families}) and eight combinations. Splits are grouped by entity, template and
+timeline and assigned before rendering; generation fails if two splits share an entity, template,
+combination or world, if a visible name carries a family or seed word, or if a development and a
+held-out dossier reach a word 5-shingle Jaccard similarity of 0.85 (the maximum is about 0.31).
+
+The 24 development dossiers form \emph{tuning-16}, used for all development decisions, and
+\emph{checking-8}, which was looked at once (disclosed in the log). The \emph{ablated} arena is
+tuning-16 run with every deterministic family check switched off, so that only a model can find the
+faults; with the checks on, the same cases form the \emph{rules-on} arena, a no-regression gate.
+The 24 \emph{held-out} dossiers were kept out of the repository and run once. Labels come from the
+generator's world model, not from a human audit; their status is
+\texttt{INDEPENDENT\_REFERENCE\_VALIDATED} (agent-reviewed), not hand-reviewed.
+
+\begin{table}[htbp]
+\centering
+\caption{Fault families of the benchmark}
+\label{tab:families}
+\small
+\begin{tabularx}{\linewidth}{@{}l X l X@{}}
+\toprule
+\textbf{ID} & \textbf{Family} & \textbf{ID} & \textbf{Family} \\ \midrule
+F01 & Clean baseline (tests false positives) & F09 & Expired or cancelled certificate \\
+F02 & Overlapping export claim & F10 & Recycler capability mismatch \\
+F03 & Certificate id reused across stages & F11 & Rule from the wrong period \\
+F04 & Mixed units or dimensions & F12 & Unseen notice lead \\
+F05 & Wrong entity alias & F13 & Conflicting weight basis \\
+F06 & Stale snapshot & F14 & Out-of-scope regime \\
+F07 & Paid but not transferred & F15 & Extraction page loss \\
+F08 & Prior arrears drain credits & F16 & Prompt injection in the dossier \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Metrics and Evaluation Rubric}
+The primary metric is \emph{supported case success}: the share of scheduled trials in which the run
+reached \texttt{AWAITING\_REVIEW}, every obligation bucket matched the reference exactly, the set of
+finding families matched the expected set with no miss, extra or duplicate, every required scope
+was withheld, and no forbidden action occurred. Failures, timeouts and invalid output count as
+unsuccessful. A preflight block is a success only for a case whose sole expected family is page
+loss (F15). Secondary metrics are true positives (TP), false positives (FP) and false negatives over
+findings, with precision $P=\mathrm{TP}/(\mathrm{TP}+\mathrm{FP})$, recall
+$R=\mathrm{TP}/(\mathrm{TP}+\mathrm{FN})$ and $F_1=2PR/(P+R)$, reported as N/A rather than 1.0
+when a denominator is zero; the number of model finding proposals made and accepted by the gate;
+schema-valid replies; mean model calls and wall time per trial. Repeats of a case are not
+independent, so the 95\% intervals are percentile bootstrap intervals over cases (10{,}000
+resamples, whole cases resampled with all their repeats). No LLM judge is used: every expected
+balance and finding is known exactly.
+
+\section{Baselines}
+Every session includes two model-free controls run through the same pipeline: \textbf{V0}, the
+deterministic pipeline with no model, and \textbf{SC}, a scripted controller that replays a fixed
+plan through the real services. The model arms are \textbf{V1} (fixed retrieval: a predeclared
+check sequence, the model assesses and drafts only) and \textbf{V2} (the bounded adaptive loop).
+Same cases, tools, corpus and budgets apply to all. If a model arm cannot beat SC, the model adds
+nothing measurable.
+
+\section{Results}
+
+\subsection{MG1: single agent on the PC}
+Table~\ref{tab:mg1} shows the MG1 progression. Before the engine changes, v7 succeeded on about
+half of the tuning trials (69 of 128 across three sweeps). Adding deterministic family checks and
+the contradiction gate raised this to 30 of 32, and fixing one remaining case to 32 of 32; reporting
+page loss as a finding brought checking-8 to 16 of 16 as well. Wherever the controls ran
+(checking-8 and the ablation), they scored the same as the model arms, and the model's share of
+accepted findings was zero.
+With every family check switched off, V1, V2 and SC all scored 0 of 16 cases and found none of the
+21 expected findings; the thinking prompt found one (F06), with three false F06 claims, and with
+the rules on it fell to 26 of 32 against v7's 32 of 32.
+
+\input{generated/mg1.tex}
+
+\subsection{MG2: the T4 series}
+Tables~\ref{tab:mg2-ablated} and~\ref{tab:mg2-rules-on} give the development results of the
+multi-agent experiment described in Chapter~8, run as a separate series on cloud T4 GPUs and never
+pooled with MG1. In the ablated arena no arm succeeded on more than 2 of 32 trials. The arms that
+use the Retriever proposed the most findings, but most were wrong. With the rules on, both
+single-agent arms kept their MG1 behaviour (32 and 31 of 32, no false positive), the Classifier
+alone was close (30 and 31 of 32 with 2 and 1 false positives), and every arm with the Retriever
+fell to between 9 and 15 of 32 with 25 to 38 accepted false positives.
+
+\input{generated/mg2-ablated.tex}
+\input{generated/mg2-rules-on.tex}
+
+\subsection{Held-out run}
+Table~\ref{tab:heldout} gives the single held-out run, declared in the experiment log (entry 15)
+before it ran: V1 and V2 with the v7 prompt (the primary comparison), V0 and SC, and the
+Classifier alone with prompt v3, reported descriptively because it failed the development gate.
+
+\HeldOutTable
+
+\section{Error Analysis}
+The failures fall into four groups.
+
+\textbf{Accepted false findings from the Retriever (dominant).} With the rules on, the five
+Retriever arms had 166 accepted false positives in 160 trials. The same families recur in every
+prompt version: F05 (wrong entity alias) accounts for 97 and F14 (out-of-scope regime) for 40, with
+F16 and F13 most of the rest; in the ablated arena F07 (paid but not transferred) is also common.
+These are claims whose quoted text exists in the dossier, so they pass the quote verifier, and which
+the gate does not contradict, because no calculation refutes them. Why the gate accepts them, case
+by case, was not analysed before prompt iteration stopped; it is the first item of future work.
+
+\textbf{Gate rejections without the Retriever.} The Classifier alone proposed 18 to 39 findings per
+session, and the gate rejected almost all of them, mostly as \texttt{NO\_VERIFIED\_CLAIM} (34 of 37
+for v1 and 33 of 34 for v3 in the ablated arena). Its few accepted claims were mostly correct (F10
+and F06 ablated), but with the rules on it still added one or two false positives (F03, F08).
+
+\textbf{Model passivity in the single-agent loop.} Each v7 variant proposed one finding in 32
+trials with the rules on, and it was rejected (\texttt{CONTRADICTED\_BY\_CALCULATION}). Without the rules
+it proposed almost nothing: in the ablated arena V2 missed all 39 expected findings across 32
+trials.
+
+\textbf{Infrastructure and schema failures.} V2 lost one rules-on trial to an invalid model reply
+(\texttt{model-schema}), and one Classifier-alone trial ended \texttt{FAILED} after two child-process
+exits with no recorded cause. One checking-8 case failed in MG1 because preflight blocked on page
+loss while also carrying F16; reporting page loss as a finding fixed this.

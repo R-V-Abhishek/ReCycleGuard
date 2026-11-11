@@ -1,0 +1,26 @@
+\begin{table}[htbp]
+\centering
+\caption{MG2 rules-on arena (the no-regression gate)}
+\label{tab:mg2-rules-on}
+\small
+\begin{tabular}{@{}l l r r r r r r@{}}
+\toprule
+\textbf{Arm} & \textbf{Prompt} & \textbf{Cases} & \textbf{95\% CI} & \textbf{TP / FP} & \textbf{Prop.\ / acc.} & \textbf{Calls} & \textbf{s} \\
+\midrule
+S1 v7 FIXED & v7 & 32 of 32 & 1.00--1.00 & 42 / 0 & 1 / 0 & 6.2 & 107 \\
+S1 v7 ADAPTIVE & v7 & 31 of 32 & 0.91--1.00 & 41 / 0 & 1 / 0 & 2.3 & 90 \\
+M2 Retriever + Classifier & v1 & 10 of 32 & 0.16--0.47 & 41 / 38 & 48 / 38 & 5.7 & 87 \\
+M2 Retriever + Classifier & v2 & 15 of 32 & 0.31--0.62 & 42 / 25 & 38 / 25 & 5.3 & 134 \\
+M2 Retriever + Classifier & v3 & 12 of 32 & 0.19--0.59 & 40 / 35 & 46 / 35 & 5.7 & 136 \\
+M2-nr Classifier alone & v1 & 30 of 32 & 0.81--1.00 & 42 / 2 & 26 / 2 & 1.1 & 51 \\
+M2-nr Classifier alone & v3 & 31 of 32 & 0.91--1.00 & 42 / 1 & 18 / 1 & 1.1 & 49 \\
+M1 Retriever + lookup & v1 & 9 of 32 & 0.12--0.47 & 41 / 37 & 45 / 37 & 4.8 & 100 \\
+M1 Retriever + lookup & v2 & 13 of 32 & 0.25--0.59 & 41 / 31 & 44 / 31 & 4.4 & 90 \\
+\midrule
+SC (in each of 9 sessions) & -- & \multicolumn{6}{l}{16 of 16, FP 0} \\
+V0 (in each of 9 sessions) & -- & \multicolumn{6}{l}{16 of 16, FP 0} \\
+\bottomrule
+\end{tabular}
+\par\smallskip
+\parbox{\linewidth}{\footnotesize T4 series, cooperative isolation, 3 slots, 2 repeats on tuning-16. Prop.\ / acc.: model finding proposals made and accepted by the gate. Calls and s: mean model calls and wall seconds per trial. Source: \texttt{docs/checkpoints/mg2/runs/t4/*/compare.csv}.}
+\end{table}

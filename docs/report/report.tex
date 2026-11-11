@@ -1,0 +1,262 @@
+\documentclass[12pt,a4paper,oneside]{report}
+
+%-------------------- Page layout and fonts --------------------------
+\usepackage[a4paper,left=1.25in,right=1in,top=1in,bottom=1in,headheight=15pt]{geometry}
+% Font: LaTeX default Computer Modern (cmr) throughout --- do not load other font packages
+\usepackage{eso-pic}             % page border on front-matter pages
+\usepackage{setspace}
+\onehalfspacing
+\usepackage{microtype}
+
+%-------------------- Packages ---------------------------------------
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs,tabularx,multirow,longtable,array}
+\usepackage{float}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{enumitem}
+\usepackage[dvipsnames,table]{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit,backgrounds}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.17}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{listings}
+\usepackage[most]{tcolorbox}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{hyperref}
+\hypersetup{
+    bookmarksopen=true,
+    colorlinks=true,
+    citecolor=blue,
+    linkcolor=blue,
+    urlcolor=blue
+}
+
+%=====================================================================
+%  PROJECT DETAILS --- EDIT THIS BLOCK
+%=====================================================================
+\newcommand{\ProjectTitle}{ReCycleGuard: An Audited Agentic Assistant for E-Waste Extended Producer Responsibility Reconciliation}
+% Short title for the page header (shorten if it does not fit on one line)
+\newcommand{\HeaderTitle}{ReCycleGuard: Agentic E-Waste EPR Reconciliation}
+\newcommand{\TeamNo}{06}
+\newcommand{\AcademicYear}{2026--27}
+\newcommand{\SubmissionDate}{12 November 2026}
+% Team members: USN and Name (delete the 4th row in the tables if you have only 3 members)
+\newcommand{\USNa}{1BM23CD020}  \newcommand{\NameA}{H Sampreeth Bhat}
+\newcommand{\USNb}{1BM23CD047}  \newcommand{\NameB}{R V Abhishek}
+\newcommand{\USNc}{1BM23CD063}  \newcommand{\NameC}{Sushanth S}
+\newcommand{\USNd}{1BM23CD069}  \newcommand{\NameD}{Vedantha Vinay Vernekar}
+% Course lead
+\newcommand{\GuideName}{Dr. Kalyan Nagaraj}
+\newcommand{\GuideDesig}{Assistant Professor}
+
+%=====================================================================
+%  GUIDANCE SWITCH: set to \guidancefalse before final submission
+%=====================================================================
+\newif\ifguidance
+\guidancefalse
+
+%-------------------- Colours and boxes -------------------------------
+\definecolor{bmsblue}{RGB}{0,51,102}
+\definecolor{guidebg}{RGB}{232,240,252}
+\definecolor{dobg}{RGB}{230,245,233}
+\definecolor{dontbg}{RGB}{252,232,232}
+\definecolor{samplecol}{RGB}{40,55,80}
+
+% "What to write here" box
+\newcommand{\guide}[1]{%
+  \ifguidance
+  \begin{tcolorbox}[enhanced,breakable,colback=guidebg,colframe=bmsblue,
+    boxrule=0.6pt,arc=2pt,left=6pt,right=6pt,top=4pt,bottom=4pt,
+    fonttitle=\bfseries\small,title={What to write here},
+    before upper={\small\setstretch{1.1}}]
+  #1
+  \end{tcolorbox}
+  \fi}
+
+% Do / Don't box (two columns)
+\newcommand{\dodont}[2]{%
+  \ifguidance
+  \begin{tcolorbox}[enhanced,breakable,sidebyside,sidebyside align=top seam,
+    colback=dobg,colbacklower=dontbg,colframe=gray!60,boxrule=0.5pt,arc=2pt,
+    lefthand ratio=0.5,left=5pt,right=5pt,top=4pt,bottom=4pt,
+    fontupper=\small\setstretch{1.05},fontlower=\small\setstretch{1.05}]
+  \textbf{\textcolor{ForestGreen}{\checkmark\ Do}}
+  \begin{itemize}[leftmargin=12pt,itemsep=1pt,topsep=2pt]#1\end{itemize}
+  \tcblower
+  \textbf{\textcolor{BrickRed}{$\times$ Don't}}
+  \begin{itemize}[leftmargin=12pt,itemsep=1pt,topsep=2pt]#2\end{itemize}
+  \end{tcolorbox}
+  \fi}
+
+% Page budget note for each chapter
+\newcommand{\pagebudget}[1]{%
+  \ifguidance\noindent{\small\textcolor{bmsblue}{\textbf{Expected length:} #1 pages}}\par\medskip\fi}
+
+% Sample content marker (sample text is shown in dark slate colour)
+\newenvironment{sample}
+  {\par\noindent{\footnotesize\bfseries\textcolor{BrickRed}{[SAMPLE --- replace with your own content]}}\par\color{samplecol}}
+  {\par\medskip}
+
+%-------------------- Headers and footers ----------------------------
+% Main body (Chapter 1 onwards): project title right in header, CSE (Data Science) left and
+% page number right in footer, with double rules. Front matter: page border, page number only.
+% Double rules (thick + thin, 1.5pt apart), drawn with \hrule so no line spacing is inserted
+\newcommand{\DoubleHeadRule}{\vskip 2pt{\color{bmsblue}%
+  \hrule width\headwidth height 1.2pt\vskip 1.5pt\hrule width\headwidth height 0.4pt}\vskip -5.1pt}
+\newcommand{\DoubleFootRule}{\vskip-\footruleskip\vskip-3.1pt{\color{bmsblue}%
+  \hrule width\headwidth height 0.4pt\vskip 1.5pt\hrule width\headwidth height 1.2pt}\vskip\footruleskip}
+\fancypagestyle{mainbody}{%
+  \fancyhf{}%
+  \fancyhead[R]{\small\itshape\HeaderTitle}%
+  \fancyfoot[L]{\small CSE (Data Science)}%
+  \fancyfoot[R]{\small\thepage}%
+  \renewcommand{\headrulewidth}{1pt}\renewcommand{\footrulewidth}{1pt}%
+  \renewcommand{\headrule}{\DoubleHeadRule}\renewcommand{\footrule}{\DoubleFootRule}}
+\fancypagestyle{frontmatter}{%
+  \fancyhf{}\fancyfoot[C]{\small\thepage}%
+  \renewcommand{\headrulewidth}{0pt}\renewcommand{\footrulewidth}{0pt}%
+  \renewcommand{\headrule}{}\renewcommand{\footrule}{}}
+% Double page border (front matter only)
+\newcommand{\PageBorder}{%
+  \AddToShipoutPictureBG{\AtPageLowerLeft{%
+    \setlength{\unitlength}{1pt}%
+    \begin{tikzpicture}[remember picture,overlay]
+      \draw[bmsblue,line width=1.6pt] ([xshift=1.2cm,yshift=1.2cm]current page.south west)
+        rectangle ([xshift=-1.2cm,yshift=-1.2cm]current page.north east);
+      \draw[bmsblue,line width=0.5pt] ([xshift=1.35cm,yshift=1.35cm]current page.south west)
+        rectangle ([xshift=-1.35cm,yshift=-1.35cm]current page.north east);
+    \end{tikzpicture}}}}
+
+%-------------------- Chapter heading style --------------------------
+\titleformat{\chapter}[display]
+  {\normalfont\bfseries\centering}
+  {\Large\textcolor{bmsblue}{CHAPTER \thechapter}}{6pt}{\LARGE\MakeUppercase}
+\titlespacing*{\chapter}{0pt}{-10pt}{24pt}
+\titleformat{\section}{\normalfont\large\bfseries}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection}{0.6em}{}
+
+%-------------------- Code listing style -----------------------------
+\lstset{basicstyle=\ttfamily\footnotesize,breaklines=true,frame=single,
+  backgroundcolor=\color{gray!6},numbers=left,numberstyle=\tiny\color{gray},
+  keywordstyle=\color{bmsblue}\bfseries,commentstyle=\color{ForestGreen},
+  stringstyle=\color{BrickRed},showstringspaces=false,columns=fullflexible,keepspaces=true}
+
+\usepackage{pgfplotstable}
+\pgfplotsset{every axis/.append style={font=\small}}
+% Results are generated by scripts/report_tables.py; the held-out table exists only after that run.
+\newcommand{\HeldOutTable}{\IfFileExists{generated/heldout.tex}{\input{generated/heldout.tex}}%
+  {\begin{center}\fbox{\parbox{0.9\linewidth}{\centering\textbf{Held-out result pending}: the run
+  declared in log entry 15 had not been scored when this draft was built.}}\end{center}}}
+
+
+\begin{document}
+
+%=====================================================================
+%  TITLE PAGE AND CERTIFICATE (department template)
+%=====================================================================
+%=====================================================================
+%  TITLE PAGE
+%=====================================================================
+\pagenumbering{gobble}
+\PageBorder
+\pagestyle{frontmatter}
+\begin{titlepage}
+\centering
+\setstretch{1.2}
+{\large\bfseries B.M.S. COLLEGE OF ENGINEERING}\\[2pt]
+{\normalsize (Autonomous Institute, Affiliated to VTU, Belagavi)}\\[2pt]
+{\normalsize Bull Temple Road, Basavanagudi, Bengaluru -- 560019}\\[12pt]
+\includegraphics[width=3.2cm]{logo.png}\\[14pt]
+{\normalsize A Mini-Project Report on}\\[10pt]
+{\Large\bfseries\textcolor{bmsblue}{\ProjectTitle}}\\[14pt]
+{\normalsize Submitted as the Alternative Assessment Tool (AAT) for the course}\\[2pt]
+{\normalsize\bfseries Agentic AI (26CD7PEAAI)}\\[2pt]
+{\normalsize of}\\[2pt]
+{\normalsize\bfseries Bachelor of Engineering}\\[2pt]
+{\normalsize in}\\[2pt]
+{\normalsize\bfseries Computer Science and Engineering (Data Science)}\\[14pt]
+{\normalsize Submitted by (Team No.\ \TeamNo)}\\[6pt]
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{l@{\hspace{1.5cm}}l}
+\textbf{\USNa} & \textbf{\NameA} \\
+\textbf{\USNb} & \textbf{\NameB} \\
+\textbf{\USNc} & \textbf{\NameC} \\
+\textbf{\USNd} & \textbf{\NameD} \\
+\end{tabular}\\[16pt]
+{\normalsize Course Lead}\\[4pt]
+{\large\bfseries \GuideName}\\[2pt]
+{\normalsize \GuideDesig, Department of CSE (Data Science)}\\[2pt]
+{\normalsize B.M.S. College of Engineering, Bengaluru}\\[16pt]
+\vfill
+{\normalsize\bfseries Department of Computer Science and Engineering (Data Science)}\\[2pt]
+{\normalsize B.M.S. College of Engineering, Bengaluru}\\[2pt]
+{\normalsize Academic Year \AcademicYear}
+\end{titlepage}
+
+%=====================================================================
+%  FRONT MATTER
+%=====================================================================
+\pagenumbering{roman}
+\setcounter{page}{2}
+
+%-------------------- Certificate ------------------------------------
+\chapter*{Certificate}
+\addcontentsline{toc}{chapter}{Certificate}
+\thispagestyle{frontmatter}
+\begin{center}
+\includegraphics[width=2.2cm]{logo.png}\\[6pt]
+{\bfseries B.M.S. College of Engineering, Bengaluru}\\
+Department of Computer Science and Engineering (Data Science)
+\end{center}
+\vspace{10pt}
+This is to certify that the mini-project entitled \textbf{``\ProjectTitle''} has been carried out by
+\NameA\ (\USNa), \NameB\ (\USNb), \NameC\ (\USNc) and \NameD\ (\USNd), bona fide students of
+B.M.S. College of Engineering, Bengaluru, as the Alternative Assessment Tool (AAT) for the evaluation
+of the course \textbf{Agentic AI (26CD7PEAAI)}, Semester VII, Bachelor of Engineering in Computer
+Science and Engineering (Data Science), during the academic year \AcademicYear. The work has been
+evaluated through the four project reviews prescribed for the course, and this report satisfies the
+requirements of the AAT component of the said course.
+
+\vspace{70pt}
+\noindent\hfill
+\begin{minipage}[t]{0.62\textwidth}\raggedleft
+\rule{6cm}{0.4pt}\\
+\textbf{\GuideName}\\
+Course Lead, Agentic AI (26CD7PEAAI)\\
+\GuideDesig, Dept. of CSE (Data Science)\\
+B.M.S. College of Engineering, Bengaluru\\[10pt]
+Date: \rule{3.5cm}{0.4pt}
+\end{minipage}
+
+\input{chapters/00-front}
+
+%=====================================================================
+%  MAIN BODY
+%=====================================================================
+\clearpage
+\ClearShipoutPictureBG
+\pagestyle{mainbody}
+\fancypagestyle{plain}{\pagestyle{mainbody}}
+\pagenumbering{arabic}
+
+\input{chapters/01-introduction}
+\input{chapters/02-literature}
+\input{chapters/03-requirements}
+\input{chapters/04-design}
+\input{chapters/05-concepts}
+\input{chapters/06-implementation}
+\input{chapters/07-evaluation}
+\input{chapters/08-experimentation}
+\input{chapters/09-limitations}
+\input{chapters/10-conclusion}
+
+\input{chapters/references}
+
+\appendix
+\input{chapters/appendices}
+
+\end{document}

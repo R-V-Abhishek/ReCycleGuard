@@ -1,0 +1,50 @@
+\begin{table}[htbp]
+\centering
+\caption{MG1 on the RTX PC (one Docker container per trial): primary success and findings}
+\label{tab:mg1}
+\small
+\begin{tabular}{@{}l l >{\raggedright\arraybackslash}p{3.6cm} l r r@{}}
+\toprule
+\textbf{Run} & \textbf{Data} & \textbf{Change} & \textbf{Arm} & \textbf{Cases} & \textbf{TP / FP} \\
+\midrule
+sweep-v11 & tuning-16 & v7 prompt, before the engine fixes & V2 ADAPTIVE & 9 of 16 & 13 / 0 \\
+ &  &  & V1 FIXED & 8 of 16 & 13 / 1 \\
+\addlinespace
+sweep-v12 & tuning-16 & v7 prompt, before the engine fixes & V2 ADAPTIVE & 9 of 16 & 13 / 0 \\
+ &  &  & V1 FIXED & 8 of 16 & 13 / 1 \\
+\addlinespace
+sweep-v13 & tuning-16 & v7 prompt, before the engine fixes & V2 ADAPTIVE & 17 of 32 & 26 / 1 \\
+ &  &  & V1 FIXED & 17 of 32 & 26 / 1 \\
+\addlinespace
+tuning16-v7-det1 & tuning-16 & deterministic checks and contradiction gate & V2 ADAPTIVE & 15 of 16 & 19 / 1 \\
+ &  &  & V1 FIXED & 15 of 16 & 19 / 1 \\
+\addlinespace
+tuning16-v7-det2 & tuning-16 & \texttt{e8b5} fix & V2 ADAPTIVE & 16 of 16 & 20 / 0 \\
+ &  &  & V1 FIXED & 16 of 16 & 20 / 0 \\
+\addlinespace
+checking8-v7 & checking-8 & first look at checking-8 & V2 ADAPTIVE & 7 of 8 & 9 / 0 \\
+ &  &  & V1 FIXED & 7 of 8 & 9 / 0 \\
+\addlinespace
+tuning16-v7-pl1 & tuning-16 & page loss reported as F15 & V2 ADAPTIVE & 16 of 16 & 21 / 0 \\
+ &  &  & V1 FIXED & 16 of 16 & 21 / 0 \\
+\addlinespace
+checking8-v7-pl1 & checking-8 & page loss reported as F15 & V2 ADAPTIVE & 8 of 8 & 11 / 0 \\
+ &  &  & V1 FIXED & 8 of 8 & 11 / 0 \\
+ &  &  & SC & 8 of 8 & 11 / 0 \\
+ &  &  & V0 & 8 of 8 & 11 / 0 \\
+\addlinespace
+tuning16-v7-abl1 & ablated & every deterministic family off & V2 ADAPTIVE & 0 of 16 & 0 / 0 \\
+ &  &  & V1 FIXED & 0 of 16 & 0 / 0 \\
+ &  &  & SC & 0 of 16 & 0 / 0 \\
+\addlinespace
+tuning16-think-abl1 & ablated & thinking prompt, families off & V2 ADAPTIVE & 0 of 16 & 1 / 0 \\
+ &  &  & V1 FIXED & 0 of 16 & 1 / 3 \\
+ &  &  & SC & 0 of 16 & 0 / 0 \\
+\addlinespace
+tuning16-think-pl1 & tuning-16 & thinking prompt, families on & V2 ADAPTIVE & 15 of 16 & 20 / 0 \\
+ &  &  & V1 FIXED & 11 of 16 & 21 / 5 \\
+\bottomrule
+\end{tabular}
+\par\smallskip
+\parbox{\linewidth}{\footnotesize Cases: trials meeting the primary success rule. TP / FP: true and false positive findings against the oracle. Source: \texttt{docs/checkpoints/mg1/runs/pc/<run>-tables}.}
+\end{table}

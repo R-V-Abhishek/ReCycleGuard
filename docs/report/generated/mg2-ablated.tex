@@ -1,0 +1,25 @@
+\begin{table}[htbp]
+\centering
+\caption{MG2 ablated arena (every deterministic family off)}
+\label{tab:mg2-ablated}
+\small
+\begin{tabular}{@{}l l r r r r r r@{}}
+\toprule
+\textbf{Arm} & \textbf{Prompt} & \textbf{Cases} & \textbf{95\% CI} & \textbf{TP / FP} & \textbf{Prop.\ / acc.} & \textbf{Calls} & \textbf{s} \\
+\midrule
+S1 v7 FIXED & v7 & 0 of 32 & 0.00--0.00 & 0 / 1 & 2 / 1 & 6.1 & 117 \\
+S1 v7 ADAPTIVE & v7 & 0 of 32 & 0.00--0.00 & 0 / 0 & 0 / 0 & 2.3 & 89 \\
+M2 Retriever + Classifier & v1 & 0 of 32 & 0.00--0.00 & 1 / 41 & 60 / 42 & 5.4 & 117 \\
+M2 Retriever + Classifier & v2 & 0 of 32 & 0.00--0.00 & 6 / 47 & 65 / 53 & 5.7 & 177 \\
+M2 Retriever + Classifier & v3 & 0 of 32 & 0.00--0.00 & 2 / 42 & 55 / 44 & 5.7 & 165 \\
+M2-nr Classifier alone & v1 & 2 of 32 & 0.00--0.19 & 2 / 0 & 39 / 2 & 1.1 & 60 \\
+M2-nr Classifier alone & v3 & 2 of 32 & 0.00--0.19 & 3 / 0 & 37 / 3 & 1.8 & 71 \\
+M1 Retriever + lookup & v1 & 1 of 32 & 0.00--0.09 & 6 / 36 & 42 / 42 & 4.7 & 120 \\
+M1 Retriever + lookup & v2 & 0 of 32 & 0.00--0.00 & 3 / 28 & 31 / 31 & 4.2 & 101 \\
+\midrule
+SC (in each of 9 sessions) & -- & \multicolumn{6}{l}{0 of 16, FP 0} \\
+\bottomrule
+\end{tabular}
+\par\smallskip
+\parbox{\linewidth}{\footnotesize T4 series, cooperative isolation, 3 slots, 2 repeats on tuning-16. Prop.\ / acc.: model finding proposals made and accepted by the gate. Calls and s: mean model calls and wall seconds per trial. Source: \texttt{docs/checkpoints/mg2/runs/t4/*/compare.csv}.}
+\end{table}
