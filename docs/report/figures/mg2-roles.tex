@@ -1,0 +1,20 @@
+\begin{tikzpicture}[
+  node distance=0.6cm and 0.9cm,
+  comp/.style={draw=bmsblue,fill=guidebg,rounded corners,minimum width=2.6cm,minimum height=0.9cm,align=center,font=\scriptsize},
+  det/.style={draw=ForestGreen,fill=dobg,minimum width=2.4cm,minimum height=0.8cm,align=center,font=\scriptsize},
+  arr/.style={-{Stealth[length=1.8mm]},semithick},
+  lab/.style={font=\tiny,fill=white,inner sep=1pt}]
+\node[det] (obs) {Observations\\(prose)};
+\node[comp, right=of obs] (ret) {Retriever\\list, read, search\\grade, re-query ($\le$5)};
+\node[det, right=of ret] (ver) {Quote\\verifier};
+\node[comp, right=of ver] (cls) {Classifier\\($\le$3 compute calls,\\no passage text)};
+\node[det, below=of cls] (gate) {Finding gate};
+\node[det, below=of ver] (facts) {Computed facts,\\calculation ids};
+\node[det, right=of gate] (rep) {Report};
+\draw[arr] (obs) -- (ret);
+\draw[arr] (ret) -- node[lab]{claims} (ver);
+\draw[arr] (ver) -- node[lab]{kind + id} (cls);
+\draw[arr] (facts) -- (cls);
+\draw[arr] (cls) -- node[lab]{proposals} (gate);
+\draw[arr] (gate) -- (rep);
+\end{tikzpicture}

@@ -63,21 +63,7 @@ cost). Tables~\ref{tab:mg2-ablated} and~\ref{tab:mg2-rules-on} give the full res
 
 \begin{figure}[htbp]
 \centering
-\begin{tikzpicture}
-\pgfplotstableread[col sep=comma]{generated/mg2-plot.csv}\mgtwo
-\begin{axis}[ybar, bar width=7pt, width=\linewidth, height=6.2cm,
-  ymin=0, ylabel={Findings (32 trials per arm)},
-  xtick=data, xticklabels from table={\mgtwo}{label},
-  x tick label style={rotate=35,anchor=east,font=\scriptsize},
-  legend style={at={(0.5,1.03)},anchor=south,font=\scriptsize,draw=none},
-  legend columns=2,
-  nodes near coords, nodes near coords style={font=\tiny},
-  axis lines*=left, ymajorgrids, grid style={gray!25}, enlarge x limits=0.07]
-\addplot[fill=BrickRed!70,draw=BrickRed] table[x expr=\coordindex, y=rules_on_fp]{\mgtwo};
-\addplot[fill=ForestGreen!60,draw=ForestGreen] table[x expr=\coordindex, y=ablated_tp]{\mgtwo};
-\legend{{Accepted false positives (rules on)},{True positives (ablated)}}
-\end{axis}
-\end{tikzpicture}
+\input{figures/mg2-plot}
 \caption{Cost and benefit of each arm in the MG2 development series}
 \label{fig:mg2plot}
 \end{figure}

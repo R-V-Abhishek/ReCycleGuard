@@ -1,0 +1,233 @@
+\documentclass[aspectratio=169,11pt]{beamer}
+% Final slides. Figures and result tables are the report's own (figures/, generated/), so the
+% numbers cannot drift from it. Build: latexmk -pdf slides.tex
+\usetheme{default}
+\usepackage[dvipsnames,table]{xcolor}
+\usepackage{booktabs,tabularx,array}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit,backgrounds}
+\usepackage{pgfplots,pgfplotstable}
+\pgfplotsset{compat=1.17}
+\pgfplotsset{every axis/.append style={font=\small}}
+
+\definecolor{bmsblue}{RGB}{0,51,102}
+\definecolor{guidebg}{RGB}{232,240,252}
+\definecolor{dobg}{RGB}{230,245,233}
+\definecolor{dontbg}{RGB}{252,232,232}
+\setbeamercolor{frametitle}{fg=bmsblue}
+\setbeamercolor{title}{fg=bmsblue}
+\setbeamercolor{structure}{fg=bmsblue}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}{\hfill\scriptsize\color{gray}ReCycleGuard \textbullet\ Team 06\quad\insertframenumber\,/\,\inserttotalframenumber\hspace*{1em}\vspace*{0.6em}}
+\setbeamertemplate{caption}{\raggedright\insertcaption\par}
+\setbeamerfont{caption}{size=\scriptsize}
+
+% The generated tables set \small; on a slide they need to be smaller.
+\newcommand{\slidetable}[1]{\begingroup\renewcommand{\small}{\scriptsize}\input{#1}\endgroup}
+\newcommand{\HeldOutTable}{\IfFileExists{generated/heldout.tex}{\slidetable{generated/heldout.tex}}%
+  {\begin{center}\fbox{\parbox{0.8\linewidth}{\centering\textbf{Held-out result pending}: the run
+  declared in log entry 15 had not been scored when these slides were built.}}\end{center}}}
+
+\title{ReCycleGuard}
+\subtitle{An audited agentic assistant for e-waste EPR reconciliation}
+\author{Team 06: H Sampreeth Bhat (1BM23CD020), R V Abhishek (1BM23CD047),\\
+Sushanth S (1BM23CD063), Vedantha Vinay Vernekar (1BM23CD069)}
+\institute{Agentic AI (26CD7PEAAI), Dept.\ of CSE (Data Science), B.M.S. College of Engineering\\
+Course lead: Dr.\ Kalyan Nagaraj}
+\date{12 November 2026}
+
+\begin{document}
+
+\begin{frame}
+\titlepage
+\end{frame}
+
+\begin{frame}{The problem}
+\begin{itemize}
+\item Under the E-Waste (Management) Rules, 2022, a producer must meet a yearly EPR obligation
+(60\%, 70\%, then 80\% of a historical sales cohort) with certificates from registered recyclers.
+\item Obligations, sales, purchases, payments, portal transfers and balances are \emph{different
+facts in different records}; a payment does not prove a transfer.
+\item Reconciliation is done by hand and fails in known ways: double counting, wrong entity, mixed
+units, rules from the wrong period, expired certificates, unreadable pages.
+\end{itemize}
+\vspace{0.6em}
+\begin{block}{Decision supported}
+For this producer and period: which obligation balances are supported by verified evidence, which
+discrepancies need follow-up, and what must a human reviewer confirm?
+\end{block}
+\end{frame}
+
+\begin{frame}{Why an agent, and what stays deterministic}
+\begin{columns}[T]
+\column{0.5\textwidth}
+\textbf{Needs an agent}
+\begin{itemize}
+\item The next check depends on what the last one showed
+\item Long rules and dossiers: retrieval, not one prompt
+\item Weak evidence must lead to another check or an explicit abstention
+\end{itemize}
+\column{0.5\textwidth}
+\textbf{Must not be the model}
+\begin{itemize}
+\item Balances: exact decimal arithmetic in code
+\item Accepting a finding: a deterministic gate
+\item Approving the paper: a human reviewer
+\end{itemize}
+\end{columns}
+\vspace{0.8em}
+\textbf{So the project tests the agentic hypothesis} instead of assuming it: model-free controls run
+through the same pipeline in every session.
+\end{frame}
+
+\begin{frame}{Architecture}
+\centering
+\resizebox{!}{0.82\textheight}{\input{figures/architecture}}
+\end{frame}
+
+\begin{frame}{The bounded investigation loop}
+\begin{itemize}
+\item LangGraph state graph: \textbf{preflight} $\rightarrow$ \textbf{investigate} $\rightarrow$
+\textbf{draft} $\rightarrow$ \textbf{verify}, checkpointed in SQLite with compare-and-swap versions.
+\item Each turn: \textsc{plan} proposes \emph{one} audited tool call (or stops with a reason);
+the tool runs on the frozen snapshot; \textsc{assess} returns a verdict and resolve / continue /
+abstain. Resolve requires \emph{supports}.
+\item Six tools: inspect evidence, locator lookup, certificate trace, reconciliation, return
+comparison, rule search (BM25 over the Rules and the CPCB FAQ, graded).
+\item Bounds: 12 model calls, 600\,s, 32{,}768 tokens per call; repeated actions refused; invalid
+output retried once, then deterministic evidence only.
+\item Model: Qwen3.5-9B Q8\_0 on llama.cpp \texttt{b12033}, local, loopback only.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Agentic concepts, with evidence}
+\scriptsize
+\begin{tabularx}{\linewidth}{@{}l c X@{}}
+\toprule
+\textbf{Concept} & & \textbf{Evidence} \\ \midrule
+Tool use & \checkmark & six audited tools; every call recorded before dispatch \\
+Agentic RAG & \checkmark & graded rule search; MG2 Retriever grades results and must re-query \\
+Planning and reasoning & \checkmark & \textsc{plan}/\textsc{assess} loop; fixed (V1) vs adaptive (V2) \\
+Observability & \checkmark & per-trial ledger, result records, audit-chain check \\
+Evaluation & \checkmark & deterministic scorer, hidden answers, controls, bootstrap CIs \\
+Multi-agent (bonus) & \checkmark & Retriever + Classifier, pre-registered, measured \\
+Human in the loop, guardrails & \checkmark & finding gate; review bound to the report revision \\
+Durable workflow & \checkmark & checkpoints and resume; queue resumes from ledgers \\
+Experimentation & \checkmark & MG1 chain, MG2 experiment, one held-out run \\
+Memory & partial & within a run only, by design (no leakage between cases) \\
+\bottomrule
+\end{tabularx}
+\end{frame}
+
+\begin{frame}{How it was evaluated}
+\begin{itemize}
+\item \textbf{48 synthetic dossiers} (\texttt{pilot-0.1}), sixteen fault families F01--F16, one per
+family per split plus combinations; grouped splits, similarity checks.
+\item \textbf{Splits:} tuning-16 (decisions), checking-8 (looked at once), held-out 24 (sealed, run
+once). \textbf{Ablated arena}: tuning-16 with every deterministic family check off.
+\item \textbf{Primary metric:} supported case success: exact buckets, exactly the expected finding
+families, required scopes withheld, no forbidden action.
+\item \textbf{Controls in every session:} V0 (no model) and SC (scripted controller). If a model arm
+cannot beat SC, the model adds nothing measurable.
+\item Hidden answers never enter the runtime; one Docker container per trial on the PC.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{MG1: the single agent}
+\begin{itemize}
+\item Prompt tuning plateaued: v7 succeeded on 69 of 128 tuning trials; the model contributed 3
+findings.
+\item Tracing the failures showed deterministic causes, so the \emph{engine} was fixed: family
+checks and a contradiction gate took v7 to 30, then 32 of 32.
+\item \textbf{But the controls matched it}, and the model's share of findings was 0.
+\item With every family check off: V1, V2 and SC all 0 of 21 findings; a thinking prompt found 1
+with false claims and regressed to 26 of 32 with the rules on.
+\end{itemize}
+\vspace{0.4em}
+\begin{alertblock}{Reading}
+The gains came from the deterministic engine. The model never read document text.
+\end{alertblock}
+\end{frame}
+
+\begin{frame}{MG2: two agents, pre-registered}
+\centering
+\resizebox{0.95\linewidth}{!}{\input{figures/mg2-roles}}
+\vspace{0.5em}
+\begin{itemize}\small
+\item \textbf{Hypothesis:} a Retriever that reads and grades text, plus a Classifier over verified
+claims and computed facts, recovers judgement faults in the ablated arena without adding false
+findings when the rules are on.
+\item Arms M2 (both), M1 (Retriever + lookup), M2-nr (Classifier alone) against S1 (v7) and SC;
+prompts v1--v3 declared in advance; selection rule fixed before the first run.
+\item Ran on free Kaggle T4 GPUs as a separate series while the PC was down: 18 sessions, 1{,}008
+trials, scored on the laptop.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{MG2 result: cost and benefit per arm}
+\centering
+\resizebox{\linewidth}{!}{\input{figures/mg2-plot}}
+\vspace{0.3em}
+\small No arm both recovers faults with the rules off and stays clean with them on.
+\end{frame}
+
+\begin{frame}{MG2 result: the rules-on gate}
+\slidetable{generated/mg2-rules-on.tex}
+\end{frame}
+
+\begin{frame}{Held-out run (24 sealed dossiers, once)}
+\small Declared before it ran (log entry 15): V1 vs V2 with v7 (primary comparison), V0 and SC,
+plus the Classifier alone v3 (descriptive). Freezes pin commit, protocol, prompts and dossier bytes.
+\HeldOutTable
+\end{frame}
+
+\begin{frame}{Decision and what we learned}
+\begin{itemize}
+\item \textbf{No multi-agent arm passed the gate.} Every Retriever arm accepted 25--38 false findings
+in 32 trials, mostly F05 (wrong entity alias) and F14 (out-of-scope regime), whatever the prompt.
+\item The Classifier alone was nearly clean only because the gate rejected almost everything it
+proposed.
+\item Prompt iteration stopped after three versions; the remaining budget went to one honest
+held-out run.
+\item At this model size, the value is in the deterministic tools, the gate and human review. The
+agent loop's demonstrated property is that it is \emph{bounded, traceable and safe to fail}.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Limitations and responsible use}
+\begin{columns}[T]
+\column{0.5\textwidth}
+\textbf{Limitations}
+\begin{itemize}\small
+\item Synthetic dossiers from one generator, built by the same team that built the system
+\item Small sets; wide intervals
+\item One 9B model only
+\item T4 runs used process-level isolation
+\item Why the gate accepts F05/F14 claims is not yet analysed
+\end{itemize}
+\column{0.5\textwidth}
+\textbf{Responsible use}
+\begin{itemize}\small
+\item Advisory working paper only: no filing, trading or compliance verdict
+\item Every finding cites evidence and calculations
+\item A person reviews; the decision binds the exact revision
+\item Local inference; no real producer data
+\end{itemize}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Conclusion and future work}
+\begin{itemize}
+\item Built: an audited evidence pipeline, a bounded LangGraph agent with a deterministic gate and
+human review, a 48-dossier benchmark with an isolated evaluator, and an unattended trial harness
+for a GPU PC or a free cloud T4.
+\item Measured: honest negative result for the model, positive for the design around it.
+\item Next: analyse and close the gate's F05/F14 gap; rerun MG2 with a larger model; an
+independently authored dossier set; more sources; held-out rerun with container isolation.
+\end{itemize}
+\vspace{0.8em}
+\centering\small
+Repository: \url{https://github.com/R-V-Abhishek/ReCycleGuard} \quad Report: \texttt{docs/report/report.pdf}
+\end{frame}
+
+\end{document}
