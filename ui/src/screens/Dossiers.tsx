@@ -31,21 +31,6 @@ export function Dossiers() {
     <>
       <ErrorBanner error={error} />
       <ErrorBanner error={action.error} />
-      <Section title="Development dossiers" aside={<span className="muted small">Synthetic fixtures. Held-out cases aren't served.</span>}>
-        {loading && <p>Loading…</p>}
-        {data && data.fixtures.length === 0 && <p className="muted">The API returned no fixtures.</p>}
-        {data && data.fixtures.length > 0 && (
-          <div className="fixture-grid">
-            {data.fixtures.map((fixture) => (
-              <button key={fixture.fixture_id} className="fixture" disabled={action.busy} onClick={() => void select(fixture.fixture_id)}>
-                <strong>{fixture.fixture_id}</strong>
-                <span className="muted small">FY {fixture.fiscal_year}</span>
-              </button>
-            ))}
-          </div>
-        )}
-      </Section>
-
       <Section title="Registered dossiers">
         {data?.dossiers.length ? (
           <table>
@@ -63,7 +48,7 @@ export function Dossiers() {
             </tbody>
           </table>
         ) : (
-          <Unavailable label="None yet. Choose a fixture above or upload a dossier." />
+          <Unavailable label="None yet. Choose a development dossier below or upload a package." />
         )}
       </Section>
 
@@ -76,6 +61,21 @@ export function Dossiers() {
           <Badge value={run.configuration.execution_kind} />
         </p>)}
         {!recent.loading && recent.data?.runs.length === 0 && <p className="muted">No registered runs yet.</p>}
+      </Section>
+
+      <Section title="Development dossiers" aside={<span className="muted small">Synthetic fixtures. Held-out cases aren't served.</span>}>
+        {loading && <p>Loading…</p>}
+        {data && data.fixtures.length === 0 && <p className="muted">The API returned no fixtures.</p>}
+        {data && data.fixtures.length > 0 && (
+          <div className="fixture-grid">
+            {data.fixtures.map((fixture) => (
+              <button key={fixture.fixture_id} className="fixture" disabled={action.busy} onClick={() => void select(fixture.fixture_id)}>
+                <strong>{fixture.fixture_id}</strong>
+                <span className="muted small">FY {fixture.fiscal_year}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </Section>
 
       <div className="two">

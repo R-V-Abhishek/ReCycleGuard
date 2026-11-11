@@ -32,18 +32,23 @@ from recycleguard.contracts.foundation import (
     FoundationRequest,
     FoundationResult,
 )
+from recycleguard.contracts.results import FaultFamily
 from recycleguard.contracts.review import ReviewDecision, ReviewPacket
 from recycleguard.contracts.workflow import BudgetLimits, PlanProposal, RunState
 from recycleguard.foundation import FoundationService
 from recycleguard.foundation_review import FoundationReviewer
 from recycleguard.investigation import (
+    FixedPlan,
     InvestigationConfiguration,
     InvestigationReport,
     InvestigationRequest,
     InvestigationService,
+    RunBriefs,
     ScriptedExchange,
+    resolve_budgets,
 )
 from recycleguard.knowledge.corpus_audit import CorpusProfileAuditManifest
+from recycleguard.knowledge.fixed_queries import FIXED_RULE_QUERIES
 from recycleguard.local_model import LocalModelConfig
 from recycleguard.local_session import initialize_reviewer
 from recycleguard.storage import canonical_json_bytes
@@ -115,7 +120,16 @@ class SupportReviewRequest(BoundaryModel):
 class RunRequest(BoundaryModel):
     dossier_id: Nonempty
     mode: Literal["MODEL_BACKED", "SCRIPTED_TEST"] = "MODEL_BACKED"
+    variant: Literal[
+        "ADAPTIVE",
+        "FIXED_RETRIEVAL",
+        "RETRIEVER_LOOKUP",
+        "RETRIEVER_CLASSIFIER",
+        "CLASSIFIER_ONLY",
+    ] = "ADAPTIVE"
     budgets: BudgetLimits | None = None
+    # Evaluation only; a runtime-mode server rejects it. Empty keeps every deterministic check.
+    ablated_families: list[FaultFamily] = Field(default_factory=list)
 
 
 class DecisionRequest(BoundaryModel):
@@ -302,6 +316,7 @@ def create_app(options: ApiOptions):
             "job": job,
             "configuration": {
                 "execution_kind": spec.execution_kind,
+                "experiment_variant": spec.experiment_variant,
                 "budgets": spec.budgets.model_dump(mode="json"),
                 "model_configuration_id": spec.model.configuration_id,
                 "prompt_configuration_id": spec.prompt.configuration_id,
@@ -394,23 +409,25 @@ def create_app(options: ApiOptions):
 
     @app.get("/api/v1/agent", response_model=AgentResponse)
     def agent():
-        from recycleguard.contracts.workflow import AssessmentProposal, PlanProposal
-        from recycleguard.local_model import _PHASE_RULES, _SYSTEM
+        from recycleguard.contracts.workflow import BriefProposal
+        from recycleguard.local_model import BRIEF_RULES, BUILTIN_PROMPT, phase_schemas
 
         config = (
             None
             if options.model_config_path is None
             else LocalModelConfig.model_validate_json(options.model_config_path.read_bytes())
         )
+        text = BUILTIN_PROMPT if config is None else config.prompt_text()
+        brief = config is not None and config.brief
         return {
             "configured": config is not None,
             "model_id": None if config is None else config.model_id,
             "prompt_pin": None if config is None else config.prompt_pin().model_dump(mode="json"),
-            "system_template": _SYSTEM,
-            "phase_rules": _PHASE_RULES,
+            "system_template": text.system,
+            "phase_rules": {**text.phase_rules, **({"BRIEF": BRIEF_RULES} if brief else {})},
             "response_schemas": {
-                "PLAN": PlanProposal.model_json_schema(),
-                "ASSESS": AssessmentProposal.model_json_schema(),
+                **phase_schemas(text),
+                **({"BRIEF": BriefProposal.model_json_schema()} if brief else {}),
             },
             "note": (
                 "Templates are configuration. Per-call exact sent prompts appear "
@@ -710,18 +727,7 @@ def create_app(options: ApiOptions):
                             "scripted mode requires explicitly configured test adapters"
                         )
                     steps = list(options.test_exchanges)
-                budgets = body.budgets
-                if budgets is None:
-                    budgets = (
-                        BudgetLimits()
-                        if config is None
-                        else BudgetLimits(
-                            tokens_per_model_call=config.max_total_tokens,
-                            max_total_tokens=config.max_total_tokens * 12,
-                            max_model_calls=12,
-                            max_wall_seconds=600,
-                        )
-                    )
+                budgets = resolve_budgets(config, body.budgets)
                 run_id = "run:" + uuid4().hex
                 finding_ids = [f"finding:{run_id.split(':')[1]}"]
                 if config is None:
@@ -751,7 +757,15 @@ def create_app(options: ApiOptions):
                             finding_ids=finding_ids,
                             scripted_exchanges=steps,
                             local_model_config=config,
+                            fixed_plan=FixedPlan(rule_queries=list(FIXED_RULE_QUERIES))
+                            if body.variant == "FIXED_RETRIEVAL"
+                            else None,
+                            agents=body.variant
+                            if body.variant
+                            in {"RETRIEVER_LOOKUP", "RETRIEVER_CLASSIFIER", "CLASSIFIER_ONLY"}
+                            else None,
                             budgets=budgets,
+                            ablated_families=body.ablated_families,
                         ),
                     )
                     runner = service.runner(spec)
@@ -819,7 +833,12 @@ def create_app(options: ApiOptions):
         store.job(run_id)
         with local_application(settings) as (cases, _, cap):
             service = InvestigationService(cases, settings, capability=cap)
-            rows = trace_events(service, run_id, after=after)
+            configured = (
+                None
+                if options.model_config_path is None
+                else LocalModelConfig.model_validate_json(options.model_config_path.read_bytes())
+            )
+            rows = trace_events(service, run_id, after=after, configured=configured)
         return {
             "run_id": run_id,
             "events": rows,
@@ -901,6 +920,12 @@ def create_app(options: ApiOptions):
         store.job(run_id)
         with local_application(settings) as (cases, _, cap):
             return InvestigationService(cases, settings, capability=cap).latest_report(run_id)
+
+    @app.get("/api/v1/runs/{run_id}/briefs", response_model=RunBriefs)
+    def briefs(run_id: str):
+        store.job(run_id)
+        with local_application(settings) as (cases, _, cap):
+            return InvestigationService(cases, settings, capability=cap).briefs(run_id)
 
     @app.post("/api/v1/runs/{run_id}/packet", response_model=ReviewPacket)
     def packet(run_id: str):

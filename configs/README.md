@@ -21,7 +21,7 @@ commands. Credential creation is exclusive and ACL protection is applied atomica
 Authentication rejects widened/inherited permissions and link/reparse credentials.
 Inference dependencies are isolated under `tools/local-model`; no OCR dependency
 is introduced. Native model compatibility remains unaccepted; see the
-[paused U01 record](../docs/checkpoints/model-gateway/README.md).
+[U01 record](../docs/checkpoints/model-gateway/README.md).
 
 Windows CI runs the full functional suite and native ACL tests on Python 3.11 and
 3.12. POSIX permission primitive tests have Windows ACL counterparts; the evidence

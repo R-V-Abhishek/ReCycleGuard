@@ -1,0 +1,74 @@
+{
+  "backend": "LOCAL_MODEL_COOPERATIVE_ISOLATION",
+  "not_scored": 0,
+  "by_variant": {
+    "RETRIEVER_LOOKUP": {
+      "scheduled": 32,
+      "scored": 32,
+      "successes": 1,
+      "success_rate": 0.03125,
+      "success_interval_95": [
+        0.0,
+        0.09375
+      ],
+      "preflight_blocks": 0
+    },
+    "SC": {
+      "scheduled": 16,
+      "scored": 16,
+      "successes": 0,
+      "success_rate": 0.0,
+      "success_interval_95": [
+        0.0,
+        0.0
+      ],
+      "preflight_blocks": 0
+    }
+  },
+  "v2_minus_v1": {
+    "cases": 0,
+    "excluded_unpaired_cases": 0,
+    "difference": null,
+    "interval_95": null
+  },
+  "v2_minus_v1_without_preflight_blocks": {
+    "cases": 0,
+    "excluded_unpaired_cases": 0,
+    "difference": null,
+    "interval_95": null
+  },
+  "minus_sc": {
+    "RETRIEVER_LOOKUP": {
+      "cases": 16,
+      "excluded_unpaired_cases": 0,
+      "difference": 0.03125,
+      "interval_95": [
+        0.0,
+        0.09375
+      ]
+    }
+  },
+  "v1_minus_sc": {
+    "cases": 0,
+    "excluded_unpaired_cases": 16,
+    "difference": null,
+    "interval_95": null
+  },
+  "v2_minus_sc": {
+    "cases": 0,
+    "excluded_unpaired_cases": 16,
+    "difference": null,
+    "interval_95": null
+  },
+  "failure_classes": {
+    "model-reasoning": 27,
+    "model-schema": 15,
+    "retrieval/applicability": 5
+  },
+  "canaries": {
+    "checked": 0,
+    "drifted": [],
+    "signatures": {},
+    "baseline_compared": false
+  }
+}

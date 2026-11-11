@@ -1,0 +1,39 @@
+{
+  "queue_version": "mg2-queue",
+  "model_root": "/models/provenance/qwen3.5-9b-q8_0",
+  "slots": 3,
+  "name": "mg2-t4-ablated-rest",
+  "jobs": [
+    {
+      "id": "ablated-baseline-fixed",
+      "protocol": "docs/checkpoints/mg2/protocols/ablated-baseline-fixed.json",
+      "prompts": [
+        "u01_non_thinking_v7"
+      ]
+    },
+    {
+      "id": "ablated-classifier",
+      "protocol": "docs/checkpoints/mg2/protocols/ablated-classifier.json",
+      "prompts": [
+        "mg2_agents_v2",
+        "mg2_agents_v3"
+      ]
+    },
+    {
+      "id": "ablated-classifier-only",
+      "protocol": "docs/checkpoints/mg2/protocols/ablated-classifier-only.json",
+      "prompts": [
+        "mg2_agents_v1",
+        "mg2_agents_v3"
+      ]
+    },
+    {
+      "id": "ablated-lookup",
+      "protocol": "docs/checkpoints/mg2/protocols/ablated-lookup.json",
+      "prompts": [
+        "mg2_agents_v1",
+        "mg2_agents_v2"
+      ]
+    }
+  ]
+}

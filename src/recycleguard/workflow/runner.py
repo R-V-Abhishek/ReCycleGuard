@@ -16,14 +16,26 @@ from langgraph.graph import END, START, StateGraph
 from langsmith.run_helpers import tracing_context
 from pydantic import ValidationError
 
+from recycleguard.agents.classifier import ClassifierToolResult
+from recycleguard.agents.models import (
+    AgentRecord,
+    ClassifierStep,
+    RetrieverStep,
+)
+from recycleguard.agents.passages import AgentCallError
+from recycleguard.agents.pipeline import run_agents
+from recycleguard.agents.retriever import ToolResult
 from recycleguard.contracts.artifacts import ProfileRef
 from recycleguard.contracts.audit import OperationIntent, OperationResult
 from recycleguard.contracts.core import BlobRef, BoundaryModel, Issue, ServiceResult, Status
 from recycleguard.contracts.workflow import (
+    ActionDraft,
     ActionProposal,
     AssessmentProposal,
+    BriefProposal,
     ContextManifest,
     ObservationAssessment,
+    PlanDraft,
     PlanProposal,
     PlanRecord,
     RunSpec,
@@ -35,7 +47,7 @@ from recycleguard.model_port import ModelCallRequest, ModelCallResult
 from recycleguard.storage import canonical_json_bytes
 from recycleguard.storage.authority import AuthorizationError
 
-from .ports import OutcomeUnknownError, ToolBinding, WorkflowStages
+from .ports import AgentWiring, Briefing, OutcomeUnknownError, ToolBinding, WorkflowStages
 from .store import GraphStore
 
 _TERMINAL = {"COMPLETED", "FAILED", "CANCELLED", "BLOCKED_INPUT", "BLOCKED_OUTPUT"}
@@ -46,7 +58,39 @@ _ALLOWED = {
     "compute_reconciliation",
     "compare_return",
     "search_rules",
+    # Read-only views of the dossier's prose, offered only to the Retriever (CONTRACTS.md 6.5).
+    # They change nothing and return nothing the extraction did not already hold.
+    "list_passages",
+    "read_passages",
 }
+
+
+_PROMPT_EVIDENCE_IDS = 50
+_PLAN_CALLS = {"plan", "plan_repair"}
+_RESPONSES = {
+    "PLAN": PlanProposal,
+    "ASSESS": AssessmentProposal,
+    "BRIEF": BriefProposal,
+    "RETRIEVE": RetrieverStep,
+    "CLASSIFY": ClassifierStep,
+}
+# Operation names are plan, plan_repair, assess, retrieve_<n>, classify_<n> and brief_<finding>.
+_CALL_PHASE = {
+    "plan": "PLAN",
+    "assess": "ASSESS",
+    "brief": "BRIEF",
+    "retrieve": "RETRIEVE",
+    "classify": "CLASSIFY",
+}
+# Brief calls run after verification, so they cannot affect the investigation. They have their
+# own bound instead of its caps: one call and its retry per finding, for at most this many.
+_BRIEF_CALL = "brief_"
+_MAX_BRIEFS = 16
+_NODES = ("preflight", "investigate", "draft", "verify", "brief", "sync")
+
+
+def _response_model(call_name):
+    return _RESPONSES[_CALL_PHASE.get(call_name.split("_")[0], "ASSESS")]
 
 
 class GraphInput(TypedDict):
@@ -67,12 +111,57 @@ class CallRecord(BoundaryModel):
 class ProviderUsage(BoundaryModel):
     total_tokens: int
     cost_usd: str | None = None
+    prompt_tokens: int | None = None
+    completion_tokens: int | None = None
+    cached_prompt_tokens: int | None = None
+    usage_source: str | None = None
+    cost_note: str | None = None
+
+
+def _unescaped(decision: str):
+    """Send a tool's JSON summary as JSON: nested strings double-escape it and cost prompt bytes.
+
+    Evidence cut at its byte bound is not valid JSON, so it stays a string and stays marked.
+    """
+    try:
+        value = json.loads(decision)
+    except ValueError:
+        return decision
+    if not isinstance(value, dict):
+        return decision
+    if "evidence_data_json" in value and not value.get("evidence_truncated"):
+        value["evidence_data"] = json.loads(value.pop("evidence_data_json"))
+    return value
+
+
+class RejectedAction(BoundaryModel):
+    """A proposed action refused before dispatch. The proposal stays in its model call record."""
+
+    allowed_operation: str
+    reason: str
+    model_call: str
 
 
 class WorkflowStop(ValueError):
     def __init__(self, reason, *, status="DRAFTING"):
         super().__init__(reason)
         self.reason, self.status = reason, status
+
+
+def _provider_stop(kind, record) -> WorkflowStop:
+    """A known-invalid model reply, after its retry, ends the investigation but not the run.
+
+    The report is still drafted from the deterministic findings and the proposals already
+    gated; the failed attempts stay in the trace and nothing is retried. Any other failure,
+    including an outcome the provider may have acted on, still fails the run.
+    """
+    invalid = (
+        kind == "model"
+        and record is not None
+        and record.status == "FAILED"
+        and any(issue.code == "PROVIDER_INVALID_OUTPUT" for issue in record.issues)
+    )
+    return WorkflowStop("PROVIDER_FAILURE", status="DRAFTING" if invalid else "FAILED")
 
 
 class WorkflowRunner:
@@ -87,12 +176,20 @@ class WorkflowRunner:
         checkpoint_path: Path,
         clock: Callable = lambda: datetime.now(UTC),
         model_run_validator: Callable[[RunSpec], None] | None = None,
+        fixed_checks: list[tuple[str, dict]] | None = None,
+        plan_context: Callable[[], dict] | None = None,
+        agents: AgentWiring | None = None,
+        briefing: Briefing | None = None,
     ):
         if not set(tools).issubset(_ALLOWED):
             raise ValueError("tool registry contains a prohibited operation")
         self.cases, self.settings, self.port = cases, settings, model_port
         self.tools, self.stages, self.clock = dict(tools), stages, clock
         self.model_run_validator = model_run_validator
+        self.fixed_checks = fixed_checks
+        self.plan_context = plan_context
+        self.agents = agents
+        self.briefing = briefing
         self.kernel, self.blobs = cases.kernel, cases.kernel.blob_store
         self.store = GraphStore(self.kernel)
         checkpoint_path = Path(checkpoint_path)
@@ -109,13 +206,11 @@ class WorkflowRunner:
             ),
         )
         builder = StateGraph(GraphInput)
-        for name in ("preflight", "investigate", "draft", "verify", "sync"):
+        for name in _NODES:
             builder.add_node(name, self._node)
             builder.add_edge(name, END)
         builder.add_conditional_edges(
-            START,
-            lambda state: state["route"],
-            {name: name for name in ("preflight", "investigate", "draft", "verify", "sync")},
+            START, lambda state: state["route"], {name: name for name in _NODES}
         )
         self.graph = builder.compile(checkpointer=self.checkpointer)
         self._lock = Lock()
@@ -236,6 +331,7 @@ class WorkflowRunner:
                 "INVESTIGATING": "investigate",
                 "DRAFTING": "draft",
                 "VERIFYING": "verify",
+                "BRIEFING": "brief",
             }
             with tracing_context(enabled=False):
                 self.graph.invoke(
@@ -377,7 +473,8 @@ class WorkflowRunner:
             )
             return {"status": output.status}
         try:
-            self._time(spec, state)
+            if initial.status != "BRIEFING":  # briefing records its own stops; review still opens
+                self._time(spec, state)
             if initial.status == "CREATED":
                 state = state.model_copy(update={"status": "PREFLIGHT"})
             elif initial.status == "PREFLIGHT":
@@ -411,13 +508,19 @@ class WorkflowRunner:
                         state = state.model_copy(update={"status": "DRAFTING", "budget": usage})
                     else:
                         state = state.model_copy(update={"status": "BLOCKED_OUTPUT"})
+                elif self.briefing is not None:
+                    state = state.model_copy(update={"status": "BRIEFING"})
                 else:
                     state = state.model_copy(
                         update={"status": "AWAITING_REVIEW", "review_outcome": "PENDING"}
                     )
+            elif initial.status == "BRIEFING":
+                state = self._brief(root, spec, initial, cap)
         except WorkflowStop as exc:
             state = self.store.load(spec.run_id)
-            target = exc.status if initial.status == "INVESTIGATING" else "BLOCKED_OUTPUT"
+            target = (
+                exc.status if initial.status in {"INVESTIGATING", "BRIEFING"} else "BLOCKED_OUTPUT"
+            )
             state = state.model_copy(
                 update={
                     "status": target,
@@ -567,11 +670,13 @@ class WorkflowRunner:
         self._time(spec, state)
         usage, limits = state.budget, spec.budgets
         reserve = 2 if kind in {"model", "tool"} else 0
-        if usage.actions + 1 + reserve > limits.max_case_actions:
+        # A brief call is counted like any call but bounded by the brief limit (see _brief).
+        brief = kind == "model" and name.startswith(_BRIEF_CALL)
+        if not brief and usage.actions + 1 + reserve > limits.max_case_actions:
             raise WorkflowStop("BUDGET_EXHAUSTED")
         changes = {"actions": usage.actions + 1, "retries": usage.retries + int(retry)}
         if kind == "model":
-            if (
+            if not brief and (
                 usage.model_calls >= limits.max_model_calls
                 or usage.reserved_tokens + limits.tokens_per_model_call > limits.max_total_tokens
             ):
@@ -647,7 +752,7 @@ class WorkflowRunner:
                         cap,
                     )
                 return terminal, logical.operation_id
-            raise WorkflowStop("PROVIDER_FAILURE", status="FAILED")
+            raise _provider_stop(kind, terminal)
         for attempt in range(spec.budgets.retries_per_operation + 1):
             ctx = logical.model_copy(update={"attempt_id": f"{logical.attempt_id}_{attempt}"})
             old = self.kernel.connection.execute(
@@ -717,8 +822,7 @@ class WorkflowRunner:
                             == raw.output.validated_output_or_null
                         )
                         if raw.status == "SUCCESS":
-                            schema = PlanProposal if name == "plan" else AssessmentProposal
-                            schema.model_validate_json(
+                            _response_model(name).model_validate_json(
                                 canonical_json_bytes(raw.output.validated_output_or_null)
                             )
                         issues.extend(raw.output.validation_issues)
@@ -815,7 +919,7 @@ class WorkflowRunner:
                 return record, ctx.operation_id
             if record.status != "FAILED" or not any(i.retryable for i in record.issues):
                 break
-        raise WorkflowStop("PROVIDER_FAILURE", status="FAILED")
+        raise _provider_stop(kind, record)
 
     def _usage(self, root, spec, name, attempt_id, record, cap):
         suffix = f"usage_{name}_{attempt_id.rsplit('_', 1)[1]}"
@@ -869,8 +973,9 @@ class WorkflowRunner:
         result, _ = self._external(root, spec, name, "stage", spec, handler, cap)
         return result.stage_output
 
-    def _model(self, root, spec, initial, phase, body, cap):
-        response_model = PlanProposal if phase == "PLAN" else AssessmentProposal
+    def _model(self, root, spec, initial, phase, body, cap, *, name=None):
+        response_model = _RESPONSES[phase]
+        label = phase if name is None else name.upper()
         blob = self.blobs.put(
             canonical_json_bytes(
                 {
@@ -895,7 +1000,7 @@ class WorkflowRunner:
             prompt_template_digest=spec.prompt.digest,
             exact_request_blob=blob,
             context_manifest_id=(
-                f"context_manifest:{spec.run_id}:{initial.current_turn + 1}:{phase}"
+                f"context_manifest:{spec.run_id}:{initial.current_turn + 1}:{label}"
             ),
             allowed_tool_schema_digest=spec.tools.digest,
             response_schema_id=f"schema:{phase.lower()}",
@@ -910,17 +1015,52 @@ class WorkflowRunner:
             max_total_tokens=spec.budgets.tokens_per_model_call,
         )
         self.store.archive(
-            self._ctx(root, spec, f"context_{phase}"), "graph.context", manifest, capability=cap
+            self._ctx(root, spec, f"context_{label}"), "graph.context", manifest, capability=cap
         )
         result, operation = self._external(
-            root, spec, phase.lower(), "model", request, self.port.invoke, cap
+            root, spec, name or phase.lower(), "model", request, self.port.invoke, cap
         )
         if result.status != "SUCCESS" or result.model_output is None:
             raise WorkflowStop("PROVIDER_FAILURE", status="FAILED")
-        model = PlanProposal if phase == "PLAN" else AssessmentProposal
-        return model.model_validate_json(
+        return response_model.model_validate_json(
             canonical_json_bytes(result.model_output.validated_output_or_null)
         ), operation
+
+    def _brief(self, root, spec, initial, cap):
+        """One advisory brief per verified finding. Every outcome is recorded; review opens.
+
+        A call that cannot complete drops that brief with its reason; an exhausted run budget
+        (the wall clock) drops the rest. Only a cancellation or an audit failure stops the run.
+        The report, its findings and its verification are never touched.
+        """
+        stopped = None
+        for n, (finding_revision_id, body) in enumerate(self.briefing.requests(spec)):
+            name = f"{_BRIEF_CALL}{n}"
+            proposal, reason, operation = None, stopped, None
+            if reason is None and n >= _MAX_BRIEFS:
+                reason = "BRIEF_LIMIT"
+            if reason is None:
+                operation = self._ctx(root, spec, name).operation_id
+                try:
+                    proposal, _ = self._model(root, spec, initial, "BRIEF", body, cap, name=name)
+                except WorkflowStop as exc:
+                    if (
+                        exc.reason == "AUDIT_FAILURE"
+                        or self.store.load(spec.run_id).status in _TERMINAL
+                    ):
+                        raise
+                    reason = exc.reason
+                    if reason == "BUDGET_EXHAUSTED":
+                        stopped = reason
+            self.store.archive(
+                self._ctx(root, spec, f"brief_record_{n}"),
+                "graph.brief",
+                self.briefing.record(spec, finding_revision_id, proposal, reason, operation),
+                capability=cap,
+            )
+        return self.store.load(spec.run_id).model_copy(
+            update={"status": "AWAITING_REVIEW", "review_outcome": "PENDING"}
+        )
 
     def _plan(
         self,
@@ -976,13 +1116,69 @@ class WorkflowRunner:
                     return model.model_validate_json(canonical_json_bytes(raw))
         raise ValueError("missing workflow decision record")
 
-    def _investigate(self, root, spec, initial, cap):
-        proposal, _ = self._model(
+    @staticmethod
+    def _stage_view(stage):
+        """IDs instead of full locators keep the prompt bounded; output_blob keeps everything."""
+        view = stage.model_dump(
+            mode="json", exclude={"output_blob", "service_operation_ids", "finding_revision_ids"}
+        )
+        ids = [ref["ref_id"] for ref in view.pop("evidence_refs")]
+        view["evidence_ref_ids"] = ids[:_PROMPT_EVIDENCE_IDS]
+        view["evidence_refs_total"] = len(ids)
+        view["concise_decision"] = _unescaped(view["concise_decision"])
+        return view
+
+    @staticmethod
+    def _previous_assessment_view(assessment):
+        view = assessment.model_dump(mode="json")
+        ids = [ref["ref_id"] for ref in view.pop("observation_refs")]
+        view["observation_ref_ids"] = ids[:_PROMPT_EVIDENCE_IDS]
+        view["observation_refs_total"] = len(ids)
+        return view
+
+    def _assessment_view(self, observation):
+        view = observation.model_dump(
+            mode="json", exclude={"raw_result_blob", "model_output", "stage_output"}
+        )
+        if observation.stage_output is not None:
+            view["stage_output"] = self._stage_view(observation.stage_output)
+        return view
+
+    def _fixed_proposal(self, initial):
+        # Every finding runs the whole sequence, so completed actions give the position.
+        checks = self.fixed_checks
+        step = len(initial.action_fingerprints) % len(checks)
+        operation, arguments = checks[step]
+        return PlanProposal(
+            plan=PlanDraft(
+                objective="Run the predeclared fixed check sequence",
+                hypotheses=[],
+                proposed_checks=[name for name, _ in checks],
+                expected_evidence=["Tool observations from every fixed check"],
+                stopping_criteria=["All fixed checks ran or an execution bound was reached"],
+            ),
+            action=ActionDraft(
+                action_kind="CHECK",
+                allowed_operation=operation,
+                typed_arguments=arguments,
+                finding_id=initial.pending_finding_ids[0],
+                concise_reason=f"Fixed check {step + 1} of {len(checks)}.",
+                evidence_refs=[],
+            ),
+            stop_reason=None,
+        ), step + 1 == len(checks)
+
+    def _plan_proposal(self, root, spec, initial, cap, *, previous_rejection=None):
+        return self._model(
             root,
             spec,
             initial,
             "PLAN",
             {
+                **({} if self.plan_context is None else self.plan_context()),
+                **(
+                    {} if previous_rejection is None else {"previous_rejection": previous_rejection}
+                ),
                 "pending_findings": initial.pending_finding_ids,
                 "investigation_scope": (
                     "Assess supported allocation gaps and evidence qualifications in the "
@@ -990,30 +1186,241 @@ class WorkflowRunner:
                     "observations. Use actual prior results; never invent observation identifiers."
                 ),
                 "prior_stage_observations": [
-                    CallRecord.model_validate_json(self.blobs.get(ref)).stage_output.model_dump(
-                        mode="json"
+                    self._stage_view(
+                        CallRecord.model_validate_json(self.blobs.get(ref)).stage_output
                     )
                     for ref in initial.result_refs[-2:]
                     if CallRecord.model_validate_json(self.blobs.get(ref)).stage_output is not None
                 ],
-                "prior_stage_result_refs": [
-                    ref.model_dump(mode="json") for ref in initial.result_refs
-                ],
-                "previous_assessment_refs": initial.assessment_refs,
-                "previous_plan_refs": initial.plan_refs,
                 "previous_plans": [
                     self._record(spec, ref, PlanRecord, "graph.plan.result").model_dump(mode="json")
                     for ref in initial.plan_refs[-2:]
                 ],
                 "previous_assessments": [
-                    self._record(
-                        spec, ref, ObservationAssessment, "graph.assessment.result"
-                    ).model_dump(mode="json")
+                    self._previous_assessment_view(
+                        self._record(spec, ref, ObservationAssessment, "graph.assessment.result")
+                    )
                     for ref in initial.assessment_refs[-2:]
                 ],
             },
             cap,
+            name=None if previous_rejection is None else "plan_repair",
+        )[0]
+
+    def _argument_rejection(self, action):
+        """Only a tool's own check; other malformed actions keep their later, stricter stops."""
+        binding = None if action is None else self.tools.get(action.allowed_operation)
+        if binding is None or binding.reject_arguments is None:
+            return None
+        try:
+            arguments = binding.arguments_model.model_validate_json(
+                canonical_json_bytes(action.typed_arguments)
+            )
+        except ValidationError:
+            return None
+        return binding.reject_arguments(arguments)
+
+    def _checked_plan_proposal(self, root, spec, initial, cap):
+        """Ask once more when arguments cannot run. Nothing is corrected on the model's behalf."""
+        proposal = self._plan_proposal(root, spec, initial, cap)
+        reason = self._argument_rejection(proposal.action)
+        if reason is None:
+            return proposal
+        self.store.archive(
+            self._ctx(root, spec, "rejected_action"),
+            "graph.action_rejected",
+            RejectedAction(
+                allowed_operation=proposal.action.allowed_operation,
+                reason=reason,
+                model_call="plan",
+            ),
+            capability=cap,
         )
+        repaired = self._plan_proposal(root, spec, initial, cap, previous_rejection=reason)
+        reason = self._argument_rejection(repaired.action)
+        if reason is None:
+            return repaired
+        self.store.archive(
+            self._ctx(root, spec, "rejected_action_repair"),
+            "graph.action_rejected",
+            RejectedAction(
+                allowed_operation=repaired.action.allowed_operation,
+                reason=reason,
+                model_call="plan_repair",
+            ),
+            capability=cap,
+        )
+        # Two unrunnable plans: nothing ran, and the report is still drafted without the model.
+        raise WorkflowStop("PROVIDER_FAILURE")
+
+    def _agent_call(self, root, spec, initial, cap, phase, name):
+        """A model call as a callable for the agents. An unusable reply ends that agent only.
+
+        A reply still invalid after its retry, or an exhausted budget, stops reading or analysis
+        and keeps what was gathered. Any other failure, including an outcome the provider may
+        have acted on, still fails the run.
+        """
+
+        def call(body):
+            try:
+                reply, _ = self._model(root, spec, initial, phase, body, cap, name=name())
+            except WorkflowStop as exc:
+                if exc.reason == "BUDGET_EXHAUSTED":
+                    raise AgentCallError("BUDGET_EXHAUSTED") from exc
+                if exc.reason == "PROVIDER_FAILURE" and exc.status == "DRAFTING":
+                    raise AgentCallError("INVALID_OUTPUT") from exc
+                raise
+            return reply
+
+        return call
+
+    def _agent_tool(self, root, spec, cap, number, role, tool, data, *, reformulate=False):
+        """One audited tool call for an agent. Returns (view, stage, refusal).
+
+        An exhausted budget or arguments the tool rejects come back as a refusal the agent can
+        read; they never stop the run. A tool that failed is a refusal too. Anything else, such
+        as an outcome the tool may have acted on, still stops the run.
+        """
+        binding = self.tools[tool]
+        try:
+            arguments = binding.arguments_model.model_validate(data)
+        except ValidationError as exc:
+            return None, None, f"arguments rejected: {exc.errors()[0]['msg']}"
+        try:
+            observation, _ = self._external(
+                root,
+                spec,
+                f"tool_{number}",
+                "tool",
+                arguments,
+                binding.handler,
+                cap,
+                finding=f"agent:{role}",
+                reformulate=reformulate,
+            )
+        except WorkflowStop as exc:
+            if exc.reason == "BUDGET_EXHAUSTED":
+                return None, None, "BUDGET_EXHAUSTED"
+            raise
+        stage = observation.stage_output
+        if stage is None or observation.status not in {"SUCCESS", "PARTIAL"}:
+            return None, stage, "the tool failed"
+        return {"status": observation.status, **self._stage_view(stage)}, stage, None
+
+    def _investigate_agents(self, root, spec, initial, cap):
+        """The Retriever then the Classifier in one turn. Their work is archived as one record.
+
+        Every model call and tool call goes through the same audited, budgeted path as the
+        single-agent loop. Every pending finding is settled together: resolved when both agents
+        finished, otherwise abstained. The report is drafted from the deterministic findings plus
+        whatever the gate accepts from the Classifier's proposals.
+        """
+        wiring = self.agents
+        facts = wiring.facts(self._ctx(root, spec, "agent_facts"))
+        models, tools = iter(range(1, 1000)), iter(range(1, 1000))
+        searched = []
+
+        def retrieve_tool(reply):
+            data = {
+                "list_passages": {},
+                "read_passages": {"observation_ids": reply.observation_ids},
+                "search_rules": {"query": reply.query},
+            }[reply.tool]
+            view, stage, refusal = self._agent_tool(
+                root,
+                spec,
+                cap,
+                next(tools),
+                "retriever",
+                reply.tool,
+                data,
+                reformulate=reply.tool == "search_rules" and bool(searched),
+            )
+            if reply.tool == "search_rules":
+                searched.append(reply.query)
+            ids = reply.observation_ids if reply.tool == "read_passages" else []
+            if reply.tool == "search_rules" and stage is not None:
+                ids = [ref.ref_id for ref in stage.evidence_refs][:10]
+            return ToolResult(view or {}, refused=refusal, result_ids=ids)
+
+        def classify_tool(reply):
+            data = (
+                {"bucket_ids": reply.bucket_ids}
+                if reply.tool == "compute_reconciliation"
+                else {"certificate_ids": reply.certificate_ids}
+            )
+            view, stage, refusal = self._agent_tool(
+                root, spec, cap, next(tools), "classifier", reply.tool, data
+            )
+            return ClassifierToolResult(
+                view or {},
+                refused=refusal,
+                calculation_ids=[] if stage is None else list(stage.calculation_ids),
+            )
+
+        outcome = run_agents(
+            wiring.observations(),
+            architecture=wiring.architecture,
+            facts=facts.facts,
+            calculation_ids=facts.calculation_ids,
+            decided_families=facts.decided_families,
+            families=wiring.families,
+            known_ids=facts.known_ids,
+            retrieve=self._agent_call(
+                root, spec, initial, cap, "RETRIEVE", lambda: f"retrieve_{next(models)}"
+            ),
+            retrieve_tool=retrieve_tool,
+            classify=self._agent_call(
+                root, spec, initial, cap, "CLASSIFY", lambda: f"classify_{next(models)}"
+            ),
+            classify_tool=classify_tool,
+            max_retriever_turns=wiring.max_retriever_turns,
+            max_classifier_calls=wiring.max_classifier_calls,
+            context=facts.context,
+        )
+        record = AgentRecord(
+            architecture=wiring.architecture,
+            coverage=outcome.coverage,
+            retriever_turns=outcome.retriever_turns,
+            classifier_turns=outcome.classifier_turns,
+            verified_claims=outcome.verified,
+            proposals=outcome.proposals,
+            unsupported_proposals=outcome.unsupported,
+            refs=list(outcome.refs.values()),
+            classifier_calls=outcome.classifier_calls,
+            classifier_stopped_because=outcome.classifier_stopped_because,
+        )
+        self.store.archive(
+            self._ctx(root, spec, "agent_record"), "graph.agent", record, capability=cap
+        )
+        # A turn cap is stated in the coverage and is not a failure; an unusable reply or an
+        # exhausted budget leaves the findings unsettled.
+        broken = {"INVALID_OUTPUT", "BUDGET_EXHAUSTED"}
+        complete = outcome.classifier_stopped_because not in broken and (
+            outcome.coverage is None or outcome.coverage.stopped_because not in broken
+        )
+        pending = list(initial.pending_finding_ids)
+        state = self.store.load(spec.run_id)
+        return state.model_copy(
+            update={
+                "status": "DRAFTING",
+                "stop_reason": "RESOLVED_WITHIN_SCOPE" if complete else "NO_NEW_EVIDENCE",
+                "pending_finding_ids": [],
+                "resolved_finding_ids": initial.resolved_finding_ids
+                + (pending if complete else []),
+                "abstained_finding_ids": initial.abstained_finding_ids
+                + ([] if complete else pending),
+            }
+        )
+
+    def _investigate(self, root, spec, initial, cap):
+        if self.agents is not None:
+            return self._investigate_agents(root, spec, initial, cap)
+        fixed = self.fixed_checks is not None
+        if fixed:
+            proposal, last_check = self._fixed_proposal(initial)
+        else:
+            proposal = self._checked_plan_proposal(root, spec, initial, cap)
         if proposal.action is None:
             self._plan(root, spec, proposal.plan, initial, cap)
             raise WorkflowStop(proposal.stop_reason)
@@ -1069,9 +1476,10 @@ class WorkflowRunner:
                 initial,
                 "ASSESS",
                 {
-                    "plan": plan.model_dump(mode="json"),
-                    "action": proposed.model_dump(mode="json"),
-                    "observation": observation.model_dump(mode="json"),
+                    # V1's plan is the same predeclared sequence for every check.
+                    **({} if fixed else {"plan": plan.model_dump(mode="json")}),
+                    "action": proposed.model_dump(mode="json", exclude={"plan_ref"}),
+                    "observation": self._assessment_view(observation),
                 },
                 cap,
             )
@@ -1097,8 +1505,16 @@ class WorkflowRunner:
                 capability=cap,
             )
             raise
+        disposition = assessed.disposition
+        if fixed:
+            # The fixed sequence always completes, so V1 never uses fewer sources by stopping
+            # early. The model's own answer stays in its retained call record.
+            if not last_check:
+                disposition = "CONTINUE"
+            elif disposition == "CONTINUE":
+                disposition = "ABSTAIN"
         revised = None
-        if assessed.revised_plan is not None:
+        if assessed.revised_plan is not None and not fixed:
             revised = self._plan(
                 root,
                 spec,
@@ -1120,7 +1536,8 @@ class WorkflowRunner:
             weak_result_or_mistake=assessed.weak_result_or_mistake,
             next_check_or_stop=assessed.next_check_or_stop,
             revised_plan_ref=None if revised is None else revised.plan_id,
-            disposition=assessed.disposition,
+            disposition=disposition,
+            finding_proposal=assessed.finding_proposal,
         )
         self.store.archive(
             self._ctx(root, spec, "assessment"), "graph.assessment", assessment, capability=cap
@@ -1131,9 +1548,9 @@ class WorkflowRunner:
             list(initial.resolved_finding_ids),
             list(initial.abstained_finding_ids),
         )
-        if assessed.disposition == "RESOLVE":
+        if disposition == "RESOLVE":
             resolved.append(pending.pop(0))
-        elif assessed.disposition == "ABSTAIN":
+        elif disposition == "ABSTAIN":
             abstained.append(pending.pop(0))
         if is_search:
             queries[action.finding_id] = previous_queries + [fingerprint]

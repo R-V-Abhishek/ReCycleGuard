@@ -24,9 +24,22 @@ export function Connect({ onConnected }: { onConnected(client: ApiClient): void 
   };
   return (
     <main className="connect">
-      <form className="card" onSubmit={submit}>
-        <h1>ReCycleGuard</h1>
-        <p className="muted">Connect to the local investigation API.</p>
+      <section className="connect-intro" aria-labelledby="connect-title">
+        <div className="brand"><span className="brand-mark" aria-hidden="true"><i /><i /><i /></span>ReCycleGuard</div>
+        <h1 id="connect-title" className="roles">
+          <span className="role-model">The model proposes.</span>
+          <span className="role-engine">The engine checks.</span>
+          <span className="role-person">A person decides.</span>
+        </h1>
+        <p>
+          An audited assistant for e-waste EPR reconciliation under the E-Waste (Management) Rules, 2022.
+          For one producer and period, it shows which obligation balances verified evidence supports,
+          what needs follow-up, and what a reviewer must confirm.
+        </p>
+        <p className="muted small">Advisory working papers only: no filing, credit trading or compliance verdict.</p>
+      </section>
+      <form className="card connect-form" onSubmit={submit}>
+        <h2>Connect to the local investigation API</h2>
         <TextField label="API address" value={base} onChange={setBase} />
         <PasswordField label="API token" value={token} onChange={setToken} />
         <ErrorBanner error={error} />

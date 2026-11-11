@@ -161,6 +161,24 @@ def test_scoring_findings_prevents_duplicate_inflation():
     assert spam_score.f1 < honest_score.f1
 
 
+def test_undefined_finding_denominators_are_none_not_perfect():
+    protocol = ScoringProtocol()
+    base = OracleBuilder.build_for_case_001()
+    clean = base.model_copy(update={"expected_findings": []})
+
+    quiet = protocol.score_findings([], clean)
+    assert (quiet.precision, quiet.recall, quiet.f1) == (None, None, None)
+    assert quiet.composite_component == 1.0  # correctly empty
+
+    alarm = protocol.score_findings([{"issue_type": "F02_OVERLAPPING_EXPORT"}], clean)
+    assert alarm.precision == 0.0 and alarm.recall is None and alarm.f1 is None
+    assert alarm.false_positives == 1 and alarm.composite_component == 0.0
+
+    missed = protocol.score_findings([], base)
+    assert missed.precision is None and missed.recall == 0.0 and missed.f1 is None
+    assert missed.false_negatives == 2 and missed.composite_component == 0.0
+
+
 def test_scoring_abstention_honesty():
     oracle = OracleBuilder.build_for_case_001()
     protocol = ScoringProtocol()

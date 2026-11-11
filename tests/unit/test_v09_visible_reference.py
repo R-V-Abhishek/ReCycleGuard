@@ -14,16 +14,12 @@ from benchmarks.evaluation.visible_reference import (
     encoded,
     inspect_visible,
 )
-from benchmarks.generator.pilot_cases import build_pilot_cases
-from benchmarks.generator.render import render_case
 
 
 @pytest.fixture(scope="module")
-def pilot_visible(tmp_path_factory):
-    root = tmp_path_factory.mktemp("v09-visible")
+def pilot_visible(rendered_pilot):
     results = []
-    for case in build_pilot_cases():
-        rendered = render_case(case.world, root)
+    for case, rendered in rendered_pilot:
         reference = inspect_visible(rendered.case_dir)
         results.append((case, rendered.case_dir, reference))
     return results
@@ -118,3 +114,6 @@ def test_independent_review_digest_changes_with_actual_reference(pilot_visible):
     changed_oracle, changed_review, _ = bind_oracle_reference(oracle, changed)
     assert changed_review.oracle_digest != review.oracle_digest
     assert changed_oracle.visible_reference_status == "INDEPENDENT_REFERENCE_VALIDATED"
+
+
+pytestmark = pytest.mark.slow

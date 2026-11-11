@@ -1,0 +1,403 @@
+{
+ "audit_chain": "VERIFIED",
+ "budget": {
+  "actions": 12,
+  "cost_known_calls": 0,
+  "finding_actions": {
+   "finding:da51811a44644d5b92183607685fb2eb": 3
+  },
+  "finding_reformulations": {},
+  "model_calls": 8,
+  "observed_cost_usd": null,
+  "observed_tokens": 31536,
+  "preflight_actions": 1,
+  "report_repairs": 0,
+  "reserved_tokens": 262144,
+  "retries": 1,
+  "tool_calls": 3,
+  "usage_known_calls": 8,
+  "verification_actions": 0
+ },
+ "calls": [
+  {
+   "event_type": "graph.stage.preflight.result",
+   "issue_codes": [],
+   "kind": "STAGE",
+   "operation_id": "operation:run:da51811a44644d5b92183607685fb2eb:turn_2:preflight",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.plan.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:da51811a44644d5b92183607685fb2eb:turn_3:plan",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.tool.tool.result",
+   "issue_codes": [],
+   "kind": "TOOL",
+   "operation_id": "operation:run:da51811a44644d5b92183607685fb2eb:turn_3:tool",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.assess.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:da51811a44644d5b92183607685fb2eb:turn_3:assess",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.plan.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:da51811a44644d5b92183607685fb2eb:turn_4:plan",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.tool.tool.result",
+   "issue_codes": [],
+   "kind": "TOOL",
+   "operation_id": "operation:run:da51811a44644d5b92183607685fb2eb:turn_4:tool",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.assess.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:da51811a44644d5b92183607685fb2eb:turn_4:assess",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.plan.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:da51811a44644d5b92183607685fb2eb:turn_5:plan",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.tool.tool.result",
+   "issue_codes": [],
+   "kind": "TOOL",
+   "operation_id": "operation:run:da51811a44644d5b92183607685fb2eb:turn_5:tool",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.assess.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:da51811a44644d5b92183607685fb2eb:turn_5:assess",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.plan.result",
+   "issue_codes": [
+    "PROVIDER_INVALID_OUTPUT"
+   ],
+   "kind": "MODEL",
+   "operation_id": "operation:run:da51811a44644d5b92183607685fb2eb:turn_6:plan",
+   "status": "FAILED"
+  },
+  {
+   "event_type": "graph.model.plan.result",
+   "issue_codes": [
+    "PROVIDER_INVALID_OUTPUT"
+   ],
+   "kind": "MODEL",
+   "operation_id": "operation:run:da51811a44644d5b92183607685fb2eb:turn_6:plan",
+   "status": "FAILED"
+  }
+ ],
+ "case_id": "case_cab84413b4",
+ "census": null,
+ "decisions": [
+  {
+   "attempt_id": "attempt:run:da51811a44644d5b92183607685fb2eb:turn_3:plan_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:da51811a44644d5b92183607685fb2eb:turn_3:plan",
+   "reply": {
+    "argument_keys": [
+     "observation_ids"
+    ],
+    "concise_reason": "Inspect all 8 available observations to assess allocation gaps and evidence qualifications as per investigation scope.",
+    "hypotheses": [
+     "The dossier contains observations that may support or refute allocation gap claims.",
+     "Evidence qualifications may be present in the observation details."
+    ],
+    "objective": "Assess supported allocation gaps and evidence qualifications in the frozen dossier by inspecting all available observations.",
+    "operation": "inspect_evidence",
+    "proposed_checks": [
+     "inspect_evidence"
+    ],
+    "stop_reason": null
+   },
+   "shown": {
+    "inspectable_observations": 8,
+    "inspectable_total": 67,
+    "pending_findings": 1,
+    "phase": "PLAN",
+    "previous_plans": 0,
+    "previous_rejection": false,
+    "prior_observations": 1
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 298,
+    "elapsed_seconds": 5.946395680017304,
+    "finish_reason": "stop",
+    "prompt_tokens": 2283
+   }
+  },
+  {
+   "attempt_id": "attempt:run:da51811a44644d5b92183607685fb2eb:turn_3:assess_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:da51811a44644d5b92183607685fb2eb:turn_3:assess",
+   "reply": {
+    "disposition": "CONTINUE",
+    "next_check_or_stop": "continue",
+    "proposal": null,
+    "verdict": "UNKNOWN",
+    "weak_result_or_mistake": null
+   },
+   "shown": {
+    "citable_calculation_ids": 0,
+    "citable_evidence_ids": 8,
+    "disposition": "QUALIFIED",
+    "evidence_chars": 3357,
+    "evidence_keys": [
+     "observation_count",
+     "observations",
+     "observations_omitted"
+    ],
+    "evidence_refs_total": 8,
+    "evidence_truncated": false,
+    "phase": "ASSESS",
+    "tool": "inspect_evidence",
+    "visible_issue_codes": []
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 41,
+    "elapsed_seconds": 1.9246971970133018,
+    "finish_reason": "stop",
+    "prompt_tokens": 3299
+   }
+  },
+  {
+   "attempt_id": "attempt:run:da51811a44644d5b92183607685fb2eb:turn_4:plan_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:da51811a44644d5b92183607685fb2eb:turn_4:plan",
+   "reply": {
+    "argument_keys": [
+     "bucket_ids"
+    ],
+    "concise_reason": "Compute reconciliation to verify allocation quantities against certificate events for the identified bucket.",
+    "hypotheses": [
+     "The sum of allocation quantities matches the sum of certificate event quantities.",
+     "Any discrepancies indicate unsupported allocation gaps or evidence qualifications."
+    ],
+    "objective": "Verify the arithmetic reconciliation of allocation quantities against certificate events to confirm supported allocation gaps.",
+    "operation": "compute_reconciliation",
+    "proposed_checks": [
+     "compute_reconciliation"
+    ],
+    "stop_reason": null
+   },
+   "shown": {
+    "inspectable_observations": 8,
+    "inspectable_total": 67,
+    "pending_findings": 1,
+    "phase": "PLAN",
+    "previous_plans": 1,
+    "previous_rejection": false,
+    "prior_observations": 2
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 291,
+    "elapsed_seconds": 6.086646500014467,
+    "finish_reason": "stop",
+    "prompt_tokens": 3992
+   }
+  },
+  {
+   "attempt_id": "attempt:run:da51811a44644d5b92183607685fb2eb:turn_4:assess_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:da51811a44644d5b92183607685fb2eb:turn_4:assess",
+   "reply": {
+    "disposition": "CONTINUE",
+    "next_check_or_stop": "continue",
+    "proposal": null,
+    "verdict": "WEAK",
+    "weak_result_or_mistake": null
+   },
+   "shown": {
+    "citable_calculation_ids": 1,
+    "citable_evidence_ids": 0,
+    "disposition": "QUALIFIED",
+    "evidence_chars": 2509,
+    "evidence_keys": [
+     "bucket_count",
+     "buckets",
+     "calculation_id",
+     "coverage",
+     "issues"
+    ],
+    "evidence_refs_total": 0,
+    "evidence_truncated": false,
+    "phase": "ASSESS",
+    "tool": "compute_reconciliation",
+    "visible_issue_codes": [
+     "APPLICABILITY_UNRESOLVED",
+     "INCOMPLETE_COVERAGE",
+     "STALE_SNAPSHOT"
+    ]
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 42,
+    "elapsed_seconds": 1.9186348450020887,
+    "finish_reason": "stop",
+    "prompt_tokens": 2938
+   }
+  },
+  {
+   "attempt_id": "attempt:run:da51811a44644d5b92183607685fb2eb:turn_5:plan_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:da51811a44644d5b92183607685fb2eb:turn_5:plan",
+   "reply": {
+    "argument_keys": [],
+    "concise_reason": "Execute reconciliation to verify allocation vs certificate quantities as per previous plan.",
+    "hypotheses": [
+     "The sum of allocation quantities matches the sum of certificate event quantities.",
+     "Any discrepancies indicate unsupported allocation gaps or evidence qualifications."
+    ],
+    "objective": "Verify the arithmetic reconciliation of allocation quantities against certificate events to confirm supported allocation gaps.",
+    "operation": "compute_reconciliation",
+    "proposed_checks": [
+     "compute_reconciliation"
+    ],
+    "stop_reason": null
+   },
+   "shown": {
+    "inspectable_observations": 8,
+    "inspectable_total": 67,
+    "pending_findings": 1,
+    "phase": "PLAN",
+    "previous_plans": 2,
+    "previous_rejection": false,
+    "prior_observations": 2
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 171,
+    "elapsed_seconds": 4.532192456012126,
+    "finish_reason": "stop",
+    "prompt_tokens": 5256
+   }
+  },
+  {
+   "attempt_id": "attempt:run:da51811a44644d5b92183607685fb2eb:turn_5:assess_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:da51811a44644d5b92183607685fb2eb:turn_5:assess",
+   "reply": {
+    "disposition": "CONTINUE",
+    "next_check_or_stop": "continue",
+    "proposal": null,
+    "verdict": "WEAK",
+    "weak_result_or_mistake": null
+   },
+   "shown": {
+    "citable_calculation_ids": 1,
+    "citable_evidence_ids": 0,
+    "disposition": "QUALIFIED",
+    "evidence_chars": 2509,
+    "evidence_keys": [
+     "bucket_count",
+     "buckets",
+     "calculation_id",
+     "coverage",
+     "issues"
+    ],
+    "evidence_refs_total": 0,
+    "evidence_truncated": false,
+    "phase": "ASSESS",
+    "tool": "compute_reconciliation",
+    "visible_issue_codes": [
+     "APPLICABILITY_UNRESOLVED",
+     "INCOMPLETE_COVERAGE",
+     "STALE_SNAPSHOT"
+    ]
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 42,
+    "elapsed_seconds": 1.8618610280100256,
+    "finish_reason": "stop",
+    "prompt_tokens": 2913
+   }
+  },
+  {
+   "attempt_id": "attempt:run:da51811a44644d5b92183607685fb2eb:turn_6:plan_0",
+   "issue_codes": [
+    "PROVIDER_INVALID_OUTPUT"
+   ],
+   "operation_id": "operation:run:da51811a44644d5b92183607685fb2eb:turn_6:plan",
+   "reply": null,
+   "shown": {
+    "inspectable_observations": 8,
+    "inspectable_total": 67,
+    "pending_findings": 1,
+    "phase": "PLAN",
+    "previous_plans": 2,
+    "previous_rejection": false,
+    "prior_observations": 2
+   },
+   "status": "FAILED",
+   "transport": {
+    "completion_tokens": 88,
+    "elapsed_seconds": 3.276080069015734,
+    "finish_reason": "stop",
+    "prompt_tokens": 4879
+   }
+  },
+  {
+   "attempt_id": "attempt:run:da51811a44644d5b92183607685fb2eb:turn_6:plan_1",
+   "issue_codes": [
+    "PROVIDER_INVALID_OUTPUT"
+   ],
+   "operation_id": "operation:run:da51811a44644d5b92183607685fb2eb:turn_6:plan",
+   "reply": null,
+   "shown": {
+    "inspectable_observations": 8,
+    "inspectable_total": 67,
+    "pending_findings": 1,
+    "phase": "PLAN",
+    "previous_plans": 2,
+    "previous_rejection": false,
+    "prior_observations": 2
+   },
+   "status": "FAILED",
+   "transport": {
+    "completion_tokens": 88,
+    "elapsed_seconds": 3.226633554993896,
+    "finish_reason": "stop",
+    "prompt_tokens": 4915
+   }
+  }
+ ],
+ "experiment_variant": "V2_ADAPTIVE_REAL_MODEL",
+ "job": {
+  "cancel_requested": 0,
+  "detail": "FAILED",
+  "dossier_id": "dossier:4d4e537070a94da1b5ce4a27d90c4ad1",
+  "run_id": "run:da51811a44644d5b92183607685fb2eb",
+  "status": "STOPPED"
+ },
+ "rejected_actions": [],
+ "report": null,
+ "requested_variant": "ADAPTIVE",
+ "run_id": "run:da51811a44644d5b92183607685fb2eb",
+ "status": "FAILED",
+ "stop_reason": "PROVIDER_FAILURE"
+}

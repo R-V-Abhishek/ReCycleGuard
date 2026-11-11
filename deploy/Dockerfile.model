@@ -1,0 +1,7 @@
+# llama.cpp build b12033 with CUDA. Keep this digest equal to LLAMA_IMAGE_DIGEST in model.env.
+FROM ghcr.io/ggml-org/llama.cpp@sha256:0a9f6c7cfe5a6b90b6c048b7a86865bf55a88af34bada927482eab2ef5f25b4a
+RUN apt-get update && apt-get install -y --no-install-recommends python3 && rm -rf /var/lib/apt/lists/*
+COPY deploy/start_model.py /start_model.py
+HEALTHCHECK --interval=10s --timeout=5s --start-period=180s --retries=6 \
+    CMD curl -f http://127.0.0.1:8766/health
+ENTRYPOINT ["python3", "/start_model.py"]

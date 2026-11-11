@@ -1,0 +1,495 @@
+{
+ "audit_chain": "VERIFIED",
+ "budget": {
+  "actions": 15,
+  "cost_known_calls": 0,
+  "finding_actions": {
+   "finding:b0336b8e3c9744d7afbdcd93ec4e9e7e": 4
+  },
+  "finding_reformulations": {},
+  "model_calls": 10,
+  "observed_cost_usd": null,
+  "observed_tokens": 45345,
+  "preflight_actions": 1,
+  "report_repairs": 0,
+  "reserved_tokens": 327680,
+  "retries": 1,
+  "tool_calls": 4,
+  "usage_known_calls": 10,
+  "verification_actions": 0
+ },
+ "calls": [
+  {
+   "event_type": "graph.stage.preflight.result",
+   "issue_codes": [],
+   "kind": "STAGE",
+   "operation_id": "operation:run:b0336b8e3c9744d7afbdcd93ec4e9e7e:turn_2:preflight",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.plan.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:b0336b8e3c9744d7afbdcd93ec4e9e7e:turn_3:plan",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.tool.tool.result",
+   "issue_codes": [],
+   "kind": "TOOL",
+   "operation_id": "operation:run:b0336b8e3c9744d7afbdcd93ec4e9e7e:turn_3:tool",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.assess.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:b0336b8e3c9744d7afbdcd93ec4e9e7e:turn_3:assess",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.plan.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:b0336b8e3c9744d7afbdcd93ec4e9e7e:turn_4:plan",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.tool.tool.result",
+   "issue_codes": [],
+   "kind": "TOOL",
+   "operation_id": "operation:run:b0336b8e3c9744d7afbdcd93ec4e9e7e:turn_4:tool",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.assess.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:b0336b8e3c9744d7afbdcd93ec4e9e7e:turn_4:assess",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.plan.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:b0336b8e3c9744d7afbdcd93ec4e9e7e:turn_5:plan",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.tool.tool.result",
+   "issue_codes": [],
+   "kind": "TOOL",
+   "operation_id": "operation:run:b0336b8e3c9744d7afbdcd93ec4e9e7e:turn_5:tool",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.assess.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:b0336b8e3c9744d7afbdcd93ec4e9e7e:turn_5:assess",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.plan.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:b0336b8e3c9744d7afbdcd93ec4e9e7e:turn_6:plan",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.tool.tool.result",
+   "issue_codes": [],
+   "kind": "TOOL",
+   "operation_id": "operation:run:b0336b8e3c9744d7afbdcd93ec4e9e7e:turn_6:tool",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.assess.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:b0336b8e3c9744d7afbdcd93ec4e9e7e:turn_6:assess",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.plan.result",
+   "issue_codes": [
+    "PROVIDER_INVALID_OUTPUT"
+   ],
+   "kind": "MODEL",
+   "operation_id": "operation:run:b0336b8e3c9744d7afbdcd93ec4e9e7e:turn_7:plan",
+   "status": "FAILED"
+  },
+  {
+   "event_type": "graph.model.plan.result",
+   "issue_codes": [
+    "PROVIDER_INVALID_OUTPUT"
+   ],
+   "kind": "MODEL",
+   "operation_id": "operation:run:b0336b8e3c9744d7afbdcd93ec4e9e7e:turn_7:plan",
+   "status": "FAILED"
+  }
+ ],
+ "case_id": "case_5885e5c179",
+ "census": null,
+ "decisions": [
+  {
+   "attempt_id": "attempt:run:b0336b8e3c9744d7afbdcd93ec4e9e7e:turn_3:plan_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:b0336b8e3c9744d7afbdcd93ec4e9e7e:turn_3:plan",
+   "reply": {
+    "argument_keys": [],
+    "concise_reason": "compute_reconciliation is allowed and has not run yet; it is the first step in the PLAN rules.",
+    "hypotheses": [
+     "compute_reconciliation will reveal allocation gaps or evidence qualifications"
+    ],
+    "objective": "Execute compute_reconciliation to assess supported allocation gaps and evidence qualifications in the frozen dossier.",
+    "operation": "compute_reconciliation",
+    "proposed_checks": [
+     "compute_reconciliation"
+    ],
+    "stop_reason": null
+   },
+   "shown": {
+    "inspectable_observations": 10,
+    "inspectable_total": 66,
+    "pending_findings": 1,
+    "phase": "PLAN",
+    "previous_plans": 0,
+    "previous_rejection": false,
+    "prior_observations": 1
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 164,
+    "elapsed_seconds": 3.924130322993733,
+    "finish_reason": "stop",
+    "prompt_tokens": 2295
+   }
+  },
+  {
+   "attempt_id": "attempt:run:b0336b8e3c9744d7afbdcd93ec4e9e7e:turn_3:assess_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:b0336b8e3c9744d7afbdcd93ec4e9e7e:turn_3:assess",
+   "reply": {
+    "disposition": "CONTINUE",
+    "next_check_or_stop": "continue",
+    "proposal": null,
+    "verdict": "WEAK",
+    "weak_result_or_mistake": null
+   },
+   "shown": {
+    "citable_calculation_ids": 1,
+    "citable_evidence_ids": 0,
+    "disposition": "QUALIFIED",
+    "evidence_chars": 2107,
+    "evidence_keys": [
+     "bucket_count",
+     "buckets",
+     "calculation_id",
+     "coverage",
+     "issues"
+    ],
+    "evidence_refs_total": 0,
+    "evidence_truncated": false,
+    "phase": "ASSESS",
+    "tool": "compute_reconciliation",
+    "visible_issue_codes": [
+     "AMBIGUOUS_EVENT",
+     "APPLICABILITY_UNRESOLVED"
+    ]
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 42,
+    "elapsed_seconds": 1.80292059299245,
+    "finish_reason": "stop",
+    "prompt_tokens": 2707
+   }
+  },
+  {
+   "attempt_id": "attempt:run:b0336b8e3c9744d7afbdcd93ec4e9e7e:turn_4:plan_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:b0336b8e3c9744d7afbdcd93ec4e9e7e:turn_4:plan",
+   "reply": {
+    "argument_keys": [
+     "observation_ids"
+    ],
+    "concise_reason": "Inspect the frozen dossier to gather observation evidence for the pending finding.",
+    "hypotheses": [
+     "inspect_evidence will return observations relevant to the pending finding"
+    ],
+    "objective": "Inspect the frozen dossier to gather observation evidence for the pending finding.",
+    "operation": "inspect_evidence",
+    "proposed_checks": [
+     "inspect_evidence"
+    ],
+    "stop_reason": null
+   },
+   "shown": {
+    "inspectable_observations": 10,
+    "inspectable_total": 66,
+    "pending_findings": 1,
+    "phase": "PLAN",
+    "previous_plans": 1,
+    "previous_rejection": false,
+    "prior_observations": 2
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 274,
+    "elapsed_seconds": 15.18559970500064,
+    "finish_reason": "stop",
+    "prompt_tokens": 3411
+   }
+  },
+  {
+   "attempt_id": "attempt:run:b0336b8e3c9744d7afbdcd93ec4e9e7e:turn_4:assess_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:b0336b8e3c9744d7afbdcd93ec4e9e7e:turn_4:assess",
+   "reply": {
+    "disposition": "CONTINUE",
+    "next_check_or_stop": "continue",
+    "proposal": null,
+    "verdict": "UNKNOWN",
+    "weak_result_or_mistake": null
+   },
+   "shown": {
+    "citable_calculation_ids": 0,
+    "citable_evidence_ids": 10,
+    "disposition": "QUALIFIED",
+    "evidence_chars": 4291,
+    "evidence_keys": [
+     "observation_count",
+     "observations",
+     "observations_omitted"
+    ],
+    "evidence_refs_total": 10,
+    "evidence_truncated": false,
+    "phase": "ASSESS",
+    "tool": "inspect_evidence",
+    "visible_issue_codes": []
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 41,
+    "elapsed_seconds": 2.8455350839940365,
+    "finish_reason": "stop",
+    "prompt_tokens": 3706
+   }
+  },
+  {
+   "attempt_id": "attempt:run:b0336b8e3c9744d7afbdcd93ec4e9e7e:turn_5:plan_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:b0336b8e3c9744d7afbdcd93ec4e9e7e:turn_5:plan",
+   "reply": {
+    "argument_keys": [
+     "certificate_ids"
+    ],
+    "concise_reason": "Prior observations identified certificates cert:5885e5c179_001 and cert:5885e5c179_005. Tracing these certificates is necessary to verify their chain of custody and event linkage.",
+    "hypotheses": [
+     "trace_certificate will reveal the chain of custody and event linkage for the certificates identified in prior observations."
+    ],
+    "objective": "Trace the certificate chain to verify the link between certificates and their events.",
+    "operation": "trace_certificate",
+    "proposed_checks": [
+     "trace_certificate"
+    ],
+    "stop_reason": null
+   },
+   "shown": {
+    "inspectable_observations": 10,
+    "inspectable_total": 66,
+    "pending_findings": 1,
+    "phase": "PLAN",
+    "previous_plans": 2,
+    "previous_rejection": false,
+    "prior_observations": 2
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 365,
+    "elapsed_seconds": 21.787067704994115,
+    "finish_reason": "stop",
+    "prompt_tokens": 5461
+   }
+  },
+  {
+   "attempt_id": "attempt:run:b0336b8e3c9744d7afbdcd93ec4e9e7e:turn_5:assess_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:b0336b8e3c9744d7afbdcd93ec4e9e7e:turn_5:assess",
+   "reply": {
+    "disposition": "CONTINUE",
+    "next_check_or_stop": "continue",
+    "proposal": null,
+    "verdict": "UNKNOWN",
+    "weak_result_or_mistake": null
+   },
+   "shown": {
+    "citable_calculation_ids": 0,
+    "citable_evidence_ids": 11,
+    "disposition": "QUALIFIED",
+    "evidence_chars": 4424,
+    "evidence_keys": [
+     "check_id",
+     "check_kind",
+     "input_membership_blob",
+     "issues",
+     "results",
+     "tool_version"
+    ],
+    "evidence_refs_total": 11,
+    "evidence_truncated": false,
+    "phase": "ASSESS",
+    "tool": "trace_certificate",
+    "visible_issue_codes": [
+     "AMBIGUOUS_EVENT"
+    ]
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 41,
+    "elapsed_seconds": 6.330847351011471,
+    "finish_reason": "stop",
+    "prompt_tokens": 4092
+   }
+  },
+  {
+   "attempt_id": "attempt:run:b0336b8e3c9744d7afbdcd93ec4e9e7e:turn_6:plan_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:b0336b8e3c9744d7afbdcd93ec4e9e7e:turn_6:plan",
+   "reply": {
+    "argument_keys": [
+     "bucket_ids"
+    ],
+    "concise_reason": "The prior trace_certificate check returned AMBIGUOUS_EVENT warnings for both certificates. The pending finding requires resolving these ambiguities. compute_reconciliation is the next logical step to aggregate the data and determine the true state of the allocations and events.",
+    "hypotheses": [
+     "compute_reconciliation will aggregate the allocation and certificate event data to reveal the true state of the certificates and resolve the ambiguous event warnings."
+    ],
+    "objective": "Reconcile the allocation and certificate event data to resolve the AMBIGUOUS_EVENT warnings and determine the final state of the certificates.",
+    "operation": "compute_reconciliation",
+    "proposed_checks": [
+     "compute_reconciliation"
+    ],
+    "stop_reason": null
+   },
+   "shown": {
+    "inspectable_observations": 10,
+    "inspectable_total": 66,
+    "pending_findings": 1,
+    "phase": "PLAN",
+    "previous_plans": 2,
+    "previous_rejection": false,
+    "prior_observations": 2
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 285,
+    "elapsed_seconds": 9.804102301000967,
+    "finish_reason": "stop",
+    "prompt_tokens": 6992
+   }
+  },
+  {
+   "attempt_id": "attempt:run:b0336b8e3c9744d7afbdcd93ec4e9e7e:turn_6:assess_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:b0336b8e3c9744d7afbdcd93ec4e9e7e:turn_6:assess",
+   "reply": {
+    "disposition": "CONTINUE",
+    "next_check_or_stop": "continue",
+    "proposal": null,
+    "verdict": "WEAK",
+    "weak_result_or_mistake": null
+   },
+   "shown": {
+    "citable_calculation_ids": 1,
+    "citable_evidence_ids": 0,
+    "disposition": "QUALIFIED",
+    "evidence_chars": 2107,
+    "evidence_keys": [
+     "bucket_count",
+     "buckets",
+     "calculation_id",
+     "coverage",
+     "issues"
+    ],
+    "evidence_refs_total": 0,
+    "evidence_truncated": false,
+    "phase": "ASSESS",
+    "tool": "compute_reconciliation",
+    "visible_issue_codes": [
+     "AMBIGUOUS_EVENT",
+     "APPLICABILITY_UNRESOLVED"
+    ]
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 42,
+    "elapsed_seconds": 2.26181580699631,
+    "finish_reason": "stop",
+    "prompt_tokens": 2903
+   }
+  },
+  {
+   "attempt_id": "attempt:run:b0336b8e3c9744d7afbdcd93ec4e9e7e:turn_7:plan_0",
+   "issue_codes": [
+    "PROVIDER_INVALID_OUTPUT"
+   ],
+   "operation_id": "operation:run:b0336b8e3c9744d7afbdcd93ec4e9e7e:turn_7:plan",
+   "reply": null,
+   "shown": {
+    "inspectable_observations": 10,
+    "inspectable_total": 66,
+    "pending_findings": 1,
+    "phase": "PLAN",
+    "previous_plans": 2,
+    "previous_rejection": false,
+    "prior_observations": 2
+   },
+   "status": "FAILED",
+   "transport": {
+    "completion_tokens": 113,
+    "elapsed_seconds": 7.361436206992948,
+    "finish_reason": "stop",
+    "prompt_tokens": 6131
+   }
+  },
+  {
+   "attempt_id": "attempt:run:b0336b8e3c9744d7afbdcd93ec4e9e7e:turn_7:plan_1",
+   "issue_codes": [
+    "PROVIDER_INVALID_OUTPUT"
+   ],
+   "operation_id": "operation:run:b0336b8e3c9744d7afbdcd93ec4e9e7e:turn_7:plan",
+   "reply": null,
+   "shown": {
+    "inspectable_observations": 10,
+    "inspectable_total": 66,
+    "pending_findings": 1,
+    "phase": "PLAN",
+    "previous_plans": 2,
+    "previous_rejection": false,
+    "prior_observations": 2
+   },
+   "status": "FAILED",
+   "transport": {
+    "completion_tokens": 113,
+    "elapsed_seconds": 7.640312071001972,
+    "finish_reason": "stop",
+    "prompt_tokens": 6167
+   }
+  }
+ ],
+ "experiment_variant": "V2_ADAPTIVE_REAL_MODEL",
+ "job": {
+  "cancel_requested": 0,
+  "detail": "FAILED",
+  "dossier_id": "dossier:a8c6c66ab5944fa5be00a24224adb0d0",
+  "run_id": "run:b0336b8e3c9744d7afbdcd93ec4e9e7e",
+  "status": "STOPPED"
+ },
+ "rejected_actions": [],
+ "report": null,
+ "requested_variant": "ADAPTIVE",
+ "run_id": "run:b0336b8e3c9744d7afbdcd93ec4e9e7e",
+ "status": "FAILED",
+ "stop_reason": "PROVIDER_FAILURE"
+}

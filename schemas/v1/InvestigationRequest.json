@@ -82,6 +82,27 @@
       "title": "BudgetLimits",
       "type": "object"
     },
+    "FixedPlan": {
+      "additionalProperties": false,
+      "description": "V1: a predeclared check sequence pinned with the run. The model only assesses.",
+      "properties": {
+        "rule_queries": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 3,
+          "minItems": 1,
+          "title": "Rule Queries",
+          "type": "array"
+        }
+      },
+      "required": [
+        "rule_queries"
+      ],
+      "title": "FixedPlan",
+      "type": "object"
+    },
     "JsonValue": {},
     "LocalModelConfig": {
       "additionalProperties": false,
@@ -92,8 +113,17 @@
           "title": "Configuration Id",
           "type": "string"
         },
+        "backend": {
+          "default": "mlx",
+          "enum": [
+            "mlx",
+            "llama_cpp"
+          ],
+          "title": "Backend",
+          "type": "string"
+        },
         "model_id": {
-          "const": "mlx-community/Qwen3.5-9B-4bit",
+          "minLength": 1,
           "title": "Model Id",
           "type": "string"
         },
@@ -103,7 +133,7 @@
           "type": "string"
         },
         "model_revision": {
-          "const": "8b2b98c00a6b4d291155e4890773ca8f769aee53",
+          "pattern": "^[0-9a-f]{40}$",
           "title": "Model Revision",
           "type": "string"
         },
@@ -128,22 +158,33 @@
           "type": "string"
         },
         "runtime_version": {
-          "const": "0.32.2",
           "default": "0.32.2",
+          "minLength": 1,
           "title": "Runtime Version",
           "type": "string"
         },
         "prompt_template_id": {
-          "default": "prompt:u01_qwen_non_thinking_v4",
+          "default": "prompt:u01_qwen_non_thinking_v7",
           "pattern": "^[a-z][a-z0-9_]*:[^\\s]+$",
           "title": "Prompt Template Id",
           "type": "string"
         },
         "prompt_version": {
-          "default": "u01_non_thinking_v4",
+          "default": "u01_non_thinking_v7",
           "minLength": 1,
           "title": "Prompt Version",
           "type": "string"
+        },
+        "prompt": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PromptText"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "endpoint": {
           "default": "http://127.0.0.1:8080/v1/completions",
@@ -151,13 +192,13 @@
           "type": "string"
         },
         "max_output_tokens": {
-          "default": 768,
+          "default": 1024,
           "minimum": 1,
           "title": "Max Output Tokens",
           "type": "integer"
         },
         "max_total_tokens": {
-          "default": 16384,
+          "default": 32768,
           "minimum": 1,
           "title": "Max Total Tokens",
           "type": "integer"
@@ -168,6 +209,53 @@
           "maximum": 300,
           "title": "Timeout Seconds",
           "type": "number"
+        },
+        "max_model_calls": {
+          "default": 12,
+          "maximum": 12,
+          "minimum": 1,
+          "title": "Max Model Calls",
+          "type": "integer"
+        },
+        "stop_sequences": {
+          "default": [
+            "<|im_end|>",
+            "<|endoftext|>"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "title": "Stop Sequences",
+          "type": "array"
+        },
+        "server_flags": {
+          "default": [
+            "--decode-concurrency",
+            "1",
+            "--prompt-concurrency",
+            "1",
+            "--prompt-cache-size",
+            "1",
+            "--prefill-step-size",
+            "256",
+            "--max-tokens",
+            "1024"
+          ],
+          "items": {
+            "type": "string"
+          },
+          "title": "Server Flags",
+          "type": "array"
+        },
+        "thinking": {
+          "default": false,
+          "title": "Thinking",
+          "type": "boolean"
+        },
+        "brief": {
+          "default": false,
+          "title": "Brief",
+          "type": "boolean"
         }
       },
       "required": [
@@ -182,13 +270,61 @@
       "title": "LocalModelConfig",
       "type": "object"
     },
+    "PromptText": {
+      "additionalProperties": false,
+      "description": "The whole text of one prompt version. A configuration carries it to the investigator.",
+      "properties": {
+        "prompt_version": {
+          "minLength": 1,
+          "title": "Prompt Version",
+          "type": "string"
+        },
+        "system": {
+          "minLength": 1,
+          "title": "System",
+          "type": "string"
+        },
+        "phase_rules": {
+          "additionalProperties": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "propertyNames": {
+            "enum": [
+              "PLAN",
+              "ASSESS",
+              "RETRIEVE",
+              "CLASSIFY"
+            ]
+          },
+          "title": "Phase Rules",
+          "type": "object"
+        },
+        "retry_note": {
+          "minLength": 1,
+          "title": "Retry Note",
+          "type": "string"
+        }
+      },
+      "required": [
+        "prompt_version",
+        "system",
+        "phase_rules",
+        "retry_note"
+      ],
+      "title": "PromptText",
+      "type": "object"
+    },
     "ScriptedExchange": {
       "additionalProperties": false,
       "properties": {
         "phase": {
           "enum": [
             "PLAN",
-            "ASSESS"
+            "ASSESS",
+            "BRIEF",
+            "RETRIEVE",
+            "CLASSIFY"
           ],
           "title": "Phase",
           "type": "string"
@@ -271,6 +407,34 @@
       ],
       "default": null
     },
+    "fixed_plan": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/FixedPlan"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "agents": {
+      "anyOf": [
+        {
+          "enum": [
+            "RETRIEVER_LOOKUP",
+            "RETRIEVER_CLASSIFIER",
+            "CLASSIFIER_ONLY"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Agents"
+    },
     "budgets": {
       "$ref": "#/$defs/BudgetLimits"
     },
@@ -286,6 +450,31 @@
       ],
       "default": null,
       "title": "Parent Run Id"
+    },
+    "ablated_families": {
+      "items": {
+        "enum": [
+          "F01_CLEAN_BASELINE",
+          "F02_OVERLAPPING_EXPORT",
+          "F03_MULTISTAGE_ID_REUSE",
+          "F04_UNIT_DIMENSION_MIX",
+          "F05_WRONG_ENTITY_ALIAS",
+          "F06_STALE_SNAPSHOT",
+          "F07_PAID_NO_TRANSFER",
+          "F08_PRIOR_ARREARS_DRAIN",
+          "F09_EXPIRED_CANCELLED",
+          "F10_CAPABILITY_MISMATCH",
+          "F11_WRONG_PERIOD_RULE",
+          "F12_UNSEEN_NOTICE_LEAD",
+          "F13_WEIGHT_BASIS_CONFLICT",
+          "F14_OUT_OF_SCOPE_REGIME",
+          "F15_EXTRACTION_PAGE_LOSS",
+          "F16_PROMPT_INJECTION"
+        ],
+        "type": "string"
+      },
+      "title": "Ablated Families",
+      "type": "array"
     }
   },
   "required": [

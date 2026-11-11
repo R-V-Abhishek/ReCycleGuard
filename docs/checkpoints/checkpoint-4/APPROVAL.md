@@ -27,3 +27,12 @@ Retained qualifications:
 
 **Released to start:** A09 (Abhishek), H09 (Sampreeth), S08 (Sushanth), V10 (Vedantha).
 READY means dependencies are satisfied; it does not mean these tasks are complete.
+
+## Durable evidence copy (recorded 1 November 2026, after approval)
+
+The answer-bearing evaluator outputs and the CP4 verification artifacts that were
+under `/private/tmp` were copied to a private, owner-only location outside the
+repository (`~/recycleguard-private/cp4/`, 1,830 files). Their `SHA256SUMS` file has
+digest `94d09e411e746f23d1b7e09474290e3c9abab4e2404570e5cca6befb0bfc59ca`
+(recomputed `shasum -a 256 -c` found no mismatch). Nothing from that directory is in Git.
+Large rebuildable directories (wheels, Docker contexts, copied visible inputs) were not copied.

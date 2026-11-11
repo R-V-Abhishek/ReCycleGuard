@@ -1,0 +1,37 @@
+%---------------------------------------------------------------------
+\chapter{Conclusion and Future Work}
+%---------------------------------------------------------------------
+
+\section{Conclusion}
+This report presented ReCycleGuard, a local, audited assistant for e-waste EPR reconciliation, and an
+evaluation that measured what its language model contributes. The objectives were met as follows.
+(1) The evidence pipeline stores originals immutably, extracts observations with locators and
+reconciles with exact decimals; the checkpoint records verify it. (2) The bounded LangGraph agent with
+six audited tools, a deterministic gate and revision-bound human review is implemented and tested.
+(3) The 48-dossier benchmark with sixteen fault families and an isolated evaluator was built and used
+for more than a thousand trials. (4) The model's contribution was measured against controls: with the
+deterministic checks the single agent reached 32 of 32 on the tuning set, but model-free controls
+matched it and the model's share of findings was zero; with the checks off, no model variant found a
+judgement fault. (5) The pre-registered multi-agent experiment was run: no Retriever or Classifier arm
+passed the no-regression gate, and every arm with the Retriever accepted 25 to 38 false findings in
+32 trials. (6) The held-out run, declared before it ran, confirmed the engine on 24 unseen dossiers: the fixed
+and adaptive loops and both controls succeeded on every trial, the model again contributed no
+accepted finding, and the adaptive loop needed fewer model calls.
+
+The result is negative for the model and positive for the design around it. At this model size the
+value of the system comes from deterministic tools, the gate and human review, and the agentic loop's
+main demonstrated property is that it is bounded, traceable and safe to fail, not that it finds more.
+
+\section{Future Work}
+\begin{enumerate}[itemsep=1pt]
+\item Analyse, case by case, why the gate accepts the Retriever's F05 and F14 claims, and add the
+missing checks to the gate before any new prompt (the first open item of the experiment log).
+\item Repeat the MG2 comparison with a larger model under the same protocol, to separate a capacity
+limit from a design flaw.
+\item Obtain an independently written dossier set, ideally reviewed by a compliance professional, to
+remove the shared-author limitation.
+\item Extend the corpus with the 2023 and 2024 amendments and the certificate-generation framework,
+with reviewed redistribution rights.
+\item Run the held-out comparison again on the PC with one container per trial, to remove the
+cooperative-isolation caveat.
+\end{enumerate}

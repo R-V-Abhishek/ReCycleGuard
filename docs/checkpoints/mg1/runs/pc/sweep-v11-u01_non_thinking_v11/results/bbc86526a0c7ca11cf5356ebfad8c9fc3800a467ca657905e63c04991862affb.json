@@ -1,0 +1,183 @@
+{
+ "audit_chain": "VERIFIED",
+ "budget": {
+  "actions": 5,
+  "cost_known_calls": 0,
+  "finding_actions": {
+   "finding:5bdb4ecf07bf4a569d5eb9e990576f6f": 1
+  },
+  "finding_reformulations": {},
+  "model_calls": 3,
+  "observed_cost_usd": null,
+  "observed_tokens": 8971,
+  "preflight_actions": 1,
+  "report_repairs": 0,
+  "reserved_tokens": 98304,
+  "retries": 0,
+  "tool_calls": 1,
+  "usage_known_calls": 3,
+  "verification_actions": 0
+ },
+ "calls": [
+  {
+   "event_type": "graph.stage.preflight.result",
+   "issue_codes": [],
+   "kind": "STAGE",
+   "operation_id": "operation:run:5bdb4ecf07bf4a569d5eb9e990576f6f:turn_2:preflight",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.plan.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:5bdb4ecf07bf4a569d5eb9e990576f6f:turn_3:plan",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.tool.tool.result",
+   "issue_codes": [],
+   "kind": "TOOL",
+   "operation_id": "operation:run:5bdb4ecf07bf4a569d5eb9e990576f6f:turn_3:tool",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.assess.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:5bdb4ecf07bf4a569d5eb9e990576f6f:turn_3:assess",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.plan.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:5bdb4ecf07bf4a569d5eb9e990576f6f:turn_4:plan",
+   "status": "SUCCESS"
+  }
+ ],
+ "case_id": "case_53280fec2f",
+ "census": null,
+ "decisions": [
+  {
+   "attempt_id": "attempt:run:5bdb4ecf07bf4a569d5eb9e990576f6f:turn_3:plan_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:5bdb4ecf07bf4a569d5eb9e990576f6f:turn_3:plan",
+   "reply": {
+    "argument_keys": [],
+    "concise_reason": "read the bucket quantities",
+    "hypotheses": [
+     "a gap may come from a pending transfer"
+    ],
+    "objective": "read the bucket quantities",
+    "operation": "compute_reconciliation",
+    "proposed_checks": [
+     "compute_reconciliation"
+    ],
+    "stop_reason": null
+   },
+   "shown": {
+    "inspectable_observations": 8,
+    "inspectable_total": 58,
+    "pending_findings": 1,
+    "phase": "PLAN",
+    "previous_plans": 0,
+    "previous_rejection": false,
+    "prior_observations": 1
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 125,
+    "elapsed_seconds": 3.4638340390083613,
+    "finish_reason": "stop",
+    "prompt_tokens": 2433
+   }
+  },
+  {
+   "attempt_id": "attempt:run:5bdb4ecf07bf4a569d5eb9e990576f6f:turn_3:assess_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:5bdb4ecf07bf4a569d5eb9e990576f6f:turn_3:assess",
+   "reply": {
+    "disposition": "CONTINUE",
+    "next_check_or_stop": "stop",
+    "proposal": null,
+    "verdict": "UNKNOWN",
+    "weak_result_or_mistake": null
+   },
+   "shown": {
+    "citable_calculation_ids": 1,
+    "citable_evidence_ids": 0,
+    "disposition": "QUALIFIED",
+    "evidence_chars": 1672,
+    "evidence_keys": [
+     "bucket_count",
+     "buckets",
+     "calculation_id",
+     "coverage",
+     "issues"
+    ],
+    "evidence_refs_total": 0,
+    "evidence_truncated": false,
+    "phase": "ASSESS",
+    "tool": "compute_reconciliation",
+    "visible_issue_codes": [
+     "APPLICABILITY_UNRESOLVED"
+    ]
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 41,
+    "elapsed_seconds": 2.7825359370035585,
+    "finish_reason": "stop",
+    "prompt_tokens": 2870
+   }
+  },
+  {
+   "attempt_id": "attempt:run:5bdb4ecf07bf4a569d5eb9e990576f6f:turn_4:plan_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:5bdb4ecf07bf4a569d5eb9e990576f6f:turn_4:plan",
+   "reply": {
+    "argument_keys": [],
+    "concise_reason": "read the bucket quantities",
+    "hypotheses": [
+     "a gap may come from a pending transfer"
+    ],
+    "objective": "read the bucket quantities",
+    "operation": "compute_reconciliation",
+    "proposed_checks": [
+     "compute_reconciliation"
+    ],
+    "stop_reason": null
+   },
+   "shown": {
+    "inspectable_observations": 8,
+    "inspectable_total": 58,
+    "pending_findings": 1,
+    "phase": "PLAN",
+    "previous_plans": 1,
+    "previous_rejection": false,
+    "prior_observations": 2
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 123,
+    "elapsed_seconds": 5.0805152539978735,
+    "finish_reason": "stop",
+    "prompt_tokens": 3379
+   }
+  }
+ ],
+ "experiment_variant": "V2_ADAPTIVE_REAL_MODEL",
+ "job": {
+  "cancel_requested": 0,
+  "detail": "BLOCKED_OUTPUT",
+  "dossier_id": "dossier:06a9f52547e84bb1bc12622219d38e2a",
+  "run_id": "run:5bdb4ecf07bf4a569d5eb9e990576f6f",
+  "status": "STOPPED"
+ },
+ "rejected_actions": [],
+ "report": null,
+ "requested_variant": "ADAPTIVE",
+ "run_id": "run:5bdb4ecf07bf4a569d5eb9e990576f6f",
+ "status": "BLOCKED_OUTPUT",
+ "stop_reason": "EXPERT_REVIEW_REQUIRED"
+}

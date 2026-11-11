@@ -1,0 +1,15 @@
+prompt,variant,scheduled,scored,successes,success_rate,ci95_low,ci95_high,true_positives,false_positives,false_negatives,micro_f1,proposals_made,proposals_accepted,findings_from_model,proposals_rejected,logical_calls,schema_valid_rate,rejected_actions,mean_model_calls,mean_wall_seconds,p95_wall_seconds,failure_classes
+ablated-baseline-fixed:u01_non_thinking_v7,FIXED_RETRIEVAL,32,32,0,0.0000,0.0000,0.0000,0,1,42,NA,2,1,1,UNKNOWN_EVIDENCE_REF:1,192,1.0000,0,6.0938,117.0713,150.5870,model-reasoning:24;model-schema:3;retrieval/applicability:5
+ablated-baseline-fixed:u01_non_thinking_v7,SC,16,16,0,0.0000,0.0000,0.0000,0,0,21,NA,0,0,0,,32,1.0000,0,2.0000,31.7056,40.1530,model-reasoning:13;retrieval/applicability:3
+ablated-classifier:mg2_agents_v2,RETRIEVER_CLASSIFIER,32,32,0,0.0000,0.0000,0.0000,6,47,36,0.1263,65,53,53,INVALID_ABSTENTION:2;NO_VERIFIED_CLAIM:9;UNKNOWN_EVIDENCE_REF:1,174,0.9770,0,5.6562,176.9456,242.1490,model-reasoning:21;model-schema:7;retrieval/applicability:4
+ablated-classifier:mg2_agents_v2,SC,16,16,0,0.0000,0.0000,0.0000,0,0,21,NA,0,0,0,,32,1.0000,0,2.0000,36.7947,43.7440,model-reasoning:13;retrieval/applicability:3
+ablated-classifier:mg2_agents_v3,RETRIEVER_CLASSIFIER,32,32,0,0.0000,0.0000,0.0000,2,42,40,0.0465,55,44,44,INVALID_ABSTENTION:1;NO_VERIFIED_CLAIM:10,170,0.9765,0,5.6875,164.8592,244.4240,model-reasoning:18;model-schema:11;retrieval/applicability:3
+ablated-classifier:mg2_agents_v3,SC,16,16,0,0.0000,0.0000,0.0000,0,0,21,NA,0,0,0,,32,1.0000,0,2.0000,36.3336,41.6330,model-reasoning:13;retrieval/applicability:3
+ablated-classifier-only:mg2_agents_v1,CLASSIFIER_ONLY,32,32,2,0.0625,0.0000,0.1875,2,0,40,0.0909,39,2,2,INVALID_ABSTENTION:1;NO_VERIFIED_CLAIM:34;UNKNOWN_EVIDENCE_REF:2,36,1.0000,0,1.1250,60.4944,89.2220,model-reasoning:24;retrieval/applicability:6
+ablated-classifier-only:mg2_agents_v1,SC,16,16,0,0.0000,0.0000,0.0000,0,0,21,NA,0,0,0,,32,1.0000,0,2.0000,34.6446,43.5580,model-reasoning:13;retrieval/applicability:3
+ablated-classifier-only:mg2_agents_v3,CLASSIFIER_ONLY,32,32,2,0.0625,0.0000,0.1875,3,0,37,0.1395,37,3,3,DIGITS_IN_TEXT:1;NO_VERIFIED_CLAIM:33,56,1.0000,0,1.8065,70.7912,88.0720,infrastructure:1;model-reasoning:23;retrieval/applicability:6
+ablated-classifier-only:mg2_agents_v3,SC,16,16,0,0.0000,0.0000,0.0000,0,0,21,NA,0,0,0,,32,1.0000,0,2.0000,33.5631,40.3110,model-reasoning:13;retrieval/applicability:3
+ablated-lookup:mg2_agents_v1,RETRIEVER_LOOKUP,32,32,1,0.0312,0.0000,0.0938,6,36,36,0.1429,42,42,42,,133,0.9474,0,4.6562,119.5399,161.6430,model-reasoning:14;model-schema:15;retrieval/applicability:2
+ablated-lookup:mg2_agents_v1,SC,16,16,0,0.0000,0.0000,0.0000,0,0,21,NA,0,0,0,,32,1.0000,0,2.0000,28.4026,31.5450,model-reasoning:13;retrieval/applicability:3
+ablated-lookup:mg2_agents_v2,RETRIEVER_LOOKUP,32,32,0,0.0000,0.0000,0.0000,3,28,39,0.0822,31,31,31,,124,0.9597,0,4.1562,101.4763,131.2640,model-reasoning:19;model-schema:9;retrieval/applicability:4
+ablated-lookup:mg2_agents_v2,SC,16,16,0,0.0000,0.0000,0.0000,0,0,21,NA,0,0,0,,32,1.0000,0,2.0000,28.9268,33.0540,model-reasoning:13;retrieval/applicability:3

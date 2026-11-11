@@ -1,0 +1,217 @@
+{
+ "audit_chain": "VERIFIED",
+ "briefs": null,
+ "budget": {
+  "actions": 6,
+  "cost_known_calls": 0,
+  "finding_actions": {
+   "finding:8bd248ae931b44f9b1e5116ffbc7e733": 1
+  },
+  "finding_reformulations": {},
+  "model_calls": 4,
+  "observed_cost_usd": null,
+  "observed_tokens": 10883,
+  "preflight_actions": 1,
+  "report_repairs": 0,
+  "reserved_tokens": 131072,
+  "retries": 1,
+  "tool_calls": 1,
+  "usage_known_calls": 4,
+  "verification_actions": 0
+ },
+ "calls": [
+  {
+   "event_type": "graph.stage.preflight.result",
+   "issue_codes": [],
+   "kind": "STAGE",
+   "operation_id": "operation:run:8bd248ae931b44f9b1e5116ffbc7e733:turn_2:preflight",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.plan.result",
+   "issue_codes": [
+    "PROVIDER_INVALID_OUTPUT"
+   ],
+   "kind": "MODEL",
+   "operation_id": "operation:run:8bd248ae931b44f9b1e5116ffbc7e733:turn_3:plan",
+   "status": "FAILED"
+  },
+  {
+   "event_type": "graph.model.plan.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:8bd248ae931b44f9b1e5116ffbc7e733:turn_3:plan",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.tool.tool.result",
+   "issue_codes": [],
+   "kind": "TOOL",
+   "operation_id": "operation:run:8bd248ae931b44f9b1e5116ffbc7e733:turn_3:tool",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.assess.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:8bd248ae931b44f9b1e5116ffbc7e733:turn_3:assess",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.plan.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:8bd248ae931b44f9b1e5116ffbc7e733:turn_4:plan",
+   "status": "SUCCESS"
+  }
+ ],
+ "case_id": "case_2161dcc965",
+ "census": null,
+ "decisions": [
+  {
+   "attempt_id": "attempt:run:8bd248ae931b44f9b1e5116ffbc7e733:turn_3:plan_0",
+   "issue_codes": [
+    "PROVIDER_INVALID_OUTPUT"
+   ],
+   "operation_id": "operation:run:8bd248ae931b44f9b1e5116ffbc7e733:turn_3:plan",
+   "reply": null,
+   "shown": {
+    "inspectable_observations": 4,
+    "inspectable_total": 54,
+    "pending_findings": 1,
+    "phase": "PLAN",
+    "previous_plans": 0,
+    "previous_rejection": false,
+    "prior_observations": 1
+   },
+   "status": "FAILED",
+   "transport": {
+    "completion_tokens": 191,
+    "elapsed_seconds": 19.43575369500013,
+    "finish_reason": "stop",
+    "prompt_tokens": 2108
+   }
+  },
+  {
+   "attempt_id": "attempt:run:8bd248ae931b44f9b1e5116ffbc7e733:turn_3:plan_1",
+   "issue_codes": [],
+   "operation_id": "operation:run:8bd248ae931b44f9b1e5116ffbc7e733:turn_3:plan",
+   "reply": {
+    "argument_keys": [
+     "observation_ids"
+    ],
+    "concise_reason": "Inspect the provided observations to assess allocation gaps and evidence qualifications.",
+    "hypotheses": [
+     "The dossier contains evidence of allocation gaps.",
+     "The dossier contains evidence of qualified evidence."
+    ],
+    "objective": "Assess supported allocation gaps and evidence qualifications in the frozen dossier.",
+    "operation": "inspect_evidence",
+    "proposed_checks": [
+     "inspect_evidence"
+    ],
+    "stop_reason": null
+   },
+   "shown": {
+    "inspectable_observations": 4,
+    "inspectable_total": 54,
+    "pending_findings": 1,
+    "phase": "PLAN",
+    "previous_plans": 0,
+    "previous_rejection": false,
+    "prior_observations": 1
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 315,
+    "elapsed_seconds": 16.871410236999964,
+    "finish_reason": "stop",
+    "prompt_tokens": 2140
+   }
+  },
+  {
+   "attempt_id": "attempt:run:8bd248ae931b44f9b1e5116ffbc7e733:turn_3:assess_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:8bd248ae931b44f9b1e5116ffbc7e733:turn_3:assess",
+   "reply": {
+    "disposition": "CONTINUE",
+    "next_check_or_stop": "continue",
+    "proposal": null,
+    "verdict": "WEAK",
+    "weak_result_or_mistake": "The dossier contains evidence of allocation gaps."
+   },
+   "shown": {
+    "citable_calculation_ids": 0,
+    "citable_evidence_ids": 4,
+    "disposition": "QUALIFIED",
+    "evidence_chars": 1715,
+    "evidence_keys": [
+     "observation_count",
+     "observations",
+     "observations_omitted"
+    ],
+    "evidence_refs_total": 4,
+    "evidence_truncated": false,
+    "phase": "ASSESS",
+    "tool": "inspect_evidence",
+    "visible_issue_codes": []
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 48,
+    "elapsed_seconds": 5.409545213000001,
+    "finish_reason": "stop",
+    "prompt_tokens": 2579
+   }
+  },
+  {
+   "attempt_id": "attempt:run:8bd248ae931b44f9b1e5116ffbc7e733:turn_4:plan_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:8bd248ae931b44f9b1e5116ffbc7e733:turn_4:plan",
+   "reply": {
+    "argument_keys": [],
+    "concise_reason": "Need to verify the certificate referenced in the observations to assess allocation gap support.",
+    "hypotheses": [
+     "The certificate cert:2161dcc965_001 exists and is valid.",
+     "The certificate cert:2161dcc965_001 is linked to the allocation alloc:2161dcc965_004."
+    ],
+    "objective": "Verify the existence and status of the certificate referenced in the observations to support the allocation gap assessment.",
+    "operation": "trace_certificate",
+    "proposed_checks": [
+     "trace_certificate"
+    ],
+    "stop_reason": null
+   },
+   "shown": {
+    "inspectable_observations": 4,
+    "inspectable_total": 54,
+    "pending_findings": 1,
+    "phase": "PLAN",
+    "previous_plans": 1,
+    "previous_rejection": false,
+    "prior_observations": 2
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 336,
+    "elapsed_seconds": 30.541521161999754,
+    "finish_reason": "stop",
+    "prompt_tokens": 3166
+   }
+  }
+ ],
+ "experiment_variant": "V2_ADAPTIVE_REAL_MODEL",
+ "job": {
+  "cancel_requested": 0,
+  "detail": "BLOCKED_OUTPUT",
+  "dossier_id": "dossier:2c73748b4b0a44f2823cff88a5240d41",
+  "run_id": "run:8bd248ae931b44f9b1e5116ffbc7e733",
+  "status": "STOPPED"
+ },
+ "rejected_actions": [],
+ "report": null,
+ "requested_variant": "ADAPTIVE",
+ "run_id": "run:8bd248ae931b44f9b1e5116ffbc7e733",
+ "status": "BLOCKED_OUTPUT",
+ "stop_reason": "EXPERT_REVIEW_REQUIRED"
+}

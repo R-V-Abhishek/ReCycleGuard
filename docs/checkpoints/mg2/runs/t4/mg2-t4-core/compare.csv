@@ -1,0 +1,11 @@
+prompt,variant,scheduled,scored,successes,success_rate,ci95_low,ci95_high,true_positives,false_positives,false_negatives,micro_f1,proposals_made,proposals_accepted,findings_from_model,proposals_rejected,logical_calls,schema_valid_rate,rejected_actions,mean_model_calls,mean_wall_seconds,p95_wall_seconds,failure_classes
+ablated-baseline-adaptive:u01_non_thinking_v7,ADAPTIVE,32,32,0,0.0000,0.0000,0.0000,0,0,39,NA,0,0,0,,72,1.0000,0,2.3125,88.8696,115.0970,model-reasoning:21;model-schema:5;retrieval/applicability:6
+ablated-baseline-adaptive:u01_non_thinking_v7,SC,16,16,0,0.0000,0.0000,0.0000,0,0,21,NA,0,0,0,,32,1.0000,0,2.0000,39.0926,43.0550,model-reasoning:13;retrieval/applicability:3
+ablated-classifier:mg2_agents_v1,RETRIEVER_CLASSIFIER,32,32,0,0.0000,0.0000,0.0000,1,41,41,0.0238,60,42,42,DUPLICATE_ISSUE_TYPE:1;INVALID_ABSTENTION:2;NO_VERIFIED_CLAIM:12;UNKNOWN_EVIDENCE_REF:3,159,0.9623,0,5.4062,117.2300,184.3940,model-reasoning:17;model-schema:13;retrieval/applicability:2
+ablated-classifier:mg2_agents_v1,SC,16,16,0,0.0000,0.0000,0.0000,0,0,21,NA,0,0,0,,32,1.0000,0,2.0000,34.8245,45.5670,model-reasoning:13;retrieval/applicability:3
+rules-on-baseline-adaptive:u01_non_thinking_v7,ADAPTIVE,32,32,31,0.9688,0.9062,1.0000,41,0,0,1.0000,1,0,0,CONTRADICTED_BY_CALCULATION:1,68,1.0000,0,2.3438,90.3970,134.3060,model-schema:1
+rules-on-baseline-adaptive:u01_non_thinking_v7,SC,16,16,16,1.0000,1.0000,1.0000,21,0,0,1.0000,0,0,0,,32,1.0000,0,2.0000,39.0719,43.4010,
+rules-on-baseline-adaptive:u01_non_thinking_v7,V0,16,16,16,1.0000,1.0000,1.0000,21,0,0,1.0000,0,0,0,,16,1.0000,0,1.0000,37.1412,42.0810,
+rules-on-classifier:mg2_agents_v1,RETRIEVER_CLASSIFIER,32,32,10,0.3125,0.1562,0.4688,41,38,1,0.6777,48,38,38,CONTRADICTED_BY_CALCULATION:2;NO_VERIFIED_CLAIM:7;UNKNOWN_EVIDENCE_REF:1,170,0.9824,0,5.6562,87.4132,112.2490,model-reasoning:14;model-schema:8
+rules-on-classifier:mg2_agents_v1,SC,16,16,16,1.0000,1.0000,1.0000,21,0,0,1.0000,0,0,0,,32,1.0000,0,2.0000,26.9769,29.2320,
+rules-on-classifier:mg2_agents_v1,V0,16,16,16,1.0000,1.0000,1.0000,21,0,0,1.0000,0,0,0,,16,1.0000,0,1.0000,26.3279,28.3510,

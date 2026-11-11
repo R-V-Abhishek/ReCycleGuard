@@ -167,6 +167,7 @@ export type RunStatus =
   | "INVESTIGATING"
   | "DRAFTING"
   | "VERIFYING"
+  | "BRIEFING"
   | "AWAITING_REVIEW"
   | "COMPLETED"
   | "BLOCKED_INPUT"
@@ -232,8 +233,11 @@ export interface Job {
   cancel_requested: number;
 }
 
+export type RunVariant = "ADAPTIVE" | "FIXED_RETRIEVAL";
+
 export interface RunConfiguration {
   execution_kind: RunMode;
+  experiment_variant: string;
   budgets: BudgetLimits;
   model_configuration_id: string;
   prompt_configuration_id: string;
@@ -321,7 +325,7 @@ interface TraceBase {
 
 export interface PromptPreparedEvent extends TraceBase {
   kind: "PROMPT_PREPARED";
-  phase: "PLAN" | "ASSESS";
+  phase: "PLAN" | "ASSESS" | "BRIEF";
   request: Json;
   system_template: string | null;
   note: string;
@@ -340,6 +344,11 @@ export interface ToolProposedEvent extends TraceBase {
 export interface AssessmentEvent extends TraceBase {
   kind: "ASSESSMENT";
   data: ObservationAssessment;
+}
+
+export interface BriefEvent extends TraceBase {
+  kind: "BRIEF";
+  data: ReviewerBrief;
 }
 
 export interface ModelResultEvent extends TraceBase {
@@ -370,6 +379,7 @@ export type TraceEvent =
   | PlanEvent
   | ToolProposedEvent
   | AssessmentEvent
+  | BriefEvent
   | ModelResultEvent
   | ToolOrStageResultEvent
   | AuditEvent;
@@ -411,6 +421,7 @@ export interface ReportClaim {
   kind: string;
   template_or_text: string;
   evidence_refs: EvidenceRef[];
+  calculation_value_ref: { calculation_id: string; bucket_id: string; field: keyof Pick<BucketResult, "required" | "supported" | "signed_gap" | "shortfall" | "surplus" | "pending" | "portal_reported" | "ledger_supported" | "delta"> } | null;
   support_status: "SUPPORTED" | "QUALIFIED" | "UNSUPPORTED";
 }
 
@@ -467,6 +478,38 @@ export interface InvestigationReport {
   findings: FindingRecord[];
   available_evidence_refs: EvidenceRef[];
   verification: VerificationResult;
+}
+
+// A reading aid for one finding. It is outside the report and changes nothing in it.
+export interface BriefFigure {
+  label: string;
+  value: string;
+  value_ref: { calculation_id: string; bucket_id: string; field: string };
+}
+
+export interface ReviewerBrief {
+  brief_id: string;
+  run_id: string;
+  report_revision_id: string;
+  finding_revision_id: string;
+  issue_type: string;
+  source: "MODEL" | "TEMPLATE";
+  status: "ACCEPTED" | "REJECTED" | "DROPPED";
+  reason: string | null;
+  what_to_check: string | null;
+  explanation: string | null;
+  evidence_request: string | null;
+  evidence_refs: EvidenceRef[];
+  figures: BriefFigure[];
+  label: string;
+  model_operation_ref: string | null;
+}
+
+export interface RunBriefs {
+  run_id: string;
+  report_revision_id: string;
+  model_briefs: ReviewerBrief[];
+  template_briefs: ReviewerBrief[];
 }
 
 export type ReviewDecisionKind = "APPROVE" | "REJECT" | "REQUEST_CHANGES" | "ESCALATE";

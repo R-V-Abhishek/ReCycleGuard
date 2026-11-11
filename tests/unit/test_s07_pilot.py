@@ -12,7 +12,6 @@ from benchmarks.evaluation.oracle import write_oracle_records
 from benchmarks.generator import generate, pilot
 from benchmarks.generator.hidden import write_hidden
 from benchmarks.generator.pilot_cases import DEV, HELD_OUT, SPLIT_POLICY, build_pilot_cases
-from benchmarks.generator.render import render_case
 from benchmarks.generator.s04_cases import build_s04_worlds
 from benchmarks.generator.s05_cases import build_worlds
 from benchmarks.generator.s06_cases import build_s06_cases
@@ -25,9 +24,8 @@ EARLIER = [*build_worlds(), *build_s04_worlds(), *(c.world for c in build_s06_ca
 
 
 @pytest.fixture(scope="module")
-def rendered(tmp_path_factory):
-    root = tmp_path_factory.mktemp("pilot")
-    return [render_case(c.world, root / c.split) for c in CASES]
+def rendered(rendered_pilot):
+    return [out for _, out in rendered_pilot]
 
 
 def _split(name):
@@ -133,3 +131,6 @@ def test_hidden_record_carries_split_membership_and_oracle(tmp_path, rendered):
 def test_a_regenerated_split_is_deterministic():
     again = [c.corrupted for c in build_pilot_cases.__wrapped__()]  # bypass the cache
     assert [c.world for c in again] == [c.world for c in CASES]
+
+
+pytestmark = pytest.mark.slow

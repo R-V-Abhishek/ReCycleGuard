@@ -1,0 +1,17 @@
+# Secrets, weights and evaluator answers never enter an image. benchmarks/hidden reaches the
+# evaluator volume only through scripts/docker/import-hidden.sh. .git stays for the freeze check.
+.env
+.env.*
+**/.env
+**/*.gguf
+**/*.safetensors
+.recycleguard/
+benchmarks/hidden/
+tmp/
+.venv/
+**/.venv/
+**/node_modules/
+**/__pycache__/
+.pytest_cache/
+.ruff_cache/
+ui/dist/

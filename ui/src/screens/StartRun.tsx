@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ApiError } from "../api/client";
-import type { BudgetLimits, RunMode } from "../api/types";
+import type { BudgetLimits, RunMode, RunVariant } from "../api/types";
 import { Badge, ErrorBanner, JsonView, Mono, Section, Unavailable, useAction, useLoad } from "../components/common";
 import { useHeader } from "../components/Shell";
 import { href, navigate, useClient } from "../state/session";
@@ -20,6 +20,7 @@ export function StartRun({ dossierId }: { dossierId: string }) {
   const dossier = useLoad(() => client.dossier(dossierId), [client, dossierId]);
   const recent = useLoad(() => client.runs(dossierId), [client, dossierId]);
   const [mode, setMode] = useState<RunMode>("MODEL_BACKED");
+  const [variant, setVariant] = useState<RunVariant>("ADAPTIVE");
   const [budgets, setBudgets] = useState<Partial<Record<keyof BudgetLimits, string>>>({});
   const [locked, setLocked] = useState(false);
   const start = useAction();
@@ -48,7 +49,7 @@ export function StartRun({ dossierId }: { dossierId: string }) {
     void start.run(async (signal) => {
       const chosen = parsedBudgets();
       try {
-        const run = await client.startRun(dossierId, mode, chosen);
+        const run = await client.startRun(dossierId, mode, chosen, variant);
         if (!signal.aborted) navigate("runs", run.run_id);
       } catch (cause) {
         // The run may exist, and the API has no run list or idempotency key. Don't offer a
@@ -114,6 +115,15 @@ export function StartRun({ dossierId }: { dossierId: string }) {
           </label>
         </fieldset>
         {availableModes?.length === 0 && <div className="banner warn">The server has no enabled investigation mode.</div>}
+        <fieldset>
+          <legend>Investigation variant</legend>
+          <label className="check">
+            <input type="radio" checked={variant === "ADAPTIVE"} onChange={() => setVariant("ADAPTIVE")} /> Adaptive: the model chooses each check within the budget
+          </label>
+          <label className="check">
+            <input type="radio" checked={variant === "FIXED_RETRIEVAL"} onChange={() => setVariant("FIXED_RETRIEVAL")} /> Fixed retrieval: a predeclared check sequence; the model only assesses results
+          </label>
+        </fieldset>
         <details>
           <summary>Budget overrides (optional)</summary>
           <p className="muted small">
@@ -145,6 +155,7 @@ export function StartRun({ dossierId }: { dossierId: string }) {
           <a href={href("runs", run.state.run_id)}><Mono>{run.state.run_id}</Mono></a>{" "}
           <Badge value={run.state.status} /> <Badge value={run.job.status} />
           <Badge value={run.configuration.execution_kind} />
+          <Badge value={run.configuration.experiment_variant} />
         </p>)}
         {!recent.loading && recent.data?.runs.length === 0 && <p className="muted">No recorded runs for this dossier.</p>}
       </Section>

@@ -117,8 +117,8 @@
 | **S05** | `C15 Generator` | 25 Oct 2026 | Clean-world renderer and first 6 visible development dossiers | IMPLEMENTED; hidden format agreed by Vedantha (V04) on 28 Oct 2026 |
 | **S04** | `C08 Domain Tools` | 26 Oct 2026 | Recycler capability, product weights, commercial validation, lifecycle checks | IMPLEMENTED; awaiting independent review (G04, G05) |
 | **S06** | `C15 Generator` | 27 Oct 2026 | Complete implementation of all 16 fault recipes (F01–F16) | IMPLEMENTED; awaiting Vedantha's recipe/expectation review and agreement on the hidden additions |
-| **S07** | `C15 Generator` | 28 Oct 2026 | Generate full grouped 48-case pilot (24 dev / 24 held-out) | IMPLEMENTED; awaiting Vedantha's oracle validation and pilot seal (V09) |
-| **S08** | `C08 / C15` | 30 Oct–1 Nov | Dev tool bugfixes and deterministic input freeze | BLOCKED on CP4 |
+| **S07** | `C15 Generator` | 28 Oct 2026 | Generate full grouped 48-case pilot (24 dev / 24 held-out) | DONE (V09 validation/seal completed on `checkpoint-4`, 1 Nov 2026) |
+| **S08** | `C08 / C15` | 30 Oct–1 Nov | Dev tool bugfixes and deterministic input freeze | READY (CP4 approved 1 Nov 2026) |
 | **S09** | Evaluation | 3 Nov 2026 | Independent scoring of exact balances and finding matches | BLOCKED on V11/V12 |
 | **S10** | Documentation | 4–5 Nov 2026 | Finalize dataset card, generator methodology, and release manifest | BLOCKED on S08, S07 |
 | **S11** | Release | 8–12 Nov 2026 | Reproduce released generator, visible pilot, and deterministic baseline | BLOCKED on CP7 |

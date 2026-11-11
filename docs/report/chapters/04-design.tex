@@ -1,0 +1,130 @@
+%---------------------------------------------------------------------
+\chapter{Agent Design and Architecture}
+%---------------------------------------------------------------------
+
+\section{System Architecture}
+Figure~\ref{fig:arch} shows the architecture. Evidence flows from the left: original files are
+received, stored by content digest, extracted and normalised, and frozen into a case snapshot and
+a corpus snapshot. The investigation workflow in the centre runs on those snapshots only. The
+model is reached through a gateway and can only propose; tools, the reconciler and the finding
+gate decide. A working paper is drafted, verified and passed to a human reviewer. Every step
+writes to the audit kernel, and the evaluator, with its hidden answers, sits outside the runtime.
+
+\begin{figure}[htbp]
+\centering
+\input{figures/architecture}
+\caption{Architecture of ReCycleGuard}
+\label{fig:arch}
+\end{figure}
+
+\section{Component Description}
+
+\subsection{Intake, Storage and Extraction}
+Intake accepts untrusted files, hashes their bytes with SHA-256, stores them in a content-addressed
+blob store and issues a receipt for every outcome, including quarantine. Originals are never
+modified; a correction creates a linked revision. Extractors for PDF (pdfplumber), CSV and JSON
+turn files into \emph{observations}, each with an exact locator such as a page index or a row and
+field. An extraction failure is recorded as an outcome, not dropped.
+
+\subsection{Normalisation and Snapshots}
+Normalisation converts quantities to validated decimals with dimension and metal awareness,
+resolves entity aliases and keeps \emph{missing}, \emph{unknown}, \emph{not applicable} and
+\emph{zero} as distinct states. A case snapshot and a corpus snapshot are then frozen, each with a
+digest, together with the calculation profile; every run pins these digests, so a later change of
+any input produces a new run rather than altering an old one.
+
+\subsection{Retrieval Index}
+The two regulatory documents are split into provisions and indexed with SQLite FTS5 using BM25
+ranking. Retrieval enforces the temporal validity of a provision for the period under review and
+grades results before they are returned to the agent.
+
+\subsection{Deterministic Tools and Reconciler}
+The reconciler balances supported allocations against obligation buckets per metal using exact
+decimals, with credit conservation and earlier-liability priority. Around it sit deterministic
+\emph{family checks}, one for each fault family that can be detected from computed facts, and a
+\emph{contradiction rule} that rejects any claim contradicted by a calculation. The agent reaches
+these only through the six audited tools listed in Table~\ref{tab:tools}.
+
+\subsection{Investigation Workflow and Model Gateway}
+The workflow is a LangGraph state graph with four nodes: \emph{preflight} checks coverage and page
+loss, \emph{investigate} runs the bounded agent loop, \emph{draft} builds the working paper and
+\emph{verify} checks every figure and citation against the snapshot. The gateway sends prompts to
+a model served on the loopback interface, validates the reply against a JSON schema, and records
+each call. Invalid output degrades gracefully: the run continues on deterministic evidence and the
+failure is recorded.
+
+\subsection{Finding Gate, Report and Human Review}
+A model may propose a finding, but the gate accepts it only if it cites evidence that exists in the
+case, is not contradicted by a calculation and is not a duplicate. Rejected proposals are kept with
+their reason. The verified working paper is presented to a reviewer, whose decision is bound to the
+exact report revision and its dependency digests, so a later change invalidates the decision rather
+than silently inheriting it.
+
+\section{Selected Agentic Patterns and Justification}
+Table~\ref{tab:patterns} lists the patterns used and the alternatives rejected.
+
+\begin{table}[htbp]
+\centering
+\caption{Agentic patterns and design justification}
+\label{tab:patterns}
+\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{0.19\linewidth} >{\raggedright\arraybackslash}p{0.19\linewidth} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}p{0.17\linewidth}@{}}
+\toprule
+\textbf{Pattern} & \textbf{Where} & \textbf{Reason} & \textbf{Rejected} \\ \midrule
+Plan--act--assess loop & Investigate node & Next check depends on the last observation; each step bounded and audited & Fixed script only \\
+Fixed sequence & V1 variant & Measures whether adaptivity helps & -- \\
+Deterministic gate & Before report & A wrong finding is worse than none & Model self-check \\
+Corrective RAG & \texttt{search\_rules}, MG2 Retriever & Legal text is long; weak results must be detected & Single-shot RAG \\
+Role separation & MG2 Retriever, Classifier & Text reading and classification tested separately & One large prompt \\
+Human in the loop & Review service & Output has regulatory weight & Automatic release \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Control Flow and Agent State}
+The graph's shared state holds the snapshot digests, the pending candidate findings, the plan and
+action records, the tool observations, the assessments, the budget counters and the stop reason.
+Each update is written with a compare-and-swap version and checkpointed in SQLite, so an
+interrupted run resumes from its last committed state instead of repeating a dispatched action.
+
+Within \emph{investigate}, each turn has two model calls. In \textsc{plan}, the model either
+proposes one action (a tool name from the allowed list and typed arguments) or stops with
+\texttt{NO\_NEW\_EVIDENCE} or \texttt{EXPERT\_REVIEW\_REQUIRED}; it may not do both. The runner
+validates the action and refuses an identical repeat. In \textsc{assess}, the model reads the
+observation and returns a verdict (\texttt{SUPPORTS}, \texttt{REFUTES}, \texttt{WEAK} or
+\texttt{NO\_PROGRESS}) and a disposition (\texttt{RESOLVE}, \texttt{CONTINUE} or \texttt{ABSTAIN});
+\texttt{RESOLVE} requires \texttt{SUPPORTS}. The loop terminates when every candidate is resolved
+or abstained, when the model stops, when a second refused action occurs, or when the call, time or
+token budget is exhausted; the last three are recorded as such and never hidden.
+
+\section{The Multi-Agent Design (MG2)}
+The single-agent results (Chapter~7) showed that the model never read document text and did not
+propose findings the rules had not already produced. The MG2 design gives those two missing
+abilities to two roles, shown in Figure~\ref{fig:mg2}. The \emph{Retriever} sees only text. It
+lists passages (identifier, length and first words), reads up to three, writes claims of the form
+\{kind, observation, quote\} for kinds it recognises, grades each result as \texttt{SUFFICIENT},
+\texttt{WEAK} or \texttt{EMPTY}, and must change its request after a weak result; it has at most
+five turns. A deterministic quote verifier keeps only claims whose quote occurs at the cited
+observation. The \emph{Classifier} never sees passage text: it receives the verified claim kinds
+and the computed facts, may call up to three compute tools, and proposes findings, which then pass
+through the existing gate. Two ablations isolate each role: M1 replaces the Classifier with a
+deterministic lookup from claim kind to family, and M2-nr runs the Classifier without the
+Retriever.
+
+\begin{figure}[htbp]
+\centering
+\resizebox{0.95\linewidth}{!}{\input{figures/mg2-roles}}
+\caption{The MG2 Retriever and Classifier roles}
+\label{fig:mg2}
+\end{figure}
+
+\section{Data Flow}
+The synthetic baseline dossier used at checkpoint~2 illustrates one pass. Its files are received
+and extracted into observations; normalisation produces decimal quantities in kilograms; the
+snapshot is frozen. Preflight finds full page coverage. The reconciler computes 100~kg required,
+55~kg supported by verified allocations, a 45~kg gap and 25~kg pending because a transfer is not yet
+evidenced. The supported-allocation gap becomes a candidate finding; in the investigation the
+model may call \texttt{compute\_reconciliation} to inspect the buckets, but the finding is reported
+only because the gate finds the cited calculation in the case. The working paper reports the four figures with their
+calculation identifiers and qualifies the pending amount, and the run stops at
+\texttt{AWAITING\_REVIEW} for a person.

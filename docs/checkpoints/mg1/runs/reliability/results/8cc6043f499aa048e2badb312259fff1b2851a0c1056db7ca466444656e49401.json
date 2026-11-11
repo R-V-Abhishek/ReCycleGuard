@@ -1,0 +1,710 @@
+{
+ "budget": {
+  "actions": 15,
+  "cost_known_calls": 0,
+  "finding_actions": {
+   "finding:c0cacf603e1e4174b7a810b652181f52": 6
+  },
+  "finding_reformulations": {
+   "finding:c0cacf603e1e4174b7a810b652181f52": 2
+  },
+  "model_calls": 6,
+  "observed_cost_usd": null,
+  "observed_tokens": 21998,
+  "preflight_actions": 1,
+  "report_repairs": 0,
+  "reserved_tokens": 196608,
+  "retries": 0,
+  "tool_calls": 6,
+  "usage_known_calls": 6,
+  "verification_actions": 1
+ },
+ "case_id": "case_76c8061592",
+ "experiment_variant": "V1_FIXED_RETRIEVAL_REAL_MODEL",
+ "job": {
+  "cancel_requested": 0,
+  "detail": "AWAITING_REVIEW",
+  "dossier_id": "dossier:e77a0b49f8c44cfeacfa43682af5d80e",
+  "run_id": "run:c0cacf603e1e4174b7a810b652181f52",
+  "status": "STOPPED"
+ },
+ "report": {
+  "available_evidence_refs": [],
+  "findings": [],
+  "rejected_finding_proposals": [
+   {
+    "proposal": {
+     "abstention_reason": "MISSING_EVIDENCE",
+     "advisory_status": "PENDING_VERIFICATION",
+     "basis": "The retrieval attempt failed to produce any usable evidence for the extended producer responsibility certificate check, as all retrieved passages were marked with UNRESOLVED status for temporal fit and direct support, preventing the model from forming a supported conclusion.",
+     "evidence_ref_ids": [],
+     "issue_type": "F12_UNSEEN_NOTICE_LEAD",
+     "next_action_kind": "REQUEST_EVIDENCE",
+     "next_action_text": "Request the user to provide the specific document pages containing the extended producer responsibility certificate and the relevant transaction records for the current and preceding years to allow for a proper temporal and authority assessment.",
+     "withheld_claim_scopes": [
+      "pending_untransferred_credits",
+      "earlier_liability_priority",
+      "undated_history",
+      "weight_basis_selection",
+      "stale_portal_statement",
+      "rule_version_applied",
+      "deadline_extension",
+      "gold_offset_credits"
+     ]
+    },
+    "reason": "NO_EVIDENCE_REF"
+   },
+   {
+    "proposal": {
+     "abstention_reason": null,
+     "advisory_status": "PENDING_VERIFICATION",
+     "basis": "The certificate lifecycle trace for both certificates returned an UNKNOWN verdict due to ambiguous event assertions, specifically involving pending or conflicting event states that prevent a definitive determination of transfer status.",
+     "evidence_ref_ids": [
+      "cert:76c8061592_001",
+      "evt:5815e9b1110bcfc4c9df2d0c",
+      "evt:76c8061592_001g",
+      "evt:76c8061592_002",
+      "evt:e2e863f3300321e1db2a7eed",
+      "cert:76c8061592_005",
+      "evt:29150b263a288d805e83bc8b",
+      "evt:76c8061592_005g",
+      "evt:76c8061592_006",
+      "evt:98c0b31d02bb204a4ad85c16"
+     ],
+     "issue_type": "F12_UNSEEN_NOTICE_LEAD",
+     "next_action_kind": "REQUEST_EVIDENCE",
+     "next_action_text": "Request the full authoritative event records for the pending and conflicting events identified in the certificate history to resolve the ambiguity and determine the actual transfer status.",
+     "withheld_claim_scopes": []
+    },
+    "reason": "AUTHORITY_TEXT"
+   }
+  ],
+  "report": {
+   "calculations": [
+    {
+     "analyzed_bucket_ids": [
+      "bucket:76c8061592_cu_2024_2025"
+     ],
+     "analyzed_input_membership_blob": {
+      "byte_length": 4506,
+      "media_type": "application/json",
+      "sha256": "b9cc9536a856cd09e4ee90e74fbfefc4b3c6adbcae9b87497a2893b8501e344a"
+     },
+     "bucket_results": [
+      {
+       "allocation_ids": [
+        "alloc:76c8061592_004",
+        "alloc:76c8061592_008"
+       ],
+       "bucket_id": "bucket:76c8061592_cu_2024_2025",
+       "delta": {
+        "decimal": "0.0000",
+        "dimension": "METAL_MASS",
+        "metal": "CU",
+        "unit": "KG"
+       },
+       "ledger_supported": {
+        "decimal": "12177.5000",
+        "dimension": "METAL_MASS",
+        "metal": "CU",
+        "unit": "KG"
+       },
+       "pending": {
+        "decimal": "0.0000",
+        "dimension": "METAL_MASS",
+        "metal": "CU",
+        "unit": "KG"
+       },
+       "portal_reported": {
+        "decimal": "12177.5000",
+        "dimension": "METAL_MASS",
+        "metal": "CU",
+        "unit": "KG"
+       },
+       "qualification_refs": [
+        {
+         "artifact_revision_id": null,
+         "locator": null,
+         "ref_id": "bucket:76c8061592_cu_2024_2025",
+         "ref_kind": "RECORD"
+        }
+       ],
+       "required": {
+        "decimal": "13636.5000",
+        "dimension": "METAL_MASS",
+        "metal": "CU",
+        "unit": "KG"
+       },
+       "shortfall": {
+        "decimal": "1459.0000",
+        "dimension": "METAL_MASS",
+        "metal": "CU",
+        "unit": "KG"
+       },
+       "signed_gap": {
+        "decimal": "1459.0000",
+        "dimension": "METAL_MASS",
+        "metal": "CU",
+        "unit": "KG"
+       },
+       "snapshot_comparison_ref": "comparison:e3c2948491a4264007caed21",
+       "supported": {
+        "decimal": "12177.5000",
+        "dimension": "METAL_MASS",
+        "metal": "CU",
+        "unit": "KG"
+       },
+       "surplus": {
+        "decimal": "0.0000",
+        "dimension": "METAL_MASS",
+        "metal": "CU",
+        "unit": "KG"
+       }
+      }
+     ],
+     "calculation_id": "calc:121652544fc404a0dd27feec",
+     "case_version_id": "snapshot:api_support_approved_0576c92d9bcd4241adbe498c3921b250",
+     "coverage": "QUALIFIED",
+     "derivation_blob": {
+      "byte_length": 5540,
+      "media_type": "application/json",
+      "sha256": "1f2e1f81c743d42b7019c9efeadb4ecd249921622475fa7653cff95297ac7af8"
+     },
+     "input_digest": "121652544fc404a0dd27feec3b1aea7e9bf7afdaf1f07cadd128ccc5833aa33c",
+     "issues": [
+      {
+       "code": "APPLICABILITY_UNRESOLVED",
+       "evidence_refs": [],
+       "field_path": null,
+       "issue_id": "issue:applicability_unresolved_3eaa783b1fae",
+       "message": "Profile declares eligibility conditions unavailable; results are qualified",
+       "retryable": false,
+       "severity": "WARNING"
+      }
+     ],
+     "profile_id": "profile:producer_snapshot_v1",
+     "quantity_dispositions_blob": {
+      "byte_length": 12167,
+      "media_type": "application/json",
+      "sha256": "b3f9173e3a5ce1b702fba6459f3a4521719d31ec9f524eae0ece4f5410fe2ea6"
+     },
+     "tool_version": "c08-s04-0.2"
+    }
+   ],
+   "claims": [
+    {
+     "calculation_value_ref": null,
+     "claim_id": "claim:case_scope_001",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:121652544fc404a0dd27feec",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "kind": "FACT",
+     "support_status": "QUALIFIED",
+     "template_or_text": "Case version snapshot:api_support_approved_0576c92d9bcd4241adbe498c3921b250; profile profile:producer_snapshot_v1."
+    },
+    {
+     "calculation_value_ref": null,
+     "claim_id": "claim:evidence_coverage_002",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:121652544fc404a0dd27feec",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "kind": "FACT",
+     "support_status": "QUALIFIED",
+     "template_or_text": "Calculation coverage is QUALIFIED."
+    },
+    {
+     "calculation_value_ref": {
+      "bucket_id": "bucket:76c8061592_cu_2024_2025",
+      "calculation_id": "calc:121652544fc404a0dd27feec",
+      "field": "required"
+     },
+     "claim_id": "claim:bucket_reconciliation_003",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:121652544fc404a0dd27feec",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "kind": "NUMERIC",
+     "support_status": "QUALIFIED",
+     "template_or_text": "Required for bucket:76c8061592_cu_2024_2025: {value}."
+    },
+    {
+     "calculation_value_ref": {
+      "bucket_id": "bucket:76c8061592_cu_2024_2025",
+      "calculation_id": "calc:121652544fc404a0dd27feec",
+      "field": "supported"
+     },
+     "claim_id": "claim:bucket_reconciliation_004",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:121652544fc404a0dd27feec",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "kind": "NUMERIC",
+     "support_status": "QUALIFIED",
+     "template_or_text": "Supported for bucket:76c8061592_cu_2024_2025: {value}."
+    },
+    {
+     "calculation_value_ref": {
+      "bucket_id": "bucket:76c8061592_cu_2024_2025",
+      "calculation_id": "calc:121652544fc404a0dd27feec",
+      "field": "signed_gap"
+     },
+     "claim_id": "claim:bucket_reconciliation_005",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:121652544fc404a0dd27feec",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "kind": "NUMERIC",
+     "support_status": "QUALIFIED",
+     "template_or_text": "Signed gap for bucket:76c8061592_cu_2024_2025: {value}."
+    },
+    {
+     "calculation_value_ref": {
+      "bucket_id": "bucket:76c8061592_cu_2024_2025",
+      "calculation_id": "calc:121652544fc404a0dd27feec",
+      "field": "pending"
+     },
+     "claim_id": "claim:bucket_reconciliation_006",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:121652544fc404a0dd27feec",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "kind": "NUMERIC",
+     "support_status": "QUALIFIED",
+     "template_or_text": "Pending for bucket:76c8061592_cu_2024_2025: {value}."
+    },
+    {
+     "calculation_value_ref": {
+      "bucket_id": "bucket:76c8061592_cu_2024_2025",
+      "calculation_id": "calc:121652544fc404a0dd27feec",
+      "field": "portal_reported"
+     },
+     "claim_id": "claim:bucket_reconciliation_007",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:121652544fc404a0dd27feec",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "kind": "NUMERIC",
+     "support_status": "QUALIFIED",
+     "template_or_text": "Portal reported for bucket:76c8061592_cu_2024_2025: {value}."
+    },
+    {
+     "calculation_value_ref": {
+      "bucket_id": "bucket:76c8061592_cu_2024_2025",
+      "calculation_id": "calc:121652544fc404a0dd27feec",
+      "field": "delta"
+     },
+     "claim_id": "claim:bucket_reconciliation_008",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:121652544fc404a0dd27feec",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "kind": "NUMERIC",
+     "support_status": "QUALIFIED",
+     "template_or_text": "Portal delta for bucket:76c8061592_cu_2024_2025: {value}."
+    },
+    {
+     "calculation_value_ref": null,
+     "claim_id": "claim:finding_register_009",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:121652544fc404a0dd27feec",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "kind": "LIMITATION",
+     "support_status": "QUALIFIED",
+     "template_or_text": "No structured findings were supplied to this baseline report."
+    },
+    {
+     "calculation_value_ref": null,
+     "claim_id": "claim:next_actions_010",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:121652544fc404a0dd27feec",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "kind": "LIMITATION",
+     "support_status": "QUALIFIED",
+     "template_or_text": "No next action is proposed without a structured finding."
+    },
+    {
+     "calculation_value_ref": null,
+     "claim_id": "claim:investigation_history_011",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:121652544fc404a0dd27feec",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "kind": "LIMITATION",
+     "support_status": "QUALIFIED",
+     "template_or_text": "No model-authored investigation steps are asserted in this baseline report."
+    },
+    {
+     "calculation_value_ref": null,
+     "claim_id": "claim:human_decisions_012",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:121652544fc404a0dd27feec",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "kind": "LIMITATION",
+     "support_status": "QUALIFIED",
+     "template_or_text": "No human approval is implied by this report."
+    },
+    {
+     "calculation_value_ref": null,
+     "claim_id": "claim:limitations_and_reproducibility_013",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:121652544fc404a0dd27feec",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "kind": "LIMITATION",
+     "support_status": "QUALIFIED",
+     "template_or_text": "Numerical agreement does not establish legal correctness or filing readiness."
+    },
+    {
+     "calculation_value_ref": null,
+     "claim_id": "claim:limitations_and_reproducibility_014",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:121652544fc404a0dd27feec",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "kind": "LIMITATION",
+     "support_status": "QUALIFIED",
+     "template_or_text": "Inspected 8 of 63 dossier observations."
+    }
+   ],
+   "rendered_markdown": "# Baseline reconciliation report\n\n## Case scope\n\n- Case version snapshot:api_support_approved_0576c92d9bcd4241adbe498c3921b250; profile profile:producer_snapshot_v1. [calc:121652544fc404a0dd27feec]\n\n## Evidence coverage\n\n- Calculation coverage is QUALIFIED. [calc:121652544fc404a0dd27feec]\n\n## Bucket reconciliation\n\n- Required for bucket:76c8061592_cu_2024_2025: 13636.5000 KG. [calc:121652544fc404a0dd27feec]\n\n- Supported for bucket:76c8061592_cu_2024_2025: 12177.5000 KG. [calc:121652544fc404a0dd27feec]\n\n- Signed gap for bucket:76c8061592_cu_2024_2025: 1459.0000 KG. [calc:121652544fc404a0dd27feec]\n\n- Pending for bucket:76c8061592_cu_2024_2025: 0.0000 KG. [calc:121652544fc404a0dd27feec]\n\n- Portal reported for bucket:76c8061592_cu_2024_2025: 12177.5000 KG. [calc:121652544fc404a0dd27feec]\n\n- Portal delta for bucket:76c8061592_cu_2024_2025: 0.0000 KG. [calc:121652544fc404a0dd27feec]\n\n## Finding register\n\n- No structured findings were supplied to this baseline report. [calc:121652544fc404a0dd27feec]\n\n## Investigation history\n\n- No model-authored investigation steps are asserted in this baseline report. [calc:121652544fc404a0dd27feec]\n\n## Next actions\n\n- No next action is proposed without a structured finding. [calc:121652544fc404a0dd27feec]\n\n## Human decisions\n\n- No human approval is implied by this report. [calc:121652544fc404a0dd27feec]\n\n## Limitations and reproducibility\n\n- Numerical agreement does not establish legal correctness or filing readiness. [calc:121652544fc404a0dd27feec]\n\n- Inspected 8 of 63 dossier observations. [calc:121652544fc404a0dd27feec]\n",
+   "revision": {
+    "calculation_ids": [
+     "calc:121652544fc404a0dd27feec"
+    ],
+    "claim_ids": [
+     "claim:case_scope_001",
+     "claim:evidence_coverage_002",
+     "claim:bucket_reconciliation_003",
+     "claim:bucket_reconciliation_004",
+     "claim:bucket_reconciliation_005",
+     "claim:bucket_reconciliation_006",
+     "claim:bucket_reconciliation_007",
+     "claim:bucket_reconciliation_008",
+     "claim:finding_register_009",
+     "claim:next_actions_010",
+     "claim:investigation_history_011",
+     "claim:human_decisions_012",
+     "claim:limitations_and_reproducibility_013",
+     "claim:limitations_and_reproducibility_014"
+    ],
+    "coverage_ref": {
+     "artifact_revision_id": null,
+     "locator": null,
+     "ref_id": "calc:121652544fc404a0dd27feec",
+     "ref_kind": "CALCULATION"
+    },
+    "finding_revision_ids": [],
+    "report_id": "report:c743c850a8fe1a914d399f65",
+    "report_revision_id": "report_revision:c743c850a8fe1a914d399f65",
+    "review_dependency_digest": "c743c850a8fe1a914d399f65dea2634643b019093f72ded090e8b0500a14bb51",
+    "run_id": "run:c0cacf603e1e4174b7a810b652181f52",
+    "section_refs": [
+     "section:case_scope",
+     "section:evidence_coverage",
+     "section:bucket_reconciliation",
+     "section:finding_register",
+     "section:investigation_history",
+     "section:next_actions",
+     "section:human_decisions",
+     "section:limitations_and_reproducibility"
+    ],
+    "supersedes_report_revision_id": null
+   },
+   "sections": [
+    {
+     "claim_ids": [
+      "claim:case_scope_001"
+     ],
+     "coverage_state": "QUALIFIED",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:121652544fc404a0dd27feec",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "section_id": "CASE_SCOPE",
+     "structured_content_ref": "section:case_scope",
+     "title": "Case scope"
+    },
+    {
+     "claim_ids": [
+      "claim:evidence_coverage_002"
+     ],
+     "coverage_state": "QUALIFIED",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:121652544fc404a0dd27feec",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "section_id": "EVIDENCE_COVERAGE",
+     "structured_content_ref": "section:evidence_coverage",
+     "title": "Evidence coverage"
+    },
+    {
+     "claim_ids": [
+      "claim:bucket_reconciliation_003",
+      "claim:bucket_reconciliation_004",
+      "claim:bucket_reconciliation_005",
+      "claim:bucket_reconciliation_006",
+      "claim:bucket_reconciliation_007",
+      "claim:bucket_reconciliation_008"
+     ],
+     "coverage_state": "QUALIFIED",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:121652544fc404a0dd27feec",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "section_id": "BUCKET_RECONCILIATION",
+     "structured_content_ref": "section:bucket_reconciliation",
+     "title": "Bucket reconciliation"
+    },
+    {
+     "claim_ids": [
+      "claim:finding_register_009"
+     ],
+     "coverage_state": "QUALIFIED",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:121652544fc404a0dd27feec",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "section_id": "FINDING_REGISTER",
+     "structured_content_ref": "section:finding_register",
+     "title": "Finding register"
+    },
+    {
+     "claim_ids": [
+      "claim:investigation_history_011"
+     ],
+     "coverage_state": "QUALIFIED",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:121652544fc404a0dd27feec",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "section_id": "INVESTIGATION_HISTORY",
+     "structured_content_ref": "section:investigation_history",
+     "title": "Investigation history"
+    },
+    {
+     "claim_ids": [
+      "claim:next_actions_010"
+     ],
+     "coverage_state": "QUALIFIED",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:121652544fc404a0dd27feec",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "section_id": "NEXT_ACTIONS",
+     "structured_content_ref": "section:next_actions",
+     "title": "Next actions"
+    },
+    {
+     "claim_ids": [
+      "claim:human_decisions_012"
+     ],
+     "coverage_state": "QUALIFIED",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:121652544fc404a0dd27feec",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "section_id": "HUMAN_DECISIONS",
+     "structured_content_ref": "section:human_decisions",
+     "title": "Human decisions"
+    },
+    {
+     "claim_ids": [
+      "claim:limitations_and_reproducibility_013",
+      "claim:limitations_and_reproducibility_014"
+     ],
+     "coverage_state": "QUALIFIED",
+     "evidence_refs": [
+      {
+       "artifact_revision_id": null,
+       "locator": null,
+       "ref_id": "calc:121652544fc404a0dd27feec",
+       "ref_kind": "CALCULATION"
+      }
+     ],
+     "section_id": "LIMITATIONS_AND_REPRODUCIBILITY",
+     "structured_content_ref": "section:limitations_and_reproducibility",
+     "title": "Limitations and reproducibility"
+    }
+   ]
+  },
+  "verification": {
+   "checks": [
+    {
+     "check": "authoritative_calculation",
+     "passed": true
+    },
+    {
+     "check": "unique_claim_ids",
+     "passed": true
+    },
+    {
+     "check": "unique_section_ids",
+     "passed": true
+    },
+    {
+     "check": "unique_calculation_ids",
+     "passed": true
+    },
+    {
+     "check": "unique_finding_ids",
+     "passed": true
+    },
+    {
+     "check": "calculation_coverage",
+     "passed": true
+    },
+    {
+     "check": "finding_scope",
+     "passed": true
+    },
+    {
+     "check": "canonical_claims",
+     "passed": true
+    },
+    {
+     "check": "canonical_sections",
+     "passed": true
+    },
+    {
+     "check": "revision_metadata",
+     "passed": true
+    },
+    {
+     "check": "rendered_content",
+     "passed": true
+    },
+    {
+     "check": "section_order",
+     "passed": true
+    },
+    {
+     "check": "numeric:claim:bucket_reconciliation_003",
+     "passed": true
+    },
+    {
+     "check": "numeric:claim:bucket_reconciliation_004",
+     "passed": true
+    },
+    {
+     "check": "numeric:claim:bucket_reconciliation_005",
+     "passed": true
+    },
+    {
+     "check": "numeric:claim:bucket_reconciliation_006",
+     "passed": true
+    },
+    {
+     "check": "numeric:claim:bucket_reconciliation_007",
+     "passed": true
+    },
+    {
+     "check": "numeric:claim:bucket_reconciliation_008",
+     "passed": true
+    },
+    {
+     "check": "rendered_numeric_placeholders",
+     "passed": true
+    }
+   ],
+   "issues": [],
+   "report_revision_id": "report_revision:c743c850a8fe1a914d399f65",
+   "verdict": "QUALIFIED",
+   "verification_id": "verification:43cc92360cf13e1fda91729a",
+   "verified_dependency_digest": "43cc92360cf13e1fda91729aa666c84a1b23551b94aecb15b1a11bee15fd3ffc",
+   "verifier_version": "v03.2"
+  }
+ },
+ "requested_variant": "FIXED_RETRIEVAL",
+ "run_id": "run:c0cacf603e1e4174b7a810b652181f52",
+ "status": "AWAITING_REVIEW",
+ "stop_reason": "NO_NEW_EVIDENCE"
+}

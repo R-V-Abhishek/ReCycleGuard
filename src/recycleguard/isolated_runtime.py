@@ -9,6 +9,7 @@ This is a trusted-application sandbox, not protection against a hostile Docker h
 import importlib.util
 import json
 import os
+import re
 import shutil
 import socket
 import subprocess
@@ -18,7 +19,7 @@ from typing import Annotated
 
 import typer
 
-from recycleguard.isolation import FORBIDDEN_PATH_PATTERNS
+from recycleguard.isolation import FORBIDDEN_ENV_PREFIXES, FORBIDDEN_PATH_PATTERNS
 
 ALLOWED_ACTIONS = {"start", "run", "status", "advance", "resume", "cancel", "report", "packet"}
 CONTAINER_ENV = {
@@ -75,6 +76,221 @@ def prepare_build_context(repository: Path, wheel: Path, destination: Path) -> P
     return destination
 
 
+_SECURITY_FLAGS = (
+    "--read-only",
+    "--cap-drop",
+    "ALL",
+    "--security-opt",
+    "no-new-privileges",
+)
+TRIAL_USER = 10001
+TRIAL_LABEL = "recycleguard.trial=1"
+# Parallel coordinators clean up only their own session's containers.
+TRIAL_SESSION_KEY = "recycleguard.session"
+TRIAL_NO_NETWORK = "none"
+API_PORT = 8000
+_TRIAL_MOUNT_MODES = {"/visible": True, "/program": True, "/runtime": False}
+PROVENANCE_TARGET = "/models/provenance"
+_SYSTEM_MOUNTS = {"/", "/etc/hosts", "/etc/hostname", "/etc/resolv.conf", "/tmp"}
+_SYSTEM_MOUNT_ROOTS = ("/proc", "/dev", "/sys")
+_ABSENT_FROM_TRIALS = (
+    "/repo",
+    "/work",
+    "/evaluator",
+    "/models/weights",
+    "/var/run/docker.sock",
+    "/run/docker.sock",
+)
+
+
+def _volume_mount(volume: str, target: str, subpath: str | None, readonly: bool) -> str:
+    fields = [f"type=volume,source={volume},target={target}"]
+    if subpath is not None:
+        fields.append(f"volume-subpath={subpath}")
+    if readonly:
+        fields.append("readonly")
+    return ",".join(fields)
+
+
+def trial_container_arguments(
+    name: str,
+    image: str,
+    network: str,
+    trial_volume: str,
+    attempt_subpath: str,
+    provenance_volume: str | None,
+    arguments: list[str],
+    *,
+    docker: str = "docker",
+    session: str | None = None,
+) -> list[str]:
+    """``docker create`` for one trial. Volumes only: evaluator data is simply never mounted."""
+    if not image or image.startswith("-") or not name or name.startswith("-"):
+        raise ValueError("trial container needs a name and an image")
+    if session is not None and not re.fullmatch(r"[0-9a-f]{16}", session):
+        raise ValueError("trial session label must be 16 hex characters")
+    if "," in attempt_subpath or "\n" in attempt_subpath or ".." in attempt_subpath.split("/"):
+        raise ValueError("attempt path cannot be used as a volume subpath")
+    command = [
+        docker,
+        "create",
+        "--name",
+        name,
+        "--label",
+        TRIAL_LABEL,
+        *([] if session is None else ["--label", f"{TRIAL_SESSION_KEY}={session}"]),
+        *_SECURITY_FLAGS,
+        "--network",
+        network,
+        "--pids-limit",
+        "512",
+        "--memory",
+        "8g",
+        "--cpus",
+        "8",
+        "--user",
+        f"{TRIAL_USER}:{TRIAL_USER}",
+        "--tmpfs",
+        "/tmp:rw,noexec,nosuid,size=256m",
+    ]
+    for target, readonly in _TRIAL_MOUNT_MODES.items():
+        command += [
+            "--mount",
+            _volume_mount(trial_volume, target, f"{attempt_subpath}{target}", readonly),
+        ]
+    if provenance_volume is not None:
+        command += ["--mount", _volume_mount(provenance_volume, PROVENANCE_TARGET, None, True)]
+    return [*command, image, *arguments]
+
+
+def verify_trial_inspection(
+    inspection: dict, network: str, volumes: set[str], session: str | None = None
+) -> list[str]:
+    """Check what Docker will actually start, before it starts. Returns every problem found."""
+    host, config = inspection["HostConfig"], inspection["Config"]
+    problems = []
+    if session is not None and (config.get("Labels") or {}).get(TRIAL_SESSION_KEY) != session:
+        problems.append("container does not carry its session label")
+    if host.get("Privileged"):
+        problems.append("container is privileged")
+    if not host.get("ReadonlyRootfs"):
+        problems.append("root filesystem is writable")
+    if "ALL" not in (host.get("CapDrop") or []) or host.get("CapAdd"):
+        problems.append("capabilities are not all dropped")
+    if host.get("Binds"):
+        problems.append("container has host bind mounts")
+    if host.get("Devices"):
+        problems.append("container has host devices")
+    if host.get("NetworkMode") != network:
+        problems.append(f"network mode is {host.get('NetworkMode')}, expected {network}")
+    if str(config.get("User", "")).split(":")[0] in {"", "0", "root"}:
+        problems.append("container runs as root")
+    names = [item.split("=", 1)[0].upper() for item in config.get("Env") or []]
+    if any(name.startswith(FORBIDDEN_ENV_PREFIXES) for name in names):
+        problems.append("container environment holds an evaluator key")
+    expected = dict(_TRIAL_MOUNT_MODES)
+    if network != TRIAL_NO_NETWORK:
+        expected[PROVENANCE_TARGET] = True
+    mounts = {mount["Target"]: mount for mount in host.get("Mounts") or []}
+    if set(mounts) != set(expected):
+        problems.append(f"mounts are {sorted(mounts)}, expected {sorted(expected)}")
+    for target, mount in mounts.items():
+        if mount.get("Type") != "volume" or mount.get("Source") not in volumes:
+            problems.append(f"{target} is not an allowed volume")
+        if bool(mount.get("ReadOnly")) != expected.get(target, True):
+            problems.append(f"{target} has the wrong read-only mode")
+    return problems
+
+
+def _denied_when_raising(action: str, target: str, operation) -> dict:
+    record = {"action": action, "target": target, "denied": False, "errno": None}
+    try:
+        operation()
+    except OSError as exc:
+        record.update(denied=True, errno=exc.errno)
+    return record
+
+
+def _connect(address: tuple[str, int]) -> None:
+    with socket.create_connection(address, timeout=2):
+        pass
+
+
+def _mount_points(mountinfo: Path = Path("/proc/self/mountinfo")) -> list[str]:
+    return [line.split()[4] for line in mountinfo.read_text("utf-8").splitlines()]
+
+
+def probe_trial_boundary(visible: Path, program: Path, runtime: Path, evidence: Path) -> list[dict]:
+    """Evidence from inside a trial container, recorded before any investigation starts.
+
+    Evaluator paths are not mounted here, so there is nothing to be refused. For those, the evidence
+    is that they do not exist and that the mount table holds nothing else.
+    """
+    records = [
+        {
+            "action": "absent",
+            "target": target,
+            "denied": not os.path.lexists(target),
+            "errno": None,
+        }
+        for target in _ABSENT_FROM_TRIALS
+    ]
+    allowed = {str(visible), str(program), str(runtime), PROVENANCE_TARGET, *_SYSTEM_MOUNTS}
+    for point in _mount_points():
+        if not point.startswith(_SYSTEM_MOUNT_ROOTS):
+            records.append(
+                {"action": "mount", "target": point, "denied": point in allowed, "errno": None}
+            )
+    writes = [visible / ".forbidden-write", program / ".forbidden-write", Path("/opt/forbidden")]
+    if Path(PROVENANCE_TARGET).exists():
+        writes.append(Path(PROVENANCE_TARGET) / ".forbidden-write")
+    for target in writes:
+        records.append(
+            _denied_when_raising(
+                "write", str(target), lambda t=target: t.write_text("probe", encoding="utf-8")
+            )
+        )
+    records.append(
+        _denied_when_raising("connect", "external-network", lambda: _connect(("198.51.100.1", 443)))
+    )
+    records.append(
+        _denied_when_raising(
+            "connect", "api-on-loopback", lambda: _connect(("127.0.0.1", API_PORT))
+        )
+    )
+    records.append(
+        {
+            "action": "import",
+            "target": "benchmarks",
+            "denied": importlib.util.find_spec("benchmarks") is None,
+            "errno": None,
+        }
+    )
+    records.append(
+        {
+            "action": "environment",
+            "target": "evaluator keys",
+            "denied": not [
+                name for name in os.environ if name.upper().startswith(FORBIDDEN_ENV_PREFIXES)
+            ],
+            "errno": None,
+        }
+    )
+    records.append({"action": "uid", "target": "root", "denied": os.getuid() != 0, "errno": None})
+    evidence.write_text(
+        json.dumps(
+            {"recorded_at": datetime.now(UTC).isoformat(), "probes": records},
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        "utf-8",
+    )
+    if not all(record["denied"] for record in records):
+        raise RuntimeError("isolation probe was not denied; investigator was not started")
+    return records
+
+
 def docker_arguments(
     image: str,
     visible_root: Path,
@@ -95,13 +311,10 @@ def docker_arguments(
         docker,
         "run",
         "--rm",
-        "--read-only",
+        *_SECURITY_FLAGS[:1],
         "--network",
         "none",
-        "--cap-drop",
-        "ALL",
-        "--security-opt",
-        "no-new-privileges",
+        *_SECURITY_FLAGS[1:],
         "--pids-limit",
         "128",
         "--memory",

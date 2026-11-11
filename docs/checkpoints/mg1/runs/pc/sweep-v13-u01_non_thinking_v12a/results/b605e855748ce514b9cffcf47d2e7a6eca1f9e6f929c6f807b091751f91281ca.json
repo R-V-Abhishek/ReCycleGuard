@@ -1,0 +1,304 @@
+{
+ "audit_chain": "VERIFIED",
+ "budget": {
+  "actions": 9,
+  "cost_known_calls": 0,
+  "finding_actions": {
+   "finding:d34dc68307494b1eb4228bc244133eba": 2
+  },
+  "finding_reformulations": {},
+  "model_calls": 6,
+  "observed_cost_usd": null,
+  "observed_tokens": 24322,
+  "preflight_actions": 1,
+  "report_repairs": 0,
+  "reserved_tokens": 196608,
+  "retries": 1,
+  "tool_calls": 2,
+  "usage_known_calls": 6,
+  "verification_actions": 0
+ },
+ "calls": [
+  {
+   "event_type": "graph.stage.preflight.result",
+   "issue_codes": [],
+   "kind": "STAGE",
+   "operation_id": "operation:run:d34dc68307494b1eb4228bc244133eba:turn_2:preflight",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.plan.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:d34dc68307494b1eb4228bc244133eba:turn_3:plan",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.tool.tool.result",
+   "issue_codes": [],
+   "kind": "TOOL",
+   "operation_id": "operation:run:d34dc68307494b1eb4228bc244133eba:turn_3:tool",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.assess.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:d34dc68307494b1eb4228bc244133eba:turn_3:assess",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.plan.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:d34dc68307494b1eb4228bc244133eba:turn_4:plan",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.tool.tool.result",
+   "issue_codes": [],
+   "kind": "TOOL",
+   "operation_id": "operation:run:d34dc68307494b1eb4228bc244133eba:turn_4:tool",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.assess.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:d34dc68307494b1eb4228bc244133eba:turn_4:assess",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.plan.result",
+   "issue_codes": [
+    "PROVIDER_INVALID_OUTPUT"
+   ],
+   "kind": "MODEL",
+   "operation_id": "operation:run:d34dc68307494b1eb4228bc244133eba:turn_5:plan",
+   "status": "FAILED"
+  },
+  {
+   "event_type": "graph.model.plan.result",
+   "issue_codes": [
+    "PROVIDER_INVALID_OUTPUT"
+   ],
+   "kind": "MODEL",
+   "operation_id": "operation:run:d34dc68307494b1eb4228bc244133eba:turn_5:plan",
+   "status": "FAILED"
+  }
+ ],
+ "case_id": "case_76c8061592",
+ "census": null,
+ "decisions": [
+  {
+   "attempt_id": "attempt:run:d34dc68307494b1eb4228bc244133eba:turn_3:plan_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:d34dc68307494b1eb4228bc244133eba:turn_3:plan",
+   "reply": {
+    "argument_keys": [
+     "observation_ids"
+    ],
+    "concise_reason": "Inspect the frozen dossier to gather evidence observations for assessing allocation gaps and evidence qualifications.",
+    "hypotheses": [
+     "The dossier contains evidence observations that may support or refute allocation gap claims.",
+     "Prior calculations (calc:1b43e845f646e801c6b2eb3e) are provisional and require evidence inspection to validate applicability."
+    ],
+    "objective": "Assess supported allocation gaps and evidence qualifications in the frozen dossier.",
+    "operation": "inspect_evidence",
+    "proposed_checks": [
+     "inspect_evidence"
+    ],
+    "stop_reason": null
+   },
+   "shown": {
+    "inspectable_observations": 8,
+    "inspectable_total": 63,
+    "pending_findings": 1,
+    "phase": "PLAN",
+    "previous_plans": 0,
+    "previous_rejection": false,
+    "prior_observations": 1
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 539,
+    "elapsed_seconds": 12.83874844899401,
+    "finish_reason": "stop",
+    "prompt_tokens": 2279
+   }
+  },
+  {
+   "attempt_id": "attempt:run:d34dc68307494b1eb4228bc244133eba:turn_3:assess_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:d34dc68307494b1eb4228bc244133eba:turn_3:assess",
+   "reply": {
+    "disposition": "CONTINUE",
+    "next_check_or_stop": "continue",
+    "proposal": null,
+    "verdict": "UNKNOWN",
+    "weak_result_or_mistake": null
+   },
+   "shown": {
+    "citable_calculation_ids": 0,
+    "citable_evidence_ids": 8,
+    "disposition": "QUALIFIED",
+    "evidence_chars": 3357,
+    "evidence_keys": [
+     "observation_count",
+     "observations",
+     "observations_omitted"
+    ],
+    "evidence_refs_total": 8,
+    "evidence_truncated": false,
+    "phase": "ASSESS",
+    "tool": "inspect_evidence",
+    "visible_issue_codes": []
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 41,
+    "elapsed_seconds": 3.805462031014031,
+    "finish_reason": "stop",
+    "prompt_tokens": 3452
+   }
+  },
+  {
+   "attempt_id": "attempt:run:d34dc68307494b1eb4228bc244133eba:turn_4:plan_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:d34dc68307494b1eb4228bc244133eba:turn_4:plan",
+   "reply": {
+    "argument_keys": [
+     "bucket_ids"
+    ],
+    "concise_reason": "The prior stage identified a provisional calculation (calc:1b43e845f646e801c6b2eb3e) that requires validation. The dossier contains one supported bucket (bucket:76c8061592_cu_2024_2025) with allocations and certificate events. Computing reconciliation for this bucket will validate the calculation ag",
+    "hypotheses": [
+     "The calculation relies on allocation quantities that must be verified against the SUPPORTED observations.",
+     "The calculation must be reconciled with the certificate events to ensure transfer stages are accounted for."
+    ],
+    "objective": "Validate the provisional calculation (calc:1b43e845f646e801c6b2eb3e) against the dossier's allocation and certificate evidence.",
+    "operation": "compute_reconciliation",
+    "proposed_checks": [
+     "compute_reconciliation"
+    ],
+    "stop_reason": null
+   },
+   "shown": {
+    "inspectable_observations": 8,
+    "inspectable_total": 63,
+    "pending_findings": 1,
+    "phase": "PLAN",
+    "previous_plans": 1,
+    "previous_rejection": false,
+    "prior_observations": 2
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 420,
+    "elapsed_seconds": 8.977656898001442,
+    "finish_reason": "stop",
+    "prompt_tokens": 4140
+   }
+  },
+  {
+   "attempt_id": "attempt:run:d34dc68307494b1eb4228bc244133eba:turn_4:assess_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:d34dc68307494b1eb4228bc244133eba:turn_4:assess",
+   "reply": {
+    "disposition": "CONTINUE",
+    "next_check_or_stop": "continue",
+    "proposal": null,
+    "verdict": "WEAK",
+    "weak_result_or_mistake": null
+   },
+   "shown": {
+    "citable_calculation_ids": 1,
+    "citable_evidence_ids": 0,
+    "disposition": "QUALIFIED",
+    "evidence_chars": 1567,
+    "evidence_keys": [
+     "bucket_count",
+     "buckets",
+     "calculation_id",
+     "coverage",
+     "issues"
+    ],
+    "evidence_refs_total": 0,
+    "evidence_truncated": false,
+    "phase": "ASSESS",
+    "tool": "compute_reconciliation",
+    "visible_issue_codes": [
+     "APPLICABILITY_UNRESOLVED"
+    ]
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 42,
+    "elapsed_seconds": 1.9922132159990724,
+    "finish_reason": "stop",
+    "prompt_tokens": 2775
+   }
+  },
+  {
+   "attempt_id": "attempt:run:d34dc68307494b1eb4228bc244133eba:turn_5:plan_0",
+   "issue_codes": [
+    "PROVIDER_INVALID_OUTPUT"
+   ],
+   "operation_id": "operation:run:d34dc68307494b1eb4228bc244133eba:turn_5:plan",
+   "reply": null,
+   "shown": {
+    "inspectable_observations": 8,
+    "inspectable_total": 63,
+    "pending_findings": 1,
+    "phase": "PLAN",
+    "previous_plans": 2,
+    "previous_rejection": false,
+    "prior_observations": 2
+   },
+   "status": "FAILED",
+   "transport": {
+    "completion_tokens": 141,
+    "elapsed_seconds": 3.9009820760111324,
+    "finish_reason": "stop",
+    "prompt_tokens": 5158
+   }
+  },
+  {
+   "attempt_id": "attempt:run:d34dc68307494b1eb4228bc244133eba:turn_5:plan_1",
+   "issue_codes": [
+    "PROVIDER_INVALID_OUTPUT"
+   ],
+   "operation_id": "operation:run:d34dc68307494b1eb4228bc244133eba:turn_5:plan",
+   "reply": null,
+   "shown": {
+    "inspectable_observations": 8,
+    "inspectable_total": 63,
+    "pending_findings": 1,
+    "phase": "PLAN",
+    "previous_plans": 2,
+    "previous_rejection": false,
+    "prior_observations": 2
+   },
+   "status": "FAILED",
+   "transport": {
+    "completion_tokens": 141,
+    "elapsed_seconds": 3.9725368280196562,
+    "finish_reason": "stop",
+    "prompt_tokens": 5194
+   }
+  }
+ ],
+ "experiment_variant": "V2_ADAPTIVE_REAL_MODEL",
+ "job": {
+  "cancel_requested": 0,
+  "detail": "FAILED",
+  "dossier_id": "dossier:5de7c744015e49f1a4fe17e1c28cc7b8",
+  "run_id": "run:d34dc68307494b1eb4228bc244133eba",
+  "status": "STOPPED"
+ },
+ "rejected_actions": [],
+ "report": null,
+ "requested_variant": "ADAPTIVE",
+ "run_id": "run:d34dc68307494b1eb4228bc244133eba",
+ "status": "FAILED",
+ "stop_reason": "PROVIDER_FAILURE"
+}

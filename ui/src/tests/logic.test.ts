@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { API_PREFIX, ApiClient, ApiError, normalizeError, ROUTES } from "../api/client";
 import { followRun, SseParser } from "../api/sse";
 import type { ModelResultEvent, TraceEvent } from "../api/types";
+import { modelTiming } from "../components/Timeline";
 import { preparedFor, sentPrompt } from "../state/promptLayers";
 import { applyEvents, emptyTrace, resultForProposal } from "../state/traceStore";
 
@@ -202,5 +203,17 @@ describe("route coverage", () => {
       .map(([method, path]) => `${method} ${API_PREFIX}${path}`)
       .sort();
     expect(bound).toEqual(documented);
+  });
+});
+
+describe("modelTiming", () => {
+  it("reads only recorded latency and provider tokens", () => {
+    const event = {
+      ...base(3), kind: "MODEL_RESULT", status: "SUCCESS", issues: [],
+      response: { timing: { elapsed_seconds: 21.5 }, usage: { total_tokens: 2200 } },
+    } as unknown as TraceEvent;
+    expect(modelTiming(event)).toEqual({ seconds: 21.5, tokens: 2200 });
+    const missing = { ...base(4), kind: "MODEL_RESULT", status: "FAILED", issues: [] } as unknown as TraceEvent;
+    expect(modelTiming(missing)).toEqual({ seconds: null, tokens: null });
   });
 });

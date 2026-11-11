@@ -171,7 +171,7 @@ The detailed registers below are the authoritative execution state. The checkpoi
 
 The canonical dependency/task register is §4.6; the graphs in §§4.3–4.5 visualize those exact edges. The checkpoint register in §4.7 controls integration. If a diagram and register disagree, stop the affected task and reconcile both before proceeding. CONTRACTS still governs software interfaces; this register governs team execution. It does not grant regulatory authority or override component permissions.
 
-The day-by-day tables in §§5/12 explain work; they do not authorize extra tasks outside this register. Task IDs **A** belong to Abhishek, **H** to Sampreeth, **S** to Sushanth and **V** to Vedantha. **U01** is the separately authorized local gateway workstream assigned to Abhishek on 28 October; compatibility remains unaccepted and work is paused at the lead's request. Every scheduled implementation, validation, experiment and release activity must map to an ID below; split an oversized task into reviewed child IDs before adding unrelated work.
+The day-by-day tables in §§5/12 explain work; they do not authorize extra tasks outside this register. Task IDs **A** belong to Abhishek, **H** to Sampreeth, **S** to Sushanth and **V** to Vedantha. **U01** is the separately authorized local gateway workstream assigned to Abhishek on 28 October; compatibility remains unaccepted (MG1 not approved); work resumed for the real-model evaluation path. Every scheduled implementation, validation, experiment and release activity must map to an ID below; split an oversized task into reviewed child IDs before adding unrelated work.
 
 **Initial project state, 23 October:** no implementation task is started or complete, and no checkpoint is approved. A01, H01, S01 and V01 are READY to begin independently; all tasks with unmet predecessors are BLOCKED. U01 is UNPLANNED. READY means eligible to start, not already implemented or tested.
 
@@ -347,7 +347,7 @@ flowchart TD
     H09["H09 · Dev retrieval tuning and freeze"]
     S08["S08 · Dev tool fixes and input freeze"]
     V10["V10 · Evaluator rehearsal and protocol"]
-    U01["U01 · Local C10 gateway: PAUSED"]
+    U01["U01 · Local C10 gateway: IN PROGRESS"]
     MG1{"MG1 · Real-model readiness"}
     CP5{"CP5 · Experiment freeze"}
     V11["V11 · Closed deterministic test trials"]
@@ -511,9 +511,9 @@ All references are exact task/checkpoint IDs. Required predecessors are an AND c
 
 | Task          | State now | Required predecessors | Conditional predecessor | Target    | Work and acceptance evidence                                                                                                       |
 | ------------- | --------- | --------------------- | ----------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| **U01** | IN_PROGRESS (paused) | None | None | 28 Oct | **Abhishek: local C10 gateway development authorized by lead.** Weights/runtime installed; native workflow compatibility failed strict contracts. [Progress and retained evidence](docs/checkpoints/model-gateway/README.md). |
+| **U01** | IN_PROGRESS | None | None | 28 Oct | **Abhishek: local C10 gateway development authorized by lead.** Weights/runtime installed; prompt v4 completed the 21 development dossiers without schema failure (not a quality result); MG1 not approved. [Progress and retained evidence](docs/checkpoints/model-gateway/README.md). |
 
-V12 begins BLOCKED; if CP5 is approved NON_MODEL_ONLY, record V12 as NOT_RUN with that protocol reference. U01 was explicitly authorized on 28 October; native local compatibility attempts failed and development is paused, with no MG1 approval implied. Neither state is hidden by a successful scripted graph demonstration.
+V12 begins BLOCKED; if CP5 is approved NON_MODEL_ONLY, record V12 as NOT_RUN with that protocol reference. U01 was explicitly authorized on 28 October; early native attempts (prompts v1-v3) failed and prompt v4 later passed development smokes, with no MG1 approval implied. Neither state is hidden by a successful scripted graph demonstration.
 
 ### 4.7 Checkpoint approval register and meeting contract
 
@@ -522,7 +522,7 @@ V12 begins BLOCKED; if CP5 is approved NON_MODEL_ONLY, record V12 as NOT_RUN wit
 | **CP0** | APPROVED | A02                                              | 23 Oct                      | Shared schema/fixture pack accepted by all four. Approved 24 Oct for c8fb512; [acknowledgement ledger](docs/checkpoints/checkpoint-0/approvals.json). |
 | **CP1** | APPROVED | A04                                              | 24 Oct                      | Lead accepted qualified evidence foundation on 26 Oct; explicit CP1 exception to four-person acknowledgement. [Approval ledger](docs/checkpoints/checkpoint-1/approvals.json). |
 | **CP2** | APPROVED | A05                                              | 25 Oct                      | Lead approved qualified baseline on 27 Oct after Windows/Linux Python 3.11/3.12 CI; explicit lead acceptance, no all-four acknowledgement claimed. [CP2 approval](docs/checkpoints/checkpoint-2/approvals.json). |
-| **CP3** | WAITING   | A07, H07, S06                                    | 27 Oct                      | Integrated investigation and fault/temporal checks.                |
+| **CP3** | APPROVED | A07, H07, S06                                    | 27 Oct                      | Closed 29 Oct on lead's explicit request for the qualified offline scope (real services, scripted C10); no four-person acknowledgement. [CP3 ledger](docs/checkpoints/checkpoint-3/approvals.json). |
 | **CP4** | APPROVED | A08                                              | 29 Oct                      | Week 1 acceptance; declare offline versus real-agent level.        |
 | **CP5** | WAITING   | A09, H09, S08, V10; MG1 when INCLUDES_REAL_MODEL | 1 Nov, before held-out runs | Frozen experiment scope, candidate, data and scorer.               |
 | **MG1** | WAITING   | U01, A07, V07, V10                               | Conditional, before V1/V2   | Real C10 compatibility, permissions, budgets, trace and isolation. |

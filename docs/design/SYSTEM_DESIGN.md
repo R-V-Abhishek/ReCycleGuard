@@ -278,7 +278,7 @@ The oracle has two layers: hidden world truth and **what is justified from visib
 
 ### 6.1 Preflight
 
-Before any LLM call, ingest and classify every asset; freeze a case version; load the approved profile; validate entity/period/units; inventory pending records; reconstruct supported event links; compute provisional results and seed findings. C08 derives its complete input universe from the pinned snapshot, including conflicting assertions and related historical allocations; caller-selected record lists cannot narrow this universe. A malformed optional document may allow a qualified run; missing critical scope or an unapproved profile blocks calculation. Every exclusion appears in the report coverage summary.
+Before any LLM call, ingest and classify every asset; freeze a case version; load the approved profile; validate entity/period/units; inventory pending records; reconstruct supported event links; compute provisional results and seed findings. C08 derives its complete input universe from the pinned snapshot, including conflicting assertions and related historical allocations; caller-selected record lists cannot narrow this universe. A malformed optional document may allow a qualified run. A lost or unreadable PDF page qualifies the run and is reported as F15, withholding `lost_document_page`; it does not block the investigation. Missing critical scope or an unapproved profile blocks calculation. Every exclusion appears in the report coverage summary.
 
 ### 6.2 Reconciliation model
 
@@ -338,6 +338,8 @@ stateDiagram-v2
         DRAFTING --> VERIFYING
         VERIFYING --> DRAFTING: bounded verification repair
         VERIFYING --> AWAITING_REVIEW: valid qualified report
+        VERIFYING --> BRIEFING: valid report, briefing configuration
+        BRIEFING --> AWAITING_REVIEW: every brief accepted, rejected or dropped
         AWAITING_REVIEW --> AWAITING_REVIEW: ESCALATE / expert decision pending
     }
     PREFLIGHT --> BLOCKED_INPUT: critical input/profile failure
@@ -354,7 +356,9 @@ stateDiagram-v2
     CANCELLED --> [*]
 ```
 
-`Processing` is a diagram grouping, not a persisted run status. All eleven RunStatus values from CONTRACTS C09 are drawn. `COMPLETED` means execution finished, not compliance confirmed. Approval records review_outcome=APPROVED; explicit manual closure can complete with CLOSED_WITHOUT_DECISION, never fabricated approval. Escalation retains AWAITING_REVIEW with review_outcome=ESCALATED and waits for a new external reviewer event; it is not an automatic loop.
+`Processing` is a diagram grouping, not a persisted run status. All twelve RunStatus values from CONTRACTS C09 are drawn.
+
+`BRIEFING` runs only when the model configuration sets `brief` (or a scripted test supplies `BRIEF` replies). For each verified finding, one audited model call drafts an advisory `ReviewerBrief`, bound to the exact report and finding revisions. Code checks it (citations limited to the finding's own references, no digits, no prohibited or authority wording, length caps) and fills every figure from the authoritative calculation. A failed call, a gate rejection or the run's wall clock records the brief as `DROPPED` or `REJECTED` with its reason, and review still opens. Only cancellation or an audit failure stops the run. Brief calls are counted in the run's model calls and tokens but are not limited by the investigation's call and token caps; they have their own bound of 16 findings, each with one call plus its retries. The report, its digest, its verification and the review packet are unchanged; a deterministic template brief for every finding is the comparison. `COMPLETED` means execution finished, not compliance confirmed. Approval records review_outcome=APPROVED; explicit manual closure can complete with CLOSED_WITHOUT_DECISION, never fabricated approval. Escalation retains AWAITING_REVIEW with review_outcome=ESCALATED and waits for a new external reviewer event; it is not an automatic loop.
 
 Rejection terminates as BLOCKED_OUTPUT/REVIEW_REJECTED; requested changes terminate as BLOCKED_OUTPUT/CHANGES_REQUESTED. A correction starts a new explicitly authorized run with parent_run_id; report-only corrections can reuse the frozen case, while changed evidence creates a new case version. No terminal run is silently revived and no approval transfers. Ordinary provider timeouts use bounded retry; only unrecoverable failures enter FAILED. Budget exhaustion can still produce a qualified report but cannot mark unresolved findings reconciled.
 
@@ -441,6 +445,12 @@ Run deterministic, fixed-retrieval, single-agent and optional collector/auditor 
 | G10 Review/export | Editing invalidates approval; restricted raw/chunk/prompt content cannot leak into public exports. |
 | G11 Oracle isolation | Attempts to list/read hidden labels, mount paths or evaluator records fail and are audited. |
 | G12 Evaluation honesty | Exact counts, failure families, unsupported claims, abstention, cost and repeated-run reliability are reported. |
+
+An evaluation-only ablation (`ablated_families`) switches off named families' deterministic findings and their contradiction rule. It measures what the investigator finds without them. The setting has these properties:
+- runtime-mode servers refuse it;
+- it is pinned in the stored run configuration;
+- every report that used it carries a limitation saying so;
+- it suppresses the deterministic clean finding.
 
 Measure extraction accuracy, exact decimal balances, issue precision/recall, temporal/citation support, correct next action, appropriate abstention and unauthorized-action attempts. Coverage and audit integrity are **hard gates**, not optional score bonuses. Keep synthetic-only limitations explicit.
 

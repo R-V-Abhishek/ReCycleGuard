@@ -1,9 +1,44 @@
 import { useEffect, useState } from "react";
-import type { BucketResult, InvestigationReport, ReviewDecisionKind, ReviewPacket } from "../api/types";
+import type { BucketResult, InvestigationReport, ReviewDecisionKind, ReviewPacket, RunBriefs } from "../api/types";
 import { Badge, ErrorBanner, IssueList, Mono, PasswordField, Qty, Section, TextField, Unavailable, useAction, useLoad } from "../components/common";
 import { EvidenceChips } from "../components/evidence";
+import { BriefPanel, BucketDetails, ChecksTable, ClaimsBySection, ReportText, UnresolvedIssues } from "../components/reportParts";
 import { useHeader } from "../components/Shell";
 import { href, useClient } from "../state/session";
+
+// A picture of one bucket against its target. Numbers shown are the backend's exact decimal
+// strings; Number() is used only for bar widths, never for a balance.
+export function BucketBar({ bucket }: { bucket: BucketResult }) {
+  const { required, supported, pending, shortfall, surplus } = bucket;
+  if (supported.unit !== required.unit || pending.unit !== required.unit) return null;
+  const target = Number(required.decimal);
+  const done = Number(supported.decimal);
+  const waiting = Number(pending.decimal);
+  const scale = Math.max(target, done + waiting);
+  if (!(scale > 0)) return null;
+  const pct = (value: number) => `${(Math.max(0, value) / scale) * 100}%`;
+  return (
+    <figure className="bucket-bar">
+      <figcaption>
+        <strong>{required.metal ?? "Bucket"}</strong> target <Qty value={required} />
+      </figcaption>
+      <div className="bar" role="img" aria-label={`Supported ${supported.decimal} of ${required.decimal} ${required.unit}; ${pending.decimal} pending and not credited`}>
+        <span className="bar-supported" style={{ width: pct(done) }} />
+        <span className="bar-pending" style={{ width: pct(Math.min(waiting, scale - done)) }} />
+        <span className="bar-target" style={{ left: pct(target) }} />
+      </div>
+      <dl className="bar-key">
+        <div><dt><i className="key-supported" />Supported</dt><dd><Qty value={supported} /></dd></div>
+        <div><dt><i className="key-pending" />Pending, not credited</dt><dd><Qty value={pending} /></dd></div>
+        <div><dt><i className="key-gap" />No record yet</dt></div>
+      </dl>
+      <p className="bar-total">
+        Shortfall <Qty value={shortfall} />: the target minus supported quantity. Pending quantity isn't credited.
+        {Number(surplus.decimal) > 0 && <> Surplus <Qty value={surplus} />.</>}
+      </p>
+    </figure>
+  );
+}
 
 // One row per bucket. Metals are never summed, and each column stays its own number.
 export function BucketTable({ buckets }: { buckets: BucketResult[] }) {
@@ -34,7 +69,9 @@ export function BucketTable({ buckets }: { buckets: BucketResult[] }) {
   );
 }
 
-function Findings({ report, dossierId, onCalculation }: { report: InvestigationReport; dossierId?: string; onCalculation(id: string): void }) {
+function Findings({ report, briefs, dossierId, onCalculation }: { report: InvestigationReport; briefs?: RunBriefs; dossierId?: string; onCalculation(id: string): void }) {
+  // Briefs bind one report revision; a brief for another revision is never shown here.
+  const current = briefs?.report_revision_id === report.report.revision.report_revision_id ? briefs : undefined;
   if (!report.findings.length) return <p className="muted">No findings were recorded in this report.</p>;
   return (
     <>
@@ -55,7 +92,7 @@ function Findings({ report, dossierId, onCalculation }: { report: InvestigationR
           {finding.hypotheses.length > 0 && (
             <>
               <h4>Hypotheses</h4>
-              <ul>{finding.hypotheses.map((h, i) => <li key={i}><Badge value={h.support_state} /> {h.text}</li>)}</ul>
+              <ul>{finding.hypotheses.map((h, i) => <li key={i}><Badge value={h.support_state} /> {h.text}{h.refs.length > 0 && <EvidenceChips refs={h.refs} dossierId={dossierId} onCalculation={onCalculation} />}</li>)}</ul>
             </>
           )}
           <h4>Facts</h4>
@@ -77,12 +114,14 @@ function Findings({ report, dossierId, onCalculation }: { report: InvestigationR
             <Badge value={finding.next_action.kind} /> {finding.next_action.description}{" "}
             <span className="muted small">Owner: {finding.action_owner_ref ?? "not recorded"}</span>
           </p>
+          {finding.next_action.evidence_refs.length > 0 && <EvidenceChips refs={finding.next_action.evidence_refs} dossierId={dossierId} onCalculation={onCalculation} />}
           {finding.scope_limits.length > 0 && (
             <>
               <h4>Scope limits</h4>
               <ul>{finding.scope_limits.map((item, i) => <li key={i}>{item}</li>)}</ul>
             </>
           )}
+          <BriefPanel findingRevisionId={finding.finding_revision_id} briefs={current} dossierId={dossierId} onCalculation={onCalculation} />
         </article>
       ))}
     </>
@@ -167,7 +206,9 @@ export function ReviewForm({ runId, report, canRequest, onDone }: { runId: strin
             <dt>Dependency digest</dt><dd><Mono>{packet.review_dependency_digest}</Mono></dd>
             <dt>Input snapshots</dt>
             <dd>{packet.input_snapshot_refs.map((ref) => <div key={ref.snapshot_id}><Mono>{ref.snapshot_id}</Mono> · <Mono>{ref.membership_digest}</Mono></div>)}</dd>
-            <dt>Unresolved issues</dt><dd>{packet.unresolved_issue_refs.length}</dd>
+            <dt>Unresolved issues ({packet.unresolved_issue_refs.length})</dt><dd><UnresolvedIssues ids={packet.unresolved_issue_refs} report={report} /></dd>
+            <dt>Proposed actions ({packet.proposed_action_refs.length})</dt>
+            <dd>{packet.proposed_action_refs.length ? packet.proposed_action_refs.map((id) => <div key={id}><Mono>{id}</Mono></div>) : <Unavailable label="none" />}</dd>
           </dl>
           <fieldset disabled={action.busy || stale}>
             <legend>Decision for this exact revision</legend>
@@ -190,6 +231,7 @@ export function Report({ runId }: { runId: string }) {
   const client = useClient();
   const run = useLoad(() => client.run(runId), [client, runId]);
   const report = useLoad(() => client.report(runId), [client, runId]);
+  const briefs = useLoad(() => client.briefs(runId), [client, runId]);
   const audit = useLoad(() => client.audit(runId), [client, runId]);
   const dossierId = run.data?.job.dossier_id;
   const dossier = useLoad(async () => (dossierId ? client.dossier(dossierId) : undefined), [client, dossierId]);
@@ -205,6 +247,7 @@ export function Report({ runId }: { runId: string }) {
   const refresh = () => {
     void run.reload();
     void report.reload();
+    void briefs.reload();
     void audit.reload();
   };
 
@@ -235,24 +278,36 @@ export function Report({ runId }: { runId: string }) {
             {body.report.calculations.map((calculation) => (
               <div key={calculation.calculation_id} id={`calc-${calculation.calculation_id}`}>
                 <p className="small"><Badge value={calculation.coverage} /> <Mono>{calculation.calculation_id}</Mono></p>
+                {calculation.bucket_results.map((bucket) => <BucketBar key={bucket.bucket_id} bucket={bucket} />)}
                 <BucketTable buckets={calculation.bucket_results} />
+                {calculation.bucket_results.map((bucket) => <BucketDetails key={bucket.bucket_id} bucket={bucket} dossierId={dossierId} />)}
                 <IssueList issues={calculation.issues} />
               </div>
             ))}
           </Section>
-          <Section title="Findings"><Findings report={body} dossierId={dossierId} onCalculation={scrollToCalculation} /></Section>
+          <Section title="Report claims" aside={<span className="muted small">{body.report.claims.length} claims</span>}>
+            <p className="muted small">What the report asserts, with the backend's support status and its evidence. Open a reference to see the original.</p>
+            <ClaimsBySection report={body.report} dossierId={dossierId} onCalculation={scrollToCalculation} />
+          </Section>
+          <Section title="Findings">
+            {briefs.error ? <p className="muted small">Reviewer briefs are unavailable; the findings are complete without them.</p> : null}
+            <Findings report={body} briefs={briefs.data} dossierId={dossierId} onCalculation={scrollToCalculation} />
+          </Section>
           <Section title="Verifier" aside={<Badge value={body.verification.verdict} />}>
             <p className="muted small">Checks this report's claims and dependencies. This isn't the integrity audit or a human decision.</p>
             <IssueList issues={body.verification.issues} />
             <details>
               <summary>Checks ({body.verification.checks.length})</summary>
-              <pre className="block">{JSON.stringify(body.verification.checks, null, 2)}</pre>
+              <ChecksTable checks={body.verification.checks} />
             </details>
           </Section>
-          <details className="card">
-            <summary>Report text</summary>
-            <pre className="block">{body.report.rendered_markdown}</pre>
-          </details>
+          <Section title="Report text">
+            <ReportText markdown={body.report.rendered_markdown} />
+            <details>
+              <summary>Exact markdown source</summary>
+              <pre className="block">{body.report.rendered_markdown}</pre>
+            </details>
+          </Section>
           <ReviewForm key={`${runId}:${body.report.revision.report_revision_id}:${body.report.revision.review_dependency_digest}`} runId={runId} report={body} canRequest={state?.status === "AWAITING_REVIEW"} onDone={refresh} />
         </>
       )}

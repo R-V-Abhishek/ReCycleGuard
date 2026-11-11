@@ -1,0 +1,67 @@
+%---------------------------------------------------------------------
+\chapter{Limitations, Ethics and Safety}
+%---------------------------------------------------------------------
+
+\section{Limitations}
+\textbf{Data.} All 48 dossiers are synthetic and come from one generator written by the team. The
+same people built the generator, the system and the evaluator, and the generator's templates and
+seeds are in the repository, so the held-out set is internally separated but neither external nor
+double-blind. The labels come from the world model and were reviewed by an agent, not by a domain
+expert. The corpus has two regulatory documents. Results on real producer records are unknown.
+
+\textbf{Method.} The development set is small (16 tuning cases, one or two per family) and the
+intervals are wide. checking-8 was looked at and one change (page loss) was prompted by it, so it is
+reported only as a secondary check. The deterministic family checks were written from tuning-16
+failures, so their success on tuning-16 is partly by construction; the held-out run is the only
+test of how they generalise. Every arm and control reached the ceiling on it, so it shows that the
+checks generalise to these 24 cases but cannot separate the fixed and adaptive loops on success. Only one model, a 9-billion-parameter one at 8-bit quantisation, was
+tried; the negative model result may not hold for larger models.
+
+\textbf{Evaluation conditions.} The MG2 series and the held-out run used cooperative isolation on
+cloud notebooks: each trial ran as a separate process that could in principle read other files on
+the machine. Nothing on those machines held the hidden answers, but the isolation is weaker than the
+one-container-per-trial setup used on the PC, and the two series are never pooled. Greedy decoding
+with three parallel slots is not bit-for-bit deterministic, which is why every case has two repeats.
+The reason the gate accepted the Retriever's false claims was not analysed.
+
+\section{Failure Modes and Guardrails}
+Table~\ref{tab:failures} pairs the failure modes observed or anticipated with the mitigations in
+place.
+
+\begin{table}[htbp]
+\centering
+\caption{Failure modes and mitigations}
+\label{tab:failures}
+\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{Failure mode} & \textbf{Mitigation} \\ \midrule
+Model invents a balance or a calculation & Balances come only from the reconciler; a claim contradicted by a calculation is rejected \\
+Model cites evidence that does not exist & Gate checks every evidence reference against the snapshot; MG2 quotes are verified \\
+Plausible but wrong finding with real evidence (observed: F05, F14) & Not fully mitigated; human review of every finding; reported as the main open problem \\
+Instructions planted in a dossier (F16) & Dossier text is data; operations only from an allow-list; no free-form tool calls \\
+Invalid model output & Schema validation, one retry, then deterministic evidence only; recorded \\
+Loops and runaway cost & 12 calls, 600~s, token budget; repeated actions refused \\
+Unreadable pages & Preflight reports page loss as a finding instead of silently continuing \\
+Crash during a run & Checkpointed state with compare-and-swap; resume without repeating a dispatched action \\
+Leakage of answers into the runtime & Evaluator outside the runtime; seal checks; isolation probes; held-out data never committed \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Ethical and Responsible-Use Considerations}
+A wrong output could harm a producer in either direction: an accepted false finding could lead to an
+unnecessary purchase of certificates or a mistaken disclosure, and a missed discrepancy could lead to
+a non-compliant return. For this reason the system produces an advisory working paper only. It never
+files with the portal, trades certificates or states that a producer is compliant or fraudulent; every
+finding shows its evidence and calculation identifiers; and a person must review the paper, with the
+decision bound to the exact revision. The results in this report argue for keeping that review: the
+model-backed arms that tried hardest to find problems produced the most wrong findings.
+
+The dossiers contain no real personal or company data; they are watermarked as synthetic. Inference
+is local, so evidence does not leave the machine during an investigation; the only data uploaded
+anywhere were the synthetic held-out dossiers, to a private dataset in the team's own account for the
+one held-out run. The regulatory documents are public, but their redistribution rights are recorded
+as under review, so the release lists them by digest instead of copying them. Using a model to
+generate legal-sounding findings carries a risk of over-trust; reporting the negative results
+plainly is part of the mitigation.

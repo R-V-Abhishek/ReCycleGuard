@@ -138,3 +138,6 @@ def test_development_dossier_passes_real_intake(tmp_path, key):
         for want in reference["buckets"]:
             assert bucket_result(result, want["bucket_id"]).required.decimal == want["required"]
         assert result.output.coverage == "QUALIFIED"
+
+
+pytestmark = pytest.mark.slow

@@ -6,11 +6,31 @@ import os
 import sys
 from datetime import UTC, datetime
 from importlib.metadata import version
+from pathlib import Path
 
 from download import MODEL_ID, MODEL_ROOT, REVISION, ROOT
 
+# Keep equal to recycleguard.local_model.SERVER_FLAGS; this runtime does not import the app.
+SERVER_FLAGS = [
+    "--decode-concurrency",
+    "1",
+    "--prompt-concurrency",
+    "1",
+    "--prompt-cache-size",
+    "1",
+    "--prefill-step-size",
+    "256",
+    "--max-tokens",
+    "1024",
+]
+# Keep equal to recycleguard.local_model.CONSTRAINED_FLAG. Off unless ``--constrained`` is passed.
+CONSTRAINED_FLAG = "--constrained-json"
+
 
 def main():
+    constrained = sys.argv[1:] == ["--constrained"]
+    if sys.argv[1:] and not constrained:
+        raise SystemExit("usage: serve.py [--constrained]")
     manifest_path = MODEL_ROOT / "download-manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     if manifest["model_id"] != MODEL_ID or manifest["revision"] != REVISION:
@@ -43,6 +63,7 @@ def main():
             (ROOT / "tools/local-model/uv.lock").read_bytes()
         ).hexdigest(),
         "endpoint": "http://127.0.0.1:8766/v1/completions",
+        "server_flags": [*SERVER_FLAGS, *([CONSTRAINED_FLAG] if constrained else [])],
     }
     (MODEL_ROOT / "server-session.json").write_text(
         json.dumps(session, indent=2) + "\n", encoding="utf-8"
@@ -50,6 +71,18 @@ def main():
     print(
         "Verified local model; serving on 127.0.0.1:8766. Ctrl-C releases model memory.", flush=True
     )
+    if constrained:
+        program = Path(__file__).with_name("constrained_server.py")
+        os.execv(
+            sys.executable,
+            [
+                sys.executable,
+                str(program),
+                str(MODEL_ROOT),
+                "8766",
+                manifest["runtime"]["mlx-lm"],
+            ],
+        )
     os.execv(
         sys.executable,
         [
@@ -63,16 +96,7 @@ def main():
             "127.0.0.1",
             "--port",
             "8766",
-            "--decode-concurrency",
-            "1",
-            "--prompt-concurrency",
-            "1",
-            "--prompt-cache-size",
-            "1",
-            "--prefill-step-size",
-            "256",
-            "--max-tokens",
-            "1024",
+            *SERVER_FLAGS,
             "--log-level",
             "WARNING",
             "--allowed-origins",

@@ -1,0 +1,24 @@
+{
+  "scope": "INCLUDES_REAL_MODEL",
+  "files": [
+    "docs/checkpoints/mg2/protocols/heldout-classifier-only.json",
+    "docs/checkpoints/mg2/prompts/mg2_agents_v3.json",
+    "docs/checkpoints/mg2/queue/t4/queue-t4-heldout.json",
+    "deploy/model.env"
+  ],
+  "trees": [
+    "benchmarks/heldout/visible"
+  ],
+  "values": {
+    "protocol_sha256": "c8feb2032aa11685ea80c71316e26b4095afa7e2f01f5a7df65490ac1d0a562f",
+    "held_out_visible_root": "benchmarks/heldout/visible",
+    "prompt": "mg2_agents_v3",
+    "model": "unsloth/Qwen3.5-9B-GGUF Q8_0",
+    "server": "llama.cpp b12033",
+    "slots": 3,
+    "repeats": 2,
+    "platform": "Kaggle Tesla T4, --isolation-disclosed",
+    "approved_by": "Abhishek (R = 2 with Sushanth's agreement)",
+    "decided_in": "docs/checkpoints/mg2/EXPERIMENT_LOG.md entry 15"
+  }
+}

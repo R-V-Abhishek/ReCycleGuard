@@ -1,0 +1,96 @@
+%---------------------------------------------------------------------
+\chapter{Literature Survey and Existing Practice}
+%---------------------------------------------------------------------
+
+\section{Existing Practice in the Sector}
+The workflow below was reconstructed from official documents, not from interviews; the team did
+not have access to a producer's compliance office. A producer registers on the CPCB EPR portal
+with its corporate details, EEE categories and historical sales, from which the obligation
+for each year follows. Recyclers generate certificates for recovered metals (gold,
+copper, aluminium and iron) using the material composition tables of the certificate-generation
+framework~\cite{framework}, and transfer them to producers through a staged, authenticated portal
+process. The FAQ issued in January 2024 clarifies, among other things, that a metal obligation is
+independent of the EEE code while the recycler must be capable of handling the producer's code,
+so a blanket rule that the certificate's code must equal the producer's would be
+wrong~\cite{faq2024}. Producers file quarterly and annual returns through the portal.
+
+What the portal records and what a producer can prove are not the same. Purchase agreements,
+invoices and payments live in the producer's own accounting; transfers and balances live on the
+portal; the recycler's processing records live with the recycler. Reconciliation is therefore done
+in spreadsheets, by matching identifiers across these sources, and it fails in recognisable ways:
+a certificate counted twice because it appears in an inventory, a transfer and a return; a
+purchase counted although the transfer never happened; quantities in kilograms mixed with
+quantities in tonnes; a certificate attributed to a similarly named entity; a rule from the wrong
+period. The sixteen fault families of the benchmark in Chapter~7 encode these failure modes.
+
+\section{Related Technical Work}
+
+\subsection{Reasoning and Acting with Tools}
+Yao et al.~\cite{yao2023react} proposed ReAct, in which a language model interleaves reasoning
+with actions such as search calls and uses the observations to decide what to do next. Schick et
+al.~\cite{schick2023toolformer} showed that a model can learn when to call external tools such as
+calculators and search. ReCycleGuard takes the act--observe idea but constrains it: the model may
+only choose one of a fixed set of tools with typed arguments, every action is audited before it is
+dispatched, identical repeated actions are refused, and the model never performs arithmetic
+itself. The assessment step that follows each observation is closer to a structured version of
+ReAct's reasoning trace, with a closed set of verdicts.
+
+\subsection{Retrieval-Augmented Generation}
+Lewis et al.~\cite{lewis2020rag} introduced retrieval-augmented generation, which conditions a
+generator on retrieved passages. Later work made retrieval adaptive. Self-RAG~\cite{asai2024selfrag}
+trains a model to decide when to retrieve and to critique its own output, and Corrective
+RAG~\cite{yan2024crag} grades retrieved documents and triggers a different retrieval when they are
+weak. ReCycleGuard uses lexical retrieval with the BM25 ranking function~\cite{robertson2009bm25}
+over SQLite FTS5~\cite{fts5}, because the corpus is small, exact phrasing matters in legal text and
+lexical scores are reproducible. The multi-agent experiment adds a retrieval agent that grades each
+result as sufficient, weak or empty and must change its query after a weak result, which follows
+the corrective pattern.
+
+\subsection{Reflection and Multi-Agent Collaboration}
+Reflexion~\cite{shinn2023reflexion} improves an agent across attempts through verbal feedback on
+its failures. AutoGen~\cite{wu2023autogen} provides a framework in which several specialised agents
+converse to complete a task, and the survey by Wang et al.~\cite{wang2024survey} organises
+language-model agents by profile, memory, planning and action modules. The multi-agent design
+tested here is deliberately narrow: two roles with separate inputs (one sees only text, the other
+sees only computed facts), connected by a deterministic verifier rather than by free conversation,
+so that each role's contribution can be measured.
+
+\subsection{Evaluation of LLM-Based Systems}
+Zheng et al.~\cite{zheng2023judge} studied strong language models as judges and found high
+agreement with human preferences together with position and verbosity biases. Because every
+expected finding and balance in this project is known exactly from a generated world model,
+ReCycleGuard does not use a model as a judge: trials are scored by a deterministic evaluator
+against hidden answers. Nosek et al.~\cite{nosek2018prereg} argue that fixing hypotheses and
+analysis before seeing the data separates confirmatory from exploratory results; the multi-agent
+experiment and the held-out run follow this practice, and every deviation is recorded.
+
+\section{Comparative Summary}
+Table~\ref{tab:litcompare} compares the most relevant approaches with the system built here.
+
+\begin{table}[htbp]
+\centering
+\caption{Comparison of related approaches with ReCycleGuard}
+\label{tab:litcompare}
+\small
+\begin{tabularx}{\linewidth}{@{}p{3.4cm} X c c c c@{}}
+\toprule
+\textbf{Work} & \textbf{Key idea} & \textbf{Tools} & \textbf{Adapt.\ RAG} & \textbf{Exact arith.} & \textbf{HITL} \\
+\midrule
+ReAct~\cite{yao2023react} & Interleaved reasoning and acting & \checkmark & -- & -- & -- \\
+Toolformer~\cite{schick2023toolformer} & Self-taught tool calls & \checkmark & -- & -- & -- \\
+RAG~\cite{lewis2020rag} & Retrieval-conditioned generation & -- & -- & -- & -- \\
+Self-RAG~\cite{asai2024selfrag}, CRAG~\cite{yan2024crag} & Graded, adaptive retrieval & -- & \checkmark & -- & -- \\
+AutoGen~\cite{wu2023autogen} & Conversing specialised agents & \checkmark & -- & -- & optional \\
+Spreadsheet reconciliation & Manual matching across sources & -- & -- & partly & \checkmark \\
+\textbf{ReCycleGuard} & Bounded, audited investigation with a gate & \checkmark & \checkmark & \checkmark & \checkmark \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Research Gap}
+The general agent techniques reviewed above do not address compliance reconciliation, where
+balances must be exact, claims must cite specific records, and an unsupported claim is worse than
+an abstention. Manual practice provides the human judgement but not the trace. No reviewed work
+combines bounded tool use, graded retrieval over regulatory text, deterministic arithmetic and an
+evidence gate with human review, and measures the model's contribution against model-free
+controls. This project builds that combination and reports what the model does and does not add.

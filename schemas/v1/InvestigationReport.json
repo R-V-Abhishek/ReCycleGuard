@@ -338,6 +338,109 @@
       "title": "EvidenceRef",
       "type": "object"
     },
+    "FindingProposal": {
+      "additionalProperties": false,
+      "description": "A model's suggested finding. It reaches a report only through the deterministic gate.\n\nReferences and scopes stay loose here so a bad citation is a retained gate rejection,\nnot a failed assessment.",
+      "properties": {
+        "issue_type": {
+          "enum": [
+            "F01_CLEAN_BASELINE",
+            "F02_OVERLAPPING_EXPORT",
+            "F03_MULTISTAGE_ID_REUSE",
+            "F04_UNIT_DIMENSION_MIX",
+            "F05_WRONG_ENTITY_ALIAS",
+            "F06_STALE_SNAPSHOT",
+            "F07_PAID_NO_TRANSFER",
+            "F08_PRIOR_ARREARS_DRAIN",
+            "F09_EXPIRED_CANCELLED",
+            "F10_CAPABILITY_MISMATCH",
+            "F11_WRONG_PERIOD_RULE",
+            "F12_UNSEEN_NOTICE_LEAD",
+            "F13_WEIGHT_BASIS_CONFLICT",
+            "F14_OUT_OF_SCOPE_REGIME",
+            "F15_EXTRACTION_PAGE_LOSS",
+            "F16_PROMPT_INJECTION"
+          ],
+          "title": "Issue Type",
+          "type": "string"
+        },
+        "advisory_status": {
+          "enum": [
+            "RECONCILED_WITHIN_SCOPE",
+            "DISCREPANCY_DETECTED",
+            "PENDING_VERIFICATION",
+            "REQUIRES_EXPERT_REVIEW"
+          ],
+          "title": "Advisory Status",
+          "type": "string"
+        },
+        "basis": {
+          "minLength": 1,
+          "title": "Basis",
+          "type": "string"
+        },
+        "evidence_ref_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Ref Ids",
+          "type": "array"
+        },
+        "abstention_reason": {
+          "anyOf": [
+            {
+              "enum": [
+                "MISSING_EVIDENCE",
+                "MISSING_AUTHORITY",
+                "RULE_CONFLICT",
+                "TEMPORAL_UNCERTAINTY",
+                "UNSUPPORTED_FEATURE",
+                "INCOMPLETE_HISTORY",
+                "BUDGET_LIMIT"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Abstention Reason"
+        },
+        "withheld_claim_scopes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Withheld Claim Scopes",
+          "type": "array"
+        },
+        "next_action_kind": {
+          "enum": [
+            "INVESTIGATE",
+            "REQUEST_EVIDENCE",
+            "ESCALATE",
+            "NO_FURTHER_ACTION"
+          ],
+          "title": "Next Action Kind",
+          "type": "string"
+        },
+        "next_action_text": {
+          "minLength": 1,
+          "title": "Next Action Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "issue_type",
+        "advisory_status",
+        "basis",
+        "evidence_ref_ids",
+        "next_action_kind",
+        "next_action_text"
+      ],
+      "title": "FindingProposal",
+      "type": "object"
+    },
     "FindingRecord": {
       "additionalProperties": false,
       "properties": {
@@ -1002,6 +1105,38 @@
       "title": "Recommendation",
       "type": "object"
     },
+    "RejectedFindingProposal": {
+      "additionalProperties": false,
+      "properties": {
+        "proposal": {
+          "$ref": "#/$defs/FindingProposal"
+        },
+        "reason": {
+          "enum": [
+            "NO_EVIDENCE_REF",
+            "UNKNOWN_EVIDENCE_REF",
+            "DIGITS_IN_TEXT",
+            "PROHIBITED_TEXT",
+            "AUTHORITY_TEXT",
+            "TEXT_TOO_LONG",
+            "CLEAN_NOT_ESTABLISHED",
+            "INVALID_STATUS",
+            "INVALID_ABSTENTION",
+            "DUPLICATE_ISSUE_TYPE",
+            "CONTRADICTED_BY_CALCULATION",
+            "NO_VERIFIED_CLAIM"
+          ],
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "proposal",
+        "reason"
+      ],
+      "title": "RejectedFindingProposal",
+      "type": "object"
+    },
     "ReportClaim": {
       "additionalProperties": false,
       "properties": {
@@ -1308,6 +1443,13 @@
     },
     "verification": {
       "$ref": "#/$defs/VerificationResult"
+    },
+    "rejected_finding_proposals": {
+      "items": {
+        "$ref": "#/$defs/RejectedFindingProposal"
+      },
+      "title": "Rejected Finding Proposals",
+      "type": "array"
     }
   },
   "required": [

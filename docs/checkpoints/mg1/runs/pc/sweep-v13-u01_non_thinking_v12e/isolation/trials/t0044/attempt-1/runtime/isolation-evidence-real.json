@@ -1,0 +1,149 @@
+{
+  "probes": [
+    {
+      "action": "absent",
+      "denied": true,
+      "errno": null,
+      "target": "/repo"
+    },
+    {
+      "action": "absent",
+      "denied": true,
+      "errno": null,
+      "target": "/work"
+    },
+    {
+      "action": "absent",
+      "denied": true,
+      "errno": null,
+      "target": "/evaluator"
+    },
+    {
+      "action": "absent",
+      "denied": true,
+      "errno": null,
+      "target": "/models/weights"
+    },
+    {
+      "action": "absent",
+      "denied": true,
+      "errno": null,
+      "target": "/var/run/docker.sock"
+    },
+    {
+      "action": "absent",
+      "denied": true,
+      "errno": null,
+      "target": "/run/docker.sock"
+    },
+    {
+      "action": "mount",
+      "denied": true,
+      "errno": null,
+      "target": "/"
+    },
+    {
+      "action": "mount",
+      "denied": true,
+      "errno": null,
+      "target": "/tmp"
+    },
+    {
+      "action": "mount",
+      "denied": true,
+      "errno": null,
+      "target": "/visible"
+    },
+    {
+      "action": "mount",
+      "denied": true,
+      "errno": null,
+      "target": "/program"
+    },
+    {
+      "action": "mount",
+      "denied": true,
+      "errno": null,
+      "target": "/runtime"
+    },
+    {
+      "action": "mount",
+      "denied": true,
+      "errno": null,
+      "target": "/models/provenance"
+    },
+    {
+      "action": "mount",
+      "denied": true,
+      "errno": null,
+      "target": "/etc/resolv.conf"
+    },
+    {
+      "action": "mount",
+      "denied": true,
+      "errno": null,
+      "target": "/etc/hostname"
+    },
+    {
+      "action": "mount",
+      "denied": true,
+      "errno": null,
+      "target": "/etc/hosts"
+    },
+    {
+      "action": "write",
+      "denied": true,
+      "errno": 30,
+      "target": "/visible/.forbidden-write"
+    },
+    {
+      "action": "write",
+      "denied": true,
+      "errno": 30,
+      "target": "/program/.forbidden-write"
+    },
+    {
+      "action": "write",
+      "denied": true,
+      "errno": 30,
+      "target": "/opt/forbidden"
+    },
+    {
+      "action": "write",
+      "denied": true,
+      "errno": 30,
+      "target": "/models/provenance/.forbidden-write"
+    },
+    {
+      "action": "connect",
+      "denied": true,
+      "errno": 101,
+      "target": "external-network"
+    },
+    {
+      "action": "connect",
+      "denied": true,
+      "errno": 111,
+      "target": "api-on-loopback"
+    },
+    {
+      "action": "import",
+      "denied": true,
+      "errno": null,
+      "target": "benchmarks"
+    },
+    {
+      "action": "environment",
+      "denied": true,
+      "errno": null,
+      "target": "evaluator keys"
+    },
+    {
+      "action": "uid",
+      "denied": true,
+      "errno": null,
+      "target": "root"
+    }
+  ],
+  "recorded_at": "2026-11-05T04:24:21.810124+00:00"
+}

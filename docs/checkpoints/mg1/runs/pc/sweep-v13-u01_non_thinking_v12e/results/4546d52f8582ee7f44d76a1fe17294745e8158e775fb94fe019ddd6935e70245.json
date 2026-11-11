@@ -1,0 +1,377 @@
+{
+ "audit_chain": "VERIFIED",
+ "budget": {
+  "actions": 11,
+  "cost_known_calls": 0,
+  "finding_actions": {
+   "finding:65e92aac4e4246eeb6c96abf8ca03666": 3
+  },
+  "finding_reformulations": {},
+  "model_calls": 7,
+  "observed_cost_usd": null,
+  "observed_tokens": 26596,
+  "preflight_actions": 1,
+  "report_repairs": 0,
+  "reserved_tokens": 229376,
+  "retries": 0,
+  "tool_calls": 3,
+  "usage_known_calls": 7,
+  "verification_actions": 0
+ },
+ "calls": [
+  {
+   "event_type": "graph.stage.preflight.result",
+   "issue_codes": [],
+   "kind": "STAGE",
+   "operation_id": "operation:run:65e92aac4e4246eeb6c96abf8ca03666:turn_2:preflight",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.plan.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:65e92aac4e4246eeb6c96abf8ca03666:turn_3:plan",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.tool.tool.result",
+   "issue_codes": [],
+   "kind": "TOOL",
+   "operation_id": "operation:run:65e92aac4e4246eeb6c96abf8ca03666:turn_3:tool",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.assess.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:65e92aac4e4246eeb6c96abf8ca03666:turn_3:assess",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.plan.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:65e92aac4e4246eeb6c96abf8ca03666:turn_4:plan",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.tool.tool.result",
+   "issue_codes": [],
+   "kind": "TOOL",
+   "operation_id": "operation:run:65e92aac4e4246eeb6c96abf8ca03666:turn_4:tool",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.assess.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:65e92aac4e4246eeb6c96abf8ca03666:turn_4:assess",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.plan.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:65e92aac4e4246eeb6c96abf8ca03666:turn_5:plan",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.tool.tool.result",
+   "issue_codes": [],
+   "kind": "TOOL",
+   "operation_id": "operation:run:65e92aac4e4246eeb6c96abf8ca03666:turn_5:tool",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.assess.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:65e92aac4e4246eeb6c96abf8ca03666:turn_5:assess",
+   "status": "SUCCESS"
+  },
+  {
+   "event_type": "graph.model.plan.result",
+   "issue_codes": [],
+   "kind": "MODEL",
+   "operation_id": "operation:run:65e92aac4e4246eeb6c96abf8ca03666:turn_6:plan",
+   "status": "SUCCESS"
+  }
+ ],
+ "case_id": "case_55c0ece8b5",
+ "census": null,
+ "decisions": [
+  {
+   "attempt_id": "attempt:run:65e92aac4e4246eeb6c96abf8ca03666:turn_3:plan_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:65e92aac4e4246eeb6c96abf8ca03666:turn_3:plan",
+   "reply": {
+    "argument_keys": [],
+    "concise_reason": "compute_reconciliation has not run yet and is the next required step per PLAN rules.",
+    "hypotheses": [
+     "The dossier contains evidence supporting allocation gaps.",
+     "The dossier contains evidence qualifying the allocation gaps."
+    ],
+    "objective": "Assess supported allocation gaps and evidence qualifications in the frozen dossier.",
+    "operation": "compute_reconciliation",
+    "proposed_checks": [
+     "compute_reconciliation"
+    ],
+    "stop_reason": null
+   },
+   "shown": {
+    "inspectable_observations": 10,
+    "inspectable_total": 68,
+    "pending_findings": 1,
+    "phase": "PLAN",
+    "previous_plans": 0,
+    "previous_rejection": false,
+    "prior_observations": 1
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 245,
+    "elapsed_seconds": 5.06938048498705,
+    "finish_reason": "stop",
+    "prompt_tokens": 2308
+   }
+  },
+  {
+   "attempt_id": "attempt:run:65e92aac4e4246eeb6c96abf8ca03666:turn_3:assess_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:65e92aac4e4246eeb6c96abf8ca03666:turn_3:assess",
+   "reply": {
+    "disposition": "CONTINUE",
+    "next_check_or_stop": "continue",
+    "proposal": null,
+    "verdict": "WEAK",
+    "weak_result_or_mistake": null
+   },
+   "shown": {
+    "citable_calculation_ids": 1,
+    "citable_evidence_ids": 0,
+    "disposition": "QUALIFIED",
+    "evidence_chars": 1591,
+    "evidence_keys": [
+     "bucket_count",
+     "buckets",
+     "calculation_id",
+     "coverage",
+     "issues"
+    ],
+    "evidence_refs_total": 0,
+    "evidence_truncated": false,
+    "phase": "ASSESS",
+    "tool": "compute_reconciliation",
+    "visible_issue_codes": [
+     "APPLICABILITY_UNRESOLVED"
+    ]
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 42,
+    "elapsed_seconds": 2.052270074986154,
+    "finish_reason": "stop",
+    "prompt_tokens": 2611
+   }
+  },
+  {
+   "attempt_id": "attempt:run:65e92aac4e4246eeb6c96abf8ca03666:turn_4:plan_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:65e92aac4e4246eeb6c96abf8ca03666:turn_4:plan",
+   "reply": {
+    "argument_keys": [
+     "observation_ids"
+    ],
+    "concise_reason": "Execute inspect_evidence to retrieve the full dossier observations as per the PLAN rules for the next step after compute_reconciliation.",
+    "hypotheses": [
+     "The dossier contains observations detailing allocation gaps.",
+     "The dossier contains observations qualifying the allocation gaps."
+    ],
+    "objective": "Inspect the frozen dossier to gather observation evidence regarding allocation gaps and qualifications.",
+    "operation": "inspect_evidence",
+    "proposed_checks": [
+     "inspect_evidence"
+    ],
+    "stop_reason": null
+   },
+   "shown": {
+    "inspectable_observations": 10,
+    "inspectable_total": 68,
+    "pending_findings": 1,
+    "phase": "PLAN",
+    "previous_plans": 1,
+    "previous_rejection": false,
+    "prior_observations": 2
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 433,
+    "elapsed_seconds": 8.165463370998623,
+    "finish_reason": "stop",
+    "prompt_tokens": 3275
+   }
+  },
+  {
+   "attempt_id": "attempt:run:65e92aac4e4246eeb6c96abf8ca03666:turn_4:assess_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:65e92aac4e4246eeb6c96abf8ca03666:turn_4:assess",
+   "reply": {
+    "disposition": "CONTINUE",
+    "next_check_or_stop": "continue",
+    "proposal": null,
+    "verdict": "UNKNOWN",
+    "weak_result_or_mistake": null
+   },
+   "shown": {
+    "citable_calculation_ids": 0,
+    "citable_evidence_ids": 10,
+    "disposition": "QUALIFIED",
+    "evidence_chars": 4293,
+    "evidence_keys": [
+     "observation_count",
+     "observations",
+     "observations_omitted"
+    ],
+    "evidence_refs_total": 10,
+    "evidence_truncated": false,
+    "phase": "ASSESS",
+    "tool": "inspect_evidence",
+    "visible_issue_codes": []
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 41,
+    "elapsed_seconds": 2.832164274994284,
+    "finish_reason": "stop",
+    "prompt_tokens": 3764
+   }
+  },
+  {
+   "attempt_id": "attempt:run:65e92aac4e4246eeb6c96abf8ca03666:turn_5:plan_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:65e92aac4e4246eeb6c96abf8ca03666:turn_5:plan",
+   "reply": {
+    "argument_keys": [
+     "bucket_ids"
+    ],
+    "concise_reason": "Execute reconciliation to verify allocation gaps and qualifications as per prior stage observations.",
+    "hypotheses": [
+     "The dossier contains evidence supporting allocation gaps.",
+     "The dossier contains evidence qualifying the allocation gaps."
+    ],
+    "objective": "Verify reconciliation of allocation gaps and qualifications using the frozen dossier data.",
+    "operation": "compute_reconciliation",
+    "proposed_checks": [
+     "compute_reconciliation"
+    ],
+    "stop_reason": null
+   },
+   "shown": {
+    "inspectable_observations": 10,
+    "inspectable_total": 68,
+    "pending_findings": 1,
+    "phase": "PLAN",
+    "previous_plans": 2,
+    "previous_rejection": false,
+    "prior_observations": 2
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 185,
+    "elapsed_seconds": 5.3031078960048035,
+    "finish_reason": "stop",
+    "prompt_tokens": 5313
+   }
+  },
+  {
+   "attempt_id": "attempt:run:65e92aac4e4246eeb6c96abf8ca03666:turn_5:assess_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:65e92aac4e4246eeb6c96abf8ca03666:turn_5:assess",
+   "reply": {
+    "disposition": "CONTINUE",
+    "next_check_or_stop": "continue",
+    "proposal": null,
+    "verdict": "WEAK",
+    "weak_result_or_mistake": null
+   },
+   "shown": {
+    "citable_calculation_ids": 1,
+    "citable_evidence_ids": 0,
+    "disposition": "QUALIFIED",
+    "evidence_chars": 1591,
+    "evidence_keys": [
+     "bucket_count",
+     "buckets",
+     "calculation_id",
+     "coverage",
+     "issues"
+    ],
+    "evidence_refs_total": 0,
+    "evidence_truncated": false,
+    "phase": "ASSESS",
+    "tool": "compute_reconciliation",
+    "visible_issue_codes": [
+     "APPLICABILITY_UNRESOLVED"
+    ]
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 42,
+    "elapsed_seconds": 2.014269951992901,
+    "finish_reason": "stop",
+    "prompt_tokens": 2707
+   }
+  },
+  {
+   "attempt_id": "attempt:run:65e92aac4e4246eeb6c96abf8ca03666:turn_6:plan_0",
+   "issue_codes": [],
+   "operation_id": "operation:run:65e92aac4e4246eeb6c96abf8ca03666:turn_6:plan",
+   "reply": {
+    "argument_keys": [
+     "certificate_ids"
+    ],
+    "concise_reason": "Trace certificate cert:55c0ece8b5_001 to verify event sequence and transfer stages as per prior observations.",
+    "hypotheses": [
+     "Certificate cert:55c0ece8b5_001 has a valid traceable chain of events.",
+     "The trace reveals any gaps or inconsistencies in the certificate lifecycle."
+    ],
+    "objective": "Trace certificate chain for cert:55c0ece8b5_001 to verify event sequence and transfer stages.",
+    "operation": "trace_certificate",
+    "proposed_checks": [
+     "trace_certificate"
+    ],
+    "stop_reason": null
+   },
+   "shown": {
+    "inspectable_observations": 10,
+    "inspectable_total": 68,
+    "pending_findings": 1,
+    "phase": "PLAN",
+    "previous_plans": 2,
+    "previous_rejection": false,
+    "prior_observations": 2
+   },
+   "status": "SUCCESS",
+   "transport": {
+    "completion_tokens": 242,
+    "elapsed_seconds": 8.455868185992585,
+    "finish_reason": "stop",
+    "prompt_tokens": 5388
+   }
+  }
+ ],
+ "experiment_variant": "V2_ADAPTIVE_REAL_MODEL",
+ "job": {
+  "cancel_requested": 0,
+  "detail": "BLOCKED_OUTPUT",
+  "dossier_id": "dossier:007e4a078f3b4e12bb2a65c45563066c",
+  "run_id": "run:65e92aac4e4246eeb6c96abf8ca03666",
+  "status": "STOPPED"
+ },
+ "rejected_actions": [],
+ "report": null,
+ "requested_variant": "ADAPTIVE",
+ "run_id": "run:65e92aac4e4246eeb6c96abf8ca03666",
+ "status": "BLOCKED_OUTPUT",
+ "stop_reason": "EXPERT_REVIEW_REQUIRED"
+}

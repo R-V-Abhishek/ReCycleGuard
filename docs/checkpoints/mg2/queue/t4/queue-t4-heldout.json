@@ -1,0 +1,26 @@
+{
+  "queue_version": "mg2-queue",
+  "model_root": "/models/provenance/qwen3.5-9b-q8_0",
+  "slots": 3,
+  "name": "mg2-t4-heldout",
+  "jobs": [
+    {
+      "id": "heldout-baseline",
+      "protocol": "docs/checkpoints/mg2/protocols/heldout-baseline.json",
+      "prompts": [
+        "u01_non_thinking_v7"
+      ],
+      "final": true,
+      "held_out": "benchmarks/heldout/freeze/heldout-baseline.json"
+    },
+    {
+      "id": "heldout-classifier-only",
+      "protocol": "docs/checkpoints/mg2/protocols/heldout-classifier-only.json",
+      "prompts": [
+        "mg2_agents_v3"
+      ],
+      "final": true,
+      "held_out": "benchmarks/heldout/freeze/heldout-classifier-only.json"
+    }
+  ]
+}

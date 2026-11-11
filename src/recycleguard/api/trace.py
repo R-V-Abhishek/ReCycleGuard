@@ -3,14 +3,41 @@
 import json
 
 from recycleguard.contracts.core import BlobRef
-from recycleguard.contracts.workflow import ContextManifest
-from recycleguard.local_model import _PHASE_RULES, _SYSTEM
+from recycleguard.contracts.workflow import ConfigurationPin, ContextManifest
+from recycleguard.local_model import (
+    BRIEF_RULES,
+    BUILTIN_PROMPT,
+    BUILTIN_PROMPT_VERSION,
+    LocalModelConfig,
+    PromptText,
+    prompt_digest,
+)
 from recycleguard.workflow.runner import CallRecord
 
 
-def trace_events(service, run_id, *, after=0):
+def _run_prompt(pin: ConfigurationPin, configured: LocalModelConfig | None) -> PromptText | None:
+    """The template text only when its pin matches the run's; otherwise none is shown."""
+    if configured is not None and configured.prompt_pin() == pin:
+        return configured.prompt_text()
+    if pin.digest in {
+        prompt_digest(BUILTIN_PROMPT_VERSION, BUILTIN_PROMPT),
+        prompt_digest(BUILTIN_PROMPT_VERSION, BUILTIN_PROMPT, brief=True),
+    }:
+        return BUILTIN_PROMPT
+    return None
+
+
+def _system_template(prompt: PromptText | None, phase: str) -> str | None:
+    if prompt is None:
+        return None
+    return prompt.system + (BRIEF_RULES if phase == "BRIEF" else prompt.phase_rules[phase])
+
+
+def trace_events(service, run_id, *, after=0, configured: LocalModelConfig | None = None):
     service.store.load(run_id)  # verifies event hash chain and referenced bytes
-    model_backed = service.store.spec(run_id).execution_kind == "MODEL_BACKED"
+    spec = service.store.spec(run_id)
+    model_backed = spec.execution_kind == "MODEL_BACKED"
+    prompt = _run_prompt(spec.prompt, configured) if model_backed else None
     blobs, kernel = service.blobs, service.kernel
     output = []
     for event in kernel.list_stream_events(f"stream:{run_id}"):
@@ -32,7 +59,7 @@ def trace_events(service, run_id, *, after=0):
                 kind="PROMPT_PREPARED",
                 phase=manifest.phase,
                 request=request,
-                system_template=(_SYSTEM + _PHASE_RULES[manifest.phase]) if model_backed else None,
+                system_template=_system_template(prompt, manifest.phase),
                 note=(
                     "Prepared context; exact sent wire prompt is retained after adapter completion."
                 ),
@@ -41,12 +68,14 @@ def trace_events(service, run_id, *, after=0):
             "graph.plan.result",
             "graph.action.result",
             "graph.assessment.result",
+            "graph.brief.result",
         }:
             item.update(
                 kind={
                     "graph.plan.result": "PLAN",
                     "graph.action.result": "TOOL_PROPOSED",
                     "graph.assessment.result": "ASSESSMENT",
+                    "graph.brief.result": "BRIEF",
                 }[event.event_type],
                 data=json.loads(blobs.get(event.payload_blob)),
             )

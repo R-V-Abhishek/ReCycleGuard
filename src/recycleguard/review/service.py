@@ -200,6 +200,19 @@ class ReviewService:
         )
         if checked.verdict == "BLOCKED":
             raise ValueError("blocked report cannot be presented for approval")
+        if unresolved_issue_refs is None:
+            raised = [*checked.issues, *(i for c in authoritative_calculations for i in c.issues)]
+            unresolved_issue_refs = list(
+                dict.fromkeys(i.issue_id for i in raised if i.severity != "INFO")
+            )
+        if proposed_action_refs is None:
+            proposed_action_refs = list(
+                dict.fromkeys(
+                    f.finding_revision_id
+                    for f in findings
+                    if f.advisory_status != "RECONCILED_WITHIN_SCOPE"
+                )
+            )
         report_blob = self.blobs.put(report.model_dump_json().encode(), "application/json")
         sources = {
             "calculations": [item.model_dump(mode="json") for item in authoritative_calculations],

@@ -9,7 +9,9 @@ import type {
   InvestigationReport,
   ReviewDecisionKind,
   ReviewPacket,
+  RunBriefs,
   RunMode,
+  RunVariant,
   RunState,
   RunView,
   SupportAssertion,
@@ -41,6 +43,7 @@ export const ROUTES = {
   events: ["GET", "/runs/{run_id}/events"],
   audit: ["GET", "/runs/{run_id}/audit"],
   report: ["GET", "/runs/{run_id}/report"],
+  briefs: ["GET", "/runs/{run_id}/briefs"],
   packet: ["POST", "/runs/{run_id}/packet"],
   review: ["POST", "/runs/{run_id}/review"],
 } as const;
@@ -234,9 +237,9 @@ export class ApiClient {
     catch { throw interrupted(ROUTES.artifact, response.status); }
   }
 
-  startRun = (dossier_id: string, mode: RunMode, budgets?: BudgetLimits) =>
+  startRun = (dossier_id: string, mode: RunMode, budgets?: BudgetLimits, variant: RunVariant = "ADAPTIVE") =>
     this.json<{ run_id: string; status: string; mode: RunMode }>(ROUTES.startRun, {
-      json: budgets ? { dossier_id, mode, budgets } : { dossier_id, mode },
+      json: budgets ? { dossier_id, mode, variant, budgets } : { dossier_id, mode, variant },
     });
   runs = (dossierId?: string) => this.json<{ runs: RunView[] }>(ROUTES.runs, {
     query: dossierId === undefined ? "" : `?dossier_id=${encodeURIComponent(dossierId)}`,
@@ -253,6 +256,7 @@ export class ApiClient {
   audit = (run_id: string) => this.json<AuditManifest>(ROUTES.audit, { params: { run_id } });
   report = (run_id: string) =>
     this.json<InvestigationReport>(ROUTES.report, { params: { run_id } });
+  briefs = (run_id: string) => this.json<RunBriefs>(ROUTES.briefs, { params: { run_id } });
   packet = (run_id: string) => this.json<ReviewPacket>(ROUTES.packet, { params: { run_id } });
   review = (
     run_id: string,

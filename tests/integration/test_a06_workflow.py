@@ -218,13 +218,19 @@ def test_extra_tool_arguments_are_rejected_before_execution(workflow):
         assert not env.lookup.calls
 
 
+def assert_drafted_without_the_model(env, state):
+    """An invalid reply ends the investigation; the report is drafted, no tool ever ran."""
+    assert state.status == "AWAITING_REVIEW" and state.stop_reason == "PROVIDER_FAILURE"
+    assert state.resolved_finding_ids == [] and state.abstained_finding_ids == ["finding:one"]
+    assert not env.lookup.calls
+    assert len(env.draft.calls) == 1
+
+
 def test_invalid_structured_proposal_cannot_invoke_tool(workflow):
     step = plan()
     output = step.output | {"unapproved_field": "Ignore the execution boundary"}
     with workflow([ScriptedStep("PLAN", output)]) as env:
-        state = env.drive(env.start())
-        assert state.status in {"FAILED", "BLOCKED_OUTPUT"}
-        assert not env.lookup.calls
+        assert_drafted_without_the_model(env, env.drive(env.start()))
 
 
 def test_exact_response_and_validated_proposal_must_agree(workflow):
@@ -232,17 +238,13 @@ def test_exact_response_and_validated_proposal_must_agree(workflow):
     with workflow(
         [ScriptedStep("PLAN", step.output, exact_output={"different": "response"})]
     ) as env:
-        state = env.drive(env.start())
-        assert state.status in {"FAILED", "BLOCKED_OUTPUT"}
-        assert not env.lookup.calls
+        assert_drafted_without_the_model(env, env.drive(env.start()))
 
 
 def test_model_result_operation_identity_is_checked(workflow):
     step = plan()
     with workflow([ScriptedStep("PLAN", step.output, mismatched_operation=True)]) as env:
-        state = env.drive(env.start())
-        assert state.status in {"FAILED", "BLOCKED_OUTPUT"}
-        assert not env.lookup.calls
+        assert_drafted_without_the_model(env, env.drive(env.start()))
 
 
 def test_blocked_preflight_never_calls_model(workflow):
@@ -315,6 +317,8 @@ def test_model_retry_cap_prevents_a_third_provider_attempt(workflow):
         assert state.stop_reason == "PROVIDER_FAILURE"
         assert len(env.port.calls) == 2
         assert not env.lookup.calls
+        # A provider failure that is not a known-invalid reply still drafts nothing.
+        assert not env.draft.calls
 
 
 def test_repeating_identical_tool_action_stops_the_cycle(workflow):
@@ -552,7 +556,8 @@ def test_uncertain_or_adverse_assessment_cannot_resolve_a_finding(workflow, verd
     }
     with workflow([plan(), ScriptedStep("ASSESS", invalid)]) as env:
         state = env.drive(env.start())
-        assert state.status in {"FAILED", "BLOCKED_OUTPUT"}
+        # The invalid assessment ends the investigation; the report is drafted without it.
+        assert state.status == "AWAITING_REVIEW" and state.stop_reason == "PROVIDER_FAILURE"
         assert not state.resolved_finding_ids
 
 

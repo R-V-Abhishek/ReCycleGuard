@@ -1,0 +1,76 @@
+%---------------------------------------------------------------------
+\chapter{Agentic Concepts Demonstrated}
+%---------------------------------------------------------------------
+This chapter maps the system to the concept checklist of the course guidelines. Each tick points
+to code, a test or a recorded run; Appendix~\ref{app:traces} reproduces trace excerpts.
+
+\section{Concept Coverage Matrix}
+\begin{table}[htbp]
+\centering
+\caption{Coverage of the agentic-concept checklist}
+\label{tab:concepts}
+\small
+\begin{tabularx}{\linewidth}{@{}p{1.8cm} >{\raggedright\arraybackslash}p{3.7cm} >{\centering\arraybackslash}p{1.2cm} >{\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{Tier} & \textbf{Concept} & \textbf{Status} & \textbf{Evidence} \\ \midrule
+Mandatory & Tool / function use & \checkmark & Six audited tools (Table~\ref{tab:tools}); \texttt{tests/\allowbreak integration/\allowbreak test\_\allowbreak a07\_\allowbreak tools.py} \\
+Mandatory & Agentic RAG & \checkmark & Graded \texttt{search\_rules}; MG2 Retriever with re-query; \texttt{tests/\allowbreak unit/\allowbreak test\_\allowbreak h06\_\allowbreak retrieval.py}, \texttt{test\_\allowbreak agents.py} \\
+Mandatory & Planning and reasoning & \checkmark & \textsc{plan}/\textsc{assess} loop, Section~4.4; \texttt{tests/\allowbreak integration/\allowbreak test\_\allowbreak a06\_\allowbreak workflow.py} \\
+Mandatory & Observability / tracing & \checkmark & Ledger, result records and audit chain, Section~7.1 \\
+Mandatory & Evaluation & \checkmark & Chapter~7; 1{,}008 scored trials in the MG2 series alone, plus MG1 \\
+Bonus & Multi-agent collaboration & \checkmark & Retriever and Classifier (MG2), measured; result negative \\
+Bonus & Memory & Partial & Run state checkpointed; no memory across cases (by design) \\
+Bonus & Human-in-the-loop and guardrails & \checkmark & Finding gate, review bound to revision; \texttt{tests/\allowbreak unit/\allowbreak test\_\allowbreak finding\_\allowbreak gate.py}, \texttt{test\_\allowbreak v05\_\allowbreak review.py} \\
+Bonus & Durable workflow & \checkmark & SQLite checkpoints, CAS versions, resume; \texttt{tests/\allowbreak integration/\allowbreak test\_\allowbreak cp4\_\allowbreak recovery.py} \\
+Bonus & Experimentation & \checkmark & Pre-registered MG2 experiment and held-out run, Chapter~8 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Evidence for Each Concept}
+
+\subsection{Tool Use}
+The model never touches data directly. In \textsc{plan} it names one tool from the allowed list with
+typed arguments; the runner validates the arguments against the case (an observation identifier
+that does not exist is refused and the model is asked once more), records the intent, executes the
+tool and returns its structured result. In the trial records, every result carries a
+\texttt{calls} list in which model calls and stage actions alternate, and a budget block counting
+actions, tool calls and model calls (Listing~\ref{lst:result} in Appendix~\ref{app:traces}).
+
+\subsection{Agentic RAG}
+\texttt{search\_rules} queries the BM25 index over the two regulatory documents, filters
+provisions by temporal validity and grades what it returns before the agent sees it. In MG2 the
+Retriever applies the corrective pattern explicitly: after each read or search it grades the result
+as \texttt{SUFFICIENT}, \texttt{WEAK} or \texttt{EMPTY}, and after a weak or empty result it must
+change its request, because an identical request is refused. Its claims are then checked by a
+deterministic quote verifier. Chapter~8 reports how this behaved on the real model.
+
+\subsection{Planning and Reasoning}
+Each turn separates the decision to act from the judgement of what the action showed. The
+\textsc{assess} step must return one of four verdicts and three dispositions, and \texttt{RESOLVE}
+is allowed only with \texttt{SUPPORTS}. The adaptive variant (V2) chooses its own checks; the fixed
+variant (V1) runs a predeclared sequence and only assesses, which allows the value of the planning
+step to be measured directly.
+
+\subsection{Observability}
+Every trial writes a ledger line when it starts and when it ends (status, wall time, tokens and the
+digests of its bundle and result), and a result record with the run status, stop reason, call list,
+budget, evidence census, findings, rejected proposals and the verdict of the audit-chain check.
+Section~7.1 describes what is captured and how it is used.
+
+\subsection{Evaluation}
+Trials are scored by a deterministic evaluator against hidden answers, with model-free controls in
+every session and case-level bootstrap intervals (Chapter~7).
+
+\subsection{Bonus Concepts}
+\textbf{Multi-agent collaboration.} The MG2 Retriever and Classifier were built, tested with
+scripted model ports, and then measured on the real model with three prompt versions in the T4 series
+(1{,}008 trials including baselines and controls); Chapter~8 reports the negative result.
+\textbf{Human in the loop and guardrails.} Model proposals pass a deterministic gate; the reviewer's
+decision binds the exact report revision; dossier text is treated as untrusted data, and one
+fault family (F16) plants instructions in the dossier to test this.
+\textbf{Durable workflow.} Graph state is checkpointed with compare-and-swap versions, and an
+interrupted run resumes without repeating a dispatched action; the evaluation queue also resumes
+every session from its own ledger.
+\textbf{Memory} is limited to the run: by design, nothing learned on one case is carried to another,
+because that would leak information between evaluation cases.

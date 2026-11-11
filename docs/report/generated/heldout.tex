@@ -1,0 +1,22 @@
+\begin{table}[htbp]
+\centering
+\caption{Held-out run (24 sealed cases, rules on, 2 repeats, T4)}
+\label{tab:heldout}
+\small
+\resizebox{\linewidth}{!}{%
+\begin{tabular}{@{}l l r r r r r r@{}}
+\toprule
+\textbf{Arm} & \textbf{Prompt} & \textbf{Cases} & \textbf{95\% CI} & \textbf{TP / FP / FN} & \textbf{Prop.\ / acc.} & \textbf{Calls} & \textbf{s} \\
+\midrule
+S1 V1 FIXED & v7 & 48 of 48 & 1.00--1.00 & 64 / 0 / 0 & 3 / 0 & 6.1 & 83 \\
+S1 V2 ADAPTIVE & v7 & 48 of 48 & 1.00--1.00 & 64 / 0 / 0 & 3 / 0 & 2.4 & 73 \\
+SC (S1 session) & -- & 24 of 24 & 1.00--1.00 & 32 / 0 / 0 & 0 / 0 & 2.0 & 27 \\
+V0 (S1 session) & -- & 24 of 24 & 1.00--1.00 & 32 / 0 / 0 & 0 / 0 & 1.0 & 26 \\
+M2-nr Classifier alone & v3 & 47 of 48 & 0.94--1.00 & 64 / 1 / 0 & 31 / 1 & 1.1 & 42 \\
+SC (M2-nr session) & -- & 24 of 24 & 1.00--1.00 & 32 / 0 / 0 & 0 / 0 & 2.0 & 29 \\
+V0 (M2-nr session) & -- & 24 of 24 & 1.00--1.00 & 32 / 0 / 0 & 0 / 0 & 1.0 & 28 \\
+\bottomrule
+\end{tabular}}
+\par\smallskip
+\parbox{\linewidth}{\footnotesize Run once after the freeze (log entry 15). M2-nr is descriptive: it failed the development gate. Source: \texttt{docs/checkpoints/mg2/runs/t4/mg2-t4-heldout/compare.csv}.}
+\end{table}

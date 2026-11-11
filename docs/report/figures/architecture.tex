@@ -1,0 +1,48 @@
+\begin{tikzpicture}[
+  node distance=0.55cm and 0.5cm,
+  comp/.style={draw=bmsblue,fill=guidebg,rounded corners,minimum width=2.45cm,minimum height=0.85cm,align=center,font=\scriptsize},
+  tool/.style={draw=ForestGreen,fill=dobg,minimum width=2.45cm,minimum height=0.75cm,align=center,font=\scriptsize},
+  store/.style={draw=gray,fill=gray!10,cylinder,shape border rotate=90,aspect=0.18,minimum width=2.2cm,minimum height=0.9cm,align=center,font=\scriptsize},
+  human/.style={draw=BrickRed,fill=dontbg,rounded corners,minimum width=2.45cm,minimum height=0.8cm,align=center,font=\scriptsize},
+  model/.style={draw=Plum,fill=Plum!8,rounded corners,minimum width=2.45cm,minimum height=0.8cm,align=center,font=\scriptsize},
+  arr/.style={-{Stealth[length=1.8mm]},semithick},
+  lab/.style={font=\tiny,fill=white,inner sep=1pt}]
+% evidence column
+\node[comp] (intake) {Intake\\(receipts, hashes)};
+\node[store, below=of intake] (blob) {Blob store\\(SHA-256)};
+\node[comp, below=of blob] (extract) {Extraction\\(page/row locators)};
+\node[comp, below=of extract] (norm) {Normalisation\\(decimal, aliases)};
+\node[store, below=of norm] (snap) {Case and corpus\\snapshots};
+% workflow column
+\node[comp, right=1.0cm of blob, minimum height=1.0cm] (pre) {Preflight\\(coverage, page loss)};
+\node[comp, below=of pre, minimum height=1.2cm, fill=bmsblue!15] (inv) {Investigate\\PLAN $\rightarrow$ act $\rightarrow$\\ASSESS (bounded)};
+\node[comp, below=of inv] (gate) {Finding gate\\(deterministic)};
+\node[comp, below=of gate] (draft) {Draft and verify\\working paper};
+\node[human, below=of draft] (review) {Human reviewer\\(binds revision)};
+% tools column
+\node[model, right=2.0cm of pre] (model) {Model gateway\\Qwen3.5-9B, loopback};
+\node[tool, right=2.0cm of inv] (tools) {Audited tools: inspect,\\locator, trace, reconcile,\\compare, search\_rules};
+\node[store, below=of tools] (fts) {FTS5 index\\(BM25 over R02, R08)};
+\node[tool, below=of fts] (recon) {Reconciler\\(exact decimals)};
+\node[store, below=of recon] (audit) {Audit kernel and\\checkpoints (SQLite)};
+% evaluator
+\node[draw=gray,dashed,rounded corners,align=center,font=\scriptsize,minimum width=2.45cm,above=0.5cm of model] (oracle) {Evaluator and hidden\\answers (outside runtime)};
+% arrows
+\draw[arr] (intake) -- (blob);
+\draw[arr] (blob) -- (extract);
+\draw[arr] (extract) -- (norm);
+\draw[arr] (norm) -- (snap);
+\draw[arr] (snap.east) -| node[lab,pos=0.25]{frozen inputs} ([xshift=-0.35cm]pre.south west) -- (pre.west);
+\draw[arr] (pre) -- (inv);
+\draw[arr] (inv) -- node[lab]{proposals} (gate);
+\draw[arr] (gate) -- (draft);
+\draw[arr] (draft) -- node[lab]{packet} (review);
+\draw[arr,<->] (inv.north east) -- node[lab]{prompt / JSON} (model.south west);
+\draw[arr,<->] (inv) -- node[lab,above=1pt]{action} node[lab,below=1pt]{evidence} (tools);
+\draw[arr] (tools) -- (fts);
+\draw[arr] (fts) -- (recon);
+\draw[arr] (gate.east) -- node[lab]{facts} (recon.west);
+\draw[arr,dashed,gray] (draft.east) -- (audit.west);
+\draw[arr,dashed,gray] (oracle.east) -- ++(0.5,0) |- (audit.east);
+\node[font=\tiny,gray,rotate=90] at ([xshift=0.75cm]fts.east) {scores closed runs};
+\end{tikzpicture}

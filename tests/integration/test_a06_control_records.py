@@ -58,7 +58,7 @@ def test_exact_model_context_retains_the_actual_registry_and_result_references(w
         assert set(request["allowed_tools"]) == {"search_rules"}
         assert request["allowed_tools"]["search_rules"]["additionalProperties"] is False
         assert request["response_schema"]["required"] == ["plan", "action", "stop_reason"]
-        assert request["prior_stage_result_refs"]
+        assert request["prior_stage_observations"]
         assert len(state.result_refs) == 4  # Preflight, tool, draft and verification.
         for ref in state.result_refs:
             env.cases.kernel.blob_store.get(ref)
@@ -70,9 +70,11 @@ def test_model_cannot_generate_a_trusted_review_or_unsupported_resolution(workfl
     output = {**step.output, "action": None, "stop_reason": reason}
     with workflow([replace(step, output=output), replace(step, output=output)]) as env:
         state = env.drive(env.start())
-        assert state.status == "FAILED" and state.stop_reason == "PROVIDER_FAILURE"
+        # The model's stop reason is never adopted: the invalid reply ends the investigation
+        # and a human still reviews the deterministic draft.
+        assert state.status == "AWAITING_REVIEW" and state.stop_reason == "PROVIDER_FAILURE"
         assert not env.lookup.calls and not state.resolved_finding_ids
-        assert state.review_outcome == "NOT_REQUESTED"
+        assert state.review_outcome == "PENDING"
 
 
 def test_model_abstention_keeps_its_plan_and_leaves_finding_unresolved(workflow):

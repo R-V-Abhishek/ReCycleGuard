@@ -77,6 +77,14 @@ def decision(context, kind="APPROVE"):
     )
 
 
+def test_packet_lists_unresolved_issues_from_calculations_and_verifier(review):
+    _, _, _, packet, report, _, _ = review
+    raised = [i for c in report.calculations for i in c.issues if i.severity != "INFO"]
+    assert set(packet.unresolved_issue_refs) >= {i.issue_id for i in raised}
+    assert len(packet.unresolved_issue_refs) == len(set(packet.unresolved_issue_refs))
+    assert packet.proposed_action_refs == []
+
+
 @pytest.mark.parametrize(
     "kind,status,outcome",
     [

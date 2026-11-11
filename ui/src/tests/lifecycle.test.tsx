@@ -6,7 +6,7 @@ import { preparedContext } from "../components/PromptInspector";
 import { useAction, useLoad } from "../components/common";
 import { Connect } from "../screens/Connect";
 import { Dossiers } from "../screens/Dossiers";
-import { Investigation } from "../screens/Investigation";
+import { elapsedSeconds, Investigation, stoppedRunNotice } from "../screens/Investigation";
 import { StartRun } from "../screens/StartRun";
 import { SessionContext } from "../state/session";
 
@@ -34,7 +34,7 @@ function runView(id = "run:one", status = "INVESTIGATING"): RunView {
         preflight_actions: 0, verification_actions: 0, report_repairs: 0,
         finding_actions: {}, finding_reformulations: {} } },
     job: { run_id: id, dossier_id: "dossier:one", status: "RUNNING", detail: null, cancel_requested: 0 },
-    configuration: { execution_kind: "MODEL_BACKED", budgets: { max_model_calls: 999 },
+    configuration: { execution_kind: "MODEL_BACKED", experiment_variant: "V2_ADAPTIVE_REAL_MODEL", budgets: { max_model_calls: 999 },
       model_configuration_id: "configuration:model", prompt_configuration_id: "configuration:prompt",
       case_snapshot: { snapshot_id: "snapshot:case", membership_digest: "a".repeat(64) },
       corpus_snapshot: { snapshot_id: "snapshot:corpus", membership_digest: "b".repeat(64) },
@@ -211,6 +211,36 @@ it("does not subscribe past a missing snapshot sequence", async () => {
 });
 
 
+it("explains a failed run and keeps the recorded status", async () => {
+  const client = clientFixture();
+  const failed = runView("run:one", "FAILED");
+  vi.spyOn(client, "run").mockResolvedValue({ ...failed,
+    state: { ...failed.state, stop_reason: "PROVIDER_FAILURE" },
+    job: { ...failed.job, status: "STOPPED" } });
+  render(session(client, <Investigation runId="run:one" />));
+  expect(await screen.findByText(/uncertain outcome is not repeated automatically/)).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "Request cancellation" })).toBeNull();
+});
+
+it("tells the user a long run is still working", async () => {
+  const client = clientFixture();
+  const running = runView();
+  const longAgo = new Date(Date.now() - 300_000).toISOString();
+  vi.spyOn(client, "run").mockResolvedValue({ ...running,
+    state: { ...running.state, created_at: longAgo, updated_at: longAgo } });
+  render(session(client, <Investigation runId="run:one" />));
+  expect(await screen.findByText(/A local model call can take minutes/)).toBeTruthy();
+});
+
+it("does not invent a duration from a missing timestamp or a notice for a healthy run", () => {
+  expect(elapsedSeconds("", 1000)).toBeNull();
+  expect(elapsedSeconds("1970-01-01T00:00:10Z", 15_000)).toBe(5);
+  expect(stoppedRunNotice("AWAITING_REVIEW", "NO_NEW_EVIDENCE")).toBeNull();
+  expect(stoppedRunNotice("BLOCKED_INPUT", null)).toMatch(/No model call was made/);
+  expect(stoppedRunNotice("BLOCKED_OUTPUT", null)).toMatch(/refused/);
+  expect(stoppedRunNotice("AWAITING_REVIEW", "BUDGET_EXHAUSTED")).toMatch(/budget ceiling/i);
+});
+
 it("offers only server-enabled execution modes before dispatch", async () => {
   const client = clientFixture();
   vi.spyOn(client, "health").mockResolvedValue({ status: "OK", model_configured: true,
@@ -223,5 +253,5 @@ it("offers only server-enabled execution modes before dispatch", async () => {
   const button = screen.getByRole("button", { name: "Start investigation" });
   await waitFor(() => expect((button as HTMLButtonElement).disabled).toBe(false));
   fireEvent.click(button);
-  await waitFor(() => expect(start).toHaveBeenCalledWith("dossier:one", "SCRIPTED_TEST", undefined));
+  await waitFor(() => expect(start).toHaveBeenCalledWith("dossier:one", "SCRIPTED_TEST", undefined, "ADAPTIVE"));
 });

@@ -95,11 +95,57 @@ class VerificationResult(BoundaryModel):
     verified_dependency_digest: Digest
 
 
-_PROHIBITED = re.compile(
+PROHIBITED_CLAIM = re.compile(
     r"\b(?:legal\s+compliance|fraud|intent(?:ional)?|conceal(?:ment)?|"
     r"compensation|penalt(?:y|ies))\b",
     re.IGNORECASE,
 )
+# Model-written text carries no numbers: code supplies every figure from the calculation.
+DIGIT = re.compile(r"\d")
+# Authority or instruction wording, for example copied from an injected dossier document.
+# "Certificate" is the domain's own noun for an EPR credit record, so only the verb forms and
+# "certification" count as a claim of authority.
+AUTHORITY_CLAIM = re.compile(
+    r"\b(?:approved?|certif(?:y|ies|ied|ying|ications?)|ignore\s+(?:all|any|previous|prior)"
+    r"|instructions?)\b",
+    re.IGNORECASE,
+)
+_INSPECTION_LIMITATION = re.compile(r"Inspected \d+ of \d+ dossier observations\.")
+MODEL_LOOP_LIMITATION = (
+    "The model investigation ended on invalid model output; the findings are deterministic "
+    "checks and the model proposals gated before it ended."
+)
+
+
+_ABLATION_LIMITATION = re.compile(
+    r"Deterministic checks for \d+ fault families were switched off for an evaluation; "
+    r"findings in those families come only from the model\."
+)
+
+
+def inspection_limitation(inspected: int, total: int) -> str:
+    return f"Inspected {inspected} of {total} dossier observations."
+
+
+def ablation_limitation(families: int) -> str:
+    return (
+        f"Deterministic checks for {families} fault families were switched off for an "
+        "evaluation; findings in those families come only from the model."
+    )
+
+
+def inspection_limitations(report: "BaselineReport") -> list[str]:
+    """The report-carried limitations a rebuild keeps; each can only qualify a report."""
+    return [
+        claim.template_or_text
+        for claim in report.claims
+        if claim.kind == "LIMITATION"
+        and (
+            _INSPECTION_LIMITATION.fullmatch(claim.template_or_text)
+            or _ABLATION_LIMITATION.fullmatch(claim.template_or_text)
+            or claim.template_or_text == MODEL_LOOP_LIMITATION
+        )
+    ]
 
 
 def _issue(code: str, message: str, *, claim_id: str | None = None) -> Issue:
@@ -165,6 +211,7 @@ class BaselineReportBuilder:
         findings: Iterable[FindingRecord] = (),
         coverage_ref: EvidenceRef | None = None,
         run_id: ID | None = None,
+        limitations: Iterable[str] = (),
     ) -> BaselineReport:
         findings = tuple(findings)
         coverage_ref = coverage_ref or EvidenceRef(
@@ -293,7 +340,14 @@ class BaselineReportBuilder:
             add(
                 "INVESTIGATION_HISTORY",
                 "Investigation history",
-                "No model-authored investigation steps are asserted in this baseline report.",
+                "Findings with a model source are model proposals that passed the evidence "
+                "gate; they are qualified and require human review."
+                if any(
+                    assessment.get("source") == "MODEL_PROPOSAL"
+                    for finding in findings
+                    for assessment in finding.evidence_assessments
+                )
+                else "No model-authored investigation steps are asserted in this baseline report.",
                 "LIMITATION",
                 status="QUALIFIED",
             )
@@ -316,6 +370,16 @@ class BaselineReportBuilder:
                 status="QUALIFIED",
             )
         )
+        for limitation in limitations:
+            section_claims["LIMITATIONS_AND_REPRODUCIBILITY"].append(
+                add(
+                    "LIMITATIONS_AND_REPRODUCIBILITY",
+                    "Limitations",
+                    limitation,
+                    "LIMITATION",
+                    status="QUALIFIED",
+                )
+            )
 
         titles = {
             "CASE_SCOPE": "Case scope",
@@ -467,6 +531,7 @@ class ReportVerifier:
                 findings=findings,
                 coverage_ref=report.revision.coverage_ref,
                 run_id=report.revision.run_id,
+                limitations=inspection_limitations(report),
             )
             check(
                 "canonical_claims",
@@ -520,7 +585,7 @@ class ReportVerifier:
                         claim_id=claim.claim_id,
                     )
                 )
-            if _PROHIBITED.search(claim.template_or_text):
+            if PROHIBITED_CLAIM.search(claim.template_or_text):
                 issues.append(
                     _issue(
                         "PROHIBITED_VERDICT",

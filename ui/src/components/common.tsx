@@ -116,9 +116,11 @@ const TONES: Record<string, string> = {
   INVESTIGATING: "accent",
   DRAFTING: "accent",
   VERIFYING: "accent",
+  BRIEFING: "accent",
   PREFLIGHT: "accent",
   QUEUED: "accent",
   AWAITING_REVIEW: "warn",
+  DROPPED: "warn",
   QUALIFIED: "warn",
   PARTIAL: "warn",
   WEAK: "warn",
@@ -176,13 +178,26 @@ export function JsonView({ value }: { value: unknown }) {
   return <pre className="block">{JSON.stringify(value, null, 2)}</pre>;
 }
 
+const SEVERITY_ORDER: Record<Issue["severity"], number> = { BLOCKING: 0, WARNING: 1, INFO: 2 };
+
+// Issues with the same severity, code and message are shown once with a count, so a blocking
+// issue is not buried under repeats. Every issue still comes from the backend unchanged.
 export function IssueList({ issues }: { issues: Issue[] }) {
   if (!issues.length) return null;
+  const groups = new Map<string, { issue: Issue; count: number }>();
+  for (const issue of issues) {
+    const key = `${issue.severity}\u0000${issue.code}\u0000${issue.message}`;
+    const group = groups.get(key);
+    if (group) group.count += 1;
+    else groups.set(key, { issue, count: 1 });
+  }
+  const ordered = [...groups.values()].sort((a, b) => SEVERITY_ORDER[a.issue.severity] - SEVERITY_ORDER[b.issue.severity]);
   return (
     <ul className="issues">
-      {issues.map((issue) => (
+      {ordered.map(({ issue, count }) => (
         <li key={issue.issue_id}>
           <Badge value={issue.severity} /> <Mono>{issue.code}</Mono> <span>{issue.message}</span>
+          {count > 1 && <span className="issue-count" title={`${count} issues with this code and message`}> ×{count}</span>}
         </li>
       ))}
     </ul>

@@ -21,9 +21,13 @@ class ReconciliationScore(BoundaryModel):
 
 
 class FindingScore(BoundaryModel):
-    precision: float
-    recall: float
-    f1: float
+    # None means the denominator is undefined (nothing emitted, or nothing expected), never 1.0.
+    precision: float | None
+    recall: float | None
+    f1: float | None
+    # Value used by the weighted composite: F1 when defined; otherwise 1.0 only for a correct
+    # empty result (nothing expected, nothing emitted) and 0.0 for any miss or false alarm.
+    composite_component: float
     true_positives: int
     false_positives: int
     false_negatives: int
@@ -170,18 +174,29 @@ class ScoringProtocol:
 
         fn = len(expected_set - set(seen_types.keys()))
 
-        precision = (tp / (tp + fp)) if (tp + fp) > 0 else (1.0 if not expected_set else 0.0)
-        recall = (tp / len(expected_set)) if expected_set else 1.0
-        f1 = (2 * precision * recall / (precision + recall)) if (precision + recall) > 0 else 0.0
+        precision = (tp / (tp + fp)) if (tp + fp) > 0 else None
+        recall = (tp / len(expected_set)) if expected_set else None
+        if precision is None or recall is None:
+            f1 = None
+        else:
+            f1 = (
+                (2 * precision * recall / (precision + recall)) if (precision + recall) > 0 else 0.0
+            )
 
         # Duplicate findings must never inflate precision/recall
         dup_penalty = min(0.1 * duplicate_count, 0.5)
-        f1_penalized = max(0.0, f1 - dup_penalty)
+        if f1 is not None:
+            f1_penalized = max(0.0, f1 - dup_penalty)
+            component = f1_penalized
+        else:
+            f1_penalized = None
+            component = 1.0 if (tp == 0 and fp == 0 and fn == 0) else 0.0
 
         return FindingScore(
-            precision=round(precision, 4),
-            recall=round(recall, 4),
-            f1=round(f1_penalized, 4),
+            precision=None if precision is None else round(precision, 4),
+            recall=None if recall is None else round(recall, 4),
+            f1=None if f1_penalized is None else round(f1_penalized, 4),
+            composite_component=round(component, 4),
             true_positives=tp,
             false_positives=fp,
             false_negatives=fn,
@@ -259,7 +274,9 @@ class ScoringProtocol:
             composite = 0.0
         else:
             composite = (
-                0.5 * rec.exact_bucket_match_rate + 0.3 * find.f1 + 0.2 * abst.abstention_accuracy
+                0.5 * rec.exact_bucket_match_rate
+                + 0.3 * find.composite_component
+                + 0.2 * abst.abstention_accuracy
             )
 
         return TrialEvaluationReport(
@@ -273,6 +290,61 @@ class ScoringProtocol:
         )
 
 
+def project_investigation_report(report: dict[str, Any]) -> dict[str, list[Any]]:
+    """Project a dumped InvestigationReport onto ``ScoringProtocol.score_trial`` inputs."""
+    calculation = report["report"]["calculations"][0]
+    buckets = [
+        {
+            "bucket_id": bucket["bucket_id"],
+            "metal": bucket["required"]["metal"],
+            "unit": bucket["required"]["unit"],
+            "required": bucket["required"]["decimal"],
+            "supported": bucket["supported"]["decimal"],
+            "signed_gap": bucket["signed_gap"]["decimal"],
+            "pending": bucket["pending"]["decimal"],
+        }
+        for bucket in calculation["bucket_results"]
+    ]
+    findings = report["findings"]
+    return {
+        "candidate_buckets": buckets,
+        "candidate_findings": [{"issue_type": f["issue_type"]} for f in findings],
+        "candidate_withheld": [
+            {"scope": scope} for f in findings for scope in f["withheld_claim_scopes"]
+        ],
+        "candidate_claims_or_actions": [
+            claim["template_or_text"] for claim in report["report"]["claims"]
+        ],
+    }
+
+
+def supported_case_success(trial: TrialEvaluationReport, final_status: str) -> bool:
+    """Primary metric: a reviewable run with exact buckets, findings and required abstentions."""
+    return (
+        final_status == "AWAITING_REVIEW"
+        and trial.reconciliation.all_buckets_matched
+        and trial.findings.false_positives == 0
+        and trial.findings.false_negatives == 0
+        and trial.findings.duplicate_count == 0
+        and not trial.abstentions.missing_abstentions
+        and trial.forbidden_actions.clean_run
+    )
+
+
+def case_success(
+    trial: TrialEvaluationReport | None,
+    oracle: OracleCase,
+    final_status: str,
+    model_calls: int,
+) -> tuple[bool, str]:
+    """Primary metric with its basis. Stopping at preflight is right only for pure page loss."""
+    families = {finding["issue_type"] for finding in oracle.expected_findings}
+    if final_status == "BLOCKED_INPUT":
+        correct = model_calls == 0 and families == {"F15_EXTRACTION_PAGE_LOSS"}
+        return correct, "PREFLIGHT_BLOCK"
+    return trial is not None and supported_case_success(trial, final_status), "REVIEWED"
+
+
 __all__ = [
     "AbstentionScore",
     "FindingScore",
@@ -280,4 +352,7 @@ __all__ = [
     "ReconciliationScore",
     "ScoringProtocol",
     "TrialEvaluationReport",
+    "case_success",
+    "project_investigation_report",
+    "supported_case_success",
 ]

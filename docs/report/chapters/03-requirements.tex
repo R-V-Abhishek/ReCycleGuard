@@ -1,0 +1,95 @@
+%---------------------------------------------------------------------
+\chapter{Requirements and System Analysis}
+%---------------------------------------------------------------------
+
+\section{Stakeholders and Users}
+The primary user is a \emph{compliance officer} at a producer, who assembles evidence and prepares
+the working paper behind a return. A \emph{reviewer}, typically a senior officer or an internal
+auditor, examines the working paper and accepts, qualifies or rejects each finding. The producer's
+management relies on the reviewed result. The regulator (CPCB and the State Pollution Control
+Boards) is affected indirectly, through the quality of what is filed, but is not a user: the
+system does not interact with the portal.
+
+\section{Functional Requirements}
+\begin{description}[itemsep=1pt,font=\normalfont\bfseries]
+\item[FR1] The system shall accept original files (PDF, CSV, JSON), hash their bytes, store them
+immutably and issue a receipt for every intake outcome, including rejections.
+\item[FR2] The system shall extract observations with exact locators (page, row, field) and record
+every extraction failure.
+\item[FR3] The system shall normalise units, metals and entity aliases with validated decimal
+quantities, keeping missing, unknown, not applicable and zero distinct.
+\item[FR4] The system shall freeze a case snapshot and a corpus snapshot, each identified by a
+digest, before any investigation runs.
+\item[FR5] The system shall reconcile obligation buckets against supported allocations with
+deterministic tools, preserving credit conservation and earlier-liability priority.
+\item[FR6] The system shall run a bounded investigation in which a model proposes one audited
+action at a time, assesses the observation, and resolves, continues or abstains.
+\item[FR7] The system shall accept a model-proposed finding only through a deterministic gate that
+checks it against computed evidence, and shall record every rejected proposal with its reason.
+\item[FR8] The system shall produce a working paper whose figures and citations are verified
+against the snapshot, and shall bind each human decision to the exact report revision.
+\item[FR9] The system shall export a run with its digests so that it can be replayed and checked.
+\end{description}
+
+\section{Non-Functional Requirements}
+\begin{description}[itemsep=1pt,font=\normalfont\bfseries]
+\item[NFR1] Exactness: compliance quantities use decimal arithmetic; binary floating point and
+SQLite \texttt{REAL}/\texttt{SUM} are never used for balances.
+\item[NFR2] Bounded cost: at most 12 model calls, 600~s of wall time and 32{,}768 tokens per model
+call in one investigation; exhausted budgets are recorded as outcomes.
+\item[NFR3] Traceability: every model call and tool action is recorded in an append-only audit
+log before dispatch, with per-attempt records.
+\item[NFR4] Safety: the model cannot approve evidence, impersonate a reviewer, modify originals,
+run arbitrary code or SQL, or invent a source; dossier text is treated as untrusted data.
+\item[NFR5] Isolation: hidden answers, fault labels and generator seeds never enter the runtime,
+prompts, retrieval index, user interface or run artifacts.
+\item[NFR6] Privacy: inference is local, on a loopback interface; no dossier text leaves the
+machine during an investigation, and tokens and passwords are kept out of logs.
+\item[NFR7] Portability: the base application and its tests run on Windows, Linux and macOS;
+local inference dependencies are kept separate.
+\end{description}
+
+\section{Data Sources}
+Table~\ref{tab:data} lists the data used. The two regulatory documents are public CPCB
+publications kept with their SHA-256 digests; their redistribution rights are recorded as
+\texttt{REVIEW\_REQUIRED}, so the public release lists them by title, digest and page count rather
+than redistributing them. All dossiers are synthetic and watermarked ``SYNTHETIC -- NOT A CPCB
+RECORD''.
+
+\begin{table}[htbp]
+\centering
+\caption{Data sources used in ReCycleGuard}
+\label{tab:data}
+\small
+\begin{tabularx}{\linewidth}{@{}l X l l@{}}
+\toprule
+\textbf{Source} & \textbf{Description} & \textbf{Size} & \textbf{Origin} \\ \midrule
+R02 & E-Waste (Management) Rules, 2022~\cite{rules2022} (PDF) & 38 pages & CPCB website \\
+R08 & CPCB FAQ under the E-Waste Rules, 23 Jan 2024~\cite{faq2024} (PDF) & 13 pages & CPCB website \\
+\texttt{pilot-0.1} & Dossiers of PDFs, CSVs and JSON with hidden answers & 48 dossiers & Synthetic, team generator \\
+Earlier sets & Hand-built and S06 development dossiers (development only) & -- & Synthetic, team-built \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The \texttt{pilot-0.1} set is split into 24 development dossiers (a tuning set of 16 and a
+checking set of 8) and 24 held-out dossiers. The held-out dossiers are not in the repository; a
+seal file stores one SHA-256 per dossier so that their bytes can be checked without opening them.
+Chapter~7 describes the set in detail.
+
+\section{Hardware and Software Requirements}
+Development used an Apple M3 laptop (where the early native experiments ran with MLX), a Windows
+PC with an NVIDIA RTX GPU with 24~GB of memory (MG1, one Docker container per trial), and free
+Kaggle notebooks with an NVIDIA Tesla T4 GPU with 16~GB (MG2, while the PC was unavailable). The
+software is Python~3.11 or later managed with \texttt{uv}, LangGraph for the workflow, FastAPI for
+the HTTP interface, a React user interface, and llama.cpp build \texttt{b12033} serving
+Qwen3.5-9B quantised to Q8\_0~\cite{qwen35gguf,llamacpp}. Versions are listed in
+Table~\ref{tab:stack} and Appendix~\ref{app:run}.
+
+\section{Feasibility}
+Inference is local, so there is no per-call charge; the cost is GPU time. A single-agent trial
+used about 6 model calls and 90 to 110~s on a T4 with three parallel slots (Table~\ref{tab:mg2-rules-on}),
+and the 448-trial rules-on queue of seven sessions took about three hours (log entry 14). Kaggle's free tier gives about 30 GPU
+hours a week, which bounded the T4 series to three queues and one held-out run. Real producer data
+and portal access were out of reach, which is why the benchmark is synthetic and the system never
+connects to the portal.

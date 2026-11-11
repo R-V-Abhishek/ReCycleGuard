@@ -62,6 +62,8 @@ fixture reviewers; they are not real team acknowledgements.
   tool call (`compute_reconciliation`), zero retries, a qualified report and authenticated fixture review.
 
 ### Unfinished checks and downstream gates
+
+*(Status at the time of this backend push, 30-31 Oct. CP4 was later approved on 1 Nov 2026: see [APPROVAL.md](APPROVAL.md). MG1 remains unapproved.)*
 - The full regression sweep across the broader repository test suite is marked **unfinished** for this
   progress push.
 - CP4 and MG1 are not approved by this API handoff. Export/replay, stronger runtime

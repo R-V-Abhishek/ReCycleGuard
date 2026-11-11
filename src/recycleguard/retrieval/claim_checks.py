@@ -13,7 +13,12 @@ from recycleguard.contracts.extraction import Observation
 
 class RegulatoryClaimFinding(BoundaryModel):
     finding_id: str
-    kind: Literal["OLD_RULE_PERIOD", "UNVERIFIED_EXTENSION", "UNSUPPORTED_REFURBISHMENT_OFFSET"]
+    kind: Literal[
+        "OLD_RULE_PERIOD",
+        "UNVERIFIED_EXTENSION",
+        "UNSUPPORTED_REFURBISHMENT_OFFSET",
+        "INSTRUCTION_TEXT",
+    ]
     outcome: Literal["FAIL", "UNKNOWN"]
     scope: str
     summary: str
@@ -40,6 +45,33 @@ class RegulatoryCheckResult(BoundaryModel):
     unsupported_calculation_withheld: bool = False
 
 
+# Directive wording addressed to an automated reader rather than to a person. Matching text is
+# evidence about the document; it is never quoted into a report and never followed.
+_INSTRUCTION = re.compile(
+    r"\bsystem\s+(?:instruction|prompt)s?\b"
+    r"|\b(?:ignore|disregard)\s+(?:all\s+|any\s+)?(?:previous|prior|earlier|above)\b"
+    r"|\bautomated\s+(?:review(?:er)?s?|verification|compliance|tools?|systems?|agents?)\b"
+    r"|\byou\s+are\s+now\b"
+    r"|\b(?:assistant|ai|model)\s*:\s*override\b",
+    re.IGNORECASE,
+)
+
+
+def _strings(value) -> list[str]:
+    if isinstance(value, str):
+        return [value]
+    if isinstance(value, dict):
+        return [text for item in value.values() for text in _strings(item)]
+    if isinstance(value, list):
+        return [text for item in value for text in _strings(item)]
+    return []
+
+
+def addresses_automated_reader(observation: Observation) -> bool:
+    text = " ".join(_strings(observation.raw_fields) + _strings(observation.parsed_fields))
+    return _INSTRUCTION.search(text) is not None
+
+
 def _period(value: str) -> str | None:
     match = re.search(
         r"\b(?:FY\s*(20\d{2})\s*[-–/]\s*(?:20)?(\d{2})|(20\d{2})\s*[-–/]\s*(20\d{2}))\b",
@@ -54,15 +86,18 @@ def _period(value: str) -> str | None:
 
 
 def inspect_regulatory_claims(
-    observations: list[Observation], reporting_period: str
+    observations: list[Observation], reporting_period: str, case_periods=()
 ) -> list[RegulatoryClaimFinding]:
     """Inspect supplied, approved-case observations; references retain exact original locators.
 
     This detects claims requiring investigation, never certifies the legal authority
     of a dossier assertion. Callers retain responsibility for case-membership approval.
+    A cited period the case itself holds an obligation for (``case_periods``, such as an
+    earlier liability year) is that period's own record, not a wrong-period rule citation.
     """
     findings = []
     target = _period(reporting_period)
+    own = {target} | {_period(period) for period in case_periods}
     for observation in observations:
         text = json.dumps(
             {"raw": observation.raw_fields, "parsed": observation.parsed_fields}, ensure_ascii=False
@@ -73,7 +108,7 @@ def inspect_regulatory_claims(
         if old_rule or (
             cited is not None
             and target is not None
-            and cited != target
+            and cited not in own
             and any(term in text for term in ("rule", "regulat", "applicab"))
         ):
             kinds.append(
@@ -95,6 +130,18 @@ def inspect_regulatory_claims(
                     (
                         "An extension claim requires the reviewed issued order; "
                         "the dossier notice is insufficient."
+                    ),
+                )
+            )
+        if addresses_automated_reader(observation):
+            kinds.append(
+                (
+                    "INSTRUCTION_TEXT",
+                    "UNKNOWN",
+                    "text addressed to automated tools",
+                    (
+                        "Document text addresses automated tools; it was treated as evidence "
+                        "only and changed no permission or control."
                     ),
                 )
             )

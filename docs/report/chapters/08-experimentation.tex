@@ -1,0 +1,102 @@
+%---------------------------------------------------------------------
+\chapter{Experimentation}
+%---------------------------------------------------------------------
+The project ran a chain of experiments, each motivated by the previous result and recorded in an
+append-only experiment log (\path{docs/checkpoints/mg2/EXPERIMENT_LOG.md}). This chapter
+summarises the chain and then reports the main controlled experiment, MG2, and the held-out run.
+
+\section{The Experimental Progression}
+Table~\ref{tab:progression} lists the steps. The early steps (MG1) changed one thing at a time on the
+single agent; their main finding was that the gains came from the deterministic engine, not from the
+model, which motivated the multi-agent hypothesis.
+
+\begin{table}[htbp]
+\centering
+\caption{Hypothesis, change, result and decision at each step}
+\label{tab:progression}
+\small
+\begin{tabularx}{\linewidth}{@{}l >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X@{}}
+\toprule
+\textbf{Log} & \textbf{Change} & \textbf{Result} & \textbf{Decision} \\ \midrule
+1 & Prompts v8--v12, each an ablation of v7 & v7 best at 69 of 128 trials; the model contributed 3 findings & Stop prompt tuning; find why cases fail \\
+2 & Trace every failing case & Seven cases fail every run for deterministic causes & Fix the engine and gate \\
+3--4 & Family checks, contradiction gate, one case fix & 30, then 32 of 32; model proposed one finding, rejected & Check on checking-8 \\
+5 & Model-free controls on checking-8 & V0, SC, V1 and V2 all 7 of 8; model share 0 & Give the model a measurable role \\
+6 & Page loss reported as F15 & 32 of 32 on both sets & Keep \\
+7 & All family checks off; thinking prompt & 0 of 21 for v7 and SC; thinking 1 of 21 with false claims & v7 stays; the model never read text \\
+9--11 & Retriever and Classifier designed, pre-registered, built & Scripted tests only & Run on the real model \\
+12--14 & MG2 on T4: 18 sessions, 1{,}008 trials & No multi-agent arm passes the gate & Nothing selected \\
+15 & Stop prompt iteration; declare held-out run & -- & Run held-out once \\
+16 & Held-out run, 24 cases, 240 trials & V1, V2, V0 and SC all succeed on every trial; model share 0 & Close the experiment \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Hypothesis}
+\emph{A Retriever that reads and grades document text, together with a Classifier that maps verified
+claims and computed facts to fault families, recovers judgement faults in the ablated arena that the
+single-agent v7 loop and the scripted control miss, without adding false findings when the
+deterministic checks are on.} The hypothesis is falsified if no multi-agent arm both beats SC in the
+ablated arena and passes the rules-on gate (32 of 32 with no false positive).
+
+\section{Experimental Setup}
+The arms, arenas, metrics and selection rule were fixed in a pre-registration before the first run:
+\begin{itemize}[itemsep=1pt]
+\item \textbf{Arms.} D0/SC (controls); S1, the single-agent v7 loop (V1 and V2); M1, the Retriever
+followed by a deterministic claim-to-family lookup; M2, the Retriever and the Classifier; M2-nr,
+the Classifier alone. M1 and M2-nr isolate the contribution of each role.
+\item \textbf{Prompts.} At most four versions declared in advance, each one change from
+\texttt{mg2\_agents\_v1}: v2 drops the Retriever's examples, v3 drops the Classifier's family
+meanings, v4 left open for one change a result motivates.
+\item \textbf{Held fixed.} Model (Qwen3.5-9B Q8\_0), server build, three parallel slots, greedy
+decoding, budgets, corpus, cases (tuning-16), two repeats per case, and the scorer.
+\item \textbf{Selection rule.} Fewest false positives, then ablated recall, then calls; the chosen
+arm must pass the rules-on gate. Only then is a freeze manifest created and the held-out set run.
+\item \textbf{Where.} The PC became unavailable, so the 18 development sessions ran on free Kaggle T4
+GPUs as a separate series with one process per trial instead of one container (a recorded
+deviation). The answers stayed on the laptop, where every session was scored.
+\end{itemize}
+
+\section{Results}
+Figure~\ref{fig:mg2plot} plots the two quantities that decide the hypothesis for every arm: true positives
+recovered in the ablated arena (the benefit) and accepted false positives with the rules on (the
+cost). Tables~\ref{tab:mg2-ablated} and~\ref{tab:mg2-rules-on} give the full results.
+
+\begin{figure}[htbp]
+\centering
+\input{figures/mg2-plot}
+\caption{Cost and benefit of each arm in the MG2 development series}
+\label{fig:mg2plot}
+\end{figure}
+
+No arm supports the hypothesis. The best ablated recall, 6 true positives (out of 42 expected
+findings over 32 trials), came from M2 v2 and M1 v1, which with the rules on accepted 25 and 37 false
+positives. The Classifier alone made no false positive in the ablated arena and only one or two with
+the rules on, but found 2 or 3 findings when the rules were off. Changing the prompt (v2, v3) moved
+the counts without changing the pattern. The single-agent arms were the only ones without false
+positives, and they found nothing when the rules were off.
+
+\section{Discussion and Decision}
+The hypothesis was not supported. The Retriever does read text and does produce claims, which the
+single-agent loop never did, but at this model size most of its claims attach a plausible quote to
+the wrong family, and the gate, which checks that evidence exists and is not contradicted, lets them
+through. The Classifier alone is safe mainly because the gate rejects almost everything it proposes.
+
+By the selection rule no arm could be selected, and on 11 November 2026 the team decided to stop
+prompt iteration rather than write a fourth version (log entry 15): three versions across three
+multi-agent arms had produced the same false-positive families, and the remaining budget was better
+spent on one honest held-out run. The held-out run was declared before it started, with two recorded
+deviations: it uses the single-agent arms (the primary V1 versus V2 comparison of the evaluation
+protocol) with the controls, plus the Classifier alone with prompt v3 as the arm that ranks first by
+the selection rule, reported descriptively; and it runs on a Kaggle T4 with the 24 visible dossiers
+uploaded once to a private dataset, verified against two freeze manifests that pin the commit,
+protocol, prompts and dossier bytes.
+
+\section{Held-out A/B Result}
+The held-out run is reported in Table~\ref{tab:heldout} (Chapter~7; log entry 16). The primary question
+was whether V2, the adaptive loop, differs from V1, the fixed sequence, on cases neither was tuned on.
+It does not on success: both, and both model-free controls, succeeded on every trial, so the
+held-out set shows no drop of the deterministic engine on cases it was not built from, and it cannot
+rank the two loops except on cost, where V2 used fewer model calls (2.4 against 6.1). The model's
+contribution was zero, as in MG1. The Classifier alone made one accepted false finding in 48 trials,
+consistent with its development result. Nothing was tuned after this run.
