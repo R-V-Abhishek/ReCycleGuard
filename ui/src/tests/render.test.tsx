@@ -2,9 +2,9 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { ApiClient } from "../api/client";
 import type { BucketResult, Quantity, TraceEvent } from "../api/types";
-import { Qty } from "../components/common";
-import { EventDetail, Timeline } from "../components/Timeline";
-import { BucketTable } from "../screens/Report";
+import { IssueList, Qty } from "../components/common";
+import { actorOf, EventDetail, Timeline } from "../components/Timeline";
+import { BucketBar, BucketTable } from "../screens/Report";
 import { SessionContext } from "../state/session";
 
 afterEach(cleanup);
@@ -131,5 +131,37 @@ describe("event details", () => {
     expect(container.querySelector(".tl-row.on")).toBeTruthy();
     rerender(<Timeline events={[item, audit]} onSelect={() => {}} showAudit />);
     expect(screen.getByText("graph.turn.started")).toBeTruthy();
+  });
+
+  it("names who acted from the event kind and keeps refusals visible without the audit stream", () => {
+    const refused = event(4, { kind: "AUDIT", event_type: "graph.action_rejected.result" });
+    const review = event(5, { kind: "AUDIT", event_type: "graph.review_projection.result" });
+    const stage = event(6, { kind: "TOOL_OR_STAGE_RESULT", event_type: "graph.stage.preflight.result", status: "SUCCESS", issues: [], data: null });
+    expect(actorOf(proposal("r"))).toBe("model");
+    expect(actorOf(stage)).toBe("engine");
+    expect(actorOf(refused)).toBe("refused");
+    expect(actorOf(review)).toBe("person");
+    expect(actorOf(event(7, { kind: "AUDIT", event_type: "graph.turn.started" }))).toBe("record");
+    render(<Timeline events={[proposal("r"), refused, review]} onSelect={() => {}} showAudit={false} />);
+    expect(screen.getByText("Proposed arguments refused")).toBeTruthy();
+    expect(screen.queryByText("graph.review_projection.result")).toBeNull();
+  });
+
+  it("shows repeated issues once with a count, blocking first", () => {
+    const issue = (id: string, severity: "WARNING" | "BLOCKING", message: string) =>
+      ({ issue_id: id, code: "CODE", severity, message, field_path: null, evidence_refs: [], retryable: false });
+    const { container } = render(<IssueList issues={[issue("a", "WARNING", "same"), issue("b", "WARNING", "same"), issue("c", "BLOCKING", "stop")]} />);
+    const rows = [...container.querySelectorAll("li")].map((li) => li.textContent);
+    expect(rows).toEqual(["BLOCKING CODE stop", "WARNING CODE same ×2"]);
+  });
+
+  it("draws a bucket with exact figures and no bar for a zero target", () => {
+    render(<BucketBar bucket={bucket()} />);
+    expect(screen.getByRole("img").getAttribute("aria-label")).toBe("Supported 0.10000000 of 12.3400 KG; 5.5000 pending and not credited");
+    expect(screen.getByText("12.2400")).toBeTruthy();
+    cleanup();
+    const zero = quantity("0");
+    const { container } = render(<BucketBar bucket={bucket({ required: zero, supported: zero, pending: zero })} />);
+    expect(container.firstChild).toBeNull();
   });
 });

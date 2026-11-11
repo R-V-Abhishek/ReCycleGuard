@@ -32,7 +32,7 @@ export function Shell({ route, onDisconnect, children }: { route: string[]; onDi
   return (
     <HeaderContext.Provider value={context}>
       <header className="app-head">
-        <div className="brand">ReCycleGuard</div>
+        <div className="brand"><span className="brand-mark" aria-hidden="true"><i /><i /><i /></span>ReCycleGuard</div>
         <dl className="identity">
           <div><dt>Dossier</dt><dd>{shown.dossierName ?? <Unavailable label="none" />}</dd></div>
           <div><dt>Fiscal year</dt><dd>{fiscalYear ?? <Unavailable />}</dd></div>

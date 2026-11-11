@@ -6,6 +6,40 @@ import { BriefPanel, BucketDetails, ChecksTable, ClaimsBySection, ReportText, Un
 import { useHeader } from "../components/Shell";
 import { href, useClient } from "../state/session";
 
+// A picture of one bucket against its target. Numbers shown are the backend's exact decimal
+// strings; Number() is used only for bar widths, never for a balance.
+export function BucketBar({ bucket }: { bucket: BucketResult }) {
+  const { required, supported, pending, shortfall, surplus } = bucket;
+  if (supported.unit !== required.unit || pending.unit !== required.unit) return null;
+  const target = Number(required.decimal);
+  const done = Number(supported.decimal);
+  const waiting = Number(pending.decimal);
+  const scale = Math.max(target, done + waiting);
+  if (!(scale > 0)) return null;
+  const pct = (value: number) => `${(Math.max(0, value) / scale) * 100}%`;
+  return (
+    <figure className="bucket-bar">
+      <figcaption>
+        <strong>{required.metal ?? "Bucket"}</strong> target <Qty value={required} />
+      </figcaption>
+      <div className="bar" role="img" aria-label={`Supported ${supported.decimal} of ${required.decimal} ${required.unit}; ${pending.decimal} pending and not credited`}>
+        <span className="bar-supported" style={{ width: pct(done) }} />
+        <span className="bar-pending" style={{ width: pct(Math.min(waiting, scale - done)) }} />
+        <span className="bar-target" style={{ left: pct(target) }} />
+      </div>
+      <dl className="bar-key">
+        <div><dt><i className="key-supported" />Supported</dt><dd><Qty value={supported} /></dd></div>
+        <div><dt><i className="key-pending" />Pending, not credited</dt><dd><Qty value={pending} /></dd></div>
+        <div><dt><i className="key-gap" />No record yet</dt></div>
+      </dl>
+      <p className="bar-total">
+        Shortfall <Qty value={shortfall} />: the target minus supported quantity. Pending quantity isn't credited.
+        {Number(surplus.decimal) > 0 && <> Surplus <Qty value={surplus} />.</>}
+      </p>
+    </figure>
+  );
+}
+
 // One row per bucket. Metals are never summed, and each column stays its own number.
 export function BucketTable({ buckets }: { buckets: BucketResult[] }) {
   return (
@@ -244,6 +278,7 @@ export function Report({ runId }: { runId: string }) {
             {body.report.calculations.map((calculation) => (
               <div key={calculation.calculation_id} id={`calc-${calculation.calculation_id}`}>
                 <p className="small"><Badge value={calculation.coverage} /> <Mono>{calculation.calculation_id}</Mono></p>
+                {calculation.bucket_results.map((bucket) => <BucketBar key={bucket.bucket_id} bucket={bucket} />)}
                 <BucketTable buckets={calculation.bucket_results} />
                 {calculation.bucket_results.map((bucket) => <BucketDetails key={bucket.bucket_id} bucket={bucket} dossierId={dossierId} />)}
                 <IssueList issues={calculation.issues} />
