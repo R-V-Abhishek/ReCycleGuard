@@ -3,6 +3,7 @@
 \caption{MG2 rules-on arena (the no-regression gate)}
 \label{tab:mg2-rules-on}
 \small
+\shrinkfit{%
 \begin{tabular}{@{}l l r r r r r r@{}}
 \toprule
 \textbf{Arm} & \textbf{Prompt} & \textbf{Cases} & \textbf{95\% CI} & \textbf{TP / FP} & \textbf{Prop.\ / acc.} & \textbf{Calls} & \textbf{s} \\
@@ -20,7 +21,7 @@ M1 Retriever + lookup & v2 & 13 of 32 & 0.25--0.59 & 41 / 31 & 44 / 31 & 4.4 & 9
 SC (in each of 9 sessions) & -- & \multicolumn{6}{l}{16 of 16, FP 0} \\
 V0 (in each of 9 sessions) & -- & \multicolumn{6}{l}{16 of 16, FP 0} \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
 \par\smallskip
 \parbox{\linewidth}{\footnotesize T4 series, cooperative isolation, 3 slots, 2 repeats on tuning-16. Prop.\ / acc.: model finding proposals made and accepted by the gate. Calls and s: mean model calls and wall seconds per trial. Source: \texttt{docs/checkpoints/mg2/runs/t4/*/compare.csv}.}
 \end{table}

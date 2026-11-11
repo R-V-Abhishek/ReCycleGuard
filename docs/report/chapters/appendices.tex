@@ -3,15 +3,15 @@
 %=====================================================================
 \chapter{Team Contribution}
 \label{app:contrib}
-Ownership follows the repository's component assignment (\texttt{AGENTS.md}, \texttt{implementation
-plan.md}); integration work by the lead is recorded separately in each checkpoint's construction
+Ownership follows the repository's component assignment (\texttt{AGENTS.md} and the
+implementation plan); integration work by the lead is recorded separately in each checkpoint's construction
 record. Shares are not quantified.
 
 \begin{table}[htbp]
 \centering
 \caption{Contribution of team members}
 \small
-\begin{tabularx}{\linewidth}{@{}l l X@{}}
+\begin{tabularx}{\linewidth}{@{}l >{\raggedright\arraybackslash}p{3.3cm} >{\raggedright\arraybackslash}X@{}}
 \toprule
 \textbf{USN} & \textbf{Name} & \textbf{Components owned} \\ \midrule
 \USNb & \NameB\ (Lead) & Orchestration and integration, shared contracts and configuration, CLI,
@@ -28,7 +28,7 @@ generator and benchmark \\
 \chapter{Setup and Run Instructions}
 \label{app:run}
 Repository: \url{https://github.com/R-V-Abhishek/ReCycleGuard}. The commands below are those of the
-repository's README and reproduction guide (\texttt{docs/release/REPRODUCE.md}). No secret is needed
+repository's README and reproduction guide (\path{docs/release/REPRODUCE.md}). No secret is needed
 for the deterministic pipeline; the model configuration and reviewer password stay outside Git.
 
 \begin{lstlisting}[language={},numbers=none]
@@ -47,9 +47,9 @@ cd ui && npm ci && npm run dev
 uv run scripts/report_tables.py
 \end{lstlisting}
 
-The model server setup is in \texttt{docs/checkpoints/mg1/DOCKER\_RUNBOOK.md} (PC, Docker) and
-\texttt{docs/checkpoints/mg2/CLOUD\_RUNBOOK.md} (Kaggle or Colab T4); both pin llama.cpp
-\texttt{b12033} and the Q8\_0 weights by revision (\texttt{deploy/model.env}).
+The model server setup is in \path{docs/checkpoints/mg1/DOCKER_RUNBOOK.md} (PC, Docker) and
+\path{docs/checkpoints/mg2/CLOUD_RUNBOOK.md} (Kaggle or Colab T4); both pin llama.cpp
+\texttt{b12033} and the Q8\_0 weights by revision (\path{deploy/model.env}).
 
 \chapter{Sample Traces}
 \label{app:traces}
@@ -92,6 +92,6 @@ report             {findings: 1, rejected_finding_proposals: 0,
 The prompts that produced the reported results, generated verbatim from the repository with their
 digests. \texttt{mg2\_agents\_v2} and \texttt{v3} differ from v1 in one declared change each (v2
 removes the Retriever's examples, v3 removes the Classifier's family meanings); they are in
-\texttt{docs/checkpoints/mg2/prompts/}.
+\path{docs/checkpoints/mg2/prompts/}.
 
 \input{generated/prompts.tex}

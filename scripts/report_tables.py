@@ -58,19 +58,23 @@ def ci(row):
 
 
 def table(caption, label, columns, body, note=None, fit=False):
-    """A booktabs table; ``fit`` scales the tabular down to the text width."""
+    """A booktabs table; ``fit`` scales the tabular to the text width, ``"auto"`` only if wider."""
+    open_fit, close_fit = {
+        True: ("\\resizebox{\\linewidth}{!}{%", "}"),
+        "auto": ("\\shrinkfit{%", "}"),
+    }.get(fit, ("", ""))
     lines = [
         "\\begin{table}[htbp]",
         "\\centering",
         f"\\caption{{{caption}}}",
         f"\\label{{{label}}}",
         "\\small",
-        *(["\\resizebox{\\linewidth}{!}{%"] if fit else []),
+        *([open_fit] if fit else []),
         f"\\begin{{tabular}}{{@{{}}{columns}@{{}}}}",
         "\\toprule",
         *body,
         "\\bottomrule",
-        "\\end{tabular}" + ("}" if fit else ""),
+        "\\end{tabular}" + close_fit,
     ]
     if note:
         lines += ["\\par\\smallskip", f"\\parbox{{\\linewidth}}{{\\footnotesize {note}}}"]
@@ -107,6 +111,7 @@ def mg1():
         body,
         "Cases: trials meeting the primary success rule. TP / FP: true and false positive "
         "findings against the oracle. Source: \\texttt{docs/checkpoints/mg1/runs/pc/<run>-tables}.",
+        fit="auto",
     )
 
 
@@ -159,6 +164,7 @@ def mg2(arena, title, label):
         "T4 series, cooperative isolation, 3 slots, 2 repeats on tuning-16. Prop.\\ / acc.: model "
         "finding proposals made and accepted by the gate. Calls and s: mean model calls and wall "
         "seconds per trial. Source: \\texttt{docs/checkpoints/mg2/runs/t4/*/compare.csv}.",
+        fit="auto",
     )
 
 
@@ -229,10 +235,10 @@ def prompts():
     for path in PROMPTS:
         raw = path.read_bytes()
         name = path.stem.replace("_", "\\_")
-        where = path.relative_to(REPOSITORY).as_posix().replace("_", "\\_")
+        where = path.relative_to(REPOSITORY).as_posix()
         parts += [
             f"\\section{{\\texttt{{{name}}}}}",
-            f"\\noindent File \\texttt{{{where}}}, "
+            f"\\noindent File \\path{{{where}}}\\newline "
             f"SHA-256 \\texttt{{{hashlib.sha256(raw).hexdigest()[:16]}\\ldots}}",
             "\\begin{lstlisting}[language={},numbers=none,basicstyle=\\ttfamily\\scriptsize]",
             *prompt_lines(json.loads(raw)),

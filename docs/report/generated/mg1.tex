@@ -3,6 +3,7 @@
 \caption{MG1 on the RTX PC (one Docker container per trial): primary success and findings}
 \label{tab:mg1}
 \small
+\shrinkfit{%
 \begin{tabular}{@{}l l >{\raggedright\arraybackslash}p{3.6cm} l r r@{}}
 \toprule
 \textbf{Run} & \textbf{Data} & \textbf{Change} & \textbf{Arm} & \textbf{Cases} & \textbf{TP / FP} \\
@@ -44,7 +45,7 @@ tuning16-think-abl1 & ablated & thinking prompt, families off & V2 ADAPTIVE & 0 
 tuning16-think-pl1 & tuning-16 & thinking prompt, families on & V2 ADAPTIVE & 15 of 16 & 20 / 0 \\
  &  &  & V1 FIXED & 11 of 16 & 21 / 5 \\
 \bottomrule
-\end{tabular}
+\end{tabular}}
 \par\smallskip
 \parbox{\linewidth}{\footnotesize Cases: trials meeting the primary success rule. TP / FP: true and false positive findings against the oracle. Source: \texttt{docs/checkpoints/mg1/runs/pc/<run>-tables}.}
 \end{table}

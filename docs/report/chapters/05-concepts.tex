@@ -10,18 +10,18 @@ to code, a test or a recorded run; Appendix~\ref{app:traces} reproduces trace ex
 \caption{Coverage of the agentic-concept checklist}
 \label{tab:concepts}
 \small
-\begin{tabularx}{\linewidth}{@{}l l c X@{}}
+\begin{tabularx}{\linewidth}{@{}p{1.8cm} >{\raggedright\arraybackslash}p{3.7cm} >{\centering\arraybackslash}p{1.2cm} >{\raggedright\arraybackslash}X@{}}
 \toprule
 \textbf{Tier} & \textbf{Concept} & \textbf{Status} & \textbf{Evidence} \\ \midrule
-Mandatory & Tool / function use & \checkmark & Six audited tools (Table~\ref{tab:tools}); \texttt{tests/integration/test\_a07\_tools.py} \\
-Mandatory & Agentic RAG & \checkmark & Graded \texttt{search\_rules}; MG2 Retriever with re-query; \texttt{tests/unit/test\_h06\_retrieval.py}, \texttt{test\_agents.py} \\
-Mandatory & Planning and reasoning & \checkmark & \textsc{plan}/\textsc{assess} loop, Section~4.4; \texttt{tests/integration/test\_a06\_workflow.py} \\
+Mandatory & Tool / function use & \checkmark & Six audited tools (Table~\ref{tab:tools}); \texttt{tests/\allowbreak integration/\allowbreak test\_\allowbreak a07\_\allowbreak tools.py} \\
+Mandatory & Agentic RAG & \checkmark & Graded \texttt{search\_rules}; MG2 Retriever with re-query; \texttt{tests/\allowbreak unit/\allowbreak test\_\allowbreak h06\_\allowbreak retrieval.py}, \texttt{test\_\allowbreak agents.py} \\
+Mandatory & Planning and reasoning & \checkmark & \textsc{plan}/\textsc{assess} loop, Section~4.4; \texttt{tests/\allowbreak integration/\allowbreak test\_\allowbreak a06\_\allowbreak workflow.py} \\
 Mandatory & Observability / tracing & \checkmark & Ledger, result records and audit chain, Section~7.1 \\
 Mandatory & Evaluation & \checkmark & Chapter~7; 1{,}008 scored trials in the MG2 series alone, plus MG1 \\
 Bonus & Multi-agent collaboration & \checkmark & Retriever and Classifier (MG2), measured; result negative \\
 Bonus & Memory & Partial & Run state checkpointed; no memory across cases (by design) \\
-Bonus & Human-in-the-loop and guardrails & \checkmark & Finding gate, review bound to revision; \texttt{tests/unit/test\_finding\_gate.py}, \texttt{test\_v05\_review.py} \\
-Bonus & Durable workflow & \checkmark & SQLite checkpoints, CAS versions, resume; \texttt{tests/integration/test\_cp4\_recovery.py} \\
+Bonus & Human-in-the-loop and guardrails & \checkmark & Finding gate, review bound to revision; \texttt{tests/\allowbreak unit/\allowbreak test\_\allowbreak finding\_\allowbreak gate.py}, \texttt{test\_\allowbreak v05\_\allowbreak review.py} \\
+Bonus & Durable workflow & \checkmark & SQLite checkpoints, CAS versions, resume; \texttt{tests/\allowbreak integration/\allowbreak test\_\allowbreak cp4\_\allowbreak recovery.py} \\
 Bonus & Experimentation & \checkmark & Pre-registered MG2 experiment and held-out run, Chapter~8 \\
 \bottomrule
 \end{tabularx}

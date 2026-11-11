@@ -1,4 +1,4 @@
-\documentclass[aspectratio=169,11pt]{beamer}
+\documentclass[aspectratio=169,11pt,t]{beamer}
 % Final slides. Figures and result tables are the report's own (figures/, generated/), so the
 % numbers cannot drift from it. Build: latexmk -pdf slides.tex
 \usetheme{default}
@@ -10,21 +10,58 @@
 \pgfplotsset{compat=1.17}
 \pgfplotsset{every axis/.append style={font=\small}}
 
+% Palette: the college navy, a muted gold accent, soft paper tints for panels.
 \definecolor{bmsblue}{RGB}{0,51,102}
-\definecolor{guidebg}{RGB}{232,240,252}
+\definecolor{bmsdeep}{RGB}{0,34,72}
+\definecolor{bmsgold}{RGB}{201,154,46}
+\definecolor{guidebg}{RGB}{235,241,249}
 \definecolor{dobg}{RGB}{230,245,233}
 \definecolor{dontbg}{RGB}{252,232,232}
-\setbeamercolor{frametitle}{fg=bmsblue}
-\setbeamercolor{title}{fg=bmsblue}
+\definecolor{inkgray}{RGB}{70,78,92}
+\definecolor{rulegray}{RGB}{200,206,216}
+
 \setbeamercolor{structure}{fg=bmsblue}
+\setbeamercolor{normal text}{fg=black!85}
+\setbeamercolor{title}{fg=white}
+\setbeamercolor{block title}{bg=bmsblue,fg=white}
+\setbeamercolor{block body}{bg=guidebg,fg=black!85}
+\setbeamercolor{block title alerted}{bg=BrickRed!85!black,fg=white}
+\setbeamercolor{block body alerted}{bg=dontbg,fg=black!85}
+\setbeamerfont{block title}{series=\bfseries,size=\normalsize}
+\setbeamertemplate{blocks}[rounded][shadow=false]
 \setbeamertemplate{navigation symbols}{}
-\setbeamertemplate{footline}{\hfill\scriptsize\color{gray}ReCycleGuard \textbullet\ Team 06\quad\insertframenumber\,/\,\inserttotalframenumber\hspace*{1em}\vspace*{0.6em}}
+\setbeamersize{text margin left=1.1cm,text margin right=1.1cm}
+
+% Bullets: small gold squares, navy sub-bullets.
+\setbeamertemplate{itemize item}{\raisebox{0.15ex}{\color{bmsgold}\tiny$\blacksquare$}}
+\setbeamertemplate{itemize subitem}{\raisebox{0.15ex}{\color{bmsblue}\tiny$\blacktriangleright$}}
+\setbeamerfont{itemize/enumerate body}{size=\normalsize}
+
+% Frame title: full-width navy band with a gold rule; the title sits on the band.
+\setbeamertemplate{frametitle}{%
+  \begin{tikzpicture}[remember picture,overlay]
+    \fill[bmsblue] (current page.north west) rectangle ([yshift=-1.0cm]current page.north east);
+    \fill[bmsgold] ([yshift=-1.0cm]current page.north west) rectangle ([yshift=-1.07cm]current page.north east);
+    \node[anchor=west,text=white,font=\Large\bfseries] at ([xshift=1.1cm,yshift=-0.5cm]current page.north west) {\insertframetitle};
+  \end{tikzpicture}\vskip0.4cm}
+
+% Footer: hairline, team on the left, page counter on the right.
+\setbeamertemplate{footline}{%
+  \leavevmode\hbox to\paperwidth{\hspace*{1.1cm}\vrule width\dimexpr\paperwidth-2.2cm\relax height 0.4pt depth 0pt\hss}\par\nointerlineskip
+  \vskip0.15cm
+  \hbox to\paperwidth{\hspace*{1.1cm}\color{inkgray}\scriptsize ReCycleGuard \textbullet\ Agentic AI \textbullet\ Team 06\hfill
+    \color{bmsblue}\bfseries\insertframenumber\,/\,\inserttotalframenumber\hspace*{1.1cm}}%
+  \vskip0.3cm}
 \setbeamertemplate{caption}{\raggedright\insertcaption\par}
 \setbeamerfont{caption}{size=\scriptsize}
 
+\newsavebox{\fitbox}
+\newcommand{\shrinkfit}[1]{\sbox{\fitbox}{#1}%
+  \ifdim\wd\fitbox>\linewidth\resizebox{\linewidth}{!}{\usebox{\fitbox}}\else\usebox{\fitbox}\fi}
 % The generated tables set \small; on a slide they need to be smaller.
-\newcommand{\slidetable}[1]{\begingroup\renewcommand{\small}{\scriptsize}\input{#1}\endgroup}
-\newcommand{\HeldOutTable}{\IfFileExists{generated/heldout.tex}{\slidetable{generated/heldout.tex}}%
+\newcommand{\slidetable}[1]{\begingroup\renewcommand{\small}{\scriptsize}\renewcommand{\caption}[1]{}\renewcommand{\smallskip}{\vspace{0.6em}}\input{#1}\endgroup}
+% The held-out slide carries its own commentary, so the generated table's footnote is dropped.
+\newcommand{\HeldOutTable}{\IfFileExists{generated/heldout.tex}{\begingroup\renewcommand{\parbox}[2]{}\slidetable{generated/heldout.tex}\endgroup}%
   {\begin{center}\fbox{\parbox{0.8\linewidth}{\centering\textbf{Held-out result pending}: the run
   declared in log entry 15 had not been scored when these slides were built.}}\end{center}}}
 
@@ -38,9 +75,19 @@ Course lead: Dr.\ Kalyan Nagaraj}
 
 \begin{document}
 
-\begin{frame}
-\titlepage
-\end{frame}
+{\setbeamercolor{background canvas}{bg=bmsdeep}
+\begin{frame}[plain]
+\begin{tikzpicture}[remember picture,overlay,every node/.style={anchor=north west,inner sep=0pt,text width=14.5cm}]
+  \fill[bmsgold] ([xshift=1.1cm,yshift=-1.5cm]current page.north west) rectangle +(2.2cm,-0.08cm);
+  \node at ([xshift=1.1cm,yshift=-1.9cm]current page.north west) {\color{white}\fontsize{34}{38}\selectfont\bfseries ReCycleGuard};
+  \node at ([xshift=1.1cm,yshift=-3.35cm]current page.north west) {\color{bmsgold}\large An audited agentic assistant for e-waste EPR reconciliation};
+  \node at ([xshift=1.1cm,yshift=-4.4cm]current page.north west) {\color{white}\normalsize Team 06\\[0.2em]
+    \color{white!85!bmsdeep}\small H Sampreeth Bhat (1BM23CD020) \textbullet\ R V Abhishek (1BM23CD047)\\
+    Sushanth S (1BM23CD063) \textbullet\ Vedantha Vinay Vernekar (1BM23CD069)};
+  \node at ([xshift=1.1cm,yshift=-6.5cm]current page.north west) {\color{white!75!bmsdeep}\footnotesize Agentic AI (26CD7PEAAI), Dept.\ of CSE (Data Science), B.M.S. College of Engineering\\
+    Course lead: Dr.\ Kalyan Nagaraj \textbullet\ 12 November 2026};
+\end{tikzpicture}
+\end{frame}}
 
 \begin{frame}{The problem}
 \begin{itemize}
@@ -166,9 +213,11 @@ trials, scored on the laptop.
 
 \begin{frame}{MG2 result: cost and benefit per arm}
 \centering
-\resizebox{\linewidth}{!}{\input{figures/mg2-plot}}
 \vspace{0.3em}
-\small No arm both recovers faults with the rules off and stays clean with them on.
+\resizebox{0.68\linewidth}{!}{\input{figures/mg2-plot}}
+\vspace{0.4em}
+
+\begin{block}{Reading}\small No arm both recovers faults with the rules off and stays clean with them on.\end{block}
 \end{frame}
 
 \begin{frame}{MG2 result: the rules-on gate}
@@ -176,12 +225,17 @@ trials, scored on the laptop.
 \end{frame}
 
 \begin{frame}{Held-out run (24 sealed dossiers, once)}
-\small Declared before it ran (log entry 15): V1 vs V2 with v7 (primary comparison), V0 and SC,
-plus the Classifier alone v3 (descriptive). Freezes pin commit, protocol, prompts and dossier bytes.
+\noindent{\small\color{inkgray} Declared before it ran (log entry 15): V1 vs V2 with v7 is the primary comparison;
+V0, SC and the Classifier alone (v3) are descriptive.\par}
+\vspace{-0.2em}
 \HeldOutTable
-\vspace{-0.4em}
-\small V1 and V2 tie at the ceiling with both controls, so the engine generalises to these cases; V2
-needs 2.4 model calls against 6.1. The model's accepted findings: none.
+\vspace{0.2em}
+\begin{columns}[T]
+\column{0.48\textwidth}
+\begin{block}{Result}\footnotesize V1 and V2 tie with both controls at the ceiling; the engine generalises.\end{block}
+\column{0.48\textwidth}
+\begin{block}{What the model added}\footnotesize V2 needs 2.4 model calls against 6.1; accepted model findings: none.\end{block}
+\end{columns}
 \end{frame}
 
 \begin{frame}{Decision and what we learned}
@@ -230,7 +284,8 @@ independently authored dossier set; more sources; held-out rerun with container 
 \end{itemize}
 \vspace{0.8em}
 \centering\small
-Repository: \url{https://github.com/R-V-Abhishek/ReCycleGuard} \quad Report: \texttt{docs/report/report.pdf}
+Repository: \url{https://github.com/R-V-Abhishek/ReCycleGuard}\\[0.3em]
+Report: \texttt{docs/report/report.pdf}
 \end{frame}
 
 \end{document}
