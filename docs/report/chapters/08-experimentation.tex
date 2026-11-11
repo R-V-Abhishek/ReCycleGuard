@@ -27,6 +27,7 @@ model, which motivated the multi-agent hypothesis.
 9--11 & Retriever and Classifier designed, pre-registered, built & Scripted tests only & Run on the real model \\
 12--14 & MG2 on T4: 18 sessions, 1{,}008 trials & No multi-agent arm passes the gate & Nothing selected \\
 15 & Stop prompt iteration; declare held-out run & -- & Run held-out once \\
+16 & Held-out run, 24 cases, 240 trials & V1, V2, V0 and SC all succeed on every trial; model share 0 & Close the experiment \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -92,6 +93,10 @@ uploaded once to a private dataset, verified against two freeze manifests that p
 protocol, prompts and dossier bytes.
 
 \section{Held-out A/B Result}
-The held-out run is reported in Table~\ref{tab:heldout} (Chapter~7). The primary question is whether
-V2, the adaptive loop, differs from V1, the fixed sequence, on cases neither was tuned on; the
-controls show what the deterministic engine achieves alone on the same cases.
+The held-out run is reported in Table~\ref{tab:heldout} (Chapter~7; log entry 16). The primary question
+was whether V2, the adaptive loop, differs from V1, the fixed sequence, on cases neither was tuned on.
+It does not on success: both, and both model-free controls, succeeded on every trial, so the
+held-out set shows no drop of the deterministic engine on cases it was not built from, and it cannot
+rank the two loops except on cost, where V2 used fewer model calls (2.4 against 6.1). The model's
+contribution was zero, as in MG1. The Classifier alone made one accepted false finding in 48 trials,
+consistent with its development result. Nothing was tuned after this run.

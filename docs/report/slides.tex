@@ -179,6 +179,9 @@ trials, scored on the laptop.
 \small Declared before it ran (log entry 15): V1 vs V2 with v7 (primary comparison), V0 and SC,
 plus the Classifier alone v3 (descriptive). Freezes pin commit, protocol, prompts and dossier bytes.
 \HeldOutTable
+\vspace{-0.4em}
+\small V1 and V2 tie at the ceiling with both controls, so the engine generalises to these cases; V2
+needs 2.4 model calls against 6.1. The model's accepted findings: none.
 \end{frame}
 
 \begin{frame}{Decision and what we learned}
@@ -188,7 +191,7 @@ in 32 trials, mostly F05 (wrong entity alias) and F14 (out-of-scope regime), wha
 \item The Classifier alone was nearly clean only because the gate rejected almost everything it
 proposed.
 \item Prompt iteration stopped after three versions; the remaining budget went to one honest
-held-out run.
+held-out run, where every loop and control succeeded on all 24 unseen cases.
 \item At this model size, the value is in the deterministic tools, the gate and human review. The
 agent loop's demonstrated property is that it is \emph{bounded, traceable and safe to fail}.
 \end{itemize}

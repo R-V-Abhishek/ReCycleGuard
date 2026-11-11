@@ -57,18 +57,20 @@ def ci(row):
     return f"{float(row['ci95_low']):.2f}--{float(row['ci95_high']):.2f}"
 
 
-def table(caption, label, columns, body, note=None):
+def table(caption, label, columns, body, note=None, fit=False):
+    """A booktabs table; ``fit`` scales the tabular down to the text width."""
     lines = [
         "\\begin{table}[htbp]",
         "\\centering",
         f"\\caption{{{caption}}}",
         f"\\label{{{label}}}",
         "\\small",
+        *(["\\resizebox{\\linewidth}{!}{%"] if fit else []),
         f"\\begin{{tabular}}{{@{{}}{columns}@{{}}}}",
         "\\toprule",
         *body,
         "\\bottomrule",
-        "\\end{tabular}",
+        "\\end{tabular}" + ("}" if fit else ""),
     ]
     if note:
         lines += ["\\par\\smallskip", f"\\parbox{{\\linewidth}}{{\\footnotesize {note}}}"]
@@ -185,10 +187,12 @@ def held_out():
         "\\textbf{TP / FP / FN} & \\textbf{Prop.\\ / acc.} & \\textbf{Calls} & \\textbf{s} \\\\",
         "\\midrule",
     ]
-    for row in rows(queue):
+    order = {"FIXED_RETRIEVAL": 0, "ADAPTIVE": 1}
+    sessions = {"heldout-baseline": "S1", "heldout-classifier-only": "M2-nr"}
+    for row in sorted(rows(queue), key=lambda r: (r["prompt"], order.get(r["variant"], 2))):
         job, prompt = row["prompt"].split(":")
         if row["variant"] in {"SC", "V0"}:
-            arm = f"{row['variant']} ({job.removeprefix('heldout-')} session)"
+            arm, prompt = f"{row['variant']} ({sessions[job]} session)", "--"
         elif row["variant"] in VARIANTS:
             arm = f"S1 {VARIANTS[row['variant']]}"
         else:
@@ -207,6 +211,7 @@ def held_out():
         body,
         "Run once after the freeze (log entry 15). M2-nr is descriptive: it failed the development "
         "gate. Source: \\texttt{docs/checkpoints/mg2/runs/t4/mg2-t4-heldout/compare.csv}.",
+        fit=True,
     )
 
 

@@ -44,8 +44,10 @@ All real-model runs use Qwen3.5-9B Q8_0 on llama.cpp `b12033`. Full tables are i
 - **MG2 (Retriever + Classifier, Kaggle T4, pre-registered).** No multi-agent arm passed the
   rules-on gate; every arm using the Retriever accepted 25 to 38 false findings in 32 trials.
   Prompt iteration stopped after three versions (log entry 15).
-- **Held-out run.** The 24 sealed dossiers ran once, as declared in log entry 15; the result is in
-  the experiment log and the report.
+- **Held-out run (24 sealed dossiers, once, as declared in log entry 15).** v7 FIXED and ADAPTIVE
+  and both model-free controls succeeded on every trial (48 of 48 and 24 of 24); the model's
+  accepted findings: none. ADAPTIVE used 2.4 model calls per trial against 6.1. The Classifier
+  alone made one accepted false finding in 48 trials (log entry 16).
 
 The value of the system at this model size comes from the deterministic tools, the gate and human
 review; the agent loop is bounded, traceable and safe to fail.

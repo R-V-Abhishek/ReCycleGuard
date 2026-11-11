@@ -13,7 +13,8 @@ expert. The corpus has two regulatory documents. Results on real producer record
 intervals are wide. checking-8 was looked at and one change (page loss) was prompted by it, so it is
 reported only as a secondary check. The deterministic family checks were written from tuning-16
 failures, so their success on tuning-16 is partly by construction; the held-out run is the only
-test of how they generalise. Only one model, a 9-billion-parameter one at 8-bit quantisation, was
+test of how they generalise. Every arm and control reached the ceiling on it, so it shows that the
+checks generalise to these 24 cases but cannot separate the fixed and adaptive loops on success. Only one model, a 9-billion-parameter one at 8-bit quantisation, was
 tried; the negative model result may not hold for larger models.
 
 \textbf{Evaluation conditions.} The MG2 series and the held-out run used cooperative isolation on
